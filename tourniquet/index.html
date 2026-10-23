@@ -1,0 +1,541 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Forces sur un tourniquet · SFA</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Mulish:wght@400;500;600;700;800&family=STIX+Two+Text:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@500&display=swap">
+</head>
+<body>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+/* Tourniquet 3D : scène plein cadre, lecture des forces en haut à gauche, jauge du frottement en haut à droite. */
+.t-stage{position:relative;width:100%;height:66vh;min-height:440px;background:#fff;border:1px solid var(--rule);border-radius:4px;overflow:hidden;
+  box-shadow:0 1px 2px rgba(12,31,46,.05),0 8px 24px -16px rgba(12,31,46,.18);touch-action:none;user-select:none;-webkit-user-select:none}
+.t-stage canvas{display:block;width:100%!important;height:100%!important;border:0!important;box-shadow:none!important;border-radius:0!important}
+.t-lab{position:absolute;left:0;top:0;font:700 13px var(--f-ui);white-space:nowrap;pointer-events:none;padding:1px 6px;border-radius:3px;
+  background:rgba(255,255,255,.9);transition:opacity .15s}
+.t-hud{position:absolute;left:12px;top:12px;background:rgba(255,255,255,.95);border:1px solid var(--rule);border-radius:4px;padding:10px 14px;
+  font:500 13px/1.55 var(--f-ui);color:var(--ink);pointer-events:none;max-width:min(360px,calc(100% - 24px))}
+.t-hud .big{font:400 1.08rem var(--f-math);white-space:nowrap}
+.t-hud .sub{color:var(--muted);font-size:12px}
+.t-gauge{position:absolute;right:12px;top:12px;width:190px;background:rgba(255,255,255,.95);border:1px solid var(--rule);border-radius:4px;
+  padding:10px 12px;font:600 12px var(--f-ui);color:var(--muted);pointer-events:none}
+.t-gauge .bar{position:relative;height:10px;background:#eef1f4;border-radius:2px;margin:8px 0 6px;overflow:visible}
+.t-gauge .fill{position:absolute;left:0;top:0;bottom:0;background:#E24B4A;border-radius:2px;transition:width .1s}
+.t-gauge .lim{position:absolute;top:-4px;bottom:-4px;width:2px;background:var(--ink)}
+.t-gauge .st{font:700 13px var(--f-ui)}
+.t-mode{position:absolute;left:12px;bottom:10px;font:700 12px var(--f-ui);color:var(--gold-ink);background:rgba(255,255,255,.92);padding:3px 8px;border-radius:3px;pointer-events:none}
+.t-slow{position:absolute;left:50%;top:12px;transform:translateX(-50%);font:700 12px var(--f-ui);color:#fff;background:#c23b3a;padding:3px 10px;border-radius:3px;pointer-events:none}
+.t-hint{position:absolute;right:12px;bottom:10px;font:500 12px var(--f-ui);color:var(--faint);pointer-events:none;text-align:right}
+.t-err{position:absolute;inset:0;display:grid;place-items:center;color:#a32d2d;font:600 14px var(--f-ui);padding:20px;text-align:center}
+.val{white-space:nowrap}
+.legend{display:flex;flex-wrap:wrap;gap:6px 18px;font:600 .82rem var(--f-ui);color:var(--muted);margin:10px 0 2px}
+.legend i{display:inline-block;width:18px;height:3px;border-radius:2px;vertical-align:middle;margin-right:6px}
+@media (max-width:640px){.t-stage{height:60vh;min-height:380px}.t-slow{position:absolute;left:50%;top:12px;transform:translateX(-50%);font:700 12px var(--f-ui);color:#fff;background:#c23b3a;padding:3px 10px;border-radius:3px;pointer-events:none}
+.t-hint{display:none}.t-hud{font-size:12px;padding:8px 10px;top:auto;bottom:34px}
+  .t-hud .big{font-size:.95rem}.t-gauge{width:150px;padding:8px 10px}.t-lab{font-size:11px}}
+</style>
+<style id="sfa-kit">
+/* Kit SFA v2 — calqué sur la maquette des capsules gratuites : fond blanc, cartes à bord fin, encre bleu nuit,
+   bouton d'action vert, jaune réservé à « gratuit » et à la prépa. Mise en page : contenu + colonne latérale. */
+:root{--bg:#f6f7f9;--paper:#ffffff;--ink:#0f1b2d;--ink2:#2c3a4e;--muted:#5f6b7a;--faint:#8a95a3;--line:#e3e7ed;--line2:#d3d9e2;
+  --navy:#13233a;--navy2:#1d3354;--chip:#e9effb;--chip-ink:#24428a;--yellow:#f4c542;--yellow-ink:#5a4300;--green:#2e6b55;--green-h:#255a47;
+  --blue:#1e3f8f;--sel:#eef3fd;--rule:var(--line);--rule2:var(--line2);--press:#eef1f5;--gold:#f4c542;--gold-ink:#7a5b00;
+  --f-ui:"Mulish",system-ui,-apple-system,"Segoe UI",sans-serif;--f-math:"STIX Two Text","Cambria Math",serif;
+  --f-num:"JetBrains Mono",ui-monospace,monospace;color-scheme:light}
+html{background:var(--bg)}
+body{background:var(--bg)!important;color:var(--ink);font-family:var(--f-ui)!important;font-size:15px;line-height:1.5;margin:0!important;padding:0!important;max-width:none!important}
+a{color:inherit}
+/* barre du haut */
+.sfa-top{background:var(--paper);border-bottom:1px solid var(--line);position:sticky;top:env(safe-area-inset-top,0px);z-index:20}
+.sfa-top .in{max-width:1240px;margin:0 auto;padding:10px 16px;display:flex;align-items:center;gap:22px}
+.sfa-logo{display:flex;align-items:center;gap:9px;font:800 15px var(--f-ui);color:var(--ink);text-decoration:none;white-space:nowrap}
+.sfa-logo i{width:28px;height:28px;border-radius:6px;background:var(--navy);color:#fff;display:grid;place-items:center;font:800 10px var(--f-ui);font-style:normal;letter-spacing:.02em}
+.sfa-nav{display:flex;gap:18px;font:600 13px var(--f-ui);color:var(--muted)}
+.sfa-nav a{text-decoration:none;padding:4px 0;border-bottom:2px solid transparent}
+.sfa-nav a.on{color:var(--ink);border-bottom-color:var(--ink)}
+.sfa-cta{margin-left:auto;background:var(--green);color:#fff;font:700 13px var(--f-ui);padding:9px 14px;border-radius:7px;text-decoration:none;white-space:nowrap}
+.sfa-cta:hover{background:var(--green-h)}
+@media (max-width:720px){.sfa-nav{display:none}.sfa-cta{padding:8px 11px;font-size:12px}}
+/* page */
+.sfa-page{max-width:1240px;margin:0 auto;padding:14px 16px 36px}
+.sfa-crumbs{font:500 12px var(--f-ui);color:var(--muted);margin:2px 0 14px;display:flex;flex-wrap:wrap;gap:6px}
+.sfa-crumbs a{text-decoration:underline;text-underline-offset:2px;text-decoration-color:var(--line2)}
+.sfa-crumbs b{color:var(--ink);font-weight:700}
+.sfa-grid{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:20px;align-items:start}
+@media (max-width:980px){.sfa-grid{grid-template-columns:minmax(0,1fr)}}
+.sfa-titlecard{background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:16px 20px;margin-bottom:14px}
+.sfa-chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px}
+.sfa-chip{font:700 11px var(--f-ui);padding:3px 9px;border-radius:999px;background:var(--chip);color:var(--chip-ink)}
+.sfa-chip.free{background:var(--yellow);color:var(--yellow-ink)}
+.sfa-chip.hp{background:#f1eef9;color:#5a3fa0}
+.sfa-titlecard h1{font:800 clamp(1.5rem,2.6vw,2rem)/1.15 var(--f-ui);letter-spacing:-.015em;margin:0;text-wrap:balance}
+.sfa-titlecard p{margin:6px 0 0;color:var(--muted);max-width:70ch}
+.sfa-sim{background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:14px;min-width:0}
+/* zone de simulation : le canevas et les scènes 3D prennent le style « lecteur » de la maquette */
+.sfa-sim canvas{background:#fff;border:1px solid var(--line)!important;border-radius:10px!important;box-shadow:none}
+.sfa-stage,.door-stage,.t-stage{border:1px solid var(--line)!important;border-radius:10px!important;box-shadow:none!important}
+.sfa-stage canvas,.door-stage canvas,.t-stage canvas{border:0!important;border-radius:0!important}
+/* contrôles */
+.row{gap:12px!important;margin:10px 0!important}
+.pill,.lbl,.tag{background:none!important;border:0!important;border-radius:0!important;padding:0!important;font:700 .86rem var(--f-ui)!important;color:var(--ink2)}
+.pill{white-space:normal!important}
+.row input[type=range]{flex:1;min-width:110px}
+@media (max-width:520px){.row,div:has(>input[type=range]){flex-wrap:wrap!important}
+  .row>.pill:first-child,div:has(>input[type=range])>.pill:first-child{min-width:0!important;flex:1 1 100%}
+  input[type=range]{min-width:0!important}.val{min-width:0!important}}
+.val{background:none!important;border:0!important;border-radius:0!important;padding:0!important;font:600 .9rem var(--f-num)!important;font-variant-numeric:tabular-nums;text-align:right;color:var(--ink)}
+.btn{background:var(--paper)!important;border:1px solid var(--line2)!important;border-radius:7px!important;color:var(--ink2)!important;
+  font:700 .82rem var(--f-ui)!important;padding:7px 13px!important;transition:background .15s,border-color .15s;cursor:pointer}
+.btn:hover{background:var(--press)!important;border-color:var(--faint)!important}
+.btn.on{background:var(--navy)!important;border-color:var(--navy)!important;color:#fff!important;box-shadow:none}
+.fml{background:var(--sel)!important;border:0!important;border-radius:10px!important;font:400 1.06rem/1.7 var(--f-math)!important;color:var(--ink);padding:10px 14px!important;margin:12px 0!important}
+.info{background:var(--bg)!important;border:1px solid var(--line)!important;border-radius:10px!important;font:500 .84rem/1.8 var(--f-num)!important;color:var(--muted)!important;padding:9px 14px!important}
+select{font:600 .86rem var(--f-ui)!important;border:1px solid var(--line2)!important;border-radius:7px!important;background:var(--paper)!important;color:var(--ink)!important;padding:6px 8px!important}
+input[type=range]{-webkit-appearance:none;appearance:none;height:24px;background:linear-gradient(var(--line),var(--line)) center/100% 4px no-repeat;cursor:pointer;--pc:var(--blue)}
+input[type=range]::-webkit-slider-runnable-track{height:4px;background:transparent;border-radius:2px}
+input[type=range]::-moz-range-track{height:4px;background:transparent}
+input[type=range]::-moz-range-progress{height:4px;background:var(--pc);border-radius:2px}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;background:#fff;border:3px solid var(--pc);margin-top:-6px;box-shadow:0 1px 3px rgba(15,27,45,.25)}
+input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;background:#fff;border:3px solid var(--pc);box-shadow:0 1px 3px rgba(15,27,45,.25)}
+button:focus-visible,input:focus-visible,a:focus-visible{outline:2px solid var(--blue);outline-offset:3px}
+/* colonne latérale */
+.sfa-side{display:flex;flex-direction:column;gap:14px;min-width:0}
+.sfa-list{background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:12px}
+.sfa-list h2{font:800 13px var(--f-ui);margin:2px 4px 8px;display:flex;justify-content:space-between;gap:8px}
+.sfa-list h2 span{font-weight:600;color:var(--muted)}
+.sfa-list ol{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:2px}
+.sfa-list a{display:grid;grid-template-columns:22px 1fr;gap:8px;align-items:baseline;padding:7px 8px;border-radius:8px;text-decoration:none;font:600 13px/1.35 var(--f-ui);color:var(--ink2)}
+.sfa-list a:hover{background:var(--press)}
+.sfa-list a.on{background:var(--sel);color:var(--chip-ink)}
+.sfa-list a i{font:600 11px var(--f-num);font-style:normal;color:var(--faint)}
+.sfa-promo{background:var(--navy);color:#fff;border-radius:12px;padding:16px}
+.sfa-promo small{display:block;font:800 10px var(--f-ui);letter-spacing:.12em;text-transform:uppercase;color:var(--yellow);margin-bottom:6px}
+.sfa-promo b{display:block;font:800 16px/1.3 var(--f-ui);margin-bottom:12px}
+.sfa-promo a{display:inline-block;background:var(--yellow);color:var(--yellow-ink);font:800 12px var(--f-ui);padding:8px 12px;border-radius:7px;text-decoration:none}
+.sfa-foot{max-width:1240px;margin:0 auto;padding:16px;border-top:1px solid var(--line);font-size:.78rem;color:var(--faint)}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+<script>
+/* Curseurs : la couleur du curseur reprend celle de son accent-color d'origine ; remplissage gauche en couleur. */
+addEventListener('DOMContentLoaded',()=>{
+/* Curseurs : couleur reprise de accent-color, remplissage à gauche. Resynchronisé en continu pour suivre
+   les curseurs créés ou déplacés par la simulation elle-même. */
+const fill=r=>{if(!r.dataset.sfa){r.dataset.sfa=1;const c=r.style.accentColor||getComputedStyle(r).accentColor;
+    if(c&&c!=='auto')r.style.setProperty('--pc',c);}
+  const v=r.value+'|'+r.min+'|'+r.max;if(r._sv===v)return;r._sv=v;
+  const p=(r.value-r.min)/(r.max-r.min)*100;
+  r.style.background=`linear-gradient(to right,var(--pc) ${p}%,var(--rule2) ${p}%) center/100% 2px no-repeat`;};
+const all=()=>document.querySelectorAll('input[type=range]').forEach(fill);
+all();document.addEventListener('input',e=>{if(e.target.matches&&e.target.matches('input[type=range]'))fill(e.target);});
+setInterval(all,150);
+/* Contrôles écrits en style en ligne (sans classe) : on leur donne les classes du kit. */
+const st=e=>(e.getAttribute('style')||'').replace(/\s/g,'').toLowerCase();
+const isPill=e=>/border-radius:(1[6-9]|20|99)px/.test(st(e));
+document.querySelectorAll('span').forEach(sp=>{if(sp.classList.length||!isPill(sp))return;
+  const n=sp.nextElementSibling,pv=sp.previousElementSibling;
+  if(n&&n.matches('input[type=range],select,button'))sp.classList.add('pill');
+  else if(pv&&pv.matches('input[type=range],select'))sp.classList.add('val');
+  else sp.classList.add('pill');});
+document.querySelectorAll('div').forEach(d=>{if(d.classList.length)return;const s=st(d);
+  if(/border-radius:(1[6-9]|20)px/.test(s)&&/monospace/.test(s))d.classList.add(d.id==='fml'?'fml':'info');
+  else if(d.querySelector(':scope>canvas')&&/border-radius:1[0-4]px/.test(s))d.classList.add('sfa-stage');});
+const tag=b=>{const s=st(b);b.classList.toggle('on',/#185fa5|rgb\(24,95,165\)/.test(s)&&!/#fff[;f]|#ffffff|rgb\(255,255,255\)/.test(s.match(/background:[^;]+/)?.[0]||''));};
+document.querySelectorAll('button:not(.btn)').forEach(b=>{b.classList.add('btn','sfa-n');tag(b);});
+new MutationObserver(ms=>ms.forEach(m=>{if(m.target.classList&&m.target.classList.contains('sfa-n'))tag(m.target);}))
+  .observe(document.body,{subtree:true,attributes:true,attributeFilter:['style']});
+});
+</script>
+<header class="sfa-top"><div class="in">
+  <a class="sfa-logo" href="https://sfascienceforall-cell.github.io/simulations/"><i>SFA</i>Science For All</a>
+  <nav class="sfa-nav"><a class="on" href="https://sfascienceforall-cell.github.io/simulations/">Simulations</a><a href="#">Prépa médecine</a></nav>
+  <a class="sfa-cta" href="#">Découvrir la prépa</a></div></header>
+<div class="sfa-page">
+<nav class="sfa-crumbs" aria-label="Fil d'Ariane"><a href="https://sfascienceforall-cell.github.io/simulations/">Simulations</a>›<a href="https://sfascienceforall-cell.github.io/simulations/#PH2">PH2 · Lois de Newton</a>›<b>Forces sur un tourniquet</b></nav>
+<div class="sfa-grid"><main style="min-width:0">
+<div class="sfa-titlecard"><div class="sfa-chips"><span class="sfa-chip">Physique · PH2 · Lois de Newton</span><span class="sfa-chip free">Gratuit</span></div><h1>Forces sur un tourniquet</h1><p>Poids, réaction, frottement et force centrifuge sur une personne qui tourne</p></div>
+<section class="sfa-sim">
+
+
+
+<div id="stage" class="t-stage" aria-label="Tourniquet en 3D : glisse pour tourner la vue, molette pour zoomer">
+  <div class="t-hud" id="hud"></div>
+  <div class="t-gauge" id="gauge">
+    Frottement nécessaire / maximal
+    <div class="bar"><div class="fill" id="gFill"></div><div class="lim" id="gLim"></div></div>
+    <div class="st" id="gSt"></div>
+  </div>
+  <div class="t-lab" id="lP" style="color:#3d4a57">P</div>
+  <div class="t-lab" id="lN" style="color:#185fa5">N</div>
+  <div class="t-lab" id="lF" style="color:#c23b3a">f</div>
+  <div class="t-lab" id="lC" style="color:#9a5f0f">centrifuge</div>
+  <div class="t-lab" id="lV" style="color:#0F6E56">v</div>
+  <div class="t-mode" id="modeTag"></div>
+  <div class="t-slow" id="slowTag" hidden>Ralenti ×0,3</div>
+  <div class="t-hint">Glisse pour tourner la vue · molette pour zoomer</div>
+</div>
+
+<div class="legend">
+  <span><i style="background:#3d4a57"></i>Poids P = mg</span>
+  <span><i style="background:#378ADD"></i>Réaction normale N</span>
+  <span><i style="background:#E24B4A"></i>Frottement des pieds f</span>
+  <span><i style="background:#1D9E75"></i>Vitesse v</span>
+  <span id="legC"><i style="background:#BA7517"></i>Force centrifuge (fictive)</span>
+</div>
+
+<div class="fml" id="fml"></div>
+
+<div class="row">
+  <span class="pill">Référentiel</span>
+  <button class="btn on" id="bSol">Vu du sol</button>
+  <button class="btn" id="bTour">Vu depuis le tourniquet</button>
+</div>
+<div class="row">
+  <span class="pill" style="min-width:150px;color:#185fa5">ω &nbsp;vitesse de rotation</span>
+  <input type="range" id="om" min="0" max="3" value="1.2" step="0.05" style="accent-color:#378ADD;">
+  <span class="val" id="omv" style="color:#185fa5">1.20 rad/s</span>
+</div>
+<div class="row">
+  <span class="pill" style="min-width:150px;color:#0F6E56">r &nbsp;distance au centre</span>
+  <input type="range" id="rr" min="0.3" max="1.85" value="1.3" step="0.05" style="accent-color:#1D9E75;">
+  <span class="val" id="rrv" style="color:#0F6E56">1.30 m</span>
+</div>
+<div class="row">
+  <span class="pill" style="min-width:150px;color:#c23b3a">μₛ &nbsp;adhérence des pieds</span>
+  <input type="range" id="mu" min="0.1" max="1" value="0.5" step="0.05" style="accent-color:#E24B4A;">
+  <span class="val" id="muv" style="color:#c23b3a">0.50</span>
+</div>
+<div class="row">
+  <span class="pill" style="min-width:150px">m &nbsp;masse</span>
+  <input type="range" id="ms" min="20" max="100" value="60" step="5" style="accent-color:#5b6b7b;">
+  <span class="val" id="msv">60 kg</span>
+</div>
+<div class="row">
+  <button class="btn" id="bReset">Remettre la personne</button>
+  <button class="btn" id="bPause">Pause</button>
+  <button class="btn" id="v3d">Vue 3D</button>
+  <button class="btn" id="vTop">Vue du dessus</button>
+  <button class="btn" id="vSide">Vue à hauteur d'yeux</button>
+</div>
+
+<div class="info" id="info"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(()=>{
+const $=id=>document.getElementById(id);
+const box=$('stage');
+if(!window.THREE){box.insertAdjacentHTML('beforeend','<div class="t-err">Impossible de charger la 3D (three.js). Vérifie la connexion internet.</div>');return;}
+
+// ---------- paramètres physiques ----------
+const g=9.81, R=2.0, H_PLAT=0.32, ALPHA_MAX=0.7;      // rayon du plateau (m), hauteur du plateau, accélération angulaire max (rad/s²)
+let omTarget=1.2, om=1.2, alpha=0, theta=0;           // vitesse cible, vitesse réelle, accélération, angle du plateau
+let r0=1.3, mu=0.5, m=60, frame='sol', paused=false;
+let state='stuck';                                     // 'stuck' | 'slide' | 'off'
+let phi=0;                                             // angle de la personne dans le repère du plateau
+let P={x:0,z:0,y:H_PLAT,vx:0,vz:0,vy:0};
+const tip={th:0,w:0,dir:0};                            // bascule au sol : angle, vitesse angulaire, direction               // position/vitesse au sol quand elle glisse
+const trail=[];
+
+// ---------- scène ----------
+const renderer=new THREE.WebGLRenderer({antialias:true});
+renderer.setPixelRatio(Math.min(devicePixelRatio||1,2));
+renderer.shadowMap.enabled=true; renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+box.prepend(renderer.domElement);
+const scene=new THREE.Scene(); scene.background=new THREE.Color('#ffffff');
+const cam=new THREE.PerspectiveCamera(42,1,0.05,80);
+scene.add(new THREE.HemisphereLight('#ffffff','#9aa6b2',0.62));
+const sun=new THREE.DirectionalLight('#ffffff',0.62); sun.position.set(4,8,5); sun.castShadow=true;
+sun.shadow.mapSize.set(1024,1024); Object.assign(sun.shadow.camera,{left:-5,right:5,top:5,bottom:-5,near:1,far:25}); scene.add(sun);
+const mat=(c,o={})=>new THREE.MeshStandardMaterial(Object.assign({color:c,roughness:.7,metalness:0},o));
+
+const ground=new THREE.Mesh(new THREE.PlaneGeometry(40,40),mat('#f4f6f8')); ground.rotation.x=-Math.PI/2; ground.receiveShadow=true; scene.add(ground);
+const grid=new THREE.GridHelper(16,32,'#c4ccd5','#dde2e8'); grid.position.y=0.002; scene.add(grid);
+
+// plateau : tout ce qui tourne est dans « plat »
+const plat=new THREE.Group(); scene.add(plat);
+const base=new THREE.Mesh(new THREE.CylinderGeometry(0.5,0.6,H_PLAT-0.06,32),mat('#8d9aa8')); base.position.y=(H_PLAT-0.06)/2; base.receiveShadow=true; scene.add(base);
+const SEG=8;
+for(let i=0;i<SEG;i++){ // secteurs alternés pour voir la rotation
+  const s=new THREE.Mesh(new THREE.CylinderGeometry(R,R,0.06,48,1,false,i*2*Math.PI/SEG,2*Math.PI/SEG),mat(i%2?'#dfe7f0':'#bccbdb'));
+  s.position.y=H_PLAT-0.03; s.castShadow=s.receiveShadow=true; plat.add(s);}
+const rim=new THREE.Mesh(new THREE.TorusGeometry(R,0.035,10,96),mat('#e3a44a',{roughness:.4,metalness:.15})); rim.rotation.x=Math.PI/2; rim.position.y=H_PLAT; plat.add(rim);
+const pole=new THREE.Mesh(new THREE.CylinderGeometry(0.06,0.06,1.25,16),mat('#8d9aa8')); pole.position.y=H_PLAT+0.62; pole.castShadow=true; plat.add(pole);
+// rambardes
+const barM=mat('#e3a44a',{roughness:.4,metalness:.15});
+for(let i=0;i<4;i++){const a=i*Math.PI/2+Math.PI/8, h=new THREE.Group();
+  const up=new THREE.Mesh(new THREE.CylinderGeometry(0.025,0.025,0.85,10),barM); up.position.set(0,0.42,0); h.add(up);
+  const top=new THREE.Mesh(new THREE.CylinderGeometry(0.025,0.025,1.4,10),barM); top.rotation.z=Math.PI/2; top.position.set(-0.7,0.85,0); h.add(top);
+  const up2=up.clone(); up2.position.x=-1.4; h.add(up2);
+  h.position.set(Math.cos(a)*(R-0.18),H_PLAT,-Math.sin(a)*(R-0.18)); h.rotation.y=a+Math.PI/2; h.children.forEach(c=>c.castShadow=true); plat.add(h);}
+
+// ---------- personnage articulé ----------
+// Repère local : +x = vers l'avant (sens de rotation), +y = haut, +z = vers l'extérieur du tourniquet.
+// Chaque membre est un pivot (articulation) avec son segment suspendu dessous : on anime des angles, pas des positions.
+const person=new THREE.Group(); scene.add(person);
+const body=new THREE.Group(); person.add(body);                     // tout le corps : pivot aux pieds pour l'inclinaison
+const M=(c)=>mat(c,{roughness:.6});
+const cShirt=M('#e3a44a'), cPants=M('#2c4a6b'), cSkin=M('#f0c9a0'), cShoe=M('#1f2a36'), cHair=M('#3a2a1e');
+function seg(len,r1,r2,m){const g=new THREE.Group();const mesh=new THREE.Mesh(new THREE.CylinderGeometry(r1,r2,len,14),m);
+  mesh.position.y=-len/2;mesh.castShadow=true;g.add(mesh);
+  const j=new THREE.Mesh(new THREE.SphereGeometry(Math.max(r1,r2)*1.02,14,10),m);j.castShadow=true;g.add(j);   // articulation arrondie
+  g.userData.len=len;return g;}
+const hips=new THREE.Group(); hips.position.y=0.92; body.add(hips);
+const pelvis=new THREE.Mesh(new THREE.CylinderGeometry(0.15,0.14,0.16,16),cPants); pelvis.castShadow=true; hips.add(pelvis);
+// jambes : cuisse -> tibia -> pied
+function leg(side){const thigh=seg(0.46,0.075,0.062,cPants);thigh.position.set(0,-0.04,side*0.095);hips.add(thigh);
+  const shin=seg(0.44,0.058,0.048,cPants);shin.position.y=-0.46;thigh.add(shin);
+  const foot=new THREE.Mesh(new THREE.BoxGeometry(0.22,0.07,0.1),cShoe);foot.position.set(0.05,-0.47,0);foot.castShadow=true;shin.add(foot);
+  return {thigh,shin,foot};}
+const LL=leg(-1), LR=leg(1);
+// buste, cou, tête
+const spine=new THREE.Group(); spine.position.y=0.06; hips.add(spine);
+const chest=new THREE.Mesh(new THREE.CylinderGeometry(0.17,0.15,0.5,18),cShirt); chest.position.y=0.27; chest.castShadow=true; spine.add(chest);
+const shoulders=new THREE.Mesh(new THREE.SphereGeometry(0.175,18,12),cShirt); shoulders.scale.set(1,0.45,1.15); shoulders.position.y=0.5; spine.add(shoulders);
+const neck=new THREE.Group(); neck.position.y=0.56; spine.add(neck);
+const head=new THREE.Mesh(new THREE.SphereGeometry(0.12,22,16),cSkin); head.position.y=0.14; head.castShadow=true; neck.add(head);
+const hair=new THREE.Mesh(new THREE.SphereGeometry(0.125,22,16,0,Math.PI*2,0,Math.PI*0.5),cHair); hair.position.y=0.15; hair.rotation.z=0.25; neck.add(hair);
+const eyeM=new THREE.MeshBasicMaterial({color:'#1f2a36'});
+[-1,1].forEach(sd=>{const e=new THREE.Mesh(new THREE.SphereGeometry(0.016,8,6),eyeM);e.position.set(0.108,0.16,sd*0.042);neck.add(e);});   // regard vers l'avant
+// bras : épaule -> avant-bras -> main
+function arm(side){const up=seg(0.3,0.05,0.045,cShirt);up.position.set(0,0.47,side*0.215);spine.add(up);
+  const fore=seg(0.28,0.042,0.036,cSkin);fore.position.y=-0.3;up.add(fore);
+  const hand=new THREE.Mesh(new THREE.SphereGeometry(0.045,12,8),cSkin);hand.position.y=-0.3;hand.castShadow=true;fore.add(hand);
+  return {up,fore};}
+const AL=arm(-1), AR=arm(1);
+const COM_H=1.0;
+
+// poses : angles (radians) des articulations, mélangés en douceur d'une image à l'autre
+const pose={lean:0,pitch:0,yawBody:0,knee:0.1,stance:0.12,armOut:0.15,armFwd:0,elbow:0.25,flail:0,headTilt:0,lie:0};
+const lerp=(a,b,k)=>a+(b-a)*k;
+function applyPose(t){
+  // inclinaison : vers le centre (rotation autour de l'axe avant x) et avant/arrière (autour de z)
+  body.rotation.set(-pose.lean,0,pose.pitch);
+  // couché : on pivote tout le corps autour des pieds
+  body.rotation.z+= -pose.lie*Math.PI/2;
+  const k=pose.knee, st=pose.stance;
+  [LL,LR].forEach((L,i)=>{const sd=i?1:-1;
+    L.thigh.rotation.set(-sd*st, 0, k*0.9);     // écart des jambes + flexion de hanche
+    L.shin.rotation.set(0,0,-k*1.8);            // genou
+    L.foot.rotation.set(0,0,k*0.9);});
+  hips.position.y=0.92-0.9*(1-Math.cos(k*1.0))*0.55;   // on descend quand les genoux plient
+  spine.rotation.z=-k*0.35;                               // buste légèrement penché en avant pour l'équilibre
+  [AL,AR].forEach((A,i)=>{const sd=i?1:-1, fl=pose.flail?Math.sin(t*9+i*Math.PI)*pose.flail:0;
+    A.up.rotation.set(-sd*(pose.armOut+fl*0.6), 0, pose.armFwd+fl);
+    A.fore.rotation.set(0,0,pose.elbow+Math.abs(fl)*0.4);});
+  neck.rotation.set(pose.headTilt,0,0);   // la tête se redresse un peu vers l'extérieur pour rester droite
+}
+let tAnim=0;
+
+// ---------- flèches 3D (tige + pointe), toujours visibles ----------
+function arrow(col,dashed){
+  const g=new THREE.Group();
+  const m=new THREE.MeshBasicMaterial({color:col,depthTest:false,transparent:true,opacity:dashed?.85:1});
+  const shaft=new THREE.Mesh(new THREE.CylinderGeometry(0.032,0.032,1,10),m), head=new THREE.Mesh(new THREE.ConeGeometry(0.085,0.2,16),m);
+  g.add(shaft,head); shaft.renderOrder=head.renderOrder=10; g.userData={shaft,head}; scene.add(g); return g;}
+const up=new THREE.Vector3(0,1,0);
+function setArrow(a,o,v){const L=v.length(); a.visible=L>0.03; if(!a.visible)return;
+  const d=v.clone().normalize(), hl=Math.min(0.2,L*0.5);
+  a.position.copy(o); a.quaternion.setFromUnitVectors(up,d);
+  a.userData.shaft.scale.set(1,L-hl,1); a.userData.shaft.position.set(0,(L-hl)/2,0);
+  a.userData.head.position.set(0,L-hl/2,0);}
+const aP=arrow('#3d4a57'), aN=arrow('#378ADD'), aF=arrow('#E24B4A'), aC=arrow('#BA7517',true), aV=arrow('#1D9E75');
+
+// trajectoire
+const TRAIL_N=600; const tGeo=new THREE.BufferGeometry(); tGeo.setAttribute('position',new THREE.BufferAttribute(new Float32Array(TRAIL_N*3),3));
+const tLine=new THREE.Line(tGeo,new THREE.LineBasicMaterial({color:'#1D9E75',transparent:true,opacity:.55})); tLine.frustumCulled=false; scene.add(tLine);
+
+// ---------- caméra en orbite (en vue « tourniquet », elle tourne avec le plateau) ----------
+let orb={th:0.55,ph:1.05,r:7.2}, goal=null;
+const views={v3d:{th:0.55,ph:1.05,r:7.2},vTop:{th:0,ph:0.03,r:7.6},vSide:{th:0.2,ph:1.43,r:6.4}};
+['v3d','vTop','vSide'].forEach(k=>$(k).onclick=()=>goal={...views[k]});
+let drag=null;
+box.addEventListener('pointerdown',e=>{box.setPointerCapture(e.pointerId);drag={x:e.clientX,y:e.clientY};goal=null;});
+box.addEventListener('pointermove',e=>{if(!drag)return;orb.th-=(e.clientX-drag.x)*0.008;orb.ph=Math.max(0.03,Math.min(1.5,orb.ph-(e.clientY-drag.y)*0.008));drag={x:e.clientX,y:e.clientY};});
+const end=()=>drag=null; box.addEventListener('pointerup',end); box.addEventListener('pointercancel',end);
+box.addEventListener('wheel',e=>{e.preventDefault();orb.r=Math.max(3.5,Math.min(14,orb.r*Math.exp(e.deltaY*0.0012)));},{passive:false});
+const tgt=new THREE.Vector3(0,0.7,0);
+function placeCam(){const k=Math.max(1,1.1/cam.aspect), th=orb.th+(frame==='tour'?theta:0), r=orb.r*k;
+  cam.position.set(tgt.x+r*Math.sin(orb.ph)*Math.sin(th),tgt.y+r*Math.cos(orb.ph),tgt.z+r*Math.sin(orb.ph)*Math.cos(th));
+  cam.up.set(0,1,0); if(orb.ph<0.06){cam.up.set(-Math.sin(th),0,-Math.cos(th));} cam.lookAt(tgt);}
+
+// ---------- contrôles ----------
+const bind=(id,set,fmt)=>{const s=$(id),o=$(id+'v');s.addEventListener('input',()=>{set(+s.value);o.textContent=fmt(+s.value);});};
+const fx=(v,n=2)=>v.toFixed(n).replace('.',',');
+bind('om',v=>omTarget=v,v=>fx(v)+' rad/s');
+bind('rr',v=>{r0=v;if(state==='stuck')placeStuck();else reset();},v=>fx(v)+' m');
+bind('mu',v=>mu=v,v=>fx(v));
+bind('ms',v=>m=v,v=>v+' kg');
+function setFrame(f){frame=f;$('bSol').classList.toggle('on',f==='sol');$('bTour').classList.toggle('on',f==='tour');
+  $('legC').style.display=f==='tour'?'':'none';trail.length=0;}
+$('bSol').onclick=()=>setFrame('sol'); $('bTour').onclick=()=>setFrame('tour');
+$('bPause').onclick=()=>{paused=!paused;$('bPause').textContent=paused?'Reprendre':'Pause';$('bPause').classList.toggle('on',paused);};
+function reset(){state='stuck';tip.th=0;tip.w=0;phi=-theta+Math.PI*0.25;trail.length=0;placeStuck();}
+$('bReset').onclick=reset;
+function placeStuck(){const a=theta+phi;P.x=r0*Math.cos(a);P.z=-r0*Math.sin(a);P.y=H_PLAT;P.vx=0;P.vz=0;P.vy=0;}
+
+// ---------- étiquettes ----------
+function lab(el,v,dx=0,dy=0){const p=v.clone().project(cam);const vis=p.z<1&&Math.abs(p.x)<1.05&&Math.abs(p.y)<1.05;
+  el.style.opacity=vis?1:0; el.style.transform=`translate(${(p.x+1)/2*box.clientWidth+dx}px,${(1-p.y)/2*box.clientHeight+dy}px) translate(-50%,-50%)`;}
+
+function size(){const w=box.clientWidth,h=box.clientHeight;renderer.setSize(w,h,false);cam.aspect=w/h;cam.updateProjectionMatrix();}
+new ResizeObserver(size).observe(box); size();
+
+// ---------- boucle ----------
+let tPrev=performance.now(); reset();
+function step(dt){
+  // le moteur du tourniquet rejoint la vitesse demandée avec une accélération limitée
+  const dOm=omTarget-om; alpha=Math.abs(dOm)<1e-4?0:Math.sign(dOm)*Math.min(ALPHA_MAX,Math.abs(dOm)/dt);
+  om+=alpha*dt; theta+=om*dt;
+  const fmax=mu*m*g;
+  if(state==='stuck'){
+    // force de frottement nécessaire : radiale m ω² r (vers le centre) + tangentielle m α r
+    const need=m*r0*Math.hypot(om*om,alpha);
+    if(need>fmax*1.0001){ // ça ne tient plus : la personne part avec la vitesse du plateau
+      state='slide'; const a=theta+phi; P.x=r0*Math.cos(a);P.z=-r0*Math.sin(a);
+      P.vx=-om*r0*Math.sin(a); P.vz=-om*r0*Math.cos(a);
+    } else placeStuck();
+  }
+  if(state==='slide'){
+    // au sol (repère inertiel) : seul le frottement cinétique agit, opposé à la vitesse relative au plateau
+    const vpx=-om*(-P.z)*1, vpz=-om*P.x;               // vitesse du plateau sous la personne : ω × r (axe y)
+    const rx=P.vx-vpx, rz=P.vz-vpz, rl=Math.hypot(rx,rz)||1e-6, muk=mu*0.8;
+    const ax=-muk*g*rx/rl, az=-muk*g*rz/rl;
+    P.vx+=ax*dt; P.vz+=az*dt; P.x+=P.vx*dt; P.z+=P.vz*dt;
+    if(Math.hypot(P.x,P.z)>R){state='off';P.vy=0;}
+  } else if(state==='off'){
+    // 1) elle quitte le plateau : chute verticale de 32 cm, la vitesse horizontale est conservée
+    if(P.y>0){P.vy-=g*dt;P.y=Math.max(0,P.y+P.vy*dt);P.x+=P.vx*dt;P.z+=P.vz*dt;
+      if(P.y===0){ // 2) contact avec le sol : les pieds s'arrêtent net (adhérence), le corps continue sur sa lancée
+        const v=Math.hypot(P.vx,P.vz), h=hips.position.y+0.12;
+        tip.dir=Math.atan2(-P.vz,P.vx); tip.th=0.05; tip.w=v/h;   // moment cinétique conservé autour des pieds : ω = v/h
+        P.vx=0;P.vz=0;}}
+    // 3) bascule vers l'avant autour des pieds, comme un pendule inversé : θ'' = (g/h)·sin θ, jusqu'à plat ventre
+    else if(tip.th<Math.PI/2){const h=1.0; tip.w+=(g/h)*Math.sin(tip.th)*dt; tip.th=Math.min(Math.PI/2,tip.th+tip.w*dt);}
+  }
+}
+function loop(t){
+  const dt=Math.min(0.033,(t-tPrev)/1000); tPrev=t;
+  // ralenti ×0,3 pendant l'éjection et la chute, pour qu'on la voie
+  const slow=state==='slide'||(state==='off'&&tip.th<Math.PI/2);
+  if(!paused){const n=4,ts=slow?0.3:1;for(let i=0;i<n;i++)step(dt*ts/n);}
+  $('slowTag').hidden=!slow;
+  // la caméra suit la personne quand elle quitte le plateau, puis revient au centre après « Remettre »
+  const follow=state!=='stuck';
+  tgt.x+=((follow?P.x*0.7:0)-tgt.x)*0.05; tgt.z+=((follow?P.z*0.7:0)-tgt.z)*0.05;
+  plat.rotation.y=theta;
+  if(goal){['th','ph','r'].forEach(k=>orb[k]+=(goal[k]-orb[k])*0.12);if(Math.abs(goal.ph-orb.ph)<1e-3&&Math.abs(goal.th-orb.th)<1e-3)goal=null;}
+  placeCam();
+
+  // ---------- personnage : orientation et posture pilotées par la physique ----------
+  person.position.set(P.x,P.y,P.z);
+  tAnim+=dt;
+  const ratioP=state==='stuck'?Math.min(1.2,m*r0*Math.hypot(om*om,alpha)/(mu*m*g)):1;
+  let tgtP;
+  if(state==='stuck'){
+    const a=Math.atan2(-P.z,P.x); person.rotation.set(0,a+Math.PI/2,0);       // face au sens de rotation
+    const breath=Math.sin(tAnim*2.2)*0.012;
+    tgtP={lean:Math.atan(om*om*r0/g),                    // angle d'équilibre réel : tan(β) = ω²r/g
+      pitch:-Math.atan(alpha*r0/g)*0.8,                  // le tourniquet accélère : on part en arrière
+      knee:0.12+0.55*Math.max(0,ratioP-0.35),           // plus on approche de la limite, plus on plie les genoux
+      stance:0.1+0.12*ratioP, armOut:0.12+0.9*Math.max(0,ratioP-0.3), armFwd:0.1+breath, elbow:0.3+0.4*ratioP,
+      flail:0, headTilt:Math.atan(om*om*r0/g)*0.4, lie:0};
+  } else if(state==='slide'){
+    // glisse : corps face à sa vitesse, penché en arrière, bras qui moulinent
+    const vx=P.vx, vz=P.vz; if(Math.hypot(vx,vz)>0.05) person.rotation.set(0,Math.atan2(-vz,vx),0);
+    tgtP={lean:0,pitch:0.35,knee:0.5,stance:0.25,armOut:1.2,armFwd:-0.4,elbow:0.5,flail:0.7,headTilt:0,lie:0};
+  } else if(P.y>0.001){
+    // en l'air (32 cm) : elle garde son allure de glissade, bras en avant pour se rattraper
+    const v=Math.hypot(P.vx,P.vz); if(v>0.05) person.rotation.set(0,Math.atan2(-P.vz,P.vx),0);
+    tgtP={lean:0,pitch:0.1,knee:0.35,stance:0.2,armOut:0.7,armFwd:1.2,elbow:0.3,flail:0.4,headTilt:0,lie:0};
+  } else {
+    // au sol : pieds fixes, le corps pivote vers l'avant dans le sens de la vitesse ; les bras amortissent
+    person.rotation.set(0,tip.dir,0);
+    const k=tip.th/(Math.PI/2);
+    tgtP={lean:0,pitch:0,knee:0.15*(1-k),stance:0.15,armOut:0.5,armFwd:1.2+1.6*k,elbow:0.5*(1-k)+0.15,flail:0,headTilt:-0.4*k,lie:k};
+  }
+  const kP=Math.min(1,dt*(state==='stuck'?6:9));
+  for(const key in tgtP) pose[key]=lerp(pose[key],tgtP[key],kP);
+  if(state==='off'&&P.y<=0.001) pose.lie=tip.th/(Math.PI/2);   // l'angle de chute vient de la physique, sans lissage
+  applyPose(tAnim);
+
+  // trajectoire, enregistrée dans le repère de la vue choisie
+  if(!paused){const p=new THREE.Vector3(P.x,P.y+0.02,P.z); if(frame==='tour')p.applyAxisAngle(up,-theta); trail.push(p); if(trail.length>TRAIL_N)trail.shift();}
+  const arr=tGeo.attributes.position.array;
+  for(let i=0;i<TRAIL_N;i++){const q=trail[Math.min(i,trail.length-1)]||new THREE.Vector3(P.x,P.y,P.z);
+    const w=frame==='tour'?q.clone().applyAxisAngle(up,theta):q; arr[3*i]=w.x;arr[3*i+1]=w.y;arr[3*i+2]=w.z;}
+  tGeo.attributes.position.needsUpdate=true;
+
+  // ---------- forces ----------
+  const S=1.1/(m*g);                                     // échelle : le poids fait 1,1 m
+  const comH=(hips.position.y+0.12)*(1-0.85*pose.lie);   // centre de gravité réel : descend quand il plie les genoux ou se couche
+  const feet=new THREE.Vector3(P.x,P.y,P.z), com=feet.clone().add(new THREE.Vector3(0,comH,0));
+  const onPlat=state!=='off'||P.y>0.001;
+  const rhat=new THREE.Vector3(P.x,0,P.z); const rl=rhat.length()||1; rhat.multiplyScalar(1/rl);
+  const that=new THREE.Vector3(-rhat.z,0,rhat.x).multiplyScalar(-1);    // sens de rotation (ω > 0)
+  let fvec=new THREE.Vector3();
+  if(state==='stuck') fvec=rhat.clone().multiplyScalar(-m*om*om*r0).add(that.clone().multiplyScalar(m*alpha*r0));
+  else if(state==='slide'){const vpx=om*P.z,vpz=-om*P.x;const rv=new THREE.Vector3(P.vx-vpx,0,P.vz-vpz);if(rv.length()>1e-4)fvec=rv.normalize().multiplyScalar(-mu*0.8*m*g);}
+  const side=that.clone().multiplyScalar(0.3);          // P d'un côté, N de l'autre : elles ne se recouvrent plus
+  const pO=com.clone().sub(side), nO=feet.clone().add(side).add(new THREE.Vector3(0,0.02,0));
+  setArrow(aP,pO,new THREE.Vector3(0,-m*g*S,0));
+  setArrow(aN,nO,new THREE.Vector3(0,(state==='off'&&P.y>0)?0:m*g*S,0));
+  setArrow(aF,feet.clone().add(new THREE.Vector3(0,0.05,0)),fvec.clone().multiplyScalar(S));
+  const fc=state==='stuck'?m*om*om*r0:0;
+  aC.visible=frame==='tour'&&state==='stuck'&&fc*S>0.03;
+  if(aC.visible)setArrow(aC,com.clone().add(new THREE.Vector3(0,0.15,0)),rhat.clone().multiplyScalar(fc*S));
+  // vitesse au sol (inertielle) ; dans le tourniquet, la personne qui tient est immobile
+  const vIn=state==='stuck'?that.clone().multiplyScalar(om*r0):new THREE.Vector3(P.vx,0,P.vz);
+  const vShow=frame==='tour'?(state==='stuck'?new THREE.Vector3():vIn.clone().sub(new THREE.Vector3(om*P.z,0,-om*P.x))):vIn;
+  setArrow(aV,com.clone().add(new THREE.Vector3(0,0.85,0)),vShow.clone().multiplyScalar(0.35));   // au-dessus de la tête
+
+  // étiquettes
+  const fl=fvec.length();
+  $('lP').textContent='P = '+Math.round(m*g)+' N'; $('lN').textContent='N = '+Math.round(m*g)+' N';
+  $('lF').textContent=(state==='stuck'?'f = ':'f cinétique = ')+Math.round(fl)+' N';
+  $('lC').textContent='centrifuge (fictive) = '+Math.round(fc)+' N';
+  $('lV').textContent='v = '+fx(vShow.length())+' m/s';
+  { // chaque étiquette du côté extérieur de sa flèche, quel que soit l'angle de vue
+    const sx=v=>v.clone().project(cam).x, pLeft=sx(pO)<sx(nO);
+    lab($('lP'),pO.clone().add(new THREE.Vector3(0,-m*g*S*0.5,0)),pLeft?-58:58,0);
+    lab($('lN'),nO.clone().add(new THREE.Vector3(0,m*g*S*0.62,0)),pLeft?58:-58,0);}
+  if(fl*S>0.03)lab($('lF'),feet.clone().add(fvec.clone().multiplyScalar(S)),0,22); else $('lF').style.opacity=0;
+  if(aC.visible)lab($('lC'),com.clone().add(new THREE.Vector3(0,0.15,0)).add(rhat.clone().multiplyScalar(fc*S)),0,-20); else $('lC').style.opacity=0;
+  if(aV.visible)lab($('lV'),com.clone().add(new THREE.Vector3(0,0.85,0)).add(vShow.clone().multiplyScalar(0.35)),0,-14); else $('lV').style.opacity=0;
+  if(state==='off'&&P.y<=0.001){$('lN').style.opacity=0.0;}
+
+  // ---------- lecture ----------
+  const fmax=mu*m*g, need=m*r0*Math.hypot(om*om,alpha), omMax=Math.sqrt(mu*g/r0);
+  const ratio=state==='stuck'?need/fmax:1.15;
+  $('gFill').style.width=Math.min(100,ratio/1.25*100)+'%'; $('gLim').style.left=(100/1.25)+'%';
+  $('gFill').style.background=ratio<0.8?'#1D9E75':ratio<1?'#BA7517':'#E24B4A';
+  $('gSt').innerHTML=state==='stuck'?(ratio<0.8?'<span style="color:#0F6E56">Ça tient</span>':'<span style="color:#9a5f0f">Limite proche</span>')
+    :'<span style="color:#c23b3a">'+(state==='slide'?'Ça glisse !':'Éjectée du tourniquet')+'</span>';
+  $('hud').innerHTML=state==='stuck'
+    ?`<div class="big"><b style="color:#c23b3a">f</b> = m·ω²·r = ${m} × ${fx(om,2)}² × ${fx(r0)} = <b>${Math.round(m*om*om*r0)} N</b></div>
+      <div class="sub">f max = μₛ·m·g = ${Math.round(fmax)} N · ça glisse au-delà de ω = √(μₛg/r) = ${fx(omMax)} rad/s${Math.abs(alpha)>0.01?' · le tourniquet accélère : f penche vers l’avant':''}</div>`
+    :`<div class="big"><b style="color:#c23b3a">m·ω²·r</b> &gt; <b>μₛ·m·g</b></div><div class="sub">Le frottement ne suffit plus à la courber : vue du sol, elle part tout droit, selon la tangente. Clique sur « Remettre la personne ».</div>`;
+  $('modeTag').textContent=frame==='sol'?'Référentiel du sol (galiléen)':'Référentiel du tourniquet (tournant, non galiléen)';
+  $('fml').innerHTML=frame==='sol'
+    ?'<b style="color:#c23b3a">Vu du sol</b> : la personne tourne, donc elle accélère vers le centre. La seule force horizontale est le <b style="color:#c23b3a">frottement de ses pieds</b> : c’est lui la force centripète, <b>f = m·ω²·r</b>. P et N se compensent.'
+    :'<b style="color:#9a5f0f">Vu depuis le tourniquet</b> : la personne est immobile. Pour que le bilan soit nul, on ajoute une <b style="color:#9a5f0f">force d’inertie centrifuge</b> fictive m·ω²·r, vers l’extérieur, qui équilibre le frottement.';
+  $('info').innerHTML=`ω = ${fx(om)} rad/s (${fx(om*60/(2*Math.PI),1)} tours/min) &nbsp;|&nbsp; v = ω·r = ${fx(om*r0)} m/s &nbsp;|&nbsp; a = ω²·r = ${fx(om*om*r0)} m/s² &nbsp;|&nbsp; <b style="color:#c23b3a">f nécessaire = ${Math.round(need)} N</b> / f max = ${Math.round(fmax)} N`;
+
+  renderer.render(scene,cam);
+  requestAnimationFrame(loop);
+}
+setFrame('sol');
+requestAnimationFrame(loop);
+window.__t={get state(){return state},get tip(){return tip.th},get y(){return P.y},set om(v){omTarget=v},reset};
+})();
+</script>
+</section></main>
+<aside class="sfa-side">
+  <div class="sfa-list"><h2>PH2 · Dynamique, lois de Newton<span>5 simulations</span></h2><ol><li><a href="https://sfascienceforall-cell.github.io/simulations/diagramme-forces/"><i>01</i>Diagramme de forces et 2ᵉ loi</a></li><li><a href="https://sfascienceforall-cell.github.io/simulations/action-reaction/"><i>02</i>Action et réaction</a></li><li><a href="https://sfascienceforall-cell.github.io/plan_incline/"><i>03</i>Plan incliné</a></li><li><a href="https://sfascienceforall-cell.github.io/frottement-coef/"><i>04</i>Coefficient de frottement</a></li><li><a class="on" aria-current="page" href="https://sfascienceforall-cell.github.io/simulations/tourniquet/"><i>05</i>Forces sur un tourniquet</a></li></ol></div>
+  <div class="sfa-promo"><small>Envie d'aller plus loin ?</small><b>La prépa SFA : le cours complet, les exercices type examen corrigés et le suivi.</b><a href="#">Voir la prépa</a></div>
+</aside></div></div>
+<footer class="sfa-foot">Science For All · simulations interactives de physique</footer>
+</body>
+</html>
