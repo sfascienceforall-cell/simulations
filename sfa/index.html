@@ -1,0 +1,148 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>SFA · Science For All</title>
+<meta name="description" content="SFA, Science For All : des cours préparés sur ton propre cours, à 11 € de l'heure, avec rediffusion, un professeur formé et un suivi de ta participation et de ta compréhension.">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Mulish:wght@400;500;600;700;800&display=swap">
+<style>
+:root{--bg:#f6f7f9;--paper:#fff;--ink:#0f1b2d;--ink2:#2c3a4e;--muted:#5f6b7a;--faint:#8a95a3;--line:#e3e7ed;--line2:#d3d9e2;
+ --navy:#13233a;--chip:#e9effb;--chip-ink:#24428a;--yellow:#f4c542;--yellow-ink:#5a4300;--green:#2e6b55;--sel:#eef3fd;
+ --f:"Mulish",system-ui,-apple-system,"Segoe UI",sans-serif}
+*{box-sizing:border-box}html{background:var(--bg)}body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 var(--f)}
+a{color:inherit}
+.top{background:var(--paper);border-bottom:1px solid var(--line);position:sticky;top:env(safe-area-inset-top,0px);z-index:5}
+.top .in{max-width:1240px;margin:0 auto;padding:10px 16px;display:flex;align-items:center;gap:22px}
+.logo{display:flex;align-items:center;gap:9px;font:800 15px var(--f);text-decoration:none;white-space:nowrap}
+.logo i{width:28px;height:28px;border-radius:6px;background:var(--navy);color:#fff;display:grid;place-items:center;font:800 10px var(--f);font-style:normal}
+.nav{display:flex;gap:18px;font:600 13px var(--f);color:var(--muted)}.nav a{text-decoration:none;padding:4px 0;border-bottom:2px solid transparent}
+.nav a.on{color:var(--ink);border-bottom-color:var(--ink)}
+.cta{margin-left:auto;background:var(--green);color:#fff;font:700 13px var(--f);padding:9px 14px;border-radius:7px;text-decoration:none;white-space:nowrap}
+@media (max-width:720px){.nav{display:none}}
+.wrap{max-width:1240px;margin:0 auto;padding:0 16px}
+.hero{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:28px;align-items:center;padding:34px 0 26px}
+@media (max-width:900px){.hero{grid-template-columns:minmax(0,1fr)}}
+.free{display:inline-block;font:800 11px var(--f);letter-spacing:.08em;text-transform:uppercase;background:var(--yellow);color:var(--yellow-ink);padding:4px 10px;border-radius:999px}
+h1{font:800 clamp(1.9rem,4vw,2.9rem)/1.08 var(--f);letter-spacing:-.02em;margin:12px 0 10px;text-wrap:balance}
+.lead{color:var(--muted);max-width:56ch;margin:0 0 16px}
+.search{display:flex;gap:8px;max-width:460px}
+.search input{flex:1;min-width:0;border:1px solid var(--line2);border-radius:8px;padding:10px 12px;font:500 14px var(--f);background:var(--paper)}
+.stats{display:flex;gap:22px;margin-top:16px;color:var(--muted);font:600 13px var(--f)}.stats b{display:block;color:var(--ink);font:800 22px var(--f)}
+.feat{background:var(--navy);border-radius:14px;padding:14px;color:#fff;text-decoration:none;display:block}
+.feat small{font:800 10px var(--f);letter-spacing:.12em;text-transform:uppercase;color:var(--yellow)}
+.feat img{display:block;width:100%;border-radius:8px;margin:10px 0;background:#fff}
+.feat b{font:800 16px/1.3 var(--f)}
+.chips{display:flex;gap:8px;overflow-x:auto;padding:4px 0 14px;scrollbar-width:thin}
+.chips a{flex:none;text-decoration:none;font:700 13px var(--f);padding:8px 12px;border-radius:9px;border:1px solid var(--line);background:var(--paper);color:var(--ink2)}
+.chips a span{color:var(--faint);font-weight:600;margin-left:6px}
+section{padding:18px 0 8px;scroll-margin-top:70px}
+section h2{font:800 1.3rem var(--f);margin:0;display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+section h2 em{font-style:normal;font:700 12px var(--f);color:var(--chip-ink);background:var(--chip);padding:3px 9px;border-radius:999px}
+section h2 em.hp{background:#f1eef9;color:#5a3fa0}
+section>p{color:var(--muted);margin:4px 0 12px;font-size:14px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:14px}
+.card{background:var(--paper);border:1px solid var(--line);border-radius:12px;overflow:hidden;text-decoration:none;display:flex;flex-direction:column;transition:border-color .15s,transform .15s}
+.card:hover{border-color:var(--line2);transform:translateY(-2px)}
+.card img{display:block;width:100%;aspect-ratio:16/10;object-fit:cover;object-position:top;background:#fff;border-bottom:1px solid var(--line)}
+.card div{padding:11px 13px 13px}
+.card small{font:700 11px var(--f);color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+.card b{display:block;font:800 15px/1.3 var(--f);margin:3px 0 4px}
+.card span{display:block;color:var(--muted);font-size:13px;line-height:1.4}
+.card .new{display:inline-block;margin-left:6px;font:800 10px var(--f);background:var(--yellow);color:var(--yellow-ink);padding:1px 6px;border-radius:999px;vertical-align:2px;text-transform:uppercase;letter-spacing:.05em}
+.promo{background:var(--navy);color:#fff;border-radius:14px;padding:22px;margin:26px 0 30px;display:flex;flex-wrap:wrap;gap:14px;align-items:center;justify-content:space-between}
+.promo small{display:block;font:800 10px var(--f);letter-spacing:.12em;text-transform:uppercase;color:var(--yellow);margin-bottom:4px}
+.promo b{font:800 20px/1.25 var(--f)}
+.promo a{background:var(--yellow);color:var(--yellow-ink);font:800 13px var(--f);padding:10px 14px;border-radius:8px;text-decoration:none}
+.chips a.ex{background:var(--navy);color:#fff;border-color:var(--navy)}.chips a.ex span{color:var(--yellow)}
+section h2 em.ex{background:#e7f6ef;color:#0F6E56}
+.exsec{background:#fff;border:1px solid var(--line);border-radius:14px;padding:18px 18px 20px;margin:6px 0 10px}
+.empty{display:none;color:var(--muted);padding:20px 0}
+footer{border-top:1px solid var(--line);color:var(--faint);font-size:12px;padding:16px}
+
+.hero{display:block;padding:36px 0 18px;max-width:780px}
+.btns{display:flex;flex-wrap:wrap;gap:10px;margin-top:4px}
+.b1,.b2{font:800 14px var(--f);padding:11px 16px;border-radius:8px;text-decoration:none;white-space:nowrap}
+.b1{background:var(--green);color:#fff}.b2{background:var(--paper);border:1px solid var(--line2);color:var(--ink)}
+.pts{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:8px 0 6px}
+@media (max-width:900px){.pts{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:480px){.pts{grid-template-columns:minmax(0,1fr)}}
+.pts div{background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:16px}
+.pts b{display:block;font:800 26px/1.1 var(--f);color:var(--navy)}
+.pts strong{display:block;font:800 15px var(--f);margin:6px 0 3px}
+.pts span{color:var(--muted);font-size:13.5px;line-height:1.45;display:block}
+.blk{background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:22px;margin:16px 0}
+.blk h2{font:800 1.35rem/1.2 var(--f);margin:0 0 6px}
+.blk p.s{color:var(--muted);margin:0 0 14px;max-width:70ch}
+.suivi{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:22px;align-items:start}
+@media (max-width:900px){.suivi{grid-template-columns:minmax(0,1fr)}}
+.chart{border:1px solid var(--line);border-radius:12px;padding:14px 14px 10px;background:#fff}
+.chart h3{font:800 15px var(--f);margin:0 0 2px}.chart small{color:var(--muted);font:600 12px var(--f)}
+.chart svg{display:block;width:100%;height:auto;margin-top:8px}
+.chart .ax{font:600 12px Mulish,system-ui,sans-serif;fill:#8a95a3}
+@media (max-width:520px){.chart .ax{font-size:22px}}
+.leg{display:flex;flex-wrap:wrap;gap:14px;font:700 12.5px var(--f);color:var(--ink2);margin-top:6px}
+.leg i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px;vertical-align:-1px}
+.alert{display:flex;gap:10px;align-items:flex-start;background:#fdecec;border-radius:10px;padding:10px 12px;margin-top:10px;font-size:13.5px;color:#7a2222}
+.alert b{color:#a32d2d}
+.steps{list-style:none;margin:0;padding:0;display:grid;gap:10px}
+.steps li{border:1px solid var(--line);border-radius:10px;padding:12px 14px;background:var(--bg)}
+.steps b{display:block;font:800 14.5px var(--f);margin-bottom:2px}
+.steps span{color:var(--ink2);font-size:13.5px;line-height:1.45}
+.opt{background:var(--navy);color:#fff;border-radius:14px;padding:22px;margin:16px 0}
+.opt small{font:800 10px var(--f);letter-spacing:.12em;text-transform:uppercase;color:var(--yellow)}
+.opt h2{font:800 1.35rem/1.25 var(--f);margin:6px 0 12px}
+.opt ul{margin:0;padding:0;list-style:none;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+@media (max-width:720px){.opt ul{grid-template-columns:minmax(0,1fr)}}
+.opt li{background:rgba(255,255,255,.07);border-radius:10px;padding:12px 14px;color:#d4dceb;font-size:14px;line-height:1.45}
+.opt li b{display:block;color:#fff;font:800 14.5px var(--f);margin-bottom:2px}
+.more{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:16px 0 8px}
+@media (max-width:720px){.more{grid-template-columns:minmax(0,1fr)}}
+.more a{display:block;text-decoration:none;border:1px solid var(--line);border-radius:12px;padding:16px;background:var(--paper)}
+.more a:hover{border-color:var(--line2)}
+.more small{font:800 10px var(--f);letter-spacing:.1em;text-transform:uppercase;color:var(--green)}
+.more b{display:block;font:800 16px/1.3 var(--f);margin:4px 0}
+.more span{color:var(--muted);font-size:13.5px}
+</style></head><body>
+<header class="top"><div class="in"><a class="logo" href="./"><i>SFA</i>Science For All</a>
+<nav class="nav"><a class="on" href="./">SFA</a><a href="https://sfascienceforall-cell.github.io/simulations/">Simulations</a><a href="https://sfascienceforall-cell.github.io/simulations/exercices/">Exercices</a><a href="https://sfascienceforall-cell.github.io/simulations/prepa/">Prépa médecine</a></nav><a class="cta" href="https://sciencesforall.be">Aller sur le site</a></div></header>
+<main class="wrap">
+
+<div class="hero"><span class="free">Science For All</span>
+<h1>Des cours de sciences préparés sur ton cours à toi.</h1>
+<p class="lead">SFA t'aide à réussir tes cours de sciences. On ne te donne pas un cours générique : chaque séance est préparée à partir de <b>ton</b> cours, avec un professeur formé, et on suit tes progrès séance après séance.</p>
+<div class="btns"><a class="b1" href="https://sciencesforall.be">Découvrir les cours sur sciencesforall.be</a><a class="b2" href="#suivi">Voir le suivi</a></div></div>
+
+<div class="pts">
+<div><b>Ton cours</b><strong>Préparé sur mesure</strong><span>Chaque séance suit le contenu de ton propre cours : mêmes chapitres, mêmes notations, mêmes types d'exercices.</span></div>
+<div><b>11 €</b><strong>de l'heure</strong><span>Un tarif simple et accessible pour chaque heure de cours.</span></div>
+<div><b>Replay</b><strong>Chaque cours rediffusé</strong><span>Chaque séance est enregistrée : tu la revois quand tu veux, autant de fois que nécessaire.</span></div>
+<div><b>Prof</b><strong>Formé par SFA</strong><span>Tes professeurs sont formés à notre façon d'enseigner : clair, progressif, avec des exercices.</span></div>
+</div>
+
+<section class="blk" id="suivi"><h2>Un suivi qui ne laisse personne décrocher</h2>
+<p class="s">À chaque séance, chaque étudiant est coté sur deux points : sa <b>participation</b> et sa <b>compréhension</b>. On voit ainsi, chapitre après chapitre, où ça avance et où ça coince.</p>
+<div class="suivi">
+<div class="chart"><h3>Exemple réel : une de nos étudiantes</h3><small>Chimie organique · 7 journées · notes sur 5</small>
+<svg viewBox="0 0 640 300" role="img" aria-label="Participation et compréhension d'une étudiante sur 7 journées de chimie organique : la compréhension descend à 2 sur 5 à la journée 6 puis remonte à 4 sur 5 à la journée 7."><line x1="40" y1="260.0" x2="624" y2="260.0" stroke="#e3e7ed"/><text x="30" y="264.0" text-anchor="end" class="ax">0</text><line x1="40" y1="211.2" x2="624" y2="211.2" stroke="#e3e7ed"/><text x="30" y="215.2" text-anchor="end" class="ax">1</text><line x1="40" y1="162.4" x2="624" y2="162.4" stroke="#e3e7ed"/><text x="30" y="166.4" text-anchor="end" class="ax">2</text><line x1="40" y1="113.6" x2="624" y2="113.6" stroke="#e3e7ed"/><text x="30" y="117.6" text-anchor="end" class="ax">3</text><line x1="40" y1="64.8" x2="624" y2="64.8" stroke="#e3e7ed"/><text x="30" y="68.8" text-anchor="end" class="ax">4</text><line x1="40" y1="16.0" x2="624" y2="16.0" stroke="#e3e7ed"/><text x="30" y="20.0" text-anchor="end" class="ax">5</text><text x="40.0" y="286" text-anchor="middle" class="ax">J1</text><text x="137.3" y="286" text-anchor="middle" class="ax">J2</text><text x="234.7" y="286" text-anchor="middle" class="ax">J3</text><text x="332.0" y="286" text-anchor="middle" class="ax">J4</text><text x="429.3" y="286" text-anchor="middle" class="ax">J5</text><text x="526.7" y="286" text-anchor="middle" class="ax">J6</text><text x="624.0" y="286" text-anchor="middle" class="ax">J7</text><rect x="504.7" y="16" width="44" height="244" rx="8" fill="#fdecec"/><polyline points="40.0,64.8 137.3,64.8 234.7,113.6 332.0,113.6 429.3,64.8 526.7,64.8 624.0,16.0" fill="none" stroke="#E07A2E" stroke-width="3.5" stroke-linejoin="round" stroke-linecap="round"/><circle cx="40.0" cy="64.8" r="5.5" fill="#fff" stroke="#E07A2E" stroke-width="3"/><circle cx="137.3" cy="64.8" r="5.5" fill="#fff" stroke="#E07A2E" stroke-width="3"/><circle cx="234.7" cy="113.6" r="5.5" fill="#fff" stroke="#E07A2E" stroke-width="3"/><circle cx="332.0" cy="113.6" r="5.5" fill="#fff" stroke="#E07A2E" stroke-width="3"/><circle cx="429.3" cy="64.8" r="5.5" fill="#fff" stroke="#E07A2E" stroke-width="3"/><circle cx="526.7" cy="64.8" r="5.5" fill="#fff" stroke="#E07A2E" stroke-width="3"/><circle cx="624.0" cy="16.0" r="5.5" fill="#fff" stroke="#E07A2E" stroke-width="3"/><polyline points="40.0,113.6 137.3,113.6 234.7,64.8 332.0,64.8 429.3,113.6 526.7,162.4 624.0,64.8" fill="none" stroke="#5B5BE6" stroke-width="3.5" stroke-linejoin="round" stroke-linecap="round"/><circle cx="40.0" cy="113.6" r="5.5" fill="#fff" stroke="#5B5BE6" stroke-width="3"/><circle cx="137.3" cy="113.6" r="5.5" fill="#fff" stroke="#5B5BE6" stroke-width="3"/><circle cx="234.7" cy="64.8" r="5.5" fill="#fff" stroke="#5B5BE6" stroke-width="3"/><circle cx="332.0" cy="64.8" r="5.5" fill="#fff" stroke="#5B5BE6" stroke-width="3"/><circle cx="429.3" cy="113.6" r="5.5" fill="#fff" stroke="#5B5BE6" stroke-width="3"/><circle cx="526.7" cy="162.4" r="5.5" fill="#fff" stroke="#5B5BE6" stroke-width="3"/><circle cx="624.0" cy="64.8" r="5.5" fill="#fff" stroke="#5B5BE6" stroke-width="3"/></svg>
+<div class="leg"><span><i style="background:#E07A2E"></i>Participation</span><span><i style="background:#5B5BE6"></i>Compréhension</span></div>
+<div class="alert"><span aria-hidden="true">✉</span><div>Journée 6 : sa compréhension descend à <b>2/5</b>. Un message automatique lui est envoyé pour savoir si tout va bien, et le chapitre est revu avec elle. Journée 7 : elle remonte à <b>4/5</b>.</div></div></div>
+<ol class="steps">
+<li><b>1. Coté à chaque séance</b><span>Participation et compréhension, notées par le professeur pendant le cours.</span></li>
+<li><b>2. Une alerte si ça baisse</b><span>Dès que la participation ou la compréhension passe sous un certain seuil, l'étudiant reçoit un message automatique pour savoir si tout va bien.</span></li>
+<li><b>3. On reprend ce qui coince</b><span>Si un chapitre montre une baisse, on le revoit avec l'étudiant.</span></li>
+</ol></div></section>
+
+<section class="opt"><small>Option suivi</small><h2>Pour aller plus loin : l'option suivi</h2>
+<ul>
+<li><b>Tes graphiques</b>Tu as accès à tes propres courbes de participation et de compréhension, chapitre par chapitre.</li>
+<li><b>3 h de questions-réponses par semaine</b>Chaque semaine, jusqu'au blocus, une séance de questions-réponses de 3 heures.</li>
+<li><b>Un professeur dédié</b>Pendant ces séances, un professeur dédié répond à tes questions.</li>
+<li><b>Les chapitres en baisse revus</b>Si tes graphiques montrent une baisse dans un chapitre, ton professeur le revoit avec toi.</li>
+</ul></section>
+
+<div class="more">
+<a href="https://sfascienceforall-cell.github.io/simulations/"><small>Gratuit</small><b>Simulations de physique</b><span>Toutes les notions, à manipuler.</span></a>
+<a href="https://sfascienceforall-cell.github.io/simulations/exercices/"><small>Gratuit</small><b>Exercices et QCM</b><span>Rappels théoriques et exercices corrigés.</span></a>
+<a href="https://sfascienceforall-cell.github.io/simulations/prepa/"><small>Concours 2027</small><b>Prépa médecine</b><span>Le parcours complet pour l'examen d'entrée.</span></a>
+</div>
+
+<div class="promo"><div><small>Science For All</small><b>Tous les cours, les horaires et l'inscription sont sur notre site.</b></div><a href="https://sciencesforall.be">Aller sur sciencesforall.be</a></div>
+</main><footer>Science For All · <a href="https://sciencesforall.be">sciencesforall.be</a></footer>
+</body></html>
