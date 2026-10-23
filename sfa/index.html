@@ -60,8 +60,9 @@ footer{border-top:1px solid var(--line);color:var(--faint);font-size:12px;paddin
 .btns{display:flex;flex-wrap:wrap;gap:10px;margin-top:4px}
 .b1,.b2{font:800 14px var(--f);padding:11px 16px;border-radius:8px;text-decoration:none;white-space:nowrap}
 .b1{background:var(--green);color:#fff}.b2{background:var(--paper);border:1px solid var(--line2);color:var(--ink)}
-.pts{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:8px 0 6px}
-@media (max-width:900px){.pts{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.pts{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px;margin:8px 0 6px}
+@media (max-width:1100px){.pts{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media (max-width:720px){.pts{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media (max-width:480px){.pts{grid-template-columns:minmax(0,1fr)}}
 .pts div{background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:16px}
 .pts b{display:block;font:800 26px/1.1 var(--f);color:var(--navy)}
@@ -92,6 +93,10 @@ footer{border-top:1px solid var(--line);color:var(--faint);font-size:12px;paddin
 @media (max-width:720px){.opt ul{grid-template-columns:minmax(0,1fr)}}
 .opt li{background:rgba(255,255,255,.07);border-radius:10px;padding:12px 14px;color:#d4dceb;font-size:14px;line-height:1.45}
 .opt li b{display:block;color:#fff;font:800 14.5px var(--f);margin-bottom:2px}
+.gar{background:var(--navy);color:#fff;border-radius:14px;padding:22px 24px;margin:16px 0;display:grid;grid-template-columns:auto minmax(0,1fr);gap:20px;align-items:center}
+.gar .seal{width:84px;height:84px;border-radius:50%;background:var(--yellow);color:var(--yellow-ink);display:grid;place-items:center;text-align:center;font:800 12px/1.1 var(--f);text-transform:uppercase}
+.gar h2{font:800 clamp(1.2rem,2.6vw,1.6rem)/1.25 var(--f);margin:0}.gar p{margin:6px 0 0;color:#d4dceb}
+@media (max-width:560px){.gar{grid-template-columns:minmax(0,1fr)}.gar .seal{width:68px;height:68px;font-size:10.5px}}
 .more{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:16px 0 8px}
 @media (max-width:720px){.more{grid-template-columns:minmax(0,1fr)}}
 .more a{display:block;text-decoration:none;border:1px solid var(--line);border-radius:12px;padding:16px;background:var(--paper)}
@@ -106,15 +111,19 @@ footer{border-top:1px solid var(--line);color:var(--faint);font-size:12px;paddin
 
 <div class="hero"><span class="free">Science For All</span>
 <h1>Des cours de sciences préparés sur ton cours à toi.</h1>
-<p class="lead">SFA t'aide à réussir tes cours de sciences. On ne te donne pas un cours générique : chaque séance est préparée à partir de <b>ton</b> cours, avec un professeur formé, et on suit tes progrès séance après séance.</p>
+<p class="lead">SFA t'aide à réussir tes cours de sciences. On ne te donne pas un cours générique : chaque cours de 3 à 4 heures est basé sur <b>ton</b> cours, avec un rappel théorique puis des exercices pour te préparer à ton examen, et un professeur formé, et on suit tes progrès séance après séance.</p>
 <div class="btns"><a class="b1" href="https://sciencesforall.be">Découvrir les cours sur sciencesforall.be</a><a class="b2" href="#suivi">Voir le suivi</a></div></div>
 
 <div class="pts">
-<div><b>Ton cours</b><strong>Préparé sur mesure</strong><span>Chaque séance suit le contenu de ton propre cours : mêmes chapitres, mêmes notations, mêmes types d'exercices.</span></div>
+<div><b>Ton cours</b><strong>Préparé sur mesure</strong><span>Le cours est basé sur <i style="font-style:normal;font-weight:800;color:var(--ink)">ton</i> cours : mêmes chapitres, mêmes notations, mêmes types d'exercices.</span></div>
+<div><b>3 à 4 h</b><strong>par cours</strong><span>Un rappel théorique, puis des exercices pour te préparer directement à ton examen.</span></div>
 <div><b>11 €</b><strong>de l'heure</strong><span>Un tarif simple et accessible pour chaque heure de cours.</span></div>
 <div><b>Replay</b><strong>Chaque cours rediffusé</strong><span>Chaque séance est enregistrée : tu la revois quand tu veux, autant de fois que nécessaire.</span></div>
 <div><b>Prof</b><strong>Formé par SFA</strong><span>Tes professeurs sont formés à notre façon d'enseigner : clair, progressif, avec des exercices.</span></div>
 </div>
+
+<div class="gar"><div class="seal">Jusqu'à la réussite</div><div><h2>Comme pour la prépa médecine, le cours est donné jusqu'à ta réussite.</h2>
+<p>Si tu ne réussis pas ton examen, tu refais le cours gratuitement. On reste avec toi jusqu'à ce que ce soit réussi.</p></div></div>
 
 <section class="blk" id="suivi"><h2>Un suivi qui ne laisse personne décrocher</h2>
 <p class="s">À chaque séance, chaque étudiant est coté sur deux points : sa <b>participation</b> et sa <b>compréhension</b>. On voit ainsi, chapitre après chapitre, où ça avance et où ça coince.</p>
