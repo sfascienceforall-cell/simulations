@@ -14,7 +14,7 @@ a{color:inherit}
 .nav{display:flex;gap:18px;font:600 13px var(--f);color:var(--muted)}.nav a{text-decoration:none;padding:4px 0;border-bottom:2px solid transparent}
 .nav a.on{color:var(--ink);border-bottom-color:var(--ink)}
 .cta{margin-left:auto;background:var(--green);color:#fff;font:700 13px var(--f);padding:9px 14px;border-radius:7px;text-decoration:none;white-space:nowrap}
-@media (max-width:720px){.top .in{flex-wrap:wrap;row-gap:6px;padding-bottom:6px}.nav{order:3;flex:1 0 100%;gap:20px;overflow-x:auto;white-space:nowrap;scrollbar-width:none;font-size:14px;border-top:1px solid var(--line);padding-top:6px}.nav::-webkit-scrollbar{display:none}.nav a{padding:6px 0;flex:none}.cta{padding:8px 11px;font-size:12px}}
+@media (max-width:720px){.top .in{flex-wrap:wrap;row-gap:6px;padding-bottom:6px}.nav{order:3;flex:1 0 100%;gap:12px;overflow-x:auto;white-space:nowrap;scrollbar-width:none;font-size:13px;letter-spacing:-.01em;border-top:1px solid var(--line);padding-top:6px}.nav::-webkit-scrollbar{display:none}.nav a{padding:6px 0;flex:none}.cta{padding:8px 11px;font-size:12px}}
 .wrap{max-width:1240px;margin:0 auto;padding:0 16px}
 .hero{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:28px;align-items:center;padding:34px 0 26px}
 @media (max-width:900px){.hero{grid-template-columns:minmax(0,1fr)}}
@@ -54,9 +54,31 @@ section h2 em.ex{background:#e7f6ef;color:#0F6E56}
 .exsec{background:#fff;border:1px solid var(--line);border-radius:14px;padding:18px 18px 20px;margin:6px 0 10px}
 .empty{display:none;color:var(--muted);padding:20px 0}
 footer{border-top:1px solid var(--line);color:var(--faint);font-size:12px;padding:16px}
-</style></head><body>
+</style><style id="sfa-blocus-css">
+.sfa-blocus{background:#13233a;color:#fff;font:600 13.5px/1.35 Mulish,system-ui,sans-serif}
+.sfa-blocus .in{max-width:1240px;margin:0 auto;padding:9px 16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.sfa-blocus .cd{display:inline-flex;align-items:baseline;gap:6px;background:#f4c542;color:#5a4300;border-radius:999px;padding:3px 11px;font-weight:800;white-space:nowrap}
+.sfa-blocus .cd b{font-size:16px}
+.sfa-blocus .tx{flex:1 1 260px;color:#d4dceb}.sfa-blocus .tx strong{color:#fff}
+.sfa-blocus a.go{color:#13233a;background:#fff;border-radius:7px;padding:6px 11px;font-weight:800;text-decoration:none;white-space:nowrap}
+.sfa-blocus button,.sfa-blocus button.btn{box-shadow:none!important;border:0!important;background:none!important;color:#8ea0b8!important;padding:2px 6px!important;background:none;border:0;color:#8ea0b8;font:700 18px/1 Mulish,system-ui,sans-serif;cursor:pointer;padding:2px 4px}
+.sfa-blocus-side{background:#fff8e1;border:1px solid #f1d98c;border-radius:12px;padding:14px 16px;margin-bottom:14px;font:600 13px/1.45 Mulish,system-ui,sans-serif;color:#5a4300}
+.sfa-blocus-side small{display:block;font:800 10px Mulish,system-ui,sans-serif;letter-spacing:.12em;text-transform:uppercase;margin-bottom:4px}
+.sfa-blocus-side b{display:block;font:800 26px/1.1 Mulish,system-ui,sans-serif;color:#13233a;margin-bottom:4px}
+.sfa-blocus-side .bar{height:6px;background:#f1e3b4;border-radius:99px;margin:8px 0 10px;overflow:hidden}.sfa-blocus-side .bar i{display:block;height:100%;background:#BA7517;border-radius:99px}
+.sfa-blocus-side a{display:inline-block;margin-top:8px;background:#13233a;color:#fff;border-radius:7px;padding:7px 11px;font-weight:800;text-decoration:none}
+@media (max-width:720px){.sfa-blocus .in{gap:8px;padding:8px 12px}.sfa-blocus .cd{font-size:12px;padding:3px 9px}.sfa-blocus .cd b{font-size:14px}.sfa-blocus a.go{font-size:12px;padding:5px 9px}.sfa-blocus button,.sfa-blocus button.btn{margin-left:auto}.sfa-blocus .tx{flex-basis:100%;order:3;font-size:12.5px}}
+</style>
+</head><body>
 <header class="top"><div class="in"><a class="logo" href="sfa/"><i>SFA</i>Science For All</a>
-<nav class="nav"><a href="sfa/">SFA</a><a class="on" href="./">Simulations</a><a href="exercices/">Exercices</a><a href="https://sfascienceforall-cell.github.io/simulations/prepa/">Prépa médecine</a></nav><a class="cta" href="https://sfascienceforall-cell.github.io/simulations/prepa/">Découvrir la prépa</a></div></header>
+<nav class="nav"><a href="sfa/">SFA</a><a class="on" href="./">Simulations</a><a href="exercices/">Exercices</a><a href="https://sfascienceforall-cell.github.io/simulations/prepa/">Prépa concours médecine</a></nav><a class="cta" href="https://sfascienceforall-cell.github.io/simulations/prepa/">Prépa concours médecine</a></div></header>
+<div class="sfa-blocus" id="sfaBlocus"><div class="in">
+<span class="cd">Blocus dans <b data-bl="w">7</b> <span data-bl="u">semaines</span></span>
+<span class="tx"><strong>Ton blocus démarre bientôt.</strong> Révise chapitre par chapitre avec les simulations et les exercices corrigés.</span>
+<a class="go" href="https://sfascienceforall-cell.github.io/simulations/exercices/">M'entraîner</a>
+<button type="button" aria-label="Masquer" onclick="this.closest('.sfa-blocus').remove()">×</button>
+</div></div>
+
 <main class="wrap">
 <div class="hero"><div><span class="free">100 % gratuit</span>
 <h1>La physique en simulations interactives.</h1>
@@ -74,4 +96,12 @@ const q=document.getElementById('q');
 q.addEventListener('input',()=>{const v=q.value.trim().toLowerCase();let n=0;
  document.querySelectorAll('section').forEach(sec=>{let k=0;sec.querySelectorAll('.card').forEach(c=>{const ok=!v||c.dataset.q.includes(v);c.style.display=ok?'':'none';if(ok)k++;});sec.style.display=k?'':'none';n+=k;});
  document.getElementById('empty').style.display=n?'none':'block';});
-</script></body></html>
+</script><script>
+(function(){var start=new Date(2026,11,14),now=new Date();now.setHours(0,0,0,0);
+var d=Math.round((start-now)/864e5),w=Math.ceil(d/7);
+document.querySelectorAll('[data-bl=w]').forEach(function(e){e.textContent=d>13?w:d;});
+document.querySelectorAll('[data-bl=u]').forEach(function(e){e.textContent=d>13?'semaines':(d>1?'jours':'jour');});
+document.querySelectorAll('[data-bl=d]').forEach(function(e){e.textContent=d;});document.querySelectorAll('[data-bl=bar]').forEach(function(e){var tot=98,p=Math.max(0,Math.min(1,1-d/tot));e.style.width=(p*100).toFixed(0)+'%';});
+if(d<0){document.querySelectorAll('.sfa-blocus,.sfa-blocus-side').forEach(function(e){e.remove();});}})();
+</script>
+</body></html>

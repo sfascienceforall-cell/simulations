@@ -6,6 +6,21 @@
 <title>Accélérer une charge : l'électronvolt · SFA</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Mulish:wght@400;500;600;700;800&family=STIX+Two+Text:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@500&display=swap">
+<style id="sfa-blocus-css">
+.sfa-blocus{background:#13233a;color:#fff;font:600 13.5px/1.35 Mulish,system-ui,sans-serif}
+.sfa-blocus .in{max-width:1240px;margin:0 auto;padding:9px 16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.sfa-blocus .cd{display:inline-flex;align-items:baseline;gap:6px;background:#f4c542;color:#5a4300;border-radius:999px;padding:3px 11px;font-weight:800;white-space:nowrap}
+.sfa-blocus .cd b{font-size:16px}
+.sfa-blocus .tx{flex:1 1 260px;color:#d4dceb}.sfa-blocus .tx strong{color:#fff}
+.sfa-blocus a.go{color:#13233a;background:#fff;border-radius:7px;padding:6px 11px;font-weight:800;text-decoration:none;white-space:nowrap}
+.sfa-blocus button,.sfa-blocus button.btn{box-shadow:none!important;border:0!important;background:none!important;color:#8ea0b8!important;padding:2px 6px!important;background:none;border:0;color:#8ea0b8;font:700 18px/1 Mulish,system-ui,sans-serif;cursor:pointer;padding:2px 4px}
+.sfa-blocus-side{background:#fff8e1;border:1px solid #f1d98c;border-radius:12px;padding:14px 16px;margin-bottom:14px;font:600 13px/1.45 Mulish,system-ui,sans-serif;color:#5a4300}
+.sfa-blocus-side small{display:block;font:800 10px Mulish,system-ui,sans-serif;letter-spacing:.12em;text-transform:uppercase;margin-bottom:4px}
+.sfa-blocus-side b{display:block;font:800 26px/1.1 Mulish,system-ui,sans-serif;color:#13233a;margin-bottom:4px}
+.sfa-blocus-side .bar{height:6px;background:#f1e3b4;border-radius:99px;margin:8px 0 10px;overflow:hidden}.sfa-blocus-side .bar i{display:block;height:100%;background:#BA7517;border-radius:99px}
+.sfa-blocus-side a{display:inline-block;margin-top:8px;background:#13233a;color:#fff;border-radius:7px;padding:7px 11px;font-weight:800;text-decoration:none}
+@media (max-width:720px){.sfa-blocus .in{gap:8px;padding:8px 12px}.sfa-blocus .cd{font-size:12px;padding:3px 9px}.sfa-blocus .cd b{font-size:14px}.sfa-blocus a.go{font-size:12px;padding:5px 9px}.sfa-blocus button,.sfa-blocus button.btn{margin-left:auto}.sfa-blocus .tx{flex-basis:100%;order:3;font-size:12.5px}}
+</style>
 </head>
 <body>
 <style>
@@ -47,7 +62,7 @@ a{color:inherit}
 .sfa-nav a.on{color:var(--ink);border-bottom-color:var(--ink)}
 .sfa-cta{margin-left:auto;background:var(--green);color:#fff;font:700 13px var(--f-ui);padding:9px 14px;border-radius:7px;text-decoration:none;white-space:nowrap}
 .sfa-cta:hover{background:var(--green-h)}
-@media (max-width:720px){.sfa-top .in{flex-wrap:wrap;row-gap:6px;padding-bottom:6px}.sfa-nav{order:3;flex:1 0 100%;gap:20px;overflow-x:auto;white-space:nowrap;scrollbar-width:none;font-size:14px;border-top:1px solid var(--line);padding-top:6px}.sfa-nav::-webkit-scrollbar{display:none}.sfa-nav a{padding:6px 0;flex:none}.sfa-cta{padding:8px 11px;font-size:12px}}
+@media (max-width:720px){.sfa-top .in{flex-wrap:wrap;row-gap:6px;padding-bottom:6px}.sfa-nav{order:3;flex:1 0 100%;gap:12px;overflow-x:auto;white-space:nowrap;scrollbar-width:none;font-size:13px;letter-spacing:-.01em;border-top:1px solid var(--line);padding-top:6px}.sfa-nav::-webkit-scrollbar{display:none}.sfa-nav a{padding:6px 0;flex:none}.sfa-cta{padding:8px 11px;font-size:12px}}
 /* page */
 .sfa-page{max-width:1240px;margin:0 auto;padding:14px 16px 36px}
 .sfa-crumbs{font:500 12px var(--f-ui);color:var(--muted);margin:2px 0 14px;display:flex;flex-wrap:wrap;gap:6px}
@@ -143,8 +158,15 @@ new MutationObserver(ms=>ms.forEach(m=>{if(m.target.classList&&m.target.classLis
 </script>
 <header class="sfa-top"><div class="in">
   <a class="sfa-logo" href="https://sfascienceforall-cell.github.io/simulations/sfa/"><i>SFA</i>Science For All</a>
-  <nav class="sfa-nav"><a href="https://sfascienceforall-cell.github.io/simulations/sfa/">SFA</a><a class="on" href="https://sfascienceforall-cell.github.io/simulations/">Simulations</a><a href="https://sfascienceforall-cell.github.io/simulations/exercices/">Exercices</a><a href="https://sfascienceforall-cell.github.io/simulations/prepa/">Prépa médecine</a></nav>
-  <a class="sfa-cta" href="https://sfascienceforall-cell.github.io/simulations/prepa/">Découvrir la prépa</a></div></header>
+  <nav class="sfa-nav"><a href="https://sfascienceforall-cell.github.io/simulations/sfa/">SFA</a><a class="on" href="https://sfascienceforall-cell.github.io/simulations/">Simulations</a><a href="https://sfascienceforall-cell.github.io/simulations/exercices/">Exercices</a><a href="https://sfascienceforall-cell.github.io/simulations/prepa/">Prépa concours médecine</a></nav>
+  <a class="sfa-cta" href="https://sfascienceforall-cell.github.io/simulations/prepa/">Prépa concours médecine</a></div></header>
+<div class="sfa-blocus" id="sfaBlocus"><div class="in">
+<span class="cd">Blocus dans <b data-bl="w">7</b> <span data-bl="u">semaines</span></span>
+<span class="tx"><strong>Ton blocus démarre bientôt.</strong> Révise chapitre par chapitre avec les simulations et les exercices corrigés.</span>
+<a class="go" href="https://sfascienceforall-cell.github.io/simulations/exercices/">M'entraîner</a>
+<button type="button" aria-label="Masquer" onclick="this.closest('.sfa-blocus').remove()">×</button>
+</div></div>
+
 <div class="sfa-page">
 <nav class="sfa-crumbs" aria-label="Fil d'Ariane"><a href="https://sfascienceforall-cell.github.io/simulations/">Simulations</a>›<a href="https://sfascienceforall-cell.github.io/simulations/#PH8">Électrostatique</a>›<b>Accélérer une charge : l&#x27;électronvolt</b></nav>
 <div class="sfa-grid"><main style="min-width:0">
@@ -556,9 +578,19 @@ requestAnimationFrame(frame);
 </script>
 </section></main>
 <aside class="sfa-side">
+<div class="sfa-blocus-side"><small>Compte à rebours</small><b>J−<span data-bl="d">48</span></b>Ton blocus démarre dans <strong><span data-bl="w">7</span> <span data-bl="u">semaines</span></strong>, le lundi 14 décembre.<div class="bar"><i data-bl="bar" style="width:50%"></i></div>Avec l'option suivi : 3 h de questions-réponses chaque semaine jusqu'au blocus.<br><a href="https://sfascienceforall-cell.github.io/simulations/sfa/">Découvrir le suivi</a></div>
+
   <div class="sfa-list"><h2>Électrostatique : charges et champs<span>7 simulations</span></h2><ol><li><a href="https://sfascienceforall-cell.github.io/forces-l-ctrostatique-/"><i>01</i>Forces électrostatiques</a></li><li><a href="https://sfascienceforall-cell.github.io/champ-l-ctrostatique-/"><i>02</i>Champ électrostatique</a></li><li><a href="https://sfascienceforall-cell.github.io/simulations/potentiel-carte/"><i>03</i>Potentiel électrique : carte et équipotentielles</a></li><li><a href="https://sfascienceforall-cell.github.io/simulations/potentiel-travail/"><i>04</i>Travail et différence de potentiel</a></li><li><a class="on" aria-current="page" href="https://sfascienceforall-cell.github.io/simulations/potentiel-electronvolt/"><i>05</i>Accélérer une charge : l&#x27;électronvolt</a></li><li><a href="https://sfascienceforall-cell.github.io/simulations/charge-champ-uniforme/"><i>06</i>Une charge entre deux plaques</a></li><li><a href="https://sfascienceforall-cell.github.io/Conducteur/"><i>07</i>Conducteur</a></li></ol></div>
-  <div class="sfa-promo"><small>Envie d'aller plus loin ?</small><b>La prépa SFA : le cours complet, les exercices type examen corrigés et le suivi.</b><a href="https://sfascienceforall-cell.github.io/simulations/prepa/">Voir la prépa</a></div>
+  <div class="sfa-promo"><small>Envie d'aller plus loin ?</small><b>La prépa concours médecine SFA : le cours complet, les exercices type examen corrigés et le suivi.</b><a href="https://sfascienceforall-cell.github.io/simulations/prepa/">Voir la prépa concours médecine</a></div>
 </aside></div></div>
 <footer class="sfa-foot">Science For All · simulations interactives de physique</footer>
+<script>
+(function(){var start=new Date(2026,11,14),now=new Date();now.setHours(0,0,0,0);
+var d=Math.round((start-now)/864e5),w=Math.ceil(d/7);
+document.querySelectorAll('[data-bl=w]').forEach(function(e){e.textContent=d>13?w:d;});
+document.querySelectorAll('[data-bl=u]').forEach(function(e){e.textContent=d>13?'semaines':(d>1?'jours':'jour');});
+document.querySelectorAll('[data-bl=d]').forEach(function(e){e.textContent=d;});document.querySelectorAll('[data-bl=bar]').forEach(function(e){var tot=98,p=Math.max(0,Math.min(1,1-d/tot));e.style.width=(p*100).toFixed(0)+'%';});
+if(d<0){document.querySelectorAll('.sfa-blocus,.sfa-blocus-side').forEach(function(e){e.remove();});}})();
+</script>
 </body>
 </html>
