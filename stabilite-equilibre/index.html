@@ -11,6 +11,11 @@
 .sfa-blocus .in{max-width:1240px;margin:0 auto;padding:7px 16px;display:flex;align-items:center;gap:10px}
 .sfa-blocus .cd b{color:#13233a;font-weight:800}
 .sfa-blocus a{color:#185fa5;font-weight:800;text-decoration:none}.sfa-blocus a:hover{text-decoration:underline}
+.sfa-blocus-side{background:#fff8e1;border:1px solid #f1d98c;border-radius:12px;padding:14px 16px;margin-bottom:14px;font:600 13px/1.45 Mulish,system-ui,sans-serif;color:#5a4300}
+.sfa-blocus-side small{display:block;font:800 10px Mulish,system-ui,sans-serif;letter-spacing:.12em;text-transform:uppercase;margin-bottom:4px}
+.sfa-blocus-side b{display:block;font:800 26px/1.1 Mulish,system-ui,sans-serif;color:#13233a;margin-bottom:4px}
+.sfa-blocus-side .bar{height:6px;background:#f1e3b4;border-radius:99px;margin:8px 0 10px;overflow:hidden}.sfa-blocus-side .bar i{display:block;height:100%;background:#BA7517;border-radius:99px}
+.sfa-blocus-side a{display:inline-block;background:#13233a;color:#fff;border-radius:7px;padding:7px 11px;font-weight:800;text-decoration:none}
 </style></head>
 <body>
 <style>
@@ -515,9 +520,10 @@ syncUI();requestAnimationFrame(frame);
 </script>
 </section></main>
 <aside class="sfa-side">
+<div class="sfa-blocus-side"><small>Compte à rebours</small><b>J−<span data-bl="d">48</span></b>Ton blocus démarre le lundi 14 décembre.<div class="bar"><i data-bl="bar" style="width:50%"></i></div><a href="https://sfascienceforall-cell.github.io/simulations/sfa/">Découvrir SFA</a></div>
   <div class="sfa-list"><h2>Statique, équilibre et gravitation<span>4 simulations</span></h2><ol><li><a href="https://sfascienceforall-cell.github.io/moment_de_force/"><i>01</i>Moment de force</a></li><li><a href="https://sfascienceforall-cell.github.io/centre-de-masse-/"><i>02</i>Centre de masse</a></li><li><a class="on" aria-current="page" href="https://sfascienceforall-cell.github.io/simulations/stabilite-equilibre/"><i>03</i>Équilibre et stabilité</a></li><li><a href="https://sfascienceforall-cell.github.io/simulations/gravitation-satellite/"><i>04</i>Gravitation et satellite</a></li></ol></div>
   <div class="sfa-promo"><small>Envie d'aller plus loin ?</small><b>La prépa concours médecine SFA : le cours complet, les exercices type examen corrigés et le suivi.</b><a href="https://sfascienceforall-cell.github.io/simulations/prepa/">Voir la prépa concours médecine</a></div>
 </aside></div></div>
 <footer class="sfa-foot">Science For All · simulations interactives de physique</footer>
-<script>(function(){var s=new Date(2026,11,14),n=new Date();n.setHours(0,0,0,0);var d=Math.round((s-n)/864e5),w=Math.ceil(d/7);document.querySelectorAll('[data-bl=w]').forEach(function(e){e.textContent=d>13?w:d;});document.querySelectorAll('[data-bl=u]').forEach(function(e){e.textContent=d>13?'semaines':(d>1?'jours':'jour');});if(d<0){var b=document.getElementById('sfaBlocus');if(b)b.remove();}})();</script></body>
+<script>(function(){var s=new Date(2026,11,14),n=new Date();n.setHours(0,0,0,0);var d=Math.round((s-n)/864e5),w=Math.ceil(d/7);document.querySelectorAll('[data-bl=w]').forEach(function(e){e.textContent=d>13?w:d;});document.querySelectorAll('[data-bl=u]').forEach(function(e){e.textContent=d>13?'semaines':(d>1?'jours':'jour');});document.querySelectorAll('[data-bl=d]').forEach(function(e){e.textContent=d;});document.querySelectorAll('[data-bl=bar]').forEach(function(e){e.style.width=Math.max(0,Math.min(100,(1-d/98)*100)).toFixed(0)+'%';});if(d<0){document.querySelectorAll('#sfaBlocus,.sfa-blocus-side').forEach(function(e){e.remove();});}})();</script></body>
 </html>
