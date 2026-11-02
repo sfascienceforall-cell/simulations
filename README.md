@@ -27,4 +27,4 @@ Les autres simulations ont chacune leur dépôt sur le compte sfascienceforall-c
 
 Page d'accueil : https://sfascienceforall-cell.github.io/simulations/chimie/ · dossier `chimie/`
 
-18 simulations de chimie (acides et bases, solutions et gaz, atome et liaison, chimie organique, équilibres et énergie) et une page d'exercices et QCM (`chimie/exercices/`, 10 chapitres). Chaque simulation et chaque exercice a été relu par un professeur de chimie ; les exercices sont des créations SFA réécrites selon la charte du droit d'auteur.
+22 simulations de chimie (acides et bases, solutions et gaz, atome et liaison, chimie organique, équilibres et énergie) et une page d'exercices et QCM (`chimie/exercices/`, 10 chapitres). Chaque simulation et chaque exercice a été relu par un professeur de chimie ; les exercices sont des créations SFA réécrites selon la charte du droit d'auteur.
