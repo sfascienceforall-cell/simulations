@@ -49,7 +49,7 @@ SFA.sim({
       if(tw.value&&r.sp===1) verdict+=" : le 2ᵉ stimulus tombe en période réfractaire";
       ro.set(0,S.fmt(r.mx,1)+" mV"); ro.set(1,String(r.sp)); ro.set(2,verdict);
     });
-    k.note("Modèle d'axone géant de calmar à 6,3 °C (Hodgkin-Huxley, 1952), tension de repos −65 mV. À 37 °C chez les mammifères, tout est beaucoup plus rapide (pic en < 1 ms). Seuil de ≈ 6,5 µA/cm² pour 1 ms.","warn");
+    k.note("Modèle d'axone géant de calmar à 6,3 °C (Hodgkin-Huxley, 1952), tension de repos −65 mV. À 37 °C chez les mammifères, tout est beaucoup plus rapide (pic en < 1 ms). Seuil de ≈ 7 µA/cm² pour un stimulus de 1 ms.","warn");
   }
 });
 

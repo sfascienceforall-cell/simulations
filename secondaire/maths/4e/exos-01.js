@@ -16,7 +16,7 @@ SFA.exos("c01", [
   reponse:"le point (1 ; −2)"},
  {t:"Domaine et zéro (QCM)", s:3, enonce:"Soit h(x) = √(x + 4) − 2. Quelle affirmation est correcte ?",
   choix:["Domaine [−4 ; +∞[ et zéro en x = 0","Domaine [4 ; +∞[ et zéro en x = 0","Domaine [−4 ; +∞[ et zéro en x = −2","Domaine ]−4 ; +∞[ et pas de zéro"], bonne:0,
-  pourquoi:{1:"Le signe est inversé : x + 4 ≥ 0 donne x ≥ −4, pas x ≥ 4 (la courbe est décalée vers la gauche).",2:"Tu as annulé le −2 au lieu de résoudre √(x + 4) = 2. Il faut x + 4 = 4.",3:"La racine carrée est définie en 0 : √0 = 0, donc −4 appartient au domaine (crochet fermé), et le zéro existe."},
+  pourquoi:{1:"Le signe est inversé : x + 4 ≥ 0 donne x ≥ −4, pas x ≥ 4 (la courbe est décalée vers la gauche).",2:"Tu as résolu x + 4 = 2 en oubliant d'élever au carré : √(x + 4) = 2 donne x + 4 = 4, donc x = 0.",3:"La racine carrée est définie en 0 : √0 = 0, donc −4 appartient au domaine (crochet fermé), et le zéro existe."},
   corrige:"Domaine : x + 4 ≥ 0 ⇔ x ≥ −4, donc [−4 ; +∞[. Zéro : √(x + 4) = 2 ⇔ x + 4 = 4 ⇔ x = 0. Vérification : √4 − 2 = 0."},
  {t:"Inéquation par comparaison de courbes", s:3, enonce:"Soit f(x) = x² et g(x) = 2x + 3. Résous f(x) = g(x), puis f(x) ≥ g(x). Interprète sur le graphique.",
   indice:"Passe tout dans le même membre, factorise, puis fais un petit tableau de signes.",

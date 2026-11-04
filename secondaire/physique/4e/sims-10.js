@@ -69,7 +69,7 @@ SFA.sim({
   resume:"Le cristallin accommode, mais un œil trop long ou trop court ne forme pas l'image sur la rétine sans lunettes.",
   but:"Choisis un type d'œil, la distance de l'objet et la vergence des lunettes (en dioptries). L'image doit se former exactement sur la rétine pour être nette.",
   aRetenir:"L'œil est une lentille convergente (cristallin) qui forme l'image sur la rétine ; il accommode en augmentant sa vergence pour voir de près. Myopie : image en avant de la rétine, corrigée par une lentille DIVERGENTE (vergence négative). Hypermétropie : image en arrière, corrigée par une lentille CONVERGENTE. Vergence C = 1/f (en dioptries δ).",
-  piege:"Une lentille divergente rend le faisceau plus divergent : elle recule l'image, utile pour le myope (image trop avant). Les lunettes ne « grossissent » pas l'œil : elles changent la vergence totale. (Modèle d'œil réduit simplifié : cristallin de vergence 50 δ au repos, pupille de 6 mm.)",
+  piege:"Une lentille divergente rend le faisceau plus divergent : elle recule l'image, utile pour le myope (image trop avant). Les lunettes ne « grossissent » pas l'œil : elles changent la vergence totale. (Modèle d'œil réduit simplifié : lentille unique de 50 δ au repos et rétine à 20 mm (l'œil réel fait ≈ 60 δ pour ≈ 17 mm), pupille de 6 mm.)",
   build:function(k,S){
     var c = k.canvas(210);
     var ty = k.seg("Œil", [["normal","Normal"],["myope","Myope"],["hyper","Hypermétrope"]], "myope");
@@ -103,7 +103,7 @@ SFA.sim({
       ctx.fillStyle = sharp ? "rgba(46,107,85,.6)" : "rgba(180,35,24,.35)"; ctx.beginPath(); ctx.ellipse(xR, cy, 3 + (sharp ? 0 : blurPx * 0.35), 3 + (sharp ? 0 : blurPx), 0, 0, 6.2832); ctx.fill();
       var cinf = 1 / d - C0, far = C0 + Cc - 1 / d, near = Am + C0 + Cc - 1 / d;
       var farTxt = far <= 0.2 ? "∞" : S.fmt(100 / far, 0) + " cm", nearTxt = near <= 0.2 ? "∞" : S.fmt(100 / near, 0) + " cm";
-      ro.set(0, sharp ? "NETTE" : (need < 0 ? "floue : image devant la rétine" : "floue : image derrière la rétine")); ro.set(1, S.fmt(a, 2) + " δ (max " + Am + ")"); ro.set(2, S.fmt(cinf, 2) + " δ"); ro.set(3, "de " + nearTxt + " à " + farTxt);
+      ro.set(0, sharp ? "NETTE" : (need < 0 ? "floue : image devant la rétine" : "floue : image derrière la rétine")); ro.set(1, S.fmt(a, 2) + " δ (max " + Am + ")"); ro.set(2, S.fmt(cinf, 2) + " δ"); ro.set(3, near <= 0 ? "aucune (même à l'infini, image derrière la rétine)" : "de " + nearTxt + " à " + farTxt);
       nt.set(E.n + ". " + (sharp ? "L'image se forme sur la rétine : vision nette." : need < 0 ? "Le cristallin ne peut pas se « relâcher » davantage : trop convergent pour cet œil. Essaie une lentille divergente (C < 0)." : "Le cristallin ne peut pas accommoder assez : manque de convergence. Essaie une lentille convergente (C > 0)."), sharp ? "" : "warn");
     });
   }

@@ -44,7 +44,7 @@ SFA.exos("c08", [
   indice:"m = ρ·V avec V = (4/3)πr³. À l'équilibre : q·E = m·g, avec E = U/d.",
   corrige:"<ol><li>V = (4/3)π·(1,0·10⁻⁶)³ = 4,19·10⁻¹⁸ m³ ; m = ρ·V = 875 × 4,19·10⁻¹⁸ = 3,67·10⁻¹⁵ kg.</li><li>Équilibre : q·U/d = m·g, donc q = m·g·d/U = 3,67·10⁻¹⁵ × 9,81 × 0,010/562 = 3,60·10⁻¹⁶/562 = 6,4·10⁻¹⁹ C.</li><li>n = q/e = 6,4·10⁻¹⁹/1,6·10⁻¹⁹ = 4,0 : la gouttelette porte 4 charges élémentaires (négatives, car la force doit être vers le haut).</li><li>Conclusion : sur de nombreuses gouttelettes, les charges mesurées sont toujours des multiples entiers de e. La charge est quantifiée, et e ≈ 1,6·10⁻¹⁹ C est sa plus petite valeur.</li></ol>",
   reponse:"m ≈ 3,67·10⁻¹⁵ kg ; q ≈ 6,4·10⁻¹⁹ C ; n = 4 ; la charge est quantifiée"},
- {t:"Déviation d'un électron", s:5,
+ {t:"Déviation d'un électron", s:4,
   enonce:"Un électron traverse deux plaques parallèles avec une vitesse v₀ et ressort légèrement dévié. On double à la fois la tension entre les plaques et la vitesse d'entrée v₀. Que devient la déviation à la sortie ?",
   choix:["Elle est multipliée par 2.","Elle est divisée par 4.","Elle est divisée par 2.","Elle est inchangée."], bonne:2,
   pourquoi:{0:"Tu n'as tenu compte que de la tension : le doublement de U double E et la déviation, mais le doublement de v₀ la divise par 4.",1:"Tu n'as tenu compte que de v₀ (déviation ∝ 1/v₀²) : il faut aussi compter l'effet du doublement de U (× 2).",3:"Les deux effets ne se compensent pas exactement : × 2 et ÷ 4 donnent ÷ 2."},

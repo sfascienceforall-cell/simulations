@@ -215,7 +215,7 @@ SFA.sim({
   resume: "Densité de l'eau liquide selon T, densité de la glace : combien dépasse du verre ?",
   but: "Plonge un glaçon dans de l'eau douce, de l'eau de mer ou de l'éthanol, à la température de ton choix. Lis la part immergée, puis regarde la vue moléculaire.",
   aRetenir: "Un corps flotte si sa masse volumique est plus petite que celle du liquide. Part immergée = ρ(glaçon) / ρ(liquide). La glace (0,917 g/cm³) est moins dense que l'eau liquide (≈ 1,000 g/cm³) : ses liaisons hydrogène forment un réseau ouvert en hexagones. L'eau liquide est la plus dense à 4 °C.",
-  piege: "Presque tous les solides coulent dans leur propre liquide : l'eau est une exception. Dans l'éthanol (0,79 g/cm³) un glaçon couleraient. Ce modèle suppose que le glaçon n'a pas le temps de fondre. Les valeurs sont celles de tables, arrondies.",
+  piege: "Presque tous les solides coulent dans leur propre liquide : l'eau est une exception. Dans l'éthanol (0,79 g/cm³) un glaçon coulerait. Ce modèle suppose que le glaçon n'a pas le temps de fondre. Les valeurs sont celles de tables, arrondies.",
   build: function(k, S){
     var pal = S.draw.palette, RHO_ICE = 0.917;
     var TT = [0, 4, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100], RR = [0.99984, 0.99997, 0.99970, 0.99821, 0.99565, 0.99222, 0.98803, 0.98320, 0.97778, 0.97182, 0.96535, 0.95835];

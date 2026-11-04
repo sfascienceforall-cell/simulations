@@ -209,7 +209,7 @@ SFA.sim({
 });
 
 /* ---------- non-disjonction ---------- */
-var AGE = [[20, 1667], [25, 1200], [30, 952], [35, 378], [40, 106], [45, 30]];
+var AGE = [[20, 1667], [25, 1250], [30, 952], [35, 378], [40, 106], [45, 30]];
 function riskAge(a){ var l = B5.interp(AGE.map(function(p){ return [p[0], Math.log(p[1])]; }), a); return Math.exp(l); }
 SFA.sim({
   id: "b5-c07-nondisjonction", ch: "c07", tag: "Santé",

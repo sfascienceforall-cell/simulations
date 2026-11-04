@@ -35,7 +35,7 @@ SFA.exos("c01", [
   indice:"Au contact de deux sphères identiques, la charge totale se partage en deux parts égales.",
   corrige:"<ol><li>Contact A–B : charge totale = +9 + (−3) = +6 nC. Partage égal : A = +3 nC et B = +3 nC.</li><li>Contact B–C : charge totale = +3 + 0 = +3 nC. Partage égal : B = +1,5 nC et C = +1,5 nC.</li><li>Bilan : A = +3 nC, B = +1,5 nC, C = +1,5 nC.</li><li>Conservation : 3 + 1,5 + 1,5 = 6 nC, et au départ 9 − 3 + 0 = 6 nC. ✓</li></ol>",
   reponse:"A = +3 nC ; B = +1,5 nC ; C = +1,5 nC (total +6 nC)."},
- {t:"Le filet d'eau dévié", s:5, enonce:"Un mince filet d'eau qui coule du robinet est <b>attiré</b> par une règle frottée. Que peut-on conclure ?",
+ {t:"Le filet d'eau dévié", s:3, enonce:"Un mince filet d'eau qui coule du robinet est <b>attiré</b> par une règle frottée. Que peut-on conclure ?",
   choix:["Le filet d'eau est chargé du signe contraire de la règle","Le filet est neutre : ses charges se déplacent un peu et le côté proche de la règle prend la charge contraire, ce qui crée une attraction","Si la règle avait la charge opposée, le filet serait repoussé","L'eau, étant un isolant parfait, ne peut pas être attirée"], bonne:1,
   pourquoi:{0:"Rien ne prouve que l'eau est chargée : un corps neutre est aussi attiré.",2:"Un corps neutre est attiré quel que soit le signe de la règle (polarisation).",3:"L'eau salée ou du robinet contient des ions mobiles ; et c'est justement la réorganisation des charges qui crée l'attraction."},
   corrige:"Le filet est un corps neutre. La règle, chargée d'un signe quelconque, déplace légèrement les charges de l'eau : le côté proche prend la charge de signe contraire, il est plus attiré que le côté éloigné n'est repoussé. L'attraction est donc obtenue avec les deux signes de règle."}

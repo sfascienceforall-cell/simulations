@@ -5,11 +5,11 @@ var CATS = [["Ag",1,"nitrate d'argent"],["Pb",2,"nitrate de plomb (II)"],["Ba",2
 var ANS = [["Cl","chlorure de sodium","NaCl"],["SO4","sulfate de sodium","Na₂SO₄"],["CO3","carbonate de sodium","Na₂CO₃"],["OH","hydroxyde de sodium","NaOH"]];
 var T = {
   Ag:{Cl:["P","#f4f4f4","blanc"],SO4:["L","#f4f4f4","blanc, peu soluble"],CO3:["P","#e8e2a8","jaune pâle"],OH:["P","#8b5a3c","brun (en réalité Ag₂O)"]},
-  Pb:{Cl:["P","#f4f4f4","blanc (se redissout à chaud)"],SO4:["P","#f4f4f4","blanc"],CO3:["P","#f4f4f4","blanc"],OH:["P","#f4f4f4","blanc"]},
+  Pb:{Cl:["L","#f4f4f4","blanc, peu soluble (seulement avec des solutions assez concentrées ; se redissout à chaud)"],SO4:["P","#f4f4f4","blanc"],CO3:["P","#f4f4f4","blanc"],OH:["P","#f4f4f4","blanc (se redissout dans un excès de soude)"]},
   Ba:{Cl:["S"],SO4:["P","#f4f4f4","blanc"],CO3:["P","#f4f4f4","blanc"],OH:["S"]},
   Ca:{Cl:["S"],SO4:["L","#f4f4f4","blanc, peu soluble"],CO3:["P","#f4f4f4","blanc"],OH:["L","#f4f4f4","blanc, peu soluble"]},
   Cu:{Cl:["S"],SO4:["S"],CO3:["P","#5fb7a8","bleu-vert (carbonate basique)"],OH:["P","#6fa8dc","bleu pâle"]},
-  Zn:{Cl:["S"],SO4:["S"],CO3:["P","#f4f4f4","blanc"],OH:["P","#f4f4f4","blanc"]},
+  Zn:{Cl:["S"],SO4:["S"],CO3:["P","#f4f4f4","blanc"],OH:["P","#f4f4f4","blanc (se redissout dans un excès de soude)"]},
   Mg:{Cl:["S"],SO4:["S"],CO3:["P","#f4f4f4","blanc"],OH:["P","#f4f4f4","blanc"]},
   Fe:{Cl:["S"],SO4:["S"],CO3:["X","#a0522d","Fe(OH)₃ brun + CO₂"],OH:["P","#a0522d","brun-rouille"]}
 };
@@ -21,7 +21,7 @@ SFA.sim({
   titre:"Mélanger deux solutions : précipité ou pas ?",
   resume:"Un nitrate métallique + un sel de sodium : quel solide se forme ? Quelle est l'équation ionique nette ?",
   but:"Choisis une solution de cation et une solution d'anion, verse-les ensemble et regarde ce qui se forme. Repère les ions spectateurs.",
-  aRetenir:"Règles : les nitrates et les sels de sodium sont solubles. Les chlorures sont solubles sauf Ag⁺ et Pb²⁺ ; les sulfates sauf Ba²⁺ et Pb²⁺ ; les carbonates et hydroxydes sont peu solubles sauf avec Na⁺ (et quelques autres). Équation nette : on garde seulement les ions qui forment le solide.",
+  aRetenir:"Règles (table simplifiée, pour des solutions d'environ 0,1 mol/L) : les nitrates et les sels de sodium sont solubles. Les chlorures sont solubles sauf AgCl (et PbCl₂, seulement peu soluble) ; les sulfates sauf BaSO₄ et PbSO₄ (CaSO₄ et Ag₂SO₄ sont peu solubles : léger trouble) ; les carbonates et hydroxydes sont peu solubles sauf avec Na⁺ (et quelques autres). Équation nette : on garde seulement les ions qui forment le solide.",
   piege:"Un précipité n'est pas n'importe quel trouble : c'est un solide formé à partir d'ions dissous. Les ions spectateurs (Na⁺, NO₃⁻) restent en solution et ne figurent pas dans l'équation nette.",
   build:function(k, S){
     var c = k.canvas(260);

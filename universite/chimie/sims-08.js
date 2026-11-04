@@ -26,7 +26,7 @@ var RX = {
     red:["Cl₂ → 2 Cl⁻","Cl₂ → 2 Cl⁻ (pas d’O ni de H)","Cl₂ → 2 Cl⁻ (pas d’O ni de H)","Cl₂ + 2 e⁻ → 2 Cl⁻","Cl₂ + 2 e⁻ → 2 Cl⁻ (pas de H⁺)"],
     ox:["Cl₂ → 2 ClO⁻","Cl₂ + 2 H₂O → 2 ClO⁻","Cl₂ + 2 H₂O → 2 ClO⁻ + 4 H⁺","Cl₂ + 2 H₂O → 2 ClO⁻ + 4 H⁺ + 2 e⁻","Cl₂ + 4 OH⁻ → 2 ClO⁻ + 2 H₂O + 2 e⁻"],
     L:[T(2,"Cl₂",{Cl:2},0),T(4,"OH⁻",{O:1,H:1},-1)], Rt:[T(2,"Cl⁻",{Cl:1},-1),T(2,"ClO⁻",{Cl:1,O:1},-1),T(2,"H₂O",{H:2,O:1},0)],
-    note:"Disproportionation : le même élément (Cl) est oxydé ET réduit. Bilan simplifié par 2 : Cl₂ + 2 OH⁻ → Cl⁻ + ClO⁻ + H₂O." }
+    note:"Dismutation : le même élément (Cl) est oxydé ET réduit. Bilan simplifié par 2 : Cl₂ + 2 OH⁻ → Cl⁻ + ClO⁻ + H₂O." }
 };
 function side(arr){ var at={}, q=0; arr.forEach(function(t){ for (var e in t.a) at[e]=(at[e]||0)+t.n*t.a[e]; q+=t.n*t.q; }); return {at:at,q:q}; }
 function eqs(arr){ return arr.map(function(t){ return (t.n>1?t.n+" ":"")+t.l; }).join(" + "); }
@@ -146,10 +146,11 @@ SFA.sim({
       var r=calc(vv.value);
       if (r.E!==null){ S.draw.dot(c,ax.X(vv.value),ax.Y(Math.max(0.5,Math.min(1.6,r.E))),7,P().red); }
       var past=vv.value>Ve+0.05;
-      var col=past?(ti.value==="mn"?"#b5179e":"#2e6b55"):"#e8d9a8";
+      var mnT=ti.value==="mn", col=mnT?(past?"#b5179e":"#e8d9a8"):(vv.value>0?"#2e6b55":"#e8d9a8");
       var ctx=c.ctx; ctx.save(); ctx.fillStyle=col; ctx.globalAlpha=0.55; ctx.fillRect(c.W-70,c.H-170,46,58); ctx.restore();
       ctx.save(); ctx.strokeStyle="#13233a"; ctx.lineWidth=2; ctx.strokeRect(c.W-70,c.H-180,46,68); ctx.restore();
-      S.draw.text(c,past?(ti.value==="mn"?"violet persistant":"vert (Cr³⁺)"):"jaune pâle",c.W-47,c.H-98,{size:11});
+      /* KMnO₄ : violet persistant après l'équivalence ; K₂Cr₂O₇ : le vert de Cr³⁺ apparaît dès le début et l'excès orangé se voit mal, d'où un indicateur redox */
+      S.draw.text(c,mnT?(past?"violet persistant":"jaune pâle"):(past?"virage peu visible : indicateur redox":(vv.value>0?"vert (Cr³⁺ formé)":"jaune pâle")),c.W-47,c.H-98,{size:11});
       ro.set(0,S.fmt(Ve,2)+" mL"); ro.set(1,r.E===null?"—":S.fmt(r.E,3)+" V");
       var nu=r.nu, ct=ti.value==="mn"?0.0200:1/60;
       ro.set(2,S.fmt(nu*ct*Ve/v0.value,3)+" mol/L");

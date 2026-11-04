@@ -127,7 +127,7 @@ SFA.sim({
       ro.set(0,mode.value==="p"?big(S,a)+" podiums":big(S,cc)+" comités"); ro.set(1,big(S,a)); ro.set(2,big(S,cc)); ro.set(3,String(fact(K))+" = "+big(S,a)+" / "+big(S,cc));
       if(K===N) nt.set("k = n : A(n ; n) = n! est le nombre de permutations ; il n'y a qu'un seul comité (tout le monde).","warn");
       else if(K===0) nt.set("k = 0 : une seule façon de ne rien choisir (A = C = 1), car 0! = 1.","warn");
-      else nt.set(mode.value==="p"?"Podium : "+N+" × "+(N>1&&K>1?(N-1)+(K>2?" × … ":""):"")+"= "+big(S,a)+". Si on ignore l'ordre, chaque groupe est compté "+fact(K)+" fois.":"Comité : on divise les arrangements par k! = "+fact(K)+" : "+big(S,a)+" / "+fact(K)+" = "+big(S,cc)+".","ok");
+      else nt.set(mode.value==="p"?"Podium : "+(function(){ var f=[]; for(var i=0;i<K;i++) f.push(N-i); return f.length>4?f.slice(0,3).join(" × ")+" × … × "+f[f.length-1]:f.join(" × "); })()+" = "+big(S,a)+". Si on ignore l'ordre, chaque groupe est compté "+fact(K)+" fois.":"Comité : on divise les arrangements par k! = "+fact(K)+" : "+big(S,a)+" / "+fact(K)+" = "+big(S,cc)+".","ok");
     });
   }
 });

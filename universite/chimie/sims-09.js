@@ -81,7 +81,7 @@ SFA.sim({
   titre:"Chaleur d’hydrogénation et stabilité des alcènes",
   resume:"Moins la chaleur d’hydrogénation est exothermique, plus l’alcène est stable : substitution, cis/trans, conjugaison, benzène.",
   but:"Compare des alcènes qui donnent le même alcane : plus leur ΔH est petit en valeur absolue, plus ils sont stables. Pour le benzène, calcule l’énergie de résonance.",
-  aRetenir:"Alcènes qui donnent le même alcane : ΔH°(hydrogénation) mesure la stabilité relative. Stabilité : tétrasubstitué &gt; trisubstitué &gt; disubstitué &gt; monosubstitué &gt; éthène ; trans &gt; cis (gêne stérique). La conjugaison stabilise (≈ 15 kJ/mol) ; le benzène l’est bien plus (≈ 150 kJ/mol).",
+  aRetenir:"Alcènes qui donnent le même alcane : ΔH°(hydrogénation) mesure la stabilité relative. Stabilité : tétrasubstitué &gt; trisubstitué &gt; disubstitué &gt; monosubstitué &gt; éthène ; trans &gt; cis (gêne stérique). La conjugaison stabilise de quelques kJ/mol (≈ 8 kJ/mol pour le cyclohexa-1,3-diène, ≈ 15 kJ/mol pour le penta-1,3-diène) ; le benzène l’est bien plus (≈ 150 kJ/mol).",
   piege:"Comparer des alcènes qui ne donnent pas le même alcane (leur ΔH ne se comparent alors pas directement). Confondre « plus stable » et « moins réactif » dans le sens de la vitesse.",
   build:function(k,S){
     var c = k.canvas(300);

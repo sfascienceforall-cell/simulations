@@ -105,7 +105,7 @@ SFA.sim({
       S.draw.line(c,L,H-B,W-R,H-B,"#8a95a3",1.2);
       var ex=cdfB(N,K,pp), a1=Phi((K-mu)/sg), a2=Phi((K+0.5-mu)/sg), okc=(mu>=5&&N*(1-pp)>=5);
       ro.set(0,S.fmt(ex,4)); ro.set(1,S.fmt(a1,4)+" (écart "+S.fmt(a1-ex,4)+")"); ro.set(2,S.fmt(a2,4)+" (écart "+S.fmt(a2-ex,4)+")"); ro.set(3,"np = "+S.fmt(mu,1)+" ; nq = "+S.fmt(N*(1-pp),1)+(okc?" ✓":" ✗"));
-      nt.set(okc?"Conditions remplies : l'approximation avec correction est la plus proche de la valeur exacte.":"np ou n(1−p) est inférieur à 5 : la cloche approche mal la binomiale (asymétrique). N'utilise pas cette approximation.", okc?"ok":"warn");
+      nt.set(okc?"Conditions remplies : l'approximation avec correction est en général la plus proche de la valeur exacte.":"np ou n(1−p) est inférieur à 5 : la cloche approche mal la binomiale (asymétrique). N'utilise pas cette approximation.", okc?"ok":"warn");
     });
   }
 });

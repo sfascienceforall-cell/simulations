@@ -46,8 +46,8 @@ SFA.sim({
       T(c,"lumière de l'intestin (aliments digérés)",c.W/2,34,{size:12,color:P.amber});
       T(c,"paroi (coupe schématique)",c.W/2,yb+50,{size:12,color:"#7a3a28"});
       var s0 = Math.PI*.025*L.value, fac = f1.value*f2.value*f3.value, st = s0*fac;
-      ro.set(0,S.fmt(s0,2)+" m²"); ro.set(1,st>=10 ? S.fmt(st,0)+" m²" : S.fmt(st,1)+" m²"); ro.set(2,"× "+S.fmt(fac,0)); ro.set(3,S.fmt(st/1.8,0)+" × la peau (1,8 m²)");
-      nt.set(fac===1 ? "Paroi lisse : peu de surface. Replie-la !" : "Facteurs : "+S.fmt(f1.value,1)+" × "+f2.value+" × "+f3.value+" = "+S.fmt(fac,0)+". La surface est multipliée sans que le volume de l'intestin change.","ok");
+      ro.set(0,S.fmt(s0,2)+" m²"); ro.set(1,st>=10 ? S.fmt(st,0)+" m²" : S.fmt(st,1)+" m²"); ro.set(2,"× "+S.fmt(fac,fac%1 ? 1 : 0)); ro.set(3,S.fmt(st/1.8,0)+" × la peau (1,8 m²)");
+      nt.set(fac===1 ? "Paroi lisse : peu de surface. Replie-la !" : "Facteurs : "+S.fmt(f1.value,1)+" × "+f2.value+" × "+f3.value+" = "+S.fmt(fac,fac%1 ? 1 : 0)+". La surface est multipliée sans que le volume de l'intestin change.","ok");
     });
   }
 });
@@ -69,7 +69,7 @@ SFA.sim({
     var ro = k.readouts(["Glycémie à cet instant","Pic de glycémie","Heure du pic","Glucose retiré du sang"]);
     var nt = k.note("","");
     function run(){
-      var tau = +v.value, V = 15, G0 = .9, kb = reg.value==="n" ? .02 : .005, be = reg.value==="n" ? .12 : .018, dt = .25, G = G0, cl = 0, out = [], pk = G0, tp = 0;
+      var tau = +v.value, V = 15, G0 = reg.value==="n" ? .9 : 1.3, kb = reg.value==="n" ? .02 : .005, be = reg.value==="n" ? .12 : .018, dt = .25, G = G0, cl = 0, out = [], pk = G0, tp = 0;
       for (var i=0;i<=1200;i++){
         var t = i*dt, ra = A.value*t/(tau*tau)*Math.exp(-t/tau), x = G-G0, cc = (kb+be*Math.max(0,x))*x;
         out.push([t,G,cl]); if (G>pk){ pk = G; tp = t; }

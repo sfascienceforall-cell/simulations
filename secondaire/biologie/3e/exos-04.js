@@ -4,7 +4,7 @@ SFA.exos("c04", [
   reponse:"Plis, villosités, microvillosités : ils agrandissent la surface d'absorption."},
  {t:"Vers le foie", s:1, enonce:"Par quel vaisseau le sang chargé de glucose quitte-t-il l'intestin pour arriver au foie ?",
   choix:["L'artère hépatique","La veine porte","La veine cave inférieure","L'aorte"], bonne:1,
-  pourquoi:{0:"L'artère hépatique apporte au foie du sang qui vient du cœur, riche en dioxygène, pas le sang venant de l'intestin.",2:"La veine cave inférieure ramène au cœur le sang qui sort du foie.",3:"L'aorte sort du cœur gauche vers le corps ; elle n'est pas reliée directement à l'intestin comme voie vers le foie."},
+  pourquoi:{0:"L'artère hépatique apporte au foie du sang qui vient du cœur, riche en dioxygène, pas le sang venant de l'intestin.",2:"La veine cave inférieure ramène au cœur le sang qui sort du foie.",3:"L'aorte est une artère : elle part du cœur gauche et apporte à l'intestin du sang riche en dioxygène. Le sang qui quitte l'intestin, chargé de nutriments, repart par des veines."},
   corrige:"Les capillaires des villosités se réunissent en veines, puis en la veine porte. Elle conduit le sang de l'intestin au foie, qui régule le glucose avant que le sang ne rejoigne la circulation générale."},
  {t:"Surface d'un tube lisse et plissé", s:2, enonce:"Un intestin grêle assimilé à un tube lisse mesure 4 m de long et 2,5 cm de diamètre (surface latérale d'un cylindre : π × diamètre × longueur). a) Calcule sa surface. b) Les plis (× 3), villosités (× 10) et microvillosités (× 20) la multiplient. Quelle surface obtient-on ? c) Combien de fois la surface de la peau (1,8 m²) ?",
   indice:"Convertis 2,5 cm en 0,025 m.",

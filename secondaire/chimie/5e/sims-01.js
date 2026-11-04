@@ -137,7 +137,7 @@ SFA.sim({
   resume: "Choisis un élément (H à Ar) et une charge : les électrons de valence se placent en points.",
   but: "Choisis un élément, puis fais varier la charge de l'ion. Compte les électrons de valence, les électrons célibataires et les doublets.",
   aRetenir: "Nombre d'électrons de valence = numéro de la colonne (groupe 1, 2, 13 à 18 : 1, 2, 3 … 8). On met d'abord un point par côté, puis on apparie. Les électrons célibataires indiquent le nombre de liaisons covalentes que l'atome peut former (8 − valence, ou 2 − valence pour H).",
-  piege: "Un cation a PERDU des électrons : Na⁺ n'a plus d'électron de valence « propre », sa couche externe est celle du néon (8 e⁻). On écrit [Na]⁺ sans points. Un anion en a GAGNÉ : Cl⁻ a 8 points.",
+  piege: "Un cation a PERDU des électrons : Na⁺ n'a plus d'électron de valence « propre », sa couche externe est celle du néon (8 e⁻). On écrit habituellement [Na]⁺ sans points ; la simulation dessine en plus cette couche complète (8 points) pour montrer la configuration de gaz noble. Un anion en a GAGNÉ : Cl⁻ a 8 points.",
   build: function(k, S){
     var pal = S.draw.palette, c = k.canvas(260);
     var opts = []; for (var z = 1; z <= 18; z++) opts.push([z, z + " · " + C5.SYM[z - 1] + " " + C5.NOM[z - 1]]);
@@ -199,13 +199,13 @@ SFA.sim({
   resume: "Chaque métal colore la flamme : le lien avec les niveaux d'énergie, et un sel mystère à identifier.",
   but: "Passe un sel dans la flamme. Lis la longueur d'onde dominante et l'énergie du photon. Puis passe en mode « Mystère » et identifie le métal à sa couleur.",
   aRetenir: "Dans la flamme, les électrons du métal sont excités puis retombent en émettant des photons dont l'énergie ΔE = 1240 / λ est propre à chaque élément. La couleur est une signature du métal, pas du chlorure.",
-  piege: "Les valeurs données sont celles de la raie principale, arrondies : une flamme est un mélange de raies (le jaune du sodium masque facilement les autres couleurs). Et c'est bien le métal, pas l'anion, qui colore.",
+  piege: "Modèle simplifié : on affiche une seule longueur d'onde « dominante », arrondie, alors qu'une flamme est un mélange de raies (le jaune du sodium masque facilement les autres couleurs). Pour Li et Na, c'est bien la raie atomique principale ; pour Ca, Ba et Cu, la couleur vient surtout de bandes de petites molécules formées dans la flamme (CaOH, BaOH, CuCl) ; pour K, la raie la plus intense (766 nm) est à la limite du visible, d'où une flamme lilas pâle, souvent observée à travers un verre bleu de cobalt. Et c'est bien le métal, pas l'anion, qui colore.",
   build: function(k, S){
     var pal = S.draw.palette;
     var M = {
       Li: {n: "lithium (LiCl)", l: 671, d: "rouge carmin", col: "#e0214a"},
       Na: {n: "sodium (NaCl)", l: 589, d: "jaune-orangé", col: "#ffb81c"},
-      K: {n: "potassium (KCl)", l: 404, d: "violet / lilas", col: "#b07ae6"},
+      K: {n: "potassium (KCl)", l: 766, d: "violet / lilas (rouge 766 nm à peine visible + faible raie violette 404 nm)", col: "#b07ae6"},
       Ca: {n: "calcium (CaCl₂)", l: 622, d: "orange-rouge brique", col: "#e8541e"},
       Ba: {n: "baryum (BaCl₂)", l: 524, d: "vert pomme", col: "#8fd24a"},
       Cu: {n: "cuivre (CuCl₂)", l: 520, d: "vert-bleu", col: "#2fc7a0"}
@@ -245,7 +245,8 @@ SFA.sim({
       } else {
         ro.set(0, d.l + " nm"); ro.set(1, S.fmt(dE, 2) + " eV"); ro.set(2, d.d);
         if (mode.value === "mys") nt.set(verdict === "ok" ? "Bravo : c'est " + M[mys].n + ", λ = " + M[mys].l + " nm." : "Ce n'est pas " + M[guess.value].n + ". Compare avec la couleur de sa fiche en mode « Observer ».", verdict);
-        else nt.set("Plus l'énergie du photon est grande, plus on va vers le violet : " + S.fmt(dE, 2) + " eV ↔ " + d.l + " nm.", "");
+        else if (m === "K") nt.set("Potassium : la raie principale (766 nm, " + S.fmt(dE, 2) + " eV) est dans le rouge extrême, que l'œil voit mal ; la teinte lilas vient du mélange avec la faible raie violette à 404 nm (3,07 eV). On l'observe à travers un verre de cobalt pour masquer le jaune du sodium.", "warn");
+        else nt.set("Plus l'énergie du photon est grande, plus on va vers le violet : " + S.fmt(dE, 2) + " eV ↔ " + d.l + " nm." + (m === "Ca" || m === "Ba" || m === "Cu" ? " (Ici, longueur d'onde d'une bande moléculaire dans la flamme, pas d'une raie de l'atome seul.)" : ""), "");
       }
     });
   }

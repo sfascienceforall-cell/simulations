@@ -32,7 +32,7 @@ SFA.exos("c07", [
  {t:"L'orbite géostationnaire", s:4,
   enonce:"Un satellite géostationnaire reste au-dessus du même point de l'équateur : sa période vaut un jour sidéral, 86 164 s. Calcule le rayon de son orbite, son altitude et sa vitesse (G·M<sub>T</sub> = 3,99·10¹⁴ m³/s²).",
   indice:"Utilise T = 2π·√(r³/(G·M)), donc r³ = G·M·T²/(4π²).",
-  corrige:"<ol><li>r³ = G·M·T²/(4π²) = 3,99·10¹⁴ × (86 164)²/39,48 = 3,99·10¹⁴ × 7,424·10⁹/39,48 = 7,50·10²².</li><li>r = (7,50·10²²)<sup>1/3</sup> ≈ 4,22·10⁷ m = 42 200 km.</li><li>Altitude : h = r − R<sub>T</sub> = 42 164 − 6 371 ≈ 35 800 km.</li><li>Vitesse : v = 2π·r/T = 2π × 4,216·10⁷/86 164 ≈ 3,07·10³ m/s ≈ 3,1 km/s.</li><li>Vérification : v = √(G·M/r) = √(3,99·10¹⁴/4,216·10⁷) = 3,08 km/s ✓.</li></ol>",
+  corrige:"<ol><li>r³ = G·M·T²/(4π²) = 3,99·10¹⁴ × (86 164)²/39,48 = 3,99·10¹⁴ × 7,424·10⁹/39,48 = 7,50·10²².</li><li>r = (7,50·10²²)<sup>1/3</sup> ≈ 4,22·10⁷ m = 42 200 km.</li><li>Altitude : h = r − R<sub>T</sub> = 42 178 − 6 371 ≈ 35 800 km.</li><li>Vitesse : v = 2π·r/T = 2π × 4,218·10⁷/86 164 ≈ 3,08·10³ m/s ≈ 3,1 km/s.</li><li>Vérification : v = √(G·M/r) = √(3,99·10¹⁴/4,218·10⁷) = 3,08 km/s ✓.</li></ol>",
   reponse:"r ≈ 42 200 km ; h ≈ 35 800 km ; v ≈ 3,1 km/s"},
  {t:"Deux satellites, même orbite", s:4,
   enonce:"Deux satellites, de 100 kg et de 1 000 kg, sont sur la même orbite circulaire autour de la Terre. Que peut-on dire ?",

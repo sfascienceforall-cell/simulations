@@ -35,7 +35,7 @@ SFA.exos("c06", [
  {t:"IC d'une proportion", s:3,
   enonce:"Sur 150 patients traités, 45 présentent un effet indésirable. Vérifie les conditions d'approximation normale puis calcule l'IC à 95 % (Wald) de la proportion.",
   indice:"Conditions : n·p̂ ≥ 10 et n·(1−p̂) ≥ 10.",
-  corrige:"<ol><li>p̂ = 45/150 = 0,30. n·p̂ = 45 et n·(1−p̂) = 105, tous deux ≥ 10 : l'approximation est acceptable.</li><li>Erreur standard : √(0,30 × 0,70/150) = √0,0014 = 0,0374.</li><li>Marge : 1,96 × 0,0374 = 0,0733.</li><li>IC : 0,30 ± 0,0733 = [0,227 ; 0,373].</li></ol>",
+  corrige:"<ol><li>p̂ = 45/150 = 0,30. n·p̂ = 45 et n·(1−p̂) = 105, tous deux ≥ 10 : l'approximation est acceptable (pour un intervalle de confiance, on exige souvent ≥ 10 ; pour approcher une probabilité binomiale, beaucoup de cours se contentent de ≥ 5 : suis la règle de ton cours).</li><li>Erreur standard : √(0,30 × 0,70/150) = √0,0014 = 0,0374.</li><li>Marge : 1,96 × 0,0374 = 0,0733.</li><li>IC : 0,30 ± 0,0733 = [0,227 ; 0,373].</li></ol>",
   reponse:"IC 95 % ≈ [22,7 % ; 37,3 %]"},
  {t:"IC contenant zéro", s:3,
   enonce:"Un essai estime la baisse de pression systolique due à un traitement : IC à 95 % de la différence moyenne (avant − après) = [−1 ; +7] mmHg. Quelle conclusion est la plus correcte ?",

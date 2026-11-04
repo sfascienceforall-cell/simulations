@@ -52,12 +52,12 @@ SFA.sim({
     var MU=120, SIG=15, c=k.canvas(430);
     var n=k.slider("Taille n de chaque étude",3,100,1,10,"");
     var lev=k.seg("Niveau de confiance",[[0.90,"90 %"],[0.95,"95 %"],[0.99,"99 %"]],0.95);
-    var meth=k.seg("Calcul de l'intervalle",[["z","z, σ connu"],["t","t de Student, s estimé"]],"t");
+    var meth=k.seg("Calcul de l'intervalle",[["z","z, σ connu"],["zs","z avec s estimé (erreur)"],["t","t de Student, s estimé"]],"t");
     var seed=7, cum={key:"",hit:0,tot:0};
     var ro=k.readouts(["Contiennent la vraie moyenne","Cumul des tirages","Largeur moyenne"]);
     var nt=k.note("","");
     function key(){ return n.value+"|"+lev.value+"|"+meth.value; }
-    function crit(){ var p=(1+lev.value)/2; return meth.value==="z" ? ST.nppf(p) : ST.tppf(p,n.value-1); }
+    function crit(){ var p=(1+lev.value)/2; return meth.value==="t" ? ST.tppf(p,n.value-1) : ST.nppf(p); }
     function one(r,cr){ var nn=n.value, x=[],i; for(i=0;i<nn;i++) x.push(MU+SIG*ST.randn(r)); var m=ST.mean(x), s=meth.value==="z"?SIG:ST.sd(x), h=cr*s/Math.sqrt(nn); return {lo:m-h,hi:m+h,m:m}; }
     k.button("Nouveau tirage de 100 études",function(){ seed++; },true);
     k.button("1 000 tirages de plus (cumul)",function(){ var r=ST.rng(seed*977+13), cr=crit(), i, st; if(cum.key!==key()){cum={key:key(),hit:0,tot:0};}
@@ -74,7 +74,8 @@ SFA.sim({
       S.draw.line(c,ax.X(MU),ax.T,ax.X(MU),ax.B,S.draw.palette.ink,1.5,[5,4]);
       S.draw.text(c,"μ = 120",ax.X(MU)+4,ax.T+8,{align:"left",size:12,color:S.draw.palette.ink});
       ro.set(0,ok+" / 100"); ro.set(1,cum.tot?S.fmt(100*cum.hit/cum.tot,1)+" % ("+cum.tot+" études)":"—"); ro.set(2,S.fmt(wsum/100,1)+" mmHg");
-      if(meth.value==="z"&&nn<30) nt.set("Avec z et un petit n, l'intervalle est trop étroit : cumule des tirages et compare au niveau choisi.","warn");
+      if(meth.value==="zs"&&nn<30) nt.set("z (1,96) avec s estimé et un petit n : l'intervalle est trop étroit, la réussite à long terme est inférieure au niveau choisi. Cumule des tirages pour le voir.","warn");
+      else if(meth.value==="zs") nt.set("z avec s estimé : pour n ≥ 30, la perte est faible (t ≈ z), mais Student reste la méthode correcte.","ok");
       else if(meth.value==="t") nt.set("Avec Student, la fréquence de réussite à long terme est égale au niveau choisi, même pour un petit n.","ok");
       else nt.set("σ connu : loi normale exacte, la fréquence de réussite tend vers le niveau choisi.","ok");
     });
@@ -109,7 +110,7 @@ SFA.sim({
       S.draw.dot(c,ax.X(n.value),ax.Y(m),6,P.red);
       S.draw.text(c,"90 %",ax.X(300),ax.Y(marge(300,0.90,s.value))+10,{size:11,color:"#5f6b7a"}); S.draw.text(c,"99 %",ax.X(300),ax.Y(marge(300,0.99,s.value))-10,{size:11,color:"#5f6b7a"});
       ro.set(0,S.fmt(ST.tppf((1+lev.value)/2,n.value-1),3)); ro.set(1,"± "+S.fmt(m,2)+" mmHg");
-      ro.set(2,"["+S.fmt(120-m,1)+" ; "+S.fmt(120+m,1)+"]"); ro.set(3,Math.round(4*n.value));
+      ro.set(2,"["+S.fmt(120-m,1)+" ; "+S.fmt(120+m,1)+"]"); var n2=n.value; while(n2<100000&&marge(n2,lev.value,s.value)>m/2) n2++; ro.set(3,n2+" (≈ 4n = "+(4*n.value)+")");
     });
   }
 });

@@ -31,7 +31,7 @@ SFA.exos("c06", [
   indice:"P = R·I², E = P·t, ΔT = E / (m·c).",
   corrige:"<ol><li>(a) P = R·I² = 0,5 × 16² = 0,5 × 256 = 128 W.</li><li>(b) t = 600 s ; E = 128 × 600 = 76 800 J ≈ 77 kJ ; en kWh : 76 800 / 3 600 000 ≈ 0,021 kWh.</li><li>(c) m·c = 0,100 × 385 = 38,5 J/K ; ΔT = 76 800 / 38,5 ≈ 2 000 °C : ce chiffre « théorique » montre l'ampleur de la chaleur produite si rien ne la dissipe.</li><li>(d) Enroulée, la rallonge évacue mal sa chaleur : sa température monte fortement et peut fondre l'isolant. Déroulée, elle perd sa chaleur dans l'air.</li></ol>",
   reponse:"128 W ; 76,8 kJ ≈ 0,021 kWh ; ΔT théorique ≈ 2 000 °C ; dérouler pour évacuer la chaleur."},
- {t:"Le différentiel", s:5, enonce:"Un disjoncteur différentiel de 30 mA déclenche lorsque :",
+ {t:"Le différentiel", s:4, enonce:"Un disjoncteur différentiel de 30 mA déclenche lorsque :",
   choix:["L'intensité totale dépasse 16 A","Le courant qui sort du circuit est inférieur de 30 mA ou plus au courant qui y entre : il fuit quelque part, par exemple dans un corps humain","La tension du réseau dépasse 230 V","La température du fil dépasse 1 000 °C"], bonne:1,
   pourquoi:{0:"C'est le rôle du disjoncteur ordinaire (protection contre les surcharges et courts-circuits).",2:"Le différentiel ne mesure pas la tension du réseau.",3:"Il n'a pas de capteur de température : il compare les courants aller et retour."},
   corrige:"Dans un circuit sain, le courant qui entre par la phase ressort intégralement par le neutre. Une différence de 30 mA ou plus signifie qu'une partie du courant passe ailleurs (corps humain, terre). Le différentiel coupe alors en moins de 0,3 s : il protège les personnes. Le disjoncteur ordinaire protège les fils contre la surcharge."}

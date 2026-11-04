@@ -166,7 +166,7 @@ SFA.sim({
   titre:"Des eaux très différentes : la conductibilité sur une échelle logarithmique",
   resume:"De l'eau déminéralisée à l'eau de mer : 25 000 fois plus de conductibilité. Où se place l'eau de mer diluée ?",
   but:"Compare les conductibilités de plusieurs eaux sur un axe logarithmique. Dilue ensuite l'eau de mer pour voir à partir de quel facteur elle devient comparable à l'eau du robinet.",
-  aRetenir:"La conductibilité mesure la quantité d'ions dissous : eau déminéralisée ≈ 0,002 mS/cm, eau du robinet ≈ 0,5 mS/cm, eau de mer ≈ 50 mS/cm. Sur un axe logarithmique, chaque graduation multiplie par 10. Diluer de 100 fois divise σ par 100 : l'eau de mer diluée 100 fois a une conductibilité proche de celle de l'eau du robinet.",
+  aRetenir:"La conductibilité mesure la quantité d'ions dissous : eau déminéralisée ≈ 0,002 mS/cm, eau du robinet ≈ 0,5 mS/cm, eau de mer ≈ 50 mS/cm. Sur un axe logarithmique, chaque graduation multiplie par 10. Diluer de 100 fois divise σ par environ 100 (modèle proportionnel ; pour une eau aussi concentrée que l'eau de mer, la vraie baisse est un peu moindre) : l'eau de mer diluée 100 fois a une conductibilité proche de celle de l'eau du robinet.",
   piege:"Sur une échelle logarithmique, des barres de longueurs voisines peuvent représenter des valeurs très différentes (×10 par graduation). Ces valeurs sont des ordres de grandeur : elles varient selon la région et la marque. Une eau « pure » à boire n'existe pas : une eau sans ions n'est pas une eau potable.",
   build:function(k,S){
     var c = k.canvas(330);

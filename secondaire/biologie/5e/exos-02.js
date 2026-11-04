@@ -23,7 +23,7 @@ SFA.exos("c02", [
  {t:"Réflexe ou action volontaire ?", s:3,
   enonce:"Pour la main, un réflexe de retrait met 25 ms (1,4 m de trajet, 2 synapses). Une action volontaire équivalente (lever la main au signal) fait parcourir 2,4 m à l'influx (60 m/s), avec 5 synapses (1 ms chacune) et 100 ms d'intégration corticale. Calcule la durée de l'action volontaire, le rapport avec le réflexe, et la part de l'intégration corticale.",
   indice:"Temps de conduction = 2,4 / 60. Additionne conduction, synapses et intégration.",
-  corrige:"<ol><li>Conduction : 2,4 / 60 = 0,040 s = 40 ms.</li><li>Synapses : 5 × 1 ms = 5 ms. Intégration : 100 ms.</li><li>Total : 40 + 5 + 100 = 145 ms.</li><li>Rapport au réflexe : 145 / 25 ≈ 5,8 (5,7 avec 25,3 ms non arrondis).</li><li>Part de l'intégration : 100 / 145 ≈ 0,69, soit environ 69 %.</li></ol>",
+  corrige:"<ol><li>Conduction : 2,4 / 60 = 0,040 s = 40 ms.</li><li>Synapses : 5 × 1 ms = 5 ms. Intégration : 100 ms.</li><li>Total : 40 + 5 + 100 = 145 ms.</li><li>Rapport au réflexe : 145 / 25 ≈ 5,8.</li><li>Part de l'intégration : 100 / 145 ≈ 0,69, soit environ 69 %.</li></ol>",
   reponse:"145 ms ; environ 5,8 fois plus long ; l'intégration pèse ≈ 69 %"},
  {t:"La règle qui tombe", s:3,
   enonce:"Dans le test de la règle, une règle tombe de 20 cm avant d'être attrapée (g = 9,81 m/s², chute sans vitesse initiale, d = ½·g·t²). Quel est le temps de réaction ?",

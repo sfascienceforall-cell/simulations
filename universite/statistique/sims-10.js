@@ -120,7 +120,7 @@ SFA.sim({
   id:"us-c10-quatre-jeux-memes-statistiques", ch:"c10", tag:"Original · P1",
   titre:"Quatre jeux, mêmes statistiques, structures différentes",
   resume:"Mêmes moyennes, mêmes écarts-types, même r, même droite : mais un nuage linéaire, une courbe, un point aberrant et un point à fort effet de levier.",
-  but:"Passe d'un jeu à l'autre : tous les chiffres restent identiques. Retire ensuite le point influent des jeux 3 et 4 et regarde les statistiques s'effondrer.",
+  but:"Passe d'un jeu à l'autre : tous les chiffres restent identiques. Retire ensuite le point influent des jeux 3 et 4 : r et la droite changent radicalement (jeu 3 : r monte à presque 1 ; jeu 4 : plus aucune droite calculable).",
   aRetenir:"Les indicateurs numériques ne remplacent jamais le graphique : regarde toujours le nuage de points. Un point à fort effet de levier ou aberrant peut déterminer à lui seul la droite et r.",
   piege:"r = 0,82 dans les quatre cas ne signifie pas que la droite convient aux quatre. Le jeu 2 est une courbe (la droite est inadaptée) ; les jeux 3 et 4 dépendent d'un seul point.",
   build:function(k,S){

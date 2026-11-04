@@ -14,7 +14,7 @@ var HYD = {
   "17":{nom:"Groupe 17 (HF … HI)", mol:["HF","HCl","HBr","HI"], t:[19.5,-85,-66.4,-35.4], hb:true}
 };
 var BARS = {
-  chaines:{titre:"Alcanes linéaires CₙH₂ₙ₊₂ : London ↑ avec la taille", items:[["CH₄",-161.5],["C₂H₆",-88.6],["C₃H₈",-42.1],["C₄H₁₀",-0.5],["C₅H₁₂",36.1],["C₆H₁₄",68.7],["C₇H₁₆",98.4],["C₈H₁₈",125.7]], note:"Chaque CH₂ ajoute de la surface de contact : les forces de London augmentent et T<sub>éb</sub> monte (de ≈ 20–35 K par CH₂ ici)."},
+  chaines:{titre:"Alcanes linéaires CₙH₂ₙ₊₂ : London ↑ avec la taille", items:[["CH₄",-161.5],["C₂H₆",-88.6],["C₃H₈",-42.1],["C₄H₁₀",-0.5],["C₅H₁₂",36.1],["C₆H₁₄",68.7],["C₇H₁₆",98.4],["C₈H₁₈",125.7]], note:"Chaque CH₂ ajoute de la surface de contact : les forces de London augmentent et T<sub>éb</sub> monte (de ≈ 70 K entre CH₄ et C₂H₆ à ≈ 27 K entre C₇ et C₈ : l'effet relatif de chaque CH₂ diminue)."},
   isomeres:{titre:"Isomères de C₅H₁₂ et C₆H₁₄ : forme et surface de contact", items:[["pentane",36.1],["2-méthylbutane",27.8],["2,2-diméthylpropane",9.5],["hexane",68.7],["3-méthylpentane",63.3],["2-méthylpentane",60.3],["2,3-diméthylbutane",58.0],["2,2-diméthylbutane",49.7]], note:"Même formule, même masse : la ramification rend la molécule plus compacte, la surface de contact diminue, les forces de London baissent et T<sub>éb</sub> chute."},
   memeM:{titre:"Masses voisines (≈ 58–60 g/mol), forces différentes", items:[["butane (London)",-0.5],["propanone (dipôle–dipôle)",56],["propan-1-ol (liaison H)",97],["acide éthanoïque (liaisons H, dimère)",118]], note:"À masse comparable, l'ordre est fixé par la nature des forces : London &lt; dipôle–dipôle &lt; liaison hydrogène (un acide carboxylique forme des dimères stables)."}
 };
@@ -157,7 +157,7 @@ SFA.sim({
         S.draw.fn(c, ax2, function(x){ return Math.log(Pv(1000 / x)); }, P.acc, 2.8);
         S.draw.dot(c, ax2.X(1000 / T), ax2.Y(Math.log(Math.max(pv, 1e-6))), 6, P.acc);
         S.draw.line(c, ax2.L, ax2.Y(Math.log(Pe)), ax2.R, ax2.Y(Math.log(Pe)), P.red, 1.5, [5,4]);
-        S.draw.text(c, "pente = −ΔH/R = −" + S.fmt(dH / R, 0) + " K", ax2.R - 4, ax2.T + 14, {size:11, color:P.grey, align:"right"});
+        S.draw.text(c, "pente = −ΔH/R = −" + S.fmt(dH / R, 0) + " K (soit −" + S.fmt(dH / R / 1000, 3) + " par unité de 1000/T)", ax2.R - 4, ax2.T + 14, {size:11, color:P.grey, align:"right"});
       }
       var gas = pv >= Pe;
       ro.set(0, S.fmt(pv, pv < 10 ? 2 : 1) + " kPa"); ro.set(1, S.fmt(Tb - 273.15, 1) + " °C"); ro.set(2, gas ? "ébullition (vapeur)" : "liquide"); ro.set(3, S.fmt(-dH / R, 0) + " K");

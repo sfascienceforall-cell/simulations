@@ -32,7 +32,7 @@ SFA.exos("c04", [
   indice:"U<sub>R</sub> = 9 − 2,0 ; R = U<sub>R</sub> / I avec I = 0,020 A. Pour 390 Ω : 39 × 10.",
   corrige:"<ol><li>(a) U<sub>R</sub> = 9 − 2,0 = 7,0 V.</li><li>(b) R = U<sub>R</sub> / I = 7,0 / 0,020 = 350 Ω.</li><li>(c) Avec 330 Ω : I = 7,0/330 ≈ 21 mA, légèrement au-dessus de 20 mA. Avec 390 Ω : I = 7,0/390 ≈ 18 mA, légèrement en dessous : on choisit <b>390 Ω</b> pour ne pas dépasser la valeur nominale.</li><li>(d) 390 Ω = 39 × 10 : orange (3), blanc (9), marron (×10), puis une bague de tolérance.</li></ol>",
   reponse:"U<sub>R</sub> = 7 V ; R = 350 Ω ; on prend 390 Ω (≈ 18 mA) ; bagues orange, blanc, marron."},
- {t:"La thermistance", s:5, enonce:"Une thermistance CTN voit sa résistance <b>diminuer</b> quand sa température augmente. Elle est branchée sous une tension constante de 5 V. On la réchauffe avec la main. Que devient l'intensité du courant ?",
+ {t:"La thermistance", s:3, enonce:"Une thermistance CTN voit sa résistance <b>diminuer</b> quand sa température augmente. Elle est branchée sous une tension constante de 5 V. On la réchauffe avec la main. Que devient l'intensité du courant ?",
   choix:["Elle diminue","Elle augmente","Elle ne change pas car la tension est constante","Elle devient nulle"], bonne:1,
   pourquoi:{0:"C'est ce qui arriverait si la résistance augmentait.",2:"La tension est constante, mais I = U / R : si R change, I change.",3:"R diminue sans devenir infinie : le courant ne s'annule pas."},
   corrige:"U est fixée à 5 V et I = U / R. Quand la température monte, R diminue, donc I augmente. C'est le principe d'un capteur de température : on mesure I (ou une tension) pour en déduire la température. La CTN n'est pas un conducteur ohmique : sa résistance dépend de la température."}

@@ -59,7 +59,7 @@ SFA.sim({
 });
 
 /* ---------- 2. Acidité des acides carboxyliques et pH ---------- */
-var ACI = [["hco","acide méthanoïque (formique)",3.75],["ac","acide éthanoïque (acétique)",4.76],["pro","acide propanoïque",4.87],["but","acide butanoïque",4.82],["cl4","acide 4-chlorobutanoïque",4.52],["cl3","acide 3-chlorobutanoïque",4.06],["cl2","acide 2-chlorobutanoïque",2.84],["clac","acide chloroéthanoïque",2.87],["dclac","acide dichloroéthanoïque",1.35],["tclac","acide trichloroéthanoïque",0.66],["benz","acide benzoïque",4.20],["asp","aspirine (acide acétylsalicylique)",3.5],["ibu","ibuprofène",4.4],["phe","phénol (pas un acide carboxylique)",10.0],["eth","éthanol (pas un acide carboxylique)",16.0]];
+var ACI = [["hco","acide méthanoïque (formique)",3.75],["ac","acide éthanoïque (acétique)",4.76],["pro","acide propanoïque",4.87],["but","acide butanoïque",4.82],["cl4","acide 4-chlorobutanoïque",4.52],["cl3","acide 3-chlorobutanoïque",4.06],["cl2","acide 2-chlorobutanoïque",2.84],["clac","acide chloroéthanoïque",2.87],["dclac","acide dichloroéthanoïque",1.35],["tclac","acide trichloroéthanoïque",0.66],["benz","acide benzoïque",4.20],["asp","aspirine (acide acétylsalicylique)",3.5],["ibu","ibuprofène (4,4 à 4,9 selon les sources ; 4,4 retenu)",4.4],["phe","phénol (pas un acide carboxylique)",10.0],["eth","éthanol (pas un acide carboxylique)",16.0]];
 SFA.sim({
   id:"uc-c10-acidite-carboxylique", ch:"c10", tag:"pKa et structure",
   titre:"Acidité des acides carboxyliques et ionisation selon le pH",
@@ -84,7 +84,7 @@ SFA.sim({
       [[1.5,"estomac"],[7.4,"sang"]].forEach(function(z){ S.draw.line(c,ax.X(z[0]),ax.T,ax.X(z[0]),ax.B,"#cbd1d9",1.2,[2,4]); S.draw.text(c,z[1],ax.X(z[0]),ax.T+8,{size:10.5,color:P().grey}); });
       var a=alpha(p,ph.value); S.draw.dot(c,ax.X(ph.value),ax.Y(100*a),6,P().red);
       ro.set(0,S.fmt(p,2)); ro.set(1,S.fmt(100*a,a>0.99||a<0.01?3:1)+" %"); ro.set(2,S.fmt(100*(1-a),a>0.99||a<0.01?3:1)+" %"); ro.set(3,S.fmt(100*alpha(p,1.5),2)+" %");
-      nt.set(p<2?"Acide fort : carboxylate fortement stabilisé par l’effet inductif des atomes électronégatifs.":p<6?"Acide carboxylique typique : résonance du carboxylate + éventuel effet inductif.":p<12?"Phénol : l’anion est stabilisé par résonance dans le cycle, mais la charge reste sur O avec une délocalisation moins efficace.":"Alcool : l’alcoolate n’a aucune stabilisation par résonance, d’où un pKa proche de celui de l’eau.","");
+      nt.set(p<2?"Acide carboxylique relativement fort (pKa &lt; 2, mais pas totalement dissocié comme HCl) : carboxylate fortement stabilisé par l’effet inductif des atomes électronégatifs.":p<6?"Acide carboxylique typique : résonance du carboxylate + éventuel effet inductif.":p<12?"Phénol : l’anion est stabilisé par résonance dans le cycle, mais la charge reste sur O avec une délocalisation moins efficace.":"Alcool : l’alcoolate n’a aucune stabilisation par résonance, d’où un pKa proche de celui de l’eau.","");
     });
     k.note("Courbe grise : acide éthanoïque (référence). Les pKa sont des valeurs usuelles à 25 °C ; l’effet des solvants et de la température n’est pas modélisé.","");
   }

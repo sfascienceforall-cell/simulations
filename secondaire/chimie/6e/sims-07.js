@@ -158,7 +158,7 @@ SFA.sim({
   titre: "Trouve le nombre d'oxydation",
   resume: "Règle le n.o. de l'atome inconnu jusqu'à ce que la somme des n.o. égale la charge de l'espèce.",
   but: "Choisis une espèce, puis règle le n.o. de l'atome marqué « ? » avec le curseur. Quand la somme est égale à la charge, c'est bon. Essaie les carbones de l'éthanol, de l'éthanal et de l'acide éthanoïque.",
-  aRetenir: "Règles : somme des n.o. = charge de l'espèce ; O = −2 (sauf peroxydes : −1) ; H = +1 (sauf hydrures : −1) ; corps simple : 0. Une oxydation fait augmenter le n.o., une réduction le fait diminuer. Pour la série éthanol → éthanal → acide éthanoïque, le n.o. moyen du carbone passe de −2 à −1 puis à 0 : trois oxydations successives.",
+  aRetenir: "Règles : somme des n.o. = charge de l'espèce ; O = −2 (sauf peroxydes : −1) ; H = +1 (sauf hydrures : −1) ; corps simple : 0. Une oxydation fait augmenter le n.o., une réduction le fait diminuer. Pour la série éthanol → éthanal → acide éthanoïque, le n.o. moyen du carbone passe de −2 à −1 puis à 0 : deux oxydations successives (2 électrons cédés par molécule à chaque étape).",
   piege: "Le n.o. n'est pas la charge réelle : dans CO₂, le carbone n'a pas une charge de +4. Un n.o. moyen peut être fractionnaire (S₄O₆²⁻ : +2,5) ; il décrit alors une moyenne sur les atomes équivalents.",
   build: function(k, S){
     var c = k.canvas(250), P = S.draw.palette;

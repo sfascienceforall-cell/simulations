@@ -46,9 +46,10 @@ SFA.sim({
       var sx0 = split + 30, sx1 = W - 12, sy0 = 40, sy1 = H - 36;
       S.draw.text(c, "U en fonction de 1/(r₊ + r₋)", (sx0 + sx1) / 2, 16, {size:11, color:P.grey});
       var inv = function(mm, xx){ return 1000 / (MET[mm].r + HAL[xx].r); };
-      function X2(v){ return sx0 + (v - 3) / (6 - 3) * (sx1 - sx0); } function Y2(u){ return sy1 - (u - 550) / (1100 - 550) * (sy1 - sy0); }
+      /* 1000/(r₊ + r₋) va de 2,58 (CsI) à 4,78 nm⁻¹ (LiF) : axe de 2,5 à 5 */
+      function X2(v){ return sx0 + (v - 2.5) / (5 - 2.5) * (sx1 - sx0); } function Y2(u){ return sy1 - (u - 550) / (1100 - 550) * (sy1 - sy0); }
       S.draw.line(c, sx0, sy1, sx1, sy1, P.grey, 1); S.draw.line(c, sx0, sy0, sx0, sy1, P.grey, 1);
-      [3, 4, 5, 6].forEach(function(t){ S.draw.text(c, String(t), X2(t), sy1 + 10, {size:9, color:P.grey}); });
+      [2.5, 3, 3.5, 4, 4.5, 5].forEach(function(t){ S.draw.text(c, S.fmt(t, 1), X2(t), sy1 + 10, {size:9, color:P.grey}); });
       [600, 800, 1000].forEach(function(u){ S.draw.text(c, String(u), sx0 - 4, Y2(u), {size:9, color:P.grey, align:"right"}); });
       S.draw.text(c, "1000/(r₊+r₋) (nm⁻¹)", (sx0 + sx1) / 2, sy1 + 24, {size:10, color:P.grey});
       Object.keys(MET).forEach(function(mm){ Object.keys(HAL).forEach(function(xx){ var on = mm === m && xx === x; S.draw.dot(c, X2(inv(mm, xx)), Y2(lat(mm, xx)), on ? 7 : 3.5, on ? P.red : P.acc); if (on) S.draw.text(c, mm + xx, X2(inv(mm, xx)) - 6, Y2(lat(mm, xx)) - 12, {size:11, color:P.red, align:"right"}); }); });
@@ -84,6 +85,8 @@ SFA.sim({
     k.draw(function(){
       var P = S.draw.palette, ctx = c.ctx, r = RXN.filter(function(x){ return x[0] === rs.value; })[0], dH = r[2] * 1000, dS = r[3], T = tt.value, Q = Math.pow(10, lq.value);
       var dG0 = dH - T * dS, K = Math.exp(-dG0 / (R * T)), dG = dG0 + R * T * Math.log(Q), Tc = dH / dS;
+      /* K peut dépasser la capacité d'un nombre flottant (combustion du méthane à basse T) : affichage en puissance de 10 */
+      var lgK = -dG0 / (R * T) / Math.LN10, Ktxt = Math.abs(lgK) > 250 ? "10^" + S.fmt(lgK, 0) : S.sci(K, 2);
       c.clear();
       var lo = Math.min(dH - 100 * dS, dH - 1500 * dS) / 1000, hi = Math.max(dH - 100 * dS, dH - 1500 * dS) / 1000, pad = (hi - lo) * 0.1 + 5;
       var ax = S.draw.axes(c, {x0:100, x1:1500, y0:lo - pad, y1:hi + pad, xl:"T (K)", yl:"ΔG° (kJ/mol)", stepX:250});
@@ -92,10 +95,10 @@ SFA.sim({
       S.draw.dot(c, ax.X(T), ax.Y(dG0 / 1000), 6, P.red);
       if (Tc > 100 && Tc < 1500 && dH * dS > 0){ S.draw.dot(c, ax.X(Tc), ax.Y(0), 6, P.green); S.draw.text(c, "T c = " + S.fmt(Tc, 0) + " K", ax.X(Tc), ax.Y(0) - 14, {size:12, color:P.green}); }
       var sens = Math.abs(dG) < 100 ? "équilibre (Q ≈ K)" : (dG < 0 ? "→ sens direct" : "← sens inverse");
-      ro.set(0, S.fmt(dG0 / 1000, 1) + " kJ/mol"); ro.set(1, S.sci(K, 2)); ro.set(2, S.fmt(dG / 1000, 1) + " kJ/mol");
+      ro.set(0, S.fmt(dG0 / 1000, 1) + " kJ/mol"); ro.set(1, Ktxt); ro.set(2, S.fmt(dG / 1000, 1) + " kJ/mol");
       ro.set(3, (Tc > 0 && dH * dS > 0) ? S.fmt(Tc, 0) + " K" : "pas de changement de signe"); ro.set(4, sens);
       var why = dH < 0 && dS < 0 ? "ΔH° &lt; 0 et ΔS° &lt; 0 : favorable à basse température, défavorable à haute T." : dH > 0 && dS > 0 ? "ΔH° &gt; 0 et ΔS° &gt; 0 : favorisée par l'entropie, spontanée à haute T." : dH < 0 && dS > 0 ? "ΔH° &lt; 0 et ΔS° &gt; 0 : spontanée à toute température." : "ΔH° &gt; 0 et ΔS° &lt; 0 : jamais spontanée.";
-      nt.set("ΔG° = " + S.fmt(r[2], 1) + " − " + S.fmt(T, 0) + " × (" + S.fmt(dS, 1) + ")/1000 = " + S.fmt(dG0 / 1000, 1) + " kJ/mol ; K = exp(−ΔG°/RT) = " + S.sci(K, 2) + ". " + why + (Math.abs(T - Tc) < 60 && dH * dS > 0 ? " Près de T<sub>c</sub>, ΔG° est faible : la constante varie très vite avec T." : ""), "ok");
+      nt.set("ΔG° = " + S.fmt(r[2], 1) + " − " + S.fmt(T, 0) + " × (" + S.fmt(dS, 1) + ")/1000 = " + S.fmt(dG0 / 1000, 1) + " kJ/mol ; K = exp(−ΔG°/RT) = " + Ktxt + ". " + why + (Math.abs(T - Tc) < 60 && dH * dS > 0 ? " Près de T<sub>c</sub>, ΔG° est faible : la constante varie très vite avec T." : "") + (Math.abs(T - 298) > 400 ? " Extrapolation loin de 298 K : ΔH° et ΔS° ne sont plus vraiment constants (et l'état physique des espèces peut changer), résultat indicatif." : ""), Math.abs(T - 298) > 400 ? "warn" : "ok");
     });
   }
 });

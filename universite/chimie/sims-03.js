@@ -208,7 +208,7 @@ SFA.sim({
 });
 
 /* ---------- 4. Dipôle dans un champ électrique ---------- */
-var DIP = [["h2o","H₂O",1.85],["hcl","HCl",1.08],["nh3","NH₃",1.47],["chcl3","CHCl₃",1.04],["co2","CO₂ (apolaire)",0],["ch4","CH₄ (apolaire)",0]];
+var DIP = [["h2o","H₂O",1.85],["hcl","HCl",1.11],["nh3","NH₃",1.47],["chcl3","CHCl₃",1.04],["co2","CO₂ (apolaire)",0],["ch4","CH₄ (apolaire)",0]];
 SFA.sim({
   id:"uc-c03-dipole-champ", ch:"c03", tag:"Polarité",
   titre:"Molécules polaires dans un champ électrique : orientation et agitation",
@@ -257,7 +257,7 @@ SFA.sim({
   resume:"Pour SO₄²⁻, PO₄³⁻ et ClO₄⁻, change le nombre de liaisons doubles : les charges formelles se redistribuent.",
   but:"Choisis un oxo-anion et le nombre de liaisons doubles A=O. Observe la charge formelle de l'atome central et des oxygènes. La somme vaut toujours la charge de l'ion.",
   aRetenir:"Charge formelle = électrons de valence − électrons non liants − (électrons liants)/2. La meilleure structure de Lewis minimise les charges formelles (SO₄²⁻ : 2 doubles liaisons, charge de S = 0 ; PO₄³⁻ : 1 ; ClO₄⁻ : 3). Les longueurs expérimentales sont toutes égales : on utilise en pratique plusieurs structures limites équivalentes.",
-  piege:"La charge formelle n'est pas la charge réelle, et la règle de l'octet est préservée par la structure sans liaison double (k = 0) : sa légitimité est discutée (les orbitales d ne participent guère). Ne dis pas « la liaison S=O est une vraie double » : ce sont des liaisons très polaires, plus justement décrites par des charges séparées.",
+  piege:"La charge formelle n'est pas la charge réelle. La structure sans liaison double (k = 0) respecte l'octet ; les structures « à octet étendu » qui annulent la charge formelle de l'atome central sont une convention d'enseignement discutée (les orbitales d ne participent guère). Ne dis pas « la liaison S=O est une vraie double » : ce sont des liaisons très polaires, plus justement décrites par des charges séparées.",
   build:function(k, S){
     var c = k.canvas(340);
     var sp = k.select("Espèce", FC.map(function(f){ return [f[0], f[1]]; }), "so4");

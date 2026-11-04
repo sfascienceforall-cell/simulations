@@ -33,7 +33,7 @@ SFA.sim({
   resume: "Glucides ingérés et type d'aliment → montée de la glycémie et réponse hormonale.",
   but: "Fais varier la quantité de glucides et la vitesse d'absorption. Observe le pic de glycémie, le retour à la valeur de départ, et la courbe d'insuline qui suit la glycémie. Cherche une quantité de glucides qui garde la glycémie sous 1,4 g/L.",
   aRetenir: "La glycémie (≈ 0,7–1,1 g/L à jeun) est réglée par rétrocontrôle négatif : si elle monte, le pancréas sécrète de l'insuline, qui fait entrer le glucose dans les cellules et stocker le glycogène dans le foie et les muscles ; la glycémie redescend, la sécrétion d'insuline diminue. Si elle baisse trop, le glucagon fait libérer du glucose par le foie.",
-  piege: "L'insuline ne fait pas monter la glycémie : elle la fait baisser. Et la sécrétion n'est pas « arrêtée définitivement » : elle s'ajuste en continu. Modèle simplifié, insuline en unités arbitraires.",
+  piege: "L'insuline ne fait pas monter la glycémie : elle la fait baisser. Et la sécrétion n'est pas « arrêtée définitivement » : elle s'ajuste en continu. Modèle simplifié, insuline en unités arbitraires ; pour de très gros repas rapides (plus de 100 g), le pic du modèle est exagéré : chez une personne en bonne santé, il dépasse rarement 1,6 à 1,8 g/L.",
   build: function(k, S){
     var c1 = k.canvas(200), c2 = k.canvas(130), c3 = k.canvas(110), pal = S.draw.palette;
     var D = k.slider("Glucides ingérés", 0, 150, 5, 50, "g");

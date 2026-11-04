@@ -44,7 +44,7 @@ SFA.exos("c02", [
   indice:"Moments autour de B. Le poids du plongeoir agit à x = 1,5 m. L'appui A est très proche de B : s'il tire vers le haut ou vers le bas ?",
   corrige:"<ol><li>Autour de B, le poids du plongeoir (à 0,70 m de B) et celui du plongeur (à 2,20 m) tendent à faire tourner dans le sens horaire (extrémité libre vers le bas).</li><li>Pour compenser, l'appui A, situé à 0,80 m de B de l'autre côté, doit tirer vers le bas : F<sub>A</sub> × 0,80 = 12·g × 0,70 + 70·g × 2,20 = g·(8,4 + 154) = 1593 N·m.</li><li>F<sub>A</sub> = 1593/0,80 ≈ 1,99·10³ N, dirigée vers le bas.</li><li>Équilibre des forces verticales : N<sub>B</sub> (vers le haut) = F<sub>A</sub> + (12 + 70)·g = 1991 + 804 ≈ 2,80·10³ N.</li><li>Vérification autour de A : N<sub>B</sub> × 0,80 = 2796 × 0,80 = 2237 N·m ; 12g × 1,5 + 70g × 3,0 = 176,6 + 2060 = 2237 N·m ✓.</li></ol>",
   reponse:"A tire vers le bas avec ≈ 1,99 kN ; B pousse vers le haut avec ≈ 2,80 kN"},
- {t:"La règle équilibrée", s:5,
+ {t:"La règle équilibrée", s:4,
   enonce:"Une règle homogène de 1,00 m et de 200 g repose sur un pivot situé à 0,30 m de son extrémité gauche. On suspend une masse m à l'extrémité gauche pour que la règle reste horizontale à l'équilibre. Quelle est la valeur de m ?",
   choix:["67 g","133 g","200 g","333 g"], bonne:1,
   pourquoi:{0:"Tu as pris un bras de levier de 0,10 m pour la règle. Son centre est à 0,50 m de l'extrémité, donc à 0,20 m du pivot.",2:"200 g n'équilibrerait que si les deux bras étaient égaux, ce qui n'est pas le cas (0,30 m d'un côté, 0,20 m de l'autre).",3:"Tu as pris 0,50 m (distance à l'extrémité) pour le bras de la règle : il faut la distance au pivot, soit 0,20 m."},

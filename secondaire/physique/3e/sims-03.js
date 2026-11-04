@@ -169,7 +169,7 @@ SFA.sim({
       var v=Math.abs(d)*(cit?1:0.9), rc=cit?1000:2500;
       var V=ser?N*v:v, r=ser?N*rc:rc/N;
       var ok=d>0, I=ok?Math.max(0,(V-1.8)/(r+60)):0;
-      var lit = I>2e-4?2:I>5e-5?1:0;
+      var lit = I>2e-4?2:I>2e-5?1:0;
       /* fruits */
       var gap=Math.min(70,(W-80)/N), sx=W/2-(N-1)*gap/2, fy=H/2+30, rr=Math.min(26,gap*0.4), ey=fy-rr-16, lx=W-34, ly=H-38;
       var W1=function(pts,col){ for (var q=0;q<pts.length-1;q++) D.line(c,pts[q][0],pts[q][1],pts[q+1][0],pts[q+1][1],col||"#3a4a60",2); };

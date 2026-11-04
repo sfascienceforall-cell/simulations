@@ -112,7 +112,7 @@ SFA.sim({
   resume: "Ajoute un ion que le sel possède déjà : la solubilité s'effondre.",
   but: "Choisis le sel et l'ion commun ajouté (concentration en échelle log). Lis la nouvelle solubilité et le facteur de réduction.",
   aRetenir: "Si on ajoute un des ions du sel, l'équilibre de dissolution se déplace vers le solide (Le Chatelier) : la solubilité diminue. Pour AgCl avec [Cl⁻] ajouté = c : s ≈ K<sub>s</sub> / c quand c ≫ s. À 0,10 mol/L de Cl⁻, s ≈ 1,8·10⁻⁹ mol/L, 7 000 fois moins qu'en eau pure.",
-  piege: "K<sub>s</sub> ne change pas ; c'est la solubilité s qui change. Et l'effet n'est pas illimité : pour des concentrations en Cl⁻ très élevées (plus de 0,3 mol/L), AgCl se redissout en formant des complexes AgCl₂⁻, ce que ce modèle simple ignore (il est limité à 0,10 mol/L).",
+  piege: "K<sub>s</sub> ne change pas ; c'est la solubilité s qui change. Et l'effet n'est pas illimité : en réalité, dès quelques millimoles par litre de Cl⁻, une partie de l'argent reste dissoute sous forme de complexes (AgCl dissous, AgCl₂⁻), si bien que la vraie solubilité est plus grande que K<sub>s</sub>/c, et elle remonte nettement au-delà de 0,1 mol/L. Ce modèle simplifié (sans complexes, limité à 0,10 mol/L) ignore cet effet : il donne la tendance, pas la valeur exacte aux fortes concentrations.",
   build: function(k, S){
     var c = k.canvas(330), P = S.draw.palette;
     var cs = k.select("Sel et ion commun", COM.map(function(t, i){ return [i, t.nom]; }), 0);

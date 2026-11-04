@@ -39,7 +39,7 @@ SFA.sim({
       S.draw.text(c, "VPP = " + pct(fv, 1), 30 + Math.max(60, bw * fv / 2), by + 15, {size: 13, color: "#fff"});
       var pp = vpp(p, s1, s2), pn = vpn(p, s1, s2);
       ro.set(0, pct(pp)); ro.set(1, pct(pn, 2)); ro.set(2, VP > 0 ? F(FP / VP, 1) + " pour 1" : "—"); ro.set(3, F(Math.round(pos), 0));
-      nt.set(pp < 0.5 ? "Avec cette prévalence, plus de la moitié des tests positifs sont de faux positifs : le VPP (" + pct(pp) + ") est inférieur à 50 %. Les effectifs sont arrondis à l'unité dans le tableau." : "Les vrais positifs dominent parmi les positifs (VPP " + pct(pp) + "). Les effectifs sont arrondis à l'unité dans le tableau.", pp < 0.5 ? "warn" : "ok");
+      nt.set(pp < 0.5 ? "Avec cette prévalence, plus de la moitié des tests positifs sont de faux positifs : la VPP (" + pct(pp) + ") est inférieure à 50 %. Les effectifs sont arrondis à l'unité dans le tableau." : "Les vrais positifs dominent parmi les positifs (VPP " + pct(pp) + "). Les effectifs sont arrondis à l'unité dans le tableau.", pp < 0.5 ? "warn" : "ok");
     });
   }
 });

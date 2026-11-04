@@ -143,7 +143,7 @@ SFA.sim({
   titre:"Régime alimentaire et niveau trophique",
   resume:"Compose une assiette : herbivore, omnivore ou carnivore ? Calcule le niveau trophique de l'espèce.",
   but:"Règle la part de végétaux, d'animaux herbivores et d'animaux carnivores dans le régime. Lis le niveau trophique et l'énergie qui lui parvient.",
-  aRetenir:"Niveau trophique = 1 + niveau moyen des aliments (végétal : 1, herbivore : 2, carnivore : 3). Un herbivore stricte est consommateur de 1er ordre (niveau 2) ; plus on mange haut, moins il reste d'énergie des producteurs.",
+  aRetenir:"Niveau trophique = 1 + niveau moyen des aliments (végétal : 1, herbivore : 2, carnivore : 3). Un herbivore strict est consommateur de 1er ordre (niveau 2) ; plus on mange haut, moins il reste d'énergie des producteurs.",
   piege:"Omnivore ne veut pas dire « niveau 3 » : l'humain omnivore se situe entre les niveaux 2 et 3, selon la part de viande dans son assiette. Les valeurs des animaux sont des ordres de grandeur.",
   build:function(k,S){
     var c = k.canvas(300);

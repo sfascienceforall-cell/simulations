@@ -151,14 +151,20 @@ SFA.sim({
       S.draw.line(c, 10, 180, W - 10, 180, P.light, 1.5);
       S.draw.text(c, "Hybride de résonance (moyenne pondérée)", W / 2, 196, {size:12, color:P.ink});
       drawStruct(m, 0, W / 2 - 150, 214, 300, 180, wt, true);
-      var b0 = m.bonds[0][2].reduce(function(s2, o, i){ return s2 + o * wt[i]; }, 0), b1 = m.bonds[1][2].reduce(function(s2, o, i){ return s2 + o * wt[i]; }, 0);
+      /* on affiche les liaisons et les atomes dont l'ordre ou la charge change d'une structure à l'autre */
+      var vb = m.bonds.filter(function(b){ return b[2].some(function(o){ return o !== b[2][0]; }); });
+      if (vb.length < 2) vb = vb.concat(m.bonds.filter(function(b){ return vb.indexOf(b) < 0; })).slice(0, 2);
       var chg = m.ch.map(function(a){ return a.reduce(function(s2, v, i){ return s2 + v * wt[i]; }, 0); });
-      var cA = m.ch.length > 2 ? chg[2] : chg[0], cB = m.ch.length > 3 ? chg[3] : chg[1];
-      ro.set(0, S.fmt(b0, 2)); ro.set(1, S.fmt(b1, 2));
-      var nameA = m.at[m.ch.length > 2 ? 2 : 0][0], nameB = m.at[m.ch.length > 3 ? 3 : 1][0];
-      ro.set(2, nameA + " : " + S.fmt(cA, 2)); ro.set(3, nameB + " : " + S.fmt(cB, 2));
+      var va = [];
+      m.ch.forEach(function(a, i){ if (a.some(function(v){ return v !== 0; })) va.push(i); });
+      for (var i2 = 0; va.length < 2 && i2 < m.at.length; i2++) if (va.indexOf(i2) < 0) va.push(i2);
+      vb.slice(0, 2).forEach(function(b, j){
+        var ord = b[2].reduce(function(s2, o, i){ return s2 + o * wt[i]; }, 0);
+        ro.set(j, m.at[b[0]][0] + "–" + m.at[b[1]][0] + " : " + S.fmt(ord, 2));
+      });
+      ro.set(2, m.at[va[0]][0] + " : " + S.fmt(chg[va[0]], 2)); ro.set(3, m.at[va[1]][0] + " : " + S.fmt(chg[va[1]], 2));
       var tot = chg.reduce(function(a, b){ return a + b; }, 0);
-      nt.set((m.eq ? "Structures équivalentes : poids égaux par symétrie, le curseur n'a pas d'effet. " : "Plus le poids de la forme 1 augmente, plus la liaison 1 ressemble à une double et la charge se localise sur " + (sp.value === "amide" ? "O et N" : "C et O") + " différemment. ") + "Charge totale : " + S.fmt(tot, 2) + " (la somme des charges formelles est conservée).", "ok");
+      nt.set((m.eq ? "Structures équivalentes : poids égaux par symétrie, le curseur n'a pas d'effet. " : "Plus le poids de la structure 1 augmente, plus l'hybride lui ressemble : " + (sp.value === "amide" ? "C–N se rapproche d'une simple liaison et les charges partielles de O et N diminuent." : "la charge se concentre sur O et la liaison C–C se rapproche d'une double.") + " ") + "Charge totale : " + S.fmt(tot, 2) + " (la somme des charges formelles est conservée).", "ok");
     });
   }
 });
@@ -197,7 +203,7 @@ SFA.sim({
       });
       if (!cur){
         ro.set(0, "—"); ro.set(1, "—"); ro.set(2, "—"); ro.set(3, "—");
-        nt.set("La liaison " + bd.nom + " n'existe pas avec un ordre " + o + " dans ce tableau (pas de triple liaison stable O≡O ni C≡O dans la table).", "warn"); return;
+        nt.set("La liaison " + bd.nom + " n'existe pas avec un ordre " + o + " dans ce tableau (O≡O n'existe pas ; C≡O existe dans le monoxyde de carbone, ≈ 113 pm et 1 072 kJ/mol, mais ce n'est pas une valeur moyenne de table).", "warn"); return;
       }
       var prev = bd.v.filter(function(v){ return v[0] === o - 1; })[0], g = prev ? cur[2] - prev[2] : cur[2];
       var s = bd.v[0];

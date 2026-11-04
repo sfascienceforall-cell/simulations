@@ -28,7 +28,7 @@ SFA.exos("c03",[
 {t:"QCM · Potentiel d'équilibre du chlorure", s:2,
  enonce:"Dans un neurone, [Cl<sup>−</sup>]<sub>i</sub> = 10 mmol/L et [Cl<sup>−</sup>]<sub>o</sub> = 110 mmol/L. Quel est E(Cl<sup>−</sup>) à 37 °C (z = −1) ?",
  choix:["+64 mV","−64 mV","−128 mV","−89 mV"], bonne:1,
- pourquoi:{0:"Erreur de signe : pour un anion, E = (61,5/−1)·log(110/10) = −64 mV.",2:"Erreur de facteur 2 (confusion avec un ion divalent) : le calcul donne −61,5 × 1,04.",3:"−89 mV est E(K<sup>+</sup>) : concentrations différentes."},
+ pourquoi:{0:"Erreur de signe : pour un anion, E = (61,5/−1)·log(110/10) = −64 mV.",2:"Erreur de facteur 2 : on a multiplié par 2 (un ion divalent diviserait au contraire par 2, z = 2 au dénominateur). Le calcul correct donne −61,5 × 1,04 ≈ −64 mV.",3:"−89 mV est E(K<sup>+</sup>) : concentrations différentes."},
  corrige:"E = (61,5 / (−1)) × log<sub>10</sub>(110/10) = −61,5 × 1,041 = −64,1 mV. Le chlore, plus concentré dehors, est un anion : son potentiel d'équilibre est négatif."},
 {t:"Transporteur et compétiteur", s:3,
  enonce:"Un transporteur facilité suit J = J<sub>max</sub>·C/(K<sub>m</sub> + C) avec J<sub>max</sub> = 100 µmol/min et K<sub>m</sub> = 2 mmol/L. (a) Calcule J à C = 2 et à C = 10 mmol/L. (b) On ajoute un compétiteur à 4 mmol/L, de K<sub>i</sub> = 2 mmol/L : calcule K<sub>m</sub> apparent et J à C = 10 mmol/L. (c) Quelle concentration C rétablit J = 83,3 µmol/min en présence du compétiteur ?",

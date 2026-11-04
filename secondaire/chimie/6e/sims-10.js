@@ -94,7 +94,7 @@ SFA.sim({
   resume: "Verse la soude goutte à goutte, repère l'apparition du rose et déduis le degré du vinaigre.",
   but: "On dose 20,0 mL de vinaigre dilué 10 fois par NaOH à 0,100 mol/L. Fais avancer le volume versé jusqu'au rose persistant, puis lis le degré calculé. Révèle la valeur de l'étiquette pour comparer.",
   aRetenir: "À l'équivalence : n(NaOH) = n(CH₃COOH) soit c<sub>b</sub>·V<sub>éq</sub> = c<sub>a</sub>·V<sub>a</sub>. Pour le vinaigre dilué 10 fois : c(vinaigre) = 10 × c<sub>b</sub>·V<sub>éq</sub>/V<sub>a</sub>. Le degré (g d'acide pour 100 mL) = c × M / 10 avec M = 60 g/mol. La phénolphtaléine, dont la zone de virage (8,2–10) contient le pH d'équivalence (≈ 8,7), convient pour ce titrage.",
-  piege: "Il ne faut pas oublier le facteur de dilution (× 10) : sans lui, le vinaigre paraîtrait 10 fois moins acide. Le degré commercial est en réalité exprimé en g pour 100 g (pas 100 mL) : l'écart est faible (densité ≈ 1,01), l'on néglige ici. Le pH d'équivalence est supérieur à 7, pas égal à 7.",
+  piege: "Il ne faut pas oublier le facteur de dilution (× 10) : sans lui, le vinaigre paraîtrait 10 fois moins acide. Le degré commercial est en réalité exprimé en g pour 100 g (pas 100 mL) : l'écart est faible (densité ≈ 1,01) et on le néglige ici. Le pH d'équivalence est supérieur à 7, pas égal à 7.",
   build: function(k, S){
     var c = k.canvas(330), P = S.draw.palette, idx = 0, shown = false;
     var vb = k.slider("Volume de soude versé", 0, 40, 0.1, 5, "mL");

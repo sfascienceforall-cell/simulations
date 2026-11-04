@@ -56,7 +56,7 @@ SFA.sim({
   resume:"Neuf salaires mensuels (en milliers d'euros) et un dixième qui s'envole : compare moyenne et médiane.",
   but:"Fais glisser la valeur du 10e salaire. Observe comment la moyenne (rouge) se laisse entraîner alors que la médiane (verte) bouge à peine. Que deviennent l'étendue et l'écart-type ?",
   aRetenir:"La moyenne est sensible aux valeurs extrêmes ; la médiane est « robuste ». Pour une série avec une valeur aberrante, la médiane décrit mieux la valeur typique. L'écart-type et l'étendue, eux, explosent.",
-  piege:"Une moyenne n'est pas un « individu typique » : ici, la moyenne dépasse 8 des 10 salaires. Compare toujours moyenne et médiane avant de conclure.",
+  piege:"Une moyenne n'est pas un « individu typique » : avec un 10e salaire de 30 k€, la moyenne (5,12 k€) dépasse 9 des 10 salaires. Compare toujours moyenne et médiane avant de conclure.",
   build:function(k,S){
     var c=k.canvas(0,{ratio:.5});
     var xv=k.slider("Valeur du 10e salaire (k€)",1.5,30,0.5,3.5,"k€");
@@ -132,7 +132,7 @@ SFA.sim({
     var mode=k.seg("Classes",[["eg","Largeurs égales"],["ineg","Largeurs inégales"]],"eg");
     var w=k.seg("Largeur (si égales)",[[2,"2 min"],[5,"5 min"],[10,"10 min"],[20,"20 min"]],10);
     var dens=k.toggle("Hauteur correcte (effectif ÷ largeur) pour classes inégales",true);
-    var ro=k.readouts(["Nombre de classes","Classe la plus fréquente","Moyenne exacte","Moyenne estimée (centres)"]);
+    var ro=k.readouts(["Nombre de classes","Classe modale (la plus dense)","Moyenne exacte","Moyenne estimée (centres)"]);
     var nt=k.note("","");
     k.draw(function(){
       var edges=[]; if(mode.value==="eg"){ var ww=Number(w.value); for(var e=0;e<=100;e+=ww) edges.push(e); } else edges=[0,10,20,30,50,100];
@@ -147,7 +147,7 @@ SFA.sim({
       var est=0; cls.forEach(function(q){ est+=q.n*(q.a+q.b)/2; }); est/=DUR.length;
       ro.set(0,String(cls.length)); ro.set(1,"["+cls[best].a+" ; "+cls[best].b+"["); ro.set(2,F(mean(DUR),2)+" min"); ro.set(3,F(est,2)+" min");
       var naiveBest=0; cls.forEach(function(q,i){ if(q.n>cls[naiveBest].n) naiveBest=i; });
-      nt.set(mode.value==="eg"?"Largeurs égales : la hauteur est proportionnelle à l'effectif. Avec des classes trop larges, on perd la forme ; trop étroites, le graphe devient irrégulier. (Les nombres au-dessus des barres sont les effectifs.)":(dens.value?"Hauteur = effectif ÷ largeur × 10 : l'aire de chaque barre est proportionnelle à l'effectif. La classe la plus fréquente est "+"["+cls[best].a+" ; "+cls[best].b+"[.":"Hauteur = effectif : les larges classes paraissent trop importantes. La classe [50 ; 100[ contient seulement "+cls[4].n+" trajets mais « s'étale » sur 50 min."),(mode.value==="ineg"&&!dens.value)?"warn":"");
+      nt.set(mode.value==="eg"?"Largeurs égales : la hauteur est proportionnelle à l'effectif. Avec des classes trop larges, on perd la forme ; trop étroites, le graphe devient irrégulier. (Les nombres au-dessus des barres sont les effectifs.)":(dens.value?"Hauteur = effectif ÷ largeur × 10 : l'aire de chaque barre est proportionnelle à l'effectif. La classe modale (la plus dense) est "+"["+cls[best].a+" ; "+cls[best].b+"[.":"Hauteur = effectif : les larges classes paraissent trop importantes. La classe [50 ; 100[ contient seulement "+cls[4].n+" trajets mais « s'étale » sur 50 min."),(mode.value==="ineg"&&!dens.value)?"warn":"");
     });
   }
 });

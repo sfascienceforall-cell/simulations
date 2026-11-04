@@ -18,7 +18,7 @@ SFA.sim({
   resume:"Quatre expériences, une loi de vitesse cachée : double une concentration, regarde v, déduis l’ordre.",
   but:"Choisis une réaction. Compare les expériences deux à deux (une seule concentration change) pour trouver les ordres, puis vérifie ta loi sur les 4 expériences et lis k.",
   aRetenir:"Quand [A] est multipliée par r et [B] ne change pas, v est multipliée par r<sup>m</sup> : m = log(v₂/v₁)/log r. L’ordre se lit dans le tableau, JAMAIS dans l’équation bilan. k se calcule ensuite : k = v/([A]<sup>m</sup>[B]<sup>n</sup>).",
-  piege:"Comparer deux expériences où DEUX concentrations ont changé. Ou déduire l’ordre des coefficients stœchiométriques. Une vitesse sans effet de [B] = ordre 0 en B (pas « ordre 1 »).",
+  piege:"Erreurs classiques : comparer deux expériences où DEUX concentrations ont changé (comme 1 et 4), ou déduire l’ordre des coefficients stœchiométriques. Une vitesse insensible à [B] signifie ordre 0 en B (pas « ordre 1 »).",
   build:function(k,S){
     var c = k.canvas(300);
     var sc = k.seg("Réaction",[["A","A"],["B","B"],["C","C"],["D","D"]],"A");
@@ -66,7 +66,7 @@ var MECA = {
        l1:"v = k₁[O₃]  (étape 1 lente et irréversible)", l2:"v = k₂K[O₃]²/[O₂]  (pré-équilibre ; O₂ est un inhibiteur)",
        f1:function(a){ return a.O3; }, f2:function(a){ return a.O3*a.O3/a.O2; }, i:"O" },
   sn:{ bilan:"(CH₃)₃CBr + OH⁻ → (CH₃)₃COH + Br⁻", s1:"(CH₃)₃CBr ⇌ (CH₃)₃C⁺ + Br⁻", s2:"(CH₃)₃C⁺ + OH⁻ → (CH₃)₃COH", xs:[["RBr",1],["OH⁻",1]],
-       l1:"v = k₁[RBr]  (SN1 : ionisation lente, [OH⁻] sans effet)", l2:"v = k₂K[RBr][OH⁻]/[Br⁻]  (hypothèse : attaque lente, « effet d’ion commun »)",
+       l1:"v = k₁[RBr]  (SN1 : ionisation lente, [OH⁻] sans effet)", l2:"v = k₂K[RBr][OH⁻]/[Br⁻]  (cas hypothétique : si l’attaque du carbocation était lente, Br⁻ ralentirait la réaction ; ce n’est PAS une SN2, qui se fait en une seule étape concertée et donne v = k[RBr][OH⁻])",
        f1:function(a){ return a.RBr; }, f2:function(a){ return a.RBr*a.OH/a.Br; }, i:"(CH₃)₃C⁺" }
 };
 SFA.sim({
@@ -78,7 +78,7 @@ SFA.sim({
   piege:"Lire les ordres dans les coefficients du bilan (2 NO + O₂ → ordre 3 ?) : un bilan n’est pas une étape élémentaire. Un mécanisme n’est jamais « prouvé », seulement compatible avec la loi de vitesse mesurée.",
   build:function(k,S){
     var c = k.canvas(260);
-    var m = k.seg("Mécanisme",[["no","NO + O₂"],["o3","Ozone"],["sn","SN1 / SN2"]],"no");
+    var m = k.seg("Mécanisme",[["no","NO + O₂"],["o3","Ozone"],["sn","SN1 (bromure de tert-butyle)"]],"no");
     var sl = k.seg("Étape lente",[["1","Étape 1"],["2","Étape 2"]],"2");
     var fa = k.slider("Facteur sur la 1<sup>re</sup> concentration",0.5,4,0.5,2,"×");
     var fb = k.slider("Facteur sur la 2<sup>e</sup> concentration",0.5,4,0.5,1,"×");

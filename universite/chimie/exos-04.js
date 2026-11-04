@@ -55,7 +55,7 @@ SFA.exos("c04", [
    indice:"Le manomètre indique P<sub>absolue</sub> − P<sub>atm</sub>.",
    corrige:"<ol><li>(a) 1/394,15 − 1/373,15 = 2,5371·10⁻³ − 2,6799·10⁻³ = −1,428·10⁻⁴ ; ln(P/101,325) = −4 889 × (−1,428·10⁻⁴) = 0,698 ; P = 101,325 × 2,010 = 203,7 kPa (≈ 2,0 atm).</li><li>(b) Surpression au niveau de la mer : 203,7 − 101,3 = 102 kPa ≈ 1,0 bar.</li><li>(c) La pression absolue nécessaire reste 203,7 kPa : surpression = 203,7 − 80 = 124 kPa. À l'air libre sous 80 kPa, l'eau bout à : 1/T = 2,6799·10⁻³ + (8,314/40 650) × ln(101,325/80) = 2,6799·10⁻³ + 2,045·10⁻⁴ × 0,2365 = 2,7283·10⁻³ K⁻¹, soit T = 366,5 K = 93,4 °C. L'eau bouillante à l'air libre n'atteint donc que 93 °C : insuffisant pour détruire les spores, d'où l'autoclave.</li></ol>",
    reponse:"≈ 204 kPa absolu ; ≈ 102 kPa de surpression ; ≈ 124 kPa à 80 kPa ; T<sub>éb</sub> ≈ 93 °C"},
-  {t:"Distance entre atomes voisins en cfc", s:4,
+  {t:"Distance entre atomes voisins en cfc", s:2,
    enonce:"Un métal cristallise en cubique à faces centrées, de paramètre de maille a. Quelle est la distance minimale entre les centres de deux atomes voisins ?",
    choix:["a/2","a·√2/2","a·√3/2","a"], bonne:1,
    pourquoi:{0:"a/2 serait la distance entre un sommet et le centre d'une arête, ou le rayon d'un atome en cubique simple : en cfc, les atomes ne sont pas en contact selon l'arête.", 2:"a√3/2 est la demi-grande diagonale : c'est la distance sommet–centre du cube dans le cubique centré, pas en cfc.", 3:"a est la distance entre deux sommets voisins, mais l'atome de face est plus proche."},

@@ -16,7 +16,7 @@ SFA.sim({
   resume:"Deux solutions, un solide possible : Q dépasse-t-il Ks ? Combien de solide se forme ?",
   but:"Choisis un sel peu soluble, les concentrations et les volumes des deux solutions. Après mélange (dilution !), compare Q à Ks et lis la masse de solide formée.",
   aRetenir:"Après mélange, chaque concentration est divisée par le volume total. Précipité si Q = [M]<sup>a</sup>[X]<sup>b</sup> &gt; Ks ; à l’équilibre, Q retombe exactement à Ks.",
-  piege:"Comparer Q à Ks avec les concentrations AVANT mélange. Penser aussi que, pour CaF₂, [F⁻] est élevée au carré.",
+  piege:"Erreur classique : comparer Q à Ks avec les concentrations AVANT mélange (il faut tenir compte de la dilution). Ne pas oublier non plus que, pour CaF₂, PbI₂ ou Mg(OH)₂, la concentration de l'anion est élevée au carré.",
   build:function(k,S){
     var c = k.canvas(300);
     var sel = k.select("Sel peu soluble",[["AgCl","AgCl"],["BaSO4","BaSO₄"],["CaF2","CaF₂"],["PbI2","PbI₂"],["MgOH2","Mg(OH)₂"]],"BaSO4");
@@ -154,7 +154,7 @@ SFA.sim({
   resume:"ln K contre 1/T est une droite de pente −ΔH°/R : lis le signe de ΔH° et prédis K à une autre température.",
   but:"Règle ΔH° et ΔS° (supposés constants) et la température. Observe comment K évolue : endothermique, K augmente avec T ; exothermique, K diminue.",
   aRetenir:"ln K = −ΔH°/(RT) + ΔS°/R, soit ln(K₂/K₁) = −(ΔH°/R)(1/T₂ − 1/T₁). ΔG° = −RT ln K. Chauffer favorise le sens endothermique (Le Chatelier).",
-  piege:"ΔH° est en kJ/mol, R en J/(mol·K) : convertir. Utiliser des kelvins. T ne change PAS le sens de la perturbation (Q) mais la valeur de K elle-même.",
+  piege:"ΔH° est en kJ/mol, R en J/(mol·K) : convertir. Utiliser des kelvins. Changer T ne modifie pas Q au premier instant : c'est K qui change, puis le système évolue jusqu'à ce que Q rejoigne la nouvelle valeur de K (contrairement à un ajout de réactif, qui change Q sans changer K).",
   build:function(k,S){
     var c = k.canvas(320);
     var dh = k.slider("ΔH° (kJ/mol)",-200,200,5,-90,"kJ/mol");

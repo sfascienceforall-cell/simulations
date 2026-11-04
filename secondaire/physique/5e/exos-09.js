@@ -44,7 +44,7 @@ SFA.exos("c09", [
   indice:"(a) 95 % : e<sup>−t/τ</sup> = 0,05, t = τ·ln 20 ≈ 3τ. (d) Le générateur fournit Q·E avec Q = C·E.",
   corrige:"<ol><li>(a) τ = R·C = 47·10³ × 100·10⁻⁶ = 4,7 s. U = 0,95·E : t = τ·ln 20 = 4,7 × 3,0 ≈ 14 s.</li><li>(b) Au début, U<sub>C</sub> = 0 : I₀ = E/R = 9,0/47·10³ ≈ 0,19 mA.</li><li>(c) Finalement : E<sub>C</sub> = ½·C·E² = 0,5 × 10⁻⁴ × 81 = 4,05·10⁻³ J = 4,05 mJ.</li><li>(d) Charge transportée : Q = C·E = 10⁻⁴ × 9,0 = 0,90 mC. Le générateur fournit W = Q·E = 0,90·10⁻³ × 9,0 = 8,1 mJ.</li><li>Dissipé en chaleur dans R : 8,1 − 4,05 = 4,05 mJ : exactement la moitié, quelle que soit la valeur de R.</li></ol>",
   reponse:"(a) τ = 4,7 s, ≈ 14 s ; (b) ≈ 0,19 mA ; (c) 4,05 mJ ; (d) 8,1 mJ fournis, 50 % dissipés"},
- {t:"Électron entre les plaques", s:5,
+ {t:"Électron entre les plaques", s:4,
   enonce:"Un électron est lâché sans vitesse près de la plaque négative d'un condensateur plan (U = 400 V, d = 2,0 cm) et accéléré vers la plaque positive. Comment se comparent sa vitesse à mi-chemin et sa vitesse à l'arrivée ?",
   choix:["À mi-chemin, la moitié de la vitesse finale.","À mi-chemin, 25 % de la vitesse finale.","À mi-chemin, environ 71 % de la vitesse finale.","Les deux vitesses sont égales."], bonne:2,
   pourquoi:{0:"v n'est pas proportionnelle à la distance : c'est l'énergie cinétique qui l'est (E<sub>c</sub> = e·E·x). Donc v ∝ √x.",1:"25 % s'obtiendrait en supposant v proportionnelle à x puis en élevant au carré : ce n'est pas le bon raisonnement. À mi-chemin, c'est l'énergie cinétique qui est à 50 % de sa valeur finale, donc v est à 71 %.",3:"L'électron continue d'être accéléré pendant tout le parcours : sa vitesse finale est supérieure."},

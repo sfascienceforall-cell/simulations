@@ -9,7 +9,7 @@ SFA.exos("c01", [
    enonce:"Quelle composition correspond à l'ion chlorure <sup>35</sup><sub>17</sub>Cl⁻ ?",
    choix:["17 protons, 35 neutrons, 18 électrons","17 protons, 18 neutrons, 17 électrons","18 protons, 17 neutrons, 18 électrons","17 protons, 18 neutrons, 18 électrons"], bonne:3,
    pourquoi:{0:"A = 35 est le nombre de nucléons (protons + neutrons), pas le nombre de neutrons.",1:"Tu as oublié la charge −1 : l'ion a un électron de plus que de protons, donc 18 électrons.",2:"Le nombre de protons est Z = 17 (numéro atomique du chlore) ; les neutrons valent A − Z = 18."},
-   corrige:"Z = 17 : 17 protons. Neutrons : A − Z = 35 − 17 = 18. Charge −1 : un électron de plus que de protons, soit 18 électrons. Pour l'atome neutre <sup>238</sup><sub>92</sub>U : 92 protons, 146 neutrons, 92 électrons."},
+   corrige:"Z = 17 : 17 protons. Neutrons : A − Z = 35 − 17 = 18. Charge −1 : un électron de plus que de protons, soit 18 électrons."},
   {t:"Demi-vies successives", s:1,
    enonce:"Un échantillon d'un radionucléide contient initialement N₀ noyaux. Quelle fraction de N₀ reste-t-il après 3 demi-vies ?",
    choix:["33 %","12,5 %","25 %","6,25 %"], bonne:1,

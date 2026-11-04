@@ -58,7 +58,7 @@ SFA.sim({
         note.set("Sur ces " + (20 * N) + " enfants, " + aff + " sont atteints (" + S.fmt(aff / (20 * N) * 100, 0) + " %) : proche de 25 % mais jamais exactement, car le hasard joue.", "");
       } else {
         ro.set(2, "—");
-        note.set(m === "s" ? "Une personne saine dont le frère est atteint est porteuse avec la probabilité 2/3. Si elle fonde un couple avec une personne choisie au hasard : 2/3 × (1/" + F.value + ") × 1/4. Le risque est environ " + S.fmt(rS / rG, 0) + " fois plus élevé que pour un couple au hasard." : "Pour un couple pris au hasard : (1/" + F.value + ")² × 1/4. Chiffre réel d'ordre de grandeur en Europe : environ 1 personne sur 30 est porteuse, soit une naissance atteinte sur 3 500 environ.", "");
+        note.set(m === "s" ? "Une personne saine dont le frère est atteint est porteuse avec la probabilité 2/3. Si elle fonde un couple avec une personne choisie au hasard : 2/3 × (1/" + F.value + ") × 1/4. Le risque est environ " + S.fmt(rS / rG, 0) + " fois plus élevé que pour un couple au hasard." : "Pour un couple pris au hasard : (1/" + F.value + ")² × 1/4. Chiffre réel d'ordre de grandeur en Europe : environ 1 personne sur 25 à 30 est porteuse, soit une naissance atteinte sur 2 500 à 3 600 environ.", "");
       }
       ro.set(0, S.fmt(risk * 100, risk < 0.01 ? 3 : 2) + " %"); ro.set(1, S.fmt(Math.round(1 / risk), 0));
     });

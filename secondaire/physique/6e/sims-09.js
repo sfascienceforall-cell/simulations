@@ -120,7 +120,7 @@ SFA.sim({
   resume: "Quel écran arrête quel rayonnement ? Et quel rôle joue la distance ?",
   but: "Choisis le type de rayonnement, le matériau et l'épaisseur de l'écran, puis la distance. Les points colorés sont les particules : celles qui sont arrêtées disparaissent. Lis le débit relatif reçu.",
   aRetenir: "α (noyaux d'hélium) : très ionisants mais peu pénétrants (une feuille de papier ou la peau les arrête ; quelques cm dans l'air). β (électrons ou positons) : arrêtés par quelques mm d'aluminium. γ (photons très énergétiques) : très pénétrants, atténués de façon exponentielle par un matériau dense (plomb, béton). Trois moyens de se protéger : limiter le temps, augmenter la distance (la dose varie en 1/d²), interposer un écran.",
-  piege: "« Peu pénétrant » ne veut pas « peu dangereux » : un émetteur α avalé ou inhalé (contamination) irradie directement les tissus. Irradiation = exposition à un rayonnement ; contamination = présence de la substance radioactive sur ou dans le corps. Modèle simplifié : source ponctuelle, particules d'énergie de l'ordre du MeV, α : portée 4 cm dans l'air, β : portée 3 m dans l'air.",
+  piege: "« Peu pénétrant » ne veut pas « peu dangereux » : un émetteur α avalé ou inhalé (contamination) irradie directement les tissus. Irradiation = exposition à un rayonnement ; contamination = présence de la substance radioactive sur ou dans le corps. Modèle simplifié : source ponctuelle, particules d'énergie de l'ordre du MeV, α : portée 4 cm dans l'air, β : portée ≈ 4,5 m dans l'air (0,54 g/cm² ÷ 1,2 mg/cm³) ; décroissance de la transmission β schématisée comme linéaire.",
   build: function(k, S){
     var c = k.canvas(220), P = S.draw.palette;
     var ty = k.seg("Rayonnement", [["a", "α"], ["b", "β"], ["g", "γ"]], "g");
@@ -137,7 +137,7 @@ SFA.sim({
       if (ty.value === "b"){ var R = 0.54 / m.rho; return Math.max(0, 1 - x / R); }
       return Math.exp(-m.mu * m.rho * x);
     }
-    function rangeAir(){ return ty.value === "a" ? 4 : ty.value === "b" ? 300 : Infinity; }
+    function rangeAir(){ return ty.value === "a" ? 4 : ty.value === "b" ? 450 : Infinity; }
     var lp = k.loop(function(dt){
       t += dt; var T = trans();
       if (Math.random() < dt * 14){ parts.push({x: 0, y: (Math.random() - 0.5) * 0.6, ok: Math.random() < T, air: Math.random() < 1, dead: false}); }

@@ -126,7 +126,7 @@ SFA.sim({
   titre:"Risque relatif, odds ratio, différence de risques",
   resume:"Trois mesures d'association à partir d'un tableau 2 × 2 : quand l'OR ressemble au RR, et quand il s'en éloigne.",
   but:"Étude de cohorte : règle le risque chez les non-exposés, le risque relatif réel et l'effectif. La courbe montre l'OR correspondant en fonction du risque de base.",
-  aRetenir:"RR = (a/(a+b))/(c/(c+d)) ; OR = (a·d)/(b·c) ; DR = p₁ − p₀ ; NNT = 1/DR. OR ≈ RR seulement si la maladie est rare (risque de base inférieur à environ 10 %). Un IC de RR ou d'OR qui contient 1 correspond à une association non significative.",
+  aRetenir:"RR = (a/(a+b))/(c/(c+d)) ; OR = (a·d)/(b·c) ; DR = p₁ − p₀ ; NNT = 1/DR. OR ≈ RR seulement si la maladie est rare dans les deux groupes (risques inférieurs à environ 10 %). Un IC de RR ou d'OR qui contient 1 correspond à une association non significative.",
   piege:"Quand la maladie est fréquente, l'OR exagère l'association par rapport au RR. Dans une étude cas-témoins, seul l'OR est estimable.",
   build:function(k,S){
     var c=k.canvas(250);
@@ -151,7 +151,7 @@ SFA.sim({
       } else { ro.set(0,"—"); ro.set(1,"—"); }
       ro.set(2,S.fmt(100*dr,1)+" points"); ro.set(3,Math.abs(dr)<1e-9?"—":(dr>0?"NNH ":"NNT ")+S.fmt(1/Math.abs(dr),0));
       if(p0.value*rr.value>0.99) nt.set("Le risque chez les exposés est plafonné à 99 % (un risque ne dépasse pas 1).","warn");
-      else if(p0.value<=0.1) nt.set("Maladie rare : l'OR est très proche du RR.","ok");
+      else if(Math.max(p1,p0.value)<=0.1) nt.set("Maladie rare dans les deux groupes : l'OR est très proche du RR.","ok");
       else nt.set("Maladie fréquente : l'OR s'éloigne du RR ("+S.fmt(OR,2)+" contre "+S.fmt(RR,2)+") et l'exagère.","warn");
     });
   }

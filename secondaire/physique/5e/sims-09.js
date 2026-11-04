@@ -8,7 +8,7 @@ SFA.sim({
   resume: "Deux charges → potentiel V (couleurs), équipotentielles, et U entre deux points.",
   but: "Règle les deux charges (en nC). Place le point A et le point B (choisis lequel déplacer, puis touche la carte). Lis les potentiels, la tension U<sub>AB</sub> et le travail pour déplacer une charge de A vers B.",
   aRetenir: "Potentiel d'une charge : V = k·q/r (en volts ; zéro à l'infini). La tension U<sub>AB</sub> = V<sub>A</sub> − V<sub>B</sub>. Le travail du champ pour une charge q qui va de A à B vaut W = q·U<sub>AB</sub> : il ne dépend pas du chemin. Les équipotentielles sont perpendiculaires aux lignes de champ.",
-  piege: "V = 0 ne veut pas dire E = 0 (entre deux charges opposées, au milieu, V = 0 mais E est maximal). Et le potentiel n'est pas l'énergie potentielle : V = énergie par unité de charge (E<sub>p</sub> = q·V).",
+  piege: "V = 0 ne veut pas dire E = 0 (entre deux charges opposées, au milieu, V = 0 mais E ≠ 0 : il y vaut 8·k·q/d², dirigé de + vers −). Et le potentiel n'est pas l'énergie potentielle : V = énergie par unité de charge (E<sub>p</sub> = q·V).",
   build: function(k, S){
     var c = k.canvas(0, {ratio: 0.62});
     var q1 = k.slider("Charge q₁ (à gauche)", -5, 5, 0.5, 4, "nC");
