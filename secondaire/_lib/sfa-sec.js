@@ -285,8 +285,11 @@ S.render = function(){
   var base = m.base || "../../";
   var nav = (m.nav || [
     ["https://sciencesforall.be", "Site SFA"],
-    [base + "../", "Simulations universitaires"],
-    [base, "Secondaire"]
+    [base + "../", "Simulations de physique"],
+    [base + "../chimie/", "Chimie"],
+    [base, "Secondaire", true],
+    [base + "../universite/", "Université"],
+    [base + "../prepa/", "Prépa concours médecine"]
   ]).map(function(n){ return '<a href="' + n[0] + '"' + (n[2] ? ' class="on"' : "") + ">" + n[1] + "</a>"; }).join("");
   var nS = S.sims.length, nE = 0, nQ = 0;
   Object.keys(S.exos).forEach(function(k){ if (typeof S.exos[k] === "object" && S.exos[k].forEach) S.exos[k].forEach(function(x){ if (x.choix) nQ++; else nE++; }); });
