@@ -22,7 +22,7 @@ SFA.sim({
     function N(n){ var v = +n0.value * Math.pow(1 + eff.value / 100, n); return pl.value ? Math.min(v, 1e12) : v; }
     k.draw(function(){
       c.clear(); var E = eff.value / 100, nc = cyc.value, shown = cur === null ? nc : Math.floor(cur), log = sc.value === "l", ctx = c.ctx;
-      var nmax = 40, ymax = log ? 14 : 100, ref = N(40);
+      var nmax = 40, ymax = log ? 18 : 100, ref = N(40);   /* 10 000 copies × 2⁴⁰ ≈ 10¹⁶ sans plateau */
       var ax = S.draw.axes(c, {x0: 0, x1: 40, y0: 0, y1: ymax, stepX: 5, stepY: log ? 2 : 25, xl: "cycles", yl: log ? "log₁₀(copies)" : "% de la valeur à 40 cycles", t: 14, b: 128, l: 48});
       function yv(n){ return log ? Math.log10(N(n)) : N(n) / ref * 100; }
       ctx.save(); ctx.beginPath(); ctx.rect(ax.L, ax.T, ax.R - ax.L, ax.B - ax.T); ctx.clip();
@@ -170,7 +170,7 @@ SFA.sim({
       var prob = 1; for (i = 0; i < nn; i++) prob *= FR[i];
       var exp = prob * pop.value;
       /* courbe des coïncidences attendues */
-      var ax = S.draw.axes(c, {x0: 0, x1: 8, y0: -4, y1: 7, stepX: 1, stepY: 2, t: yy + 26, b: 34, yl: "log₁₀(coïncidences attendues)", l: 44});
+      var ax = S.draw.axes(c, {x0: 0, x1: 8, y0: -5, y1: 7, stepX: 1, stepY: 2, t: yy + 26, b: 34, yl: "log₁₀(coïncidences attendues)", l: 44});
       S.draw.text(c, "Coïncidences attendues (loci 1 à 8)", c.W / 2, yy + 10, {size: 12, color: P.grey});
       S.draw.line(c, ax.L, ax.Y(0), ax.R, ax.Y(0), P.green, 1.4, [4, 4]); S.draw.text(c, "1 coïncidence", ax.R - 4, ax.Y(0) - 9, {size: 12, color: P.green, align: "right"});
       ctx.strokeStyle = P.acc; ctx.lineWidth = 2.6; ctx.beginPath(); var cp = 1;

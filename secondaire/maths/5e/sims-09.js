@@ -106,7 +106,7 @@ SFA.sim({
         else nat = alleq && (n[0] === n[1] && n[1] === n[2]) ? "hexagone régulier" : "hexagone" + (alleq ? " (côtés égaux)" : "");
       }
       ro.set(0, String(m)); ro.set(1, nat); ro.set(2, eq); ro.set(3, "0 à " + F(dmax, 0));
-      nt.set("Plan " + n[0] + "x + " + n[1] + "y + " + n[2] + "z = " + F(d, 2) + ". " + (m >= 3 ? "La section a " + m + " côtés : " + nat + ". Les côtés appartenant à deux faces opposées sont parallèles." : "Section dégénérée : " + nat + ".") + (n[0] === n[1] && n[1] === n[2] && Math.abs(d - 1.5) < 1e-6 ? " Plan perpendiculaire à la grande diagonale, passant par le centre : c'est l'hexagone régulier." : ""), "ok");
+      nt.set("Plan " + n[0] + "x + " + n[1] + "y + " + n[2] + "z = " + F(d, 2) + ". " + (m >= 3 ? "La section a " + m + " côtés : " + nat + ". Les côtés appartenant à deux faces opposées sont parallèles." : "Section dégénérée : " + nat + ".") + (n[0] === n[1] && n[1] === n[2] && Math.abs(d - dmax / 2) < 1e-6 ? " Plan perpendiculaire à la grande diagonale, passant par le centre : c'est l'hexagone régulier." : ""), "ok");
     });
   }
 });
@@ -125,7 +125,7 @@ SFA.sim({
     var ro = k.readouts(["Angle apparent (AB, AA′)", "Angle réel", "Arête de profondeur : dessin", "Diagonale BG′ : dessin / réelle"]);
     var nt = k.note("", "ok");
     k.draw(function(){
-      c.clear(); var a = al.value * PI / 180, K = kc.value, s = Math.min(c.W * 0.4, c.H * 0.5), ox = 34, oy = c.H - 30, dx = K * s * Math.cos(a), dy = K * s * Math.sin(a);
+      c.clear(); var a = al.value * PI / 180, K = kc.value, s = Math.min(c.W * 0.4, (c.H - 56) / (1 + K * Math.sin(a)), (c.W - 80) / (1 + K * Math.cos(a))), ox = 34, oy = c.H - 30, dx = K * s * Math.cos(a), dy = K * s * Math.sin(a);
       var pt = function(x, y, z){ return [ox + x * s + z * dx, oy - y * s - z * dy]; };
       /* arêtes cachées : celles qui partent du sommet arrière-bas-gauche (0,0,1) ici A' */
       var edge = function(p, q, hid){ SFA.draw.line(c, p[0], p[1], q[0], q[1], hid ? "#a9b3c0" : "#2c3a4e", hid ? 1.4 : 2.2, hid ? [4, 4] : null); };

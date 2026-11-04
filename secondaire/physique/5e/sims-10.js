@@ -152,9 +152,9 @@ SFA.sim({
       var ax = S.draw.axes(gr, {x0: 0, x1: 5000, y0: -UE * 0.6, y1: UE * 0.6, xl: "Rv (Ω)", yl: "U_AB (V)", l: 46, stepX: 1000});
       S.draw.fn(gr, ax, function(x){ return VA - UE * x / (Rx + x); }, pal.acc);
       S.draw.dot(gr, ax.X(rv.value), ax.Y(P5.clamp(dV, -UE * 0.6, UE * 0.6)), 6, Math.abs(dV) < 0.02 ? pal.green : pal.red);
-      var bal = Math.abs(dV) < 0.02;
+      var bal = Math.abs(dV) < 0.02, need = Rx * R2 / R1, imposs = need > 5000 || need < 1;   /* R_v nécessaire hors de portée du curseur */
       ro.set(0, S.fmt(dV * 1000, 0) + " mV"); ro.set(1, S.fmt(VA, 3) + " V"); ro.set(2, S.fmt(VB, 3) + " V"); ro.set(3, S.fmt(R1 * rv.value / R2, 0) + " Ω");
-      nt.set(bal ? "Pont équilibré : V_A = V_B. R_x = R₁·R_v/R₂ = 1000 × " + S.fmt(rv.value, 0) + "/" + S.fmt(R2, 0) + " = " + S.fmt(R1 * rv.value / R2, 0) + " Ω" + (show.value ? " (valeur réelle : " + S.fmt(Rx, 0) + " Ω)." : ". Clique sur « Révéler » pour comparer.") : "Tension du pont : " + S.fmt(dV * 1000, 0) + " mV : " + (dV > 0 ? "V_A > V_B, augmente R_v." : "V_A < V_B, diminue R_v.") + " Cherche U_AB = 0.", bal ? "ok" : "");
+      nt.set(bal ? "Pont équilibré : V_A = V_B. R_x = R₁·R_v/R₂ = 1000 × " + S.fmt(rv.value, 0) + "/" + S.fmt(R2, 0) + " = " + S.fmt(R1 * rv.value / R2, 0) + " Ω" + (show.value ? " (valeur réelle : " + S.fmt(Rx, 0) + " Ω)." : ". Clique sur « Révéler » pour comparer.") : "Tension du pont : " + S.fmt(dV * 1000, 0) + " mV : " + (dV > 0 ? "V_A > V_B, augmente R_v." : "V_A < V_B, diminue R_v.") + " Cherche U_AB = 0." + (imposs ? " <b>Attention :</b> avec ce R₂, le pont ne peut pas être équilibré avec R_v ≤ 5 000 Ω : choisis un autre R₂." : ""), bal ? "ok" : imposs ? "warn" : "");
     });
   }
 });

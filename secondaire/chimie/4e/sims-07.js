@@ -50,7 +50,7 @@ SFA.sim({
       var e = C4.REAC[rx.value], m = [a.value, b.value], M = e.r.map(function(t){ return C4.M(t[1]); }), n = [m[0] / M[0], m[1] / M[1]], rt = [n[0] / e.r[0][0], n[1] / e.r[1][0]];
       var xm = Math.min(rt[0], rt[1]), li = rt[0] <= rt[1] ? 0 : 1, eq = Math.abs(rt[0] - rt[1]) < 1e-9, ex = 1 - li;
       c.clear(); var W = c.W, ctx = c.ctx, mx = Math.max(rt[0], rt[1]);
-      C4.label(c, C4.eq(rx.value).replace(/<\/?sub>/g, ""), W / 2, 14, "#2c3a4e", 13);
+      C4.label(c, C4.eqU(rx.value), W / 2, 14, "#2c3a4e", 13);
       C4.label(c, "n / coefficient (mol)", 8, 40, "#5f6b7a", 12, "left");
       e.r.forEach(function(t, i){
         var y = 56 + i * 40, w = (W - 130) * rt[i] / mx; ctx.fillStyle = i === li ? "#b42318" : "#8a95a3"; ctx.fillRect(100, y, Math.max(2, w), 24);
@@ -112,7 +112,7 @@ SFA.sim({
   build:function(k, S){
     var c = k.canvas(280);
     var V = k.slider("Volume d'air du bocal", 0.5, 5, 0.5, 1, "L");
-    var F = k.slider("Méthane brûlé (volume gazeux à 20 °C)", 20, 400, 10, 150, "mL");
+    var F = k.slider("Méthane introduit (volume gazeux à 20 °C)", 20, 400, 10, 150, "mL");
     var ro = k.readouts(["n(O₂) initial", "n(CH₄) initial", "Limitant", "CO₂ formé"]);
     var nt = k.note("", "");
     var st = {p:1}, lp = k.loop(function(dt){ st.p = Math.min(1, st.p + dt / 4); if (st.p >= 1) lp.pause(); k.redraw(); });

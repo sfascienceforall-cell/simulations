@@ -139,7 +139,7 @@ SFA.sim({
     lp.play();
     k.draw(function(){
       c.clear(); var W=c.W,H=c.H, on=sw.value==="1";
-      var n=8.5e28, e=1.602e-19, v=I.value/(n*e*Sx.value*1e-6);         /* m/s */
+      var n=8.5e28, e=1.602e-19, v=on?I.value/(n*e*Sx.value*1e-6):0;         /* m/s */
       var wy=60, wh=H-130;
       rect(c,10,wy,W-20,wh,"#f5e7d3","#b88a52",2,10);
       /* ions fixes */
@@ -149,7 +149,7 @@ SFA.sim({
       /* lampe à droite et pile */
       lamp(c,W-34,H-42,14,on?1:0,false); T(c,on?"lampe allumée (presque tout de suite)":"lampe éteinte",W-60,H-42,{size:12,align:"right",color:on?P.amber:P.grey});
       if (on){ D.arrow(c,30,H-42,110,H-42,P.ink,2); T(c,"dérive (sens inverse du courant conv.)",118,H-42,{size:12,align:"left",color:P.grey}); }
-      ro.set(0, S.sci(v*1e3,2)+" mm/s"); ro.set(1, v>0? (1/v>=3600? F(1/v/3600,1)+" h" : F(1/v/60,0)+" min") : "—"); ro.set(2,"≈ 2·10<sup>8</sup> m/s");
+      ro.set(0, on? S.sci(v*1e3,2)+" mm/s" : "0 mm/s"); ro.set(1, v>0? (1/v>=3600? F(1/v/3600,1)+" h" : F(1/v/60,0)+" min") : "—"); ro.set(2,on?"≈ 2·10<sup>8</sup> m/s":"aucun");
       nt.set(on?"Courant établi : <b>chaque électron</b> avance lentement ("+S.sci(v*1e3,2)+" mm/s), mais comme tous partent ensemble, l'effet est immédiat. Pour un même courant, une section plus grande donne une dérive plus faible.":"Interrupteur ouvert : les électrons s'agitent dans tous les sens, sans mouvement d'ensemble : aucun courant.","ok");
     });
   }

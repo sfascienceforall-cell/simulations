@@ -97,8 +97,8 @@ SFA.sim({
         add(cs+as);                                                                                              /* 1 pour 1 par réflexe */
         if(AN[a0][3]&&r.m>1) add(cs+sub(r.n)+as+sub(r.m));                                                       /* parenthèses oubliées */
         else add(cs+(r.n>1?sub(r.n+1):"")+as);
-        add(cs+sub(r.qc)+as+sub(r.qa));                                                                          /* charges en indices */
-        add(cs+sub(r.m+1)+as);
+        if(r.qc>1||r.qa>1) add(cs+sub(r.qc)+as+sub(r.qa)); else add(cs+as+sub(2));                                                                          /* charges en indices */
+        add(cs+sub(r.m+1)+as); add(cs+sub(r.n+1)+as+sub(r.m+1));
       } else {
         var names=[]; Object.keys(AN).forEach(function(x){ if(LV[lv.value].an.indexOf(x)>=0&&x!==a0) names.push(build(c0,x).nom); }); Object.keys(CAT).forEach(function(x){ if(LV[lv.value].cat.indexOf(x)>=0&&x!==c0) names.push(build(x,a0).nom); });
         shuffle(names).forEach(function(x){ if(out.length<4) add(x); });
@@ -187,9 +187,10 @@ var PICL = {corrosif:"CORROSIF", irritant:"IRRITANT", environnement:"MILIEU AQUA
 function mix(a,b){
   var A=PROD[a], B=PROD[b], t=[A.tag,B.tag].sort().join("+");
   if(a===b) return ["ok","Même produit : rien ne se passe."];
-  if(t==="acid+jav") return ["bad","DANGER : NaClO + 2 HCl → Cl₂ + NaCl + H₂O. L'acide libère du dichlore, un gaz jaune-vert toxique. Ne mélange jamais l'eau de Javel avec un détartrant ou un acide."];
+  if(t==="acid+jav") return ["bad","DANGER : avec l'acide chlorhydrique, NaClO + 2 HCl → Cl₂ + NaCl + H₂O ; avec le vinaigre (acide plus faible), le dégagement est plus lent mais possible aussi. L'acide libère du dichlore, un gaz jaune-vert toxique. Ne mélange jamais l'eau de Javel avec un détartrant ou un acide."];
   if(t==="jav+nh3") return ["bad","DANGER : l'eau de Javel et l'ammoniaque forment des chloramines, des gaz toxiques et irritants pour les poumons."];
   if(t==="jav+ox") return ["bad","DANGER : réaction vive avec dégagement de dioxygène et risque de projections (mousse corrosive)."];
+  if(t==="acid+ox" && (a==="wc"||b==="wc")) return ["warn","L'eau oxygénée peut oxyder l'acide chlorhydrique en dichlore Cl₂ (gaz toxique) : H₂O₂ + 2 HCl → Cl₂ + 2 H₂O. À éviter."];
   if(t==="acid+ox") return ["warn","L'eau oxygénée et le vinaigre forment de l'acide peracétique, corrosif et irritant. À éviter."];
   if(t==="acid+base") return ["warn","Neutralisation : H⁺ + OH⁻ → H₂O, très exothermique avec une base ou un acide forts : chaleur et projections possibles. Jamais dans un flacon fermé."];
   if(t==="acid+bic") return ["ok","Effervescence : le CO₂ se dégage (HCO₃⁻ + H⁺ → H₂O + CO₂). Pas dangereux, mais les deux produits s'annulent : on perd leurs effets nettoyants."];

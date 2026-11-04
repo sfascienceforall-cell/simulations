@@ -68,7 +68,11 @@ SFA.sim({
     var ro = k.readouts(["Forces appliquées (→ +)", "Frottement actif", "ΣF", "Accélération a", "v après 5 s"]);
     var tg = [2, 0.5, 4, 0], di = 0, nt = k.note("", "");
     k.button("Nouveau défi", function(){ di = (di + 1) % tg.length; });
-    var xo = 0, v = 0, lp = k.loop(function(dt){ v += st().a * dt; xo += v * dt; k.redraw(); });
+    var xo = 0, v = 0, lp = k.loop(function(dt){
+      var s0 = st(), vn = v + s0.a * dt;
+      if (v !== 0 && vn * v <= 0 && Math.abs(s0.app) <= fr.value) vn = 0;   /* le frottement arrête le bloc, il ne le fait pas repartir en arrière */
+      v = vn; xo += v * dt; k.redraw();
+    });
     k.button("Animer / réinitialiser", function(){ xo = 0; v = 0; lp.play(); });
     function st(){
       var app = fd.value - fg.value, f = 0, a = 0;
@@ -90,7 +94,7 @@ SFA.sim({
             S.draw.text(c, "P = N = " + S.fmt(P, 1) + " N (se compensent)", cx, 22, {size: 12, color: pal.grey});
       ro.set(0, S.fmt(s.app, 1) + " N"); ro.set(1, S.fmt(s.f, 1) + " N"); ro.set(2, S.fmt(s.net, 1) + " N"); ro.set(3, S.fmt(s.a, 2) + " m/s²");
       ro.set(4, S.fmt(s.a * 5, 1) + " m/s");
-      var ok = Math.abs(s.a - tg[di]) < 0.03;
+      var ok = Math.abs(s.a - tg[di]) < 0.03 && (tg[di] !== 0 || fd.value + fg.value > 0);
       nt.set("<b>Défi " + (di + 1) + "/4.</b> Obtiens a = " + S.fmt(tg[di], 1) + " m/s²" + (tg[di] === 0 ? " (sans utiliser des forces égales à zéro)" : "") + ". " + (ok ? "Réussi : ΣF = m·a = " + S.fmt(m.value * tg[di], 1) + " N." : "Pas encore : il te faut ΣF = m·a = " + S.fmt(m.value * tg[di], 1) + " N."), ok ? "ok" : "");
     });
   }
@@ -101,7 +105,7 @@ SFA.sim({
   titre: "La fusée : masse qui diminue, accélération qui augmente",
   resume: "Poussée, masse et débit de carburant → accélération, vitesse et altitude.",
   but: "Règle la poussée, la masse à vide et le carburant. Trouve des réglages où la fusée décolle, puis cherche l'altitude maximale. Observe l'accélération pendant la combustion.",
-  aRetenir: "ΣF = F − m·g = m·a, donc a = F/m − g. Comme la masse m diminue (le carburant brûle) alors que F reste constante, l'accélération augmente pendant la poussée. La fusée ne décolle que si F > m·g.",
+  aRetenir: "ΣF = F − m·g = m·a, donc a = F/m − g. Comme la masse m diminue (le carburant brûle) alors que F reste constante, l'accélération augmente pendant la poussée. La fusée ne décolle que si F > m·g, où m est sa masse à cet instant (carburant compris).",
   piege: "Une poussée égale au poids ne fait pas « monter lentement » : la résultante est nulle et la fusée reste au sol (ou à vitesse constante). Après la fin de la poussée, la fusée monte encore (elle garde sa vitesse), puis retombe : seule la gravité agit.",
   build: function(k, S){
     var sc1 = k.canvas(250), gr = k.canvas(170);
@@ -112,17 +116,23 @@ SFA.sim({
     var ro = k.readouts(["a au départ", "a avant l'extinction", "Durée de poussée", "Vitesse max", "Altitude max"]);
     var nt = k.note("", ""), tr = null, tp = 0;
     function simulate(){
-      var g = P5.g, dt = 0.02, t = 0, h = 0, v = 0, fuel = mc.value, out = [[0, 0, 0, 0]], vmax = 0, hmax = 0, tb = mc.value / q.value, launched = F.value > (m0.value + mc.value) * g;
-      if (!launched) return {pts: out, tb: tb, vmax: 0, hmax: 0, launched: false, T: 0};
-      var amax0 = F.value / (m0.value + mc.value) - g;
+      var g = P5.g, dt = 0.02, t = 0, h = 0, v = 0, fuel = mc.value, out = [[0, 0, 0, 0]], vmax = 0, hmax = 0, tb = mc.value / q.value, ground = true, tLift = 0;
       while (t < 400){
         var burn = fuel > 1e-9, m = m0.value + Math.max(fuel, 0), a = (burn ? F.value : 0) / m - g;
+        if (ground){
+          if (a <= 0){        /* poussée ≤ poids : la fusée reste posée, mais le carburant brûle et l'allège */
+            if (burn){ fuel -= q.value * dt; t += dt; continue; }
+            break;
+          }
+          ground = false; tLift = t;
+          out.push([t, 0, 0, 0]);
+        }
         v += a * dt; h += v * dt; if (burn){ fuel -= q.value * dt; } t += dt;
         if (h <= 0){ h = 0; out.push([t, 0, v, a]); break; }
         vmax = Math.max(vmax, v); hmax = Math.max(hmax, h);
         out.push([t, h, v, a]);
       }
-      return {pts: out, tb: tb, vmax: vmax, hmax: hmax, launched: true, T: t};
+      return {pts: out, tb: tb, vmax: vmax, hmax: hmax, launched: !ground, T: ground ? 0 : t, tLift: tLift};
     }
     var lp = k.loop(function(dt){ tp += dt * 2; if (tr && tp > tr.T + 1) lp.pause(); k.redraw(); });
     k.button("Lancer (temps ×2)", function(){ tr = simulate(); tp = 0; lp.play(); }, true);
@@ -147,9 +157,10 @@ SFA.sim({
         pts.forEach(function(p, i){ if (p[0] > tp) return; if (i === 0) ctx.moveTo(ax2.X(p[0]), ax2.Y(p[3])); else ctx.lineTo(ax2.X(p[0]), ax2.Y(p[3])); }); ctx.stroke();
       }
       var a0 = F.value / mt - g, a1 = F.value / m0.value - g;
-      ro.set(0, S.fmt(a0, 2) + " m/s²"); ro.set(1, S.fmt(a1, 2) + " m/s²"); ro.set(2, S.fmt(mc.value / q.value, 1) + " s");
+      ro.set(0, a0 > 0 ? S.fmt(a0, 2) + " m/s²" : "0 (reste au sol)"); ro.set(1, a1 > 0 ? S.fmt(a1, 2) + " m/s²" : "0 (reste au sol)"); ro.set(2, S.fmt(mc.value / q.value, 1) + " s");
       ro.set(3, R.launched ? S.fmt(R.vmax, 1) + " m/s" : "0"); ro.set(4, R.launched ? S.fmt(R.hmax, 0) + " m" : "0 m");
-      if (!R.launched) nt.set("F = " + S.fmt(F.value, 0) + " N ≤ m·g = " + S.fmt(mt * g, 0) + " N : la résultante n'est pas positive, la fusée reste au sol (le sol compense la différence).", "warn");
+      if (!R.launched) nt.set("F = " + S.fmt(F.value, 0) + " N ≤ m·g, même avec le réservoir vide (m₀·g = " + S.fmt(m0.value * g, 0) + " N) : la résultante n'est jamais positive, la fusée reste au sol (le sol compense la différence).", "warn");
+      else if (R.tLift > 0.05) nt.set("F = " + S.fmt(F.value, 0) + " N est inférieure au poids initial (" + S.fmt(mt * g, 0) + " N) : la fusée reste posée pendant " + S.fmt(R.tLift, 1) + " s, le temps que le carburant brûlé l'allège jusqu'à m·g < F, puis elle décolle (modèle simplifié : g constant, pas de frottement de l'air).", "warn");
       else nt.set("Poussée " + S.fmt(F.value, 0) + " N pour un poids initial de " + S.fmt(mt * g, 0) + " N. L'accélération passe de " + S.fmt(a0, 1) + " à " + S.fmt(a1, 1) + " m/s² pendant la combustion (modèle simplifié : g constant, pas de frottement de l'air).", "");
     });
   }

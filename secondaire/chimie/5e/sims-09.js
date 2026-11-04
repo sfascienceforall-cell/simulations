@@ -58,7 +58,7 @@ SFA.sim({
       for (var s = 0; s < 3; s++){ for (var i = 1; i < hist.length; i++){ if (hist[i][0] < t0) continue; S.draw.line(c, ax.X(hist[i - 1][0]), ax.Y(hist[i - 1][s + 1]), ax.X(hist[i][0]), ax.Y(hist[i][s + 1]), cols[s], s === 1 ? 1.6 : 2.4, s === 1 ? [4, 3] : null); } S.draw.text(c, lab[s], ax.X(ax.x1) - 4, ax.Y(st[s]) - 8, {size: 12, color: cols[s], align: "right"}); }
       marks.forEach(function(m){ if (m[0] >= t0){ S.draw.line(c, ax.X(m[0]), ax.T, ax.X(m[0]), ax.B, pal.grey, 1, [3, 3]); S.draw.text(c, m[1], ax.X(m[0]) + 3, ax.T + 10, {size: 12, color: pal.grey, align: "left"}); } });
       var Q = st[2] * st[2] / Math.max(st[0] * st[1], 1e-12), rel = Q / K;
-      ro.set(0, S.fmt(Q, Q < 10 ? 2 : 1)); ro.set(1, "50"); ro.set(2, Math.abs(rel - 1) < 0.01 ? "équilibre atteint" : rel < 1 ? "vers la droite" : "vers la gauche");
+      ro.set(0, st[0] * st[1] < 1e-9 ? "→ ∞ (H₂ ou I₂ épuisé)" : S.fmt(Q, Q < 10 ? 2 : 1)); ro.set(1, "50"); ro.set(2, Math.abs(rel - 1) < 0.01 ? "équilibre atteint" : rel < 1 ? "vers la droite" : "vers la gauche");
       ro.set(3, S.fmt(st[0], 3)); ro.set(4, S.fmt(st[1], 3)); ro.set(5, S.fmt(st[2], 3));
       nt.set(Math.abs(rel - 1) < 0.01 ? "Équilibre : Q = K. Perturbe-le pour voir la réaction." : rel < 1 ? "Q < K : on a trop de réactifs (ou pas assez de produits) : le système forme du HI pour s'opposer." : "Q > K : on a trop de produit (ou trop peu de réactif) : le système consomme du HI.", Math.abs(rel - 1) < 0.01 ? "ok" : "");
     });
@@ -197,7 +197,7 @@ SFA.sim({
         S.draw.fn(g, ax, function(p){ return kH(T.value) * p; }, pal.acc, 2.6); S.draw.fn(g, ax, function(p){ return kH(4) * p; }, pal.grey, 1.6, [5, 4]); S.draw.text(g, "pointillés : à 4 °C", ax.X(5.9), ax.Y(kH(4) * 5.9) + 14, {size: 12, color: pal.grey, align: "right"});
         S.draw.dot(g, ax.X(open.value ? 0.0004 : P.value), ax.Y(open.value ? cOut : cEq), 7, pal.red);
         rows.set(0, S.fmt(kH(T.value), 4) + " mol/(L·atm)"); rows.set(1, S.fmt(cShow, 4) + " mol/L"); rows.set(2, S.fmt(cShow * 44, 2) + " g/L");
-        rows.set(3, S.fmt(cShow * 24, 2) + " L de gaz par L de boisson");
+        rows.set(3, S.fmt(Math.max(0, cShow - cOut) * 24, 2) + " L de gaz par L de boisson");
         nt.set(open.value ? "Ouverte : la pression chute, le CO₂ dissous (" + S.fmt(cEq, 3) + " mol/L) retourne vers le gaz : la quantité dissoute décroît vers " + S.fmt(cOut, 5) + " mol/L (la boisson devient plate)." : "À " + T.value + " °C : k_H = " + S.fmt(kH(T.value), 4) + " ; plus chaud ⇒ k_H plus petit ⇒ moins de CO₂ dissous (d'où la mousse d'une boisson tiède).", open.value ? "" : "");
       } else {
         var kN = 5.2e-4, Pd = 1 + D.value / 10, dd = Math.min(d.value, D.value), Pa = 1 + dd / 10, excess = kN * 0.79 * (Pd - Pa), vol = excess * 25 * 1000;

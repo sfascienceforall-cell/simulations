@@ -57,7 +57,8 @@ SFA.sim({
   piege:"π rad = 180°, pas 3,14°. Pour convertir : degrés = radians × 180/π. Ne confonds pas t = 2 (rad) avec un angle de 2°.",
   build:function(k,S){
     var c=k.canvas(0,{ratio:.95});
-    var t=k.slider("Nombre t",-7,14,0.05,3.14,"");
+    var t=k.slider("Nombre t",-7,14,0.05,3.15,"");
+    k.button("t = π/2",function(){ t.set(PI/2); }); k.button("t = π",function(){ t.set(PI); }); k.button("t = 2π",function(){ t.set(2*PI); }); k.button("t = −π",function(){ t.set(-PI); });
     var ro=k.readouts(["t (rad)","Angle en degrés","Nombre de tours","t modulo 2π"]);
     k.draw(function(){
       var T=t.value, W=c.W,H=c.H, r=Math.min(W,H)*0.27, cx=W/2, cy=H*0.34; c.clear(); var ctx=c.ctx;

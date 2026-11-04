@@ -117,7 +117,7 @@ SFA.sim({
       for (i = 0; i < 10; i++) if (!m[i] || !o[i] || m[i].a !== o[i].a) if (o[i]) changed++;
       var kind;
       if (t !== "s") kind = "décalage du cadre de lecture";
-      else { var q2 = Math.floor(p / 3); kind = m[q2] && o[q2] && m[q2].a === o[q2].a ? (mut === SEQ ? "aucun changement (même base)" : "silencieuse") : (m[q2] && m[q2].a === "Stop" ? "non-sens (codon stop)" : "faux-sens"); }
+      else { var q2 = Math.floor(p / 3); kind = q2 === 0 && mut !== SEQ ? "mutation du codon d'initiation AUG (la traduction ne démarre plus normalement)" : m[q2] && o[q2] && m[q2].a === o[q2].a ? (mut === SEQ ? "aucun changement (même base)" : "silencieuse") : (m[q2] && m[q2].a === "Stop" ? "non-sens (codon stop)" : "faux-sens"); }
       ro.set(0, kind); ro.set(1, changed + " sur 10");
       var extra = "";
       if (t === "s" && p === 19 && b === "T") extra = " C'est la mutation de la drépanocytose : Glu (acide glutamique) devient Val (valine) en position 6 de la chaîne β de l'hémoglobine (7e codon si l'on compte l'AUG initial) ; l'hémoglobine S forme des fibres qui déforment les globules rouges.";
@@ -201,7 +201,7 @@ SFA.sim({
     var se = k.slider("Sensibilité du test", 80, 100, 0.5, 99, "%");
     var sp = k.slider("Spécificité du test", 95, 100, 0.1, 99.9, "%");
     var ro = k.readouts(["Fréquence de la trisomie 21", "Vrais positifs", "Faux positifs", "Valeur prédictive positive"]);
-    var AG = [20, 25, 30, 35, 40, 45], OD = [1500, 1250, 950, 380, 105, 30];
+    var AG = [20, 25, 30, 35, 40, 45], OD = [1667, 1250, 950, 380, 105, 30];
     function prev(a){ for (var i = 0; i < AG.length - 1; i++) if (a <= AG[i + 1]){ var t = (a - AG[i]) / (AG[i + 1] - AG[i]); return Math.exp(Math.log(1 / OD[i]) * (1 - t) + Math.log(1 / OD[i + 1]) * t); } return 1 / OD[5]; }
     function ppv(a){ var pv = prev(a), tp = pv * se.value / 100, fp = (1 - pv) * (1 - sp.value / 100); return tp / (tp + fp); }
     k.draw(function(){

@@ -25,7 +25,7 @@ SFA.sim({
   piege:"Un précipité n'est pas n'importe quel trouble : c'est un solide formé à partir d'ions dissous. Les ions spectateurs (Na⁺, NO₃⁻) restent en solution et ne figurent pas dans l'équation nette.",
   build:function(k, S){
     var c = k.canvas(260);
-    var ca = k.select("Solution 1 (cations)", CATS.map(function(x, i){ return [i, x[2] + " (" + x[0] + (x[1] > 1 ? x[1] : "") + "⁺".replace("⁺", ["", "⁺", "²⁺", "³⁺"][x[1]]) + ")"]; }), 0);
+    var ca = k.select("Solution 1 (cations)", CATS.map(function(x, i){ return [i, x[2] + " (" + x[0] + ["", "⁺", "²⁺", "³⁺"][x[1]] + ")"]; }), 0);
     var an = k.select("Solution 2 (anions)", ANS.map(function(x, i){ return [i, x[1] + " (" + x[2] + ")"]; }), 0);
     var out = k.note("", "ok");
     var st = {p:1}, lp = k.loop(function(dt){ st.p = Math.min(1, st.p + dt / 2.5); if (st.p >= 1) lp.pause(); k.redraw(); });
@@ -167,9 +167,9 @@ SFA.sim({
       var nb = Math.min(30, Math.round(excess / 0.05 * 3)); if (nb > 0 && excess > 1e-9){ for (i = 0; i < nb; i++){ ctx.fillStyle = "rgba(255,255,255,.95)"; ctx.strokeStyle = "#b8c0cc"; ctx.beginPath(); ctx.arc(cx - 50 + rnd() * 100, 104 - rnd() * 12, 5 + rnd() * 3, 0, 7); ctx.fill(); ctx.stroke(); } }
       C4.label(c, S.fmt(v.value, 0) + " mL d'eau à " + S.fmt(h.value, 0) + " °f", cx, 240, "#2c3a4e", 12);
       C4.label(c, "Ca²⁺ + 2 savon⁻ → (savon)₂Ca ↓", W / 2, 24, "#0f1b2d", 13);
-      var cls = h.value < 7 ? "très douce" : h.value < 15 ? "douce" : h.value < 25 ? "moyennement dure" : h.value < 35 ? "dure" : "très dure";
+      var cls = h.value < 7 ? "très douce" : h.value < 15 ? "douce" : h.value < 25 ? "moyennement dure" : h.value < 32 ? "assez dure" : h.value < 42 ? "dure" : "très dure";
       ro.set(0, S.fmt(nCa, 3) + " mmol"); ro.set(1, S.fmt(need, 2) + " mmol"); ro.set(2, S.fmt(dn, 1)); ro.set(3, excess > 1e-9 ? "oui" : "non"); ro.set(4, cls);
-      nt.set(h.value === 0 ? "Eau sans calcaire : la mousse apparaît dès la première goutte." : excess > 1e-9 ? "Mousse : tous les ions Ca²⁺ ont précipité, le savon en excès mousse. Dureté retrouvée : " + S.fmt(d.value * 0.05 / 2 / (v.value / 1000) / 0.1, 0) + " °f (au nombre entier de gouttes près)." : "Pas de mousse : le savon est consommé par le calcaire (précipité d'écume). Il faut encore " + S.fmt(Math.max(0, dn - d.value), 1) + " goutte(s).", excess > 1e-9 ? "ok" : "");
+      nt.set(h.value === 0 ? "Eau sans calcaire : la mousse apparaît dès la première goutte." : excess > 1e-9 ? "Mousse : tous les ions Ca²⁺ ont précipité, le savon en excès mousse. Dureté retrouvée : " + S.fmt(d.value * 0.05 / 2 / (v.value / 1000) / 0.1, 0) + " °f (au nombre entier de gouttes près)." : "Pas de mousse : le savon est consommé par le calcaire (précipité d'écume). " + (dn - d.value < 1e-9 ? "Tous les Ca²⁺ viennent de précipiter : la prochaine goutte fera mousser." : "Il faut encore " + S.fmt(Math.max(0, dn - d.value), 1) + " goutte(s) pour que tous les Ca²⁺ précipitent."), excess > 1e-9 ? "ok" : "");
     });
     k.note("Modèle simplifié : seul Ca²⁺ cause la dureté (en réalité aussi Mg²⁺) ; chaque goutte apporte 0,05 mmol de savon (anion carboxylate).", "");
   }

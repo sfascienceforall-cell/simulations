@@ -80,7 +80,7 @@ SFA.sim({
   titre: "Polarité globale : somme de vecteurs",
   resume: "Chaque liaison a un dipôle ; la molécule est polaire seulement si la somme n'est pas nulle.",
   but: "Choisis une molécule et fais-la tourner. Affiche les dipôles de liaison puis la résultante. Compare CO₂ et H₂O, CH₄ et CH₃Cl.",
-  aRetenir: "Une molécule est polaire si la somme vectorielle de ses dipôles de liaison n'est pas nulle. Il faut donc ΔEN ≠ 0 ET une géométrie qui ne compense pas les dipôles. CO₂, BF₃, CH₄, CCl₄ : liaisons polaires, molécule apolaire.",
+  aRetenir: "Une molécule est polaire si la somme vectorielle de ses dipôles de liaison n'est pas nulle. Il faut donc ΔEN ≠ 0 ET une géométrie qui ne compense pas les dipôles. CO₂, BF₃, CCl₄ : liaisons polaires, molécule apolaire (CH₄ : liaisons à peine polaires, ΔEN = 0,4, et molécule apolaire).",
   piege: "« Liaison polaire » ne veut pas dire « molécule polaire ». Remplacer un seul atome dans une molécule symétrique casse la symétrie : CH₄ est apolaire, CH₃Cl est polaire. Ici le dipôle est représenté par ΔEN (unités arbitraires), pas par un vrai moment dipolaire en debye.",
   build: function(k, S){
     var pal = S.draw.palette, EN = C5.EN, st = {yaw: 0.5, pitch: 0.3};
@@ -226,7 +226,8 @@ SFA.sim({
     var mol = k.toggle("Vue moléculaire à la place du graphe", false);
     var ro = k.readouts(["Masse volumique du liquide", "Masse volumique de la glace", "Part immergée", "Verdict"]);
     var nt = k.note("", "");
-    function rho(){ return liq.value === "eau" ? rhoW(T.value) : liq.value === "mer" ? 1.025 : 0.789; }
+    /* eau de mer (35 g/kg) : 1,0247 g/cm³ à 20 °C, même dilatation que l'eau pure ; éthanol : 0,789 à 20 °C, −0,00085 g/cm³ par °C */
+    function rho(){ return liq.value === "eau" ? rhoW(T.value) : liq.value === "mer" ? 1.0247 * rhoW(T.value) / rhoW(20) : 0.789 - 0.00085 * (T.value - 20); }
     k.draw(function(){
       var r = rho(), f = RHO_ICE / r, ctx = c.ctx; c.clear(); g.clear();
       var bx = c.W / 2 - 100, bw = 200, by = 20, bh = 180;
@@ -243,15 +244,27 @@ SFA.sim({
       if (mol.value){
         g.clear(); var ctx2 = g.ctx, gw = g.W / 2;
         S.draw.text(g, "Glace : réseau ouvert", gw / 2, 12, {size: 12}); S.draw.text(g, "Eau liquide : plus compact", gw + gw / 2, 12, {size: 12});
-        /* glace : hexagones, 7 molécules par motif ; liquide : même aire, 8 molécules */
-        for (var h = 0; h < 2; h++) for (var q = 0; q < 2; q++){
-          var hx = gw / 2 - 40 + h * 52 - (q ? 26 : 0) + 20, hy = 56 + q * 46, i2;
-          for (i2 = 0; i2 < 6; i2++){ var an = i2 * Math.PI / 3, X = hx + 24 * Math.cos(an), Y = hy + 24 * Math.sin(an), an2 = (i2 + 1) * Math.PI / 3;
-            S.draw.line(g, X, Y, hx + 24 * Math.cos(an2), hy + 24 * Math.sin(an2), pal.acc, 1.5, [3, 3]); }
-          for (i2 = 0; i2 < 6; i2++) C5.atom(g, hx + 24 * Math.cos(i2 * Math.PI / 3), hy + 24 * Math.sin(i2 * Math.PI / 3), 5, "#c6d6f6", "");
+        /* même zone pour les deux : glace = réseau en nid d'abeilles (ouvert) ; liquide = ≈ 9 % de molécules en plus dans la même zone (comme ρ : 1,000 / 0,917) */
+        var bx0 = gw / 2 - 70, by0 = 30, bwd = 140, bht = 100, ra = 21, ice = [], key = {}, ii, jj, kk;
+        S.draw.line(g, bx0, by0, bx0 + bwd, by0, pal.light, 1); S.draw.line(g, bx0, by0 + bht, bx0 + bwd, by0 + bht, pal.light, 1);
+        S.draw.line(g, gw + gw / 2 - 70, by0, gw + gw / 2 + 70, by0, pal.light, 1); S.draw.line(g, gw + gw / 2 - 70, by0 + bht, gw + gw / 2 + 70, by0 + bht, pal.light, 1);
+        for (jj = 0; jj < 4; jj++) for (ii = 0; ii < 4; ii++){
+          var hcx = bx0 + 4 + ii * Math.sqrt(3) * ra + (jj % 2) * Math.sqrt(3) * ra / 2, hcy = by0 + 8 + jj * 1.5 * ra;
+          for (kk = 0; kk < 6; kk++){
+            var ang = Math.PI / 6 + kk * Math.PI / 3, vx = hcx + ra * Math.cos(ang), vy = hcy + ra * Math.sin(ang), kx = Math.round(vx) + "," + Math.round(vy);
+            if (vx >= bx0 + 2 && vx <= bx0 + bwd - 2 && vy >= by0 + 4 && vy <= by0 + bht - 4 && !key[kx]){ key[kx] = 1; ice.push([vx, vy]); }
+          }
         }
-        var pts = [[.15,.3],[.5,.2],[.82,.28],[.3,.52],[.65,.5],[.12,.75],[.45,.82],[.8,.78],[.6,.9],[.28,.95]];
-        pts.forEach(function(p){ C5.atom(g, gw + 14 + p[0] * (gw - 28), 30 + p[1] * (g.H - 50), 5, "#c6d6f6", ""); });
+        for (ii = 0; ii < ice.length; ii++) for (jj = ii + 1; jj < ice.length; jj++){
+          if (Math.hypot(ice[ii][0] - ice[jj][0], ice[ii][1] - ice[jj][1]) < ra * 1.08) S.draw.line(g, ice[ii][0], ice[ii][1], ice[jj][0], ice[jj][1], pal.acc, 1.5, [3, 3]);
+        }
+        ice.forEach(function(q){ C5.atom(g, q[0], q[1], 5, "#c6d6f6", ""); });
+        var nl = Math.round(ice.length * 1.09), lc = 6, lr = Math.ceil(nl / lc), lx0 = gw + gw / 2 - 70;
+        for (var m2 = 0; m2 < nl; m2++){
+          var gc = m2 % lc, gr = Math.floor(m2 / lc);
+          C5.atom(g, lx0 + 12 + gc * (116 / (lc - 1)) + 5 * Math.sin(m2 * 2.7), by0 + 12 + gr * ((bht - 24) / Math.max(1, lr - 1)) + 5 * Math.cos(m2 * 1.9), 5, "#c6d6f6", "");
+        }
+        S.draw.text(g, ice.length + " molécules dans cette zone", gw / 2, by0 + bht + 14, {size: 11, color: pal.grey}); S.draw.text(g, nl + " molécules dans la même zone", gw + gw / 2, by0 + bht + 14, {size: 11, color: pal.grey});
         S.draw.text(g, "··· liaison H", gw / 2, g.H - 10, {size: 12, color: pal.acc});
       } else {
         S.draw.fn(g, ax, rhoW, pal.acc, 2.6);
@@ -261,7 +274,8 @@ SFA.sim({
         S.draw.text(g, "(glace : 0,917, sous le bas du graphe)", g.W - 8, 10, {size: 12, color: pal.grey, align: "right"});
       }
       ro.set(0, S.fmt(r, liq.value === "eau" ? 5 : 3) + " g/cm³"); ro.set(1, "0,917 g/cm³"); ro.set(2, f < 1 ? S.fmt(f * 100, 1) + " %" : "100 % (coule)"); ro.set(3, f < 1 ? "flotte" : "coule");
-      nt.set(f >= 1 ? "Dans l'éthanol, moins dense que la glace, le glaçon coule : un solide qui coule dans son liquide, comme presque tous les solides." : liq.value === "mer" ? "L'eau de mer est plus dense : le glaçon s'enfonce moins (les icebergs de glace d'eau douce flottent très bien)." : T.value === 4 ? "À 4 °C l'eau liquide est à sa masse volumique maximale." : "La part immergée dépend de ρ(glace) / ρ(eau).", "");
+      if (liq.value === "eth" && T.value > 78) nt.set("L'éthanol bout à 78 °C : au-delà, ce n'est plus un liquide et le calcul n'a plus de sens.", "warn");
+      else nt.set(f >= 1 ? "Dans l'éthanol, moins dense que la glace, le glaçon coule : un solide qui coule dans son liquide, comme presque tous les solides." : liq.value === "mer" ? "L'eau de mer est plus dense : le glaçon s'enfonce moins (les icebergs de glace d'eau douce flottent très bien)." : T.value === 4 ? "À 4 °C l'eau liquide est à sa masse volumique maximale." : "La part immergée dépend de ρ(glace) / ρ(eau).", "");
     });
   }
 });

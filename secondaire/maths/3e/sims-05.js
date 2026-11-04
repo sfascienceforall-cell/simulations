@@ -77,7 +77,8 @@ SFA.sim({
         ctx.fillStyle="rgba(46,107,85,.16)"; ctx.fillRect(ax.X(f),ax.T,ax.X(t)-ax.X(f),ax.B-ax.T);
         ctx.strokeStyle=P.green; ctx.lineWidth=7; ctx.beginPath(); ctx.moveTo(ax.X(f),ax.Y(0)); ctx.lineTo(ax.X(t),ax.Y(0)); ctx.stroke(); }
       S.draw.fn(c,ax,function(x){return A*x+B;},P.acc,3); S.draw.fn(c,ax,function(x){return C*x+D;},P.red,3);
-      S.draw.text(c,"f",ax.X(7)-4,ax.Y(A*7+B)-10,{size:13,color:P.acc}); S.draw.text(c,"g",ax.X(7)-4,ax.Y(C*7+D)+12,{size:13,color:P.red});
+      function cl(y){ return Math.max(ax.T+10,Math.min(ax.B-10,y)); }
+      S.draw.text(c,"f",ax.X(7)-4,cl(ax.Y(A*7+B)-10),{size:13,color:P.acc}); S.draw.text(c,"g",ax.X(7)-4,cl(ax.Y(C*7+D)+12),{size:13,color:P.red});
       if(A!==C){ var xs=(D-B)/(A-C); if(Math.abs(xs)<=8&&Math.abs(A*xs+B)<=12) S.draw.dot(c,ax.X(xs),ax.Y(A*xs+B),7,P.ink); ro.set(0,"x = "+S.fmt(xs,2)); } else ro.set(0,"droites parallèles");
       ro.set(1,M3.interval(sol,S));
     });

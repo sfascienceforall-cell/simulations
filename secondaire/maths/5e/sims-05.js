@@ -37,7 +37,7 @@ SFA.sim({
       S.draw.dot(c, ax.X(A), ax.Y(fa), 6, P.acc); S.draw.dot(c, ax.X(B), ax.Y(fb), 6, P.red);
       S.draw.text(c, "A", ax.X(A) - 10, ax.Y(fa) - 10, {color:P.acc}); S.draw.text(c, "B", ax.X(B) + 10, ax.Y(fb) - 10, {color:P.red});
       ro.set(0, F(h, 4)); ro.set(1, F(slope, 4)); ro.set(2, F(t, 4)); ro.set(3, F(slope - t, 4));
-      nt.set("Sécante AB : pente (f(" + F(B, 3) + ") − f(" + F(A, 2) + ")) / " + F(h, 4) + " = <b>" + F(slope, 4) + "</b>. Tangente : f′(" + F(A, 2) + ") = <b>" + F(t, 4) + "</b>. Équation de la tangente : y = " + F(t, 3) + "(" + (A < 0 ? "x + " + F(-A, 2) : "x − " + F(A, 2)) + ") + " + F(fa, 3) + ".", "ok");
+      nt.set("Sécante AB : pente (f(" + F(B, 3) + ") − f(" + F(A, 2) + ")) / " + F(h, 4) + " = <b>" + F(slope, 4) + "</b>. Tangente : f′(" + F(A, 2) + ") = <b>" + F(t, 4) + "</b>. Équation de la tangente : y = " + F(t, 3) + "·(" + (A === 0 ? "x" : A < 0 ? "x + " + F(-A, 2) : "x − " + F(A, 2)) + ")" + (fa < 0 ? " − " + F(-fa, 3) : " + " + F(fa, 3)) + ".", "ok");
     });
     sel.el.dispatchEvent(new Event("change"));
   }
@@ -48,7 +48,7 @@ var DF = {
   a:{n:"f(x) = x³/3 − x", f:function(x){ return x*x*x/3 - x; }, d:function(x){ return x*x - 1; }, wf:[-3.5, 3.5], wd:[-2, 6.5], ds:"f′(x) = x² − 1"},
   b:{n:"f(x) = x⁴/4 − x²", f:function(x){ return Math.pow(x, 4)/4 - x*x; }, d:function(x){ return x*x*x - 2*x; }, wf:[-2.5, 5], wd:[-14, 14], ds:"f′(x) = x³ − 2x"},
   c:{n:"f(x) = |x|", f:function(x){ return Math.abs(x); }, d:function(x){ return Math.abs(x) < 1e-9 ? NaN : (x > 0 ? 1 : -1); }, wf:[-0.5, 3], wd:[-1.5, 1.5], ds:"f′(x) = −1 si x < 0, +1 si x > 0, n'existe pas en 0"},
-  d:{n:"f(x) = 2/x (x > 0)", f:function(x){ return x > 0 ? 2/x : NaN; }, d:function(x){ return x > 0 ? -2/(x*x) : NaN; }, wf:[-0.5, 6], wd:[-6, 1], ds:"f′(x) = −2/x²", lo:0.4}
+  d:{n:"f(x) = 2/x (x > 0)", f:function(x){ return x > 0 ? 2/x : NaN; }, d:function(x){ return x > 0 ? -2/(x*x) : NaN; }, wf:[-0.5, 6], wd:[-6, 1], ds:"f′(x) = −2/x²", lo:0.6}
 };
 SFA.sim({
   id:"m5-c05-courbe-derivee", ch:"c05", tag:"Classique",
@@ -59,7 +59,7 @@ SFA.sim({
   piege:"Une fonction continue n'est pas toujours dérivable : |x| est continue en 0 mais n'a pas de tangente (pointe).",
   build:function(k, S){
     var c1 = k.canvas(220), c2 = k.canvas(200);
-    var sel = k.select("Fonction", Object.keys(DF).map(function(q){ return [q, DF[q].n]; }), "a", function(){ x.set(1); });
+    var sel = k.select("Fonction", Object.keys(DF).map(function(q){ return [q, DF[q].n]; }), "a", function(){ x.el.min = DF[sel.value].lo || -2.5; x.set(1); });
     var x = k.slider("Abscisse x", -2.5, 2.5, 0.05, 1, "");
     var ro = k.readouts(["f(x)", "f′(x)", "Tangente"]);
     var nt = k.note("", "ok"), ax1, ax2;
@@ -149,7 +149,7 @@ SFA.sim({
       S.draw.fn(c, ax, s, P.acc, 2.6);
       var vm = (s(T0 + dT) - s(T0)) / dT, vi = 9.8 * T0;
       clipped(c, ax, function(){ line(c, ax, T0, s(T0), vm, P.red, null, 2); line(c, ax, T0, s(T0), vi, P.green, [6, 5], 2); });
-      S.draw.dot(c, ax.X(T0), ax.Y(s(T0)), 6, P.acc); S.draw.dot(c, ax.X(T0 + dT), ax.Y(s(T0 + dT)), 5, P.red);
+      S.draw.dot(c, ax.X(T0), ax.Y(s(T0)), 6, P.acc); clipped(c, ax, function(){ S.draw.dot(c, ax.X(T0 + dT), ax.Y(s(T0 + dT)), 5, P.red); });
       var cx = c.W - 58, top = ax.T + 6, bot = ax.B - 6;
       S.draw.line(c, cx, top, cx, bot, P.light, 3);
       var yy = top + (bot - top) * (s(tt) / 60);

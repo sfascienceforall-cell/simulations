@@ -185,7 +185,7 @@ SFA.sim({
   resume: "Compare deux procédés pour la même molécule : quelle part des atomes des réactifs finit dans le produit ?",
   but: "Choisis deux procédés et leur rendement. Compare l'économie d'atomes et le facteur E (kg de déchets par kg de produit).",
   aRetenir: "Économie d'atomes = M(produit voulu) / Σ M(réactifs, coefficients inclus) × 100. Une addition (ex. hydratation de l'éthène) conserve tous les atomes (100 %) ; une substitution rejette un sous-produit. Facteur E = (masse de réactifs − masse de produit obtenu) / masse de produit obtenu : il tient aussi compte du rendement. La chimie verte cherche à les réduire, avec peu de déchets et sans solvants toxiques.",
-  piege: "Économie d'atomes et rendement sont deux choses différentes : un procédé à rendement de 100 % peut jeter plus de la moitié de la masse des réactifs (fermentation du glucose : 51 %). Un déchet comme l'eau est inoffensif, d'autres non : on ne compare pas uniquement les masses. Modèle simplifié : solvants et catalyseurs ignorés.",
+  piege: "Économie d'atomes et rendement sont deux choses différentes : un procédé à rendement de 100 % peut jeter une grande part de la masse des réactifs (fermentation du glucose : économie d'atomes de 51 %, donc 49 % de déchets ; substitution du bromoéthane par la soude : 31 % seulement, donc 69 % de déchets). Un déchet comme l'eau est inoffensif, d'autres non : on ne compare pas uniquement les masses. Modèle simplifié : solvants et catalyseurs ignorés.",
   build: function(k, S){
     var c = k.canvas(330), P = S.draw.palette;
     var a = k.select("Procédé A", PRO.map(function(p, i){ return [i, p.nom]; }), 2);

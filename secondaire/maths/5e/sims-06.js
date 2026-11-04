@@ -41,8 +41,8 @@ SFA.sim({
 /* 2. Tangente qui tourne */
 var TG = {
   a:{n:"f(x) = x³ − 3x", f:function(x){ return x*x*x - 3*x; }, d:function(x){ return 3*x*x - 3; }, cr:[[-1, "max"], [1, "min"]], w:[-5, 5], wd:[-4, 12]},
-  b:{n:"f(x) = x³ (piège)", f:function(x){ return x*x*x; }, d:function(x){ return 3*x*x; }, cr:[[0, "aucun"]], w:[-9, 9], wd:[-2, 14]},
-  c:{n:"f(x) = x⁴ − 4x²", f:function(x){ return Math.pow(x, 4) - 4*x*x; }, d:function(x){ return 4*x*x*x - 8*x; }, cr:[[-Math.SQRT2, "min"], [0, "max"], [Math.SQRT2, "min"]], w:[-5, 6], wd:[-14, 14]}
+  b:{n:"f(x) = x³ (piège)", f:function(x){ return x*x*x; }, d:function(x){ return 3*x*x; }, cr:[[0, "aucun"]], w:[-12, 12], wd:[-2, 16]},
+  c:{n:"f(x) = x⁴ − 4x²", f:function(x){ return Math.pow(x, 4) - 4*x*x; }, d:function(x){ return 4*x*x*x - 8*x; }, cr:[[-Math.SQRT2, "min"], [0, "max"], [Math.SQRT2, "min"]], w:[-5, 6], wd:[-26, 26]}
 };
 SFA.sim({
   id:"m5-c06-tangente-tourne", ch:"c06", tag:"Classique",
@@ -92,7 +92,7 @@ SFA.sim({
   resume:"Avec L mètres de grillage : le long d'une rivière ou en rectangle libre ?",
   but:"Choisis la longueur L de grillage et le mode. Règle la largeur x pour maximiser l'aire. Compare les deux modes.",
   aRetenir:"Le long d'une rivière (3 côtés) : A(x) = x(L − 2x), maximum en x = L/4, aire L²/8. Rectangle fermé (4 côtés) : A(x) = x(L/2 − x), maximum en x = L/4 aussi, c'est un carré, aire L²/16 : la rivière double l'aire.",
-  piege:"Il faut exprimer l'aire avec une seule variable, en utilisant la contrainte (la longueur de grillage). Et indiquer le domaine : 0 < x < L/2 (rivière) ou 0 < x < L/2 (fermé).",
+  piege:"Il faut exprimer l'aire avec une seule variable, en utilisant la contrainte (la longueur de grillage). Et indiquer le domaine : 0 < x < L/2 dans les deux modes (au-delà, l\'autre côté deviendrait nul ou négatif).",
   build:function(k, S){
     var c1 = k.canvas(190), c2 = k.canvas(220);
     var mode = k.seg("Mode", [["R", "Le long d'une rivière"], ["F", "Rectangle fermé"]], "R");

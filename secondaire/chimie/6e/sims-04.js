@@ -19,6 +19,8 @@ var ACI = [
   {nom: "Ion ammonium, pKa 9,25", pKa: 9.25, f: "NH₄⁺", b: "NH₃"},
   {nom: "Acide cyanhydrique, pKa 9,21", pKa: 9.21, f: "HCN", b: "CN⁻"}
 ];
+function pct(a){ var v = a * 100; return v < 0.01 && v > 0 ? S_sci(v) + " %" : null; }
+function S_sci(v){ return window.SFA.sci(v, 1); }
 SFA.sim({
   id: "c6-c04-dissociation", ch: "c04", tag: "Classique",
   titre: "Dans le bécher : acide fort ou acide faible ?",
@@ -51,9 +53,10 @@ SFA.sim({
         S.draw.dot(c, lx + 6, 84, 5, P.red); S.draw.text(c, a.b, lx + 16, 84, {size: 12, align: "left"});
         S.draw.dot(c, lx + 6, 108, 5, P.acc); S.draw.text(c, "H₃O⁺", lx + 16, 108, {size: 12, align: "left"});
       }
-      S.draw.text(c, nd + " dissociées sur 200 (≈ " + S.fmt(alpha * 100, alpha < 0.1 ? 2 : 0) + " %)", c.W / 2, 18, {size: 13, color: P.ink});
-      ro.set(0, S.sci(cc, 2) + " mol/L"); ro.set(1, S.fmt(ph, 2)); ro.set(2, alpha > 0.995 ? "≈ 100 % (fort)" : S.fmt(alpha * 100, alpha < 0.1 ? 2 : 1) + " %"); ro.set(3, S.fmt(Math.max(0, -Math.log10(cc)), 2));
-      if (alpha < 0.005 && nd === 0) nt.set("Moins d'une particule sur 200 est dissociée : le taux est trop faible pour apparaître dans le dessin, mais il est bien non nul (α ≈ " + S.fmt(alpha * 100, 2) + " %).", "warn");
+      var pTxt = pct(alpha) || (S.fmt(alpha * 100, alpha < 0.1 ? 2 : 0) + " %");
+      S.draw.text(c, nd + " dissociées sur 200 (≈ " + pTxt.replace(/<sup>(.*?)<\/sup>/, "^$1") + ")", c.W / 2, 18, {size: 13, color: P.ink});
+      ro.set(0, S.sci(cc, 2) + " mol/L"); ro.set(1, S.fmt(ph, 2)); ro.set(2, alpha > 0.995 ? "≈ 100 % (fort)" : pct(alpha) || (S.fmt(alpha * 100, alpha < 0.1 ? 2 : 1) + " %")); ro.set(3, S.fmt(Math.max(0, -Math.log10(cc)), 2));
+      if (alpha < 0.005 && nd === 0) nt.set("Moins d'une particule sur 200 est dissociée : le taux est trop faible pour apparaître dans le dessin, mais il est bien non nul (α ≈ " + (pct(alpha) || (S.fmt(alpha * 100, 2) + " %")) + ").", "warn");
       else if (alpha > 0.995) nt.set("Acide fort : toutes les particules sont dissociées, pH = −log c.", "ok");
       else nt.set("Acide faible : le pH (" + S.fmt(ph, 2) + ") est plus élevé que celui d'un acide fort de même concentration (" + S.fmt(-Math.log10(cc), 2) + ").", "ok");
     });
@@ -142,7 +145,7 @@ SFA.sim({
       }
       ro.set(0, s.sp[best]); ro.set(1, s.sp.map(function(n, i){ return n + " " + S.fmt(fr[i] * 100, 0) + " %"; }).join(" · "));
       var near = s.pk.filter(function(p){ return Math.abs(p - ph.value) < 0.06; });
-      nt.set(near.length ? "pH = pKa : les deux formes sont à parts égales (50 % / 50 %)." : "Rapport entre formes voisines : 10<sup>|pH − pKa|</sup> en faveur de la forme prédominante.", "ok");
+      nt.set(near.length ? "pH ≈ pKa : les deux formes sont à parts à peu près égales (≈ 50 % / 50 %)." : "Rapport entre formes voisines : 10<sup>|pH − pKa|</sup> en faveur de la forme prédominante.", "ok");
     });
   }
 });

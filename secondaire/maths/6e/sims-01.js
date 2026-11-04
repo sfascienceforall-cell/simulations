@@ -45,6 +45,7 @@ SFA.sim({
     var base=k.select("Base",[["2","a = 2"],["e","a = e (logarithme népérien)"],["10","a = 10 (logarithme décimal)"],["0.5","a = 1/2"]],"2");
     var t=k.slider("Abscisse t de P",-3,3,0.05,1,"",null);
     var ro=k.readouts(["P (t ; a^t)","Q (a^t ; t)","log_a(a^t)","Domaine de log"]);
+    var nt=k.note("","");
     function B(){return base.value==="e"?Math.E:parseFloat(base.value);}
     k.draw(function(){
       c.clear(); var P=S.draw.palette, a=B(), T=t.value;
@@ -57,10 +58,11 @@ SFA.sim({
       S.draw.line(c,ax.X(T),ax.Y(py),ax.X(py),ax.Y(T),P.violet,1.5,[3,3]);
       S.draw.dot(c,ax.X(T),ax.Y(py),6,P.acc); S.draw.dot(c,ax.X(py),ax.Y(T),6,P.green);
       S.draw.text(c,"P",ax.X(T)-10,ax.Y(py)-12,{color:P.acc}); S.draw.text(c,"Q",ax.X(py)+10,ax.Y(T)+12,{color:P.green});
-      S.draw.text(c,"a^x",ax.X(-3.7),ax.Y(Math.pow(a,-3.7))-10,{color:P.acc,size:12});
-      S.draw.text(c,"y = x",ax.R-24,ax.Y(ax.x1)+12,{color:P.grey,size:12});
+      S.draw.text(c,"bleu : a^x · vert : log_a(x) · pointillés : y = x",ax.R-6,ax.T+10,{color:P.ink,size:12,align:"right"});
       ro.set(0,"("+S.fmt(T,2)+" ; "+S.fmt(py,3)+")"); ro.set(1,"("+S.fmt(py,3)+" ; "+S.fmt(T,2)+")");
       ro.set(2,S.fmt(Math.log(py)/Math.log(a),2)); ro.set(3,"x > 0");
+      var outv=py>ax.y1||py>ax.x1||py<ax.y0;
+      nt.set(outv?"P ou Q sort du cadre (a^t trop grand ou trop petit) : les valeurs affichées restent justes, rapproche t de 0 pour voir les deux points.":"Q est le symétrique de P par rapport à y = x : abscisse et ordonnée sont échangées.",outv?"warn":"ok");
       c._ax=ax;
     });
     c.pointer(function(type,p){ if(type==="down"||type==="drag"){ var ax=c._ax; if(!ax)return; var v=Math.max(-3,Math.min(3,ax.ix(p.x))); t.set(Math.round(v*20)/20); k.redraw(); } });

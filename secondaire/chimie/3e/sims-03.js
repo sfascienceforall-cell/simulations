@@ -30,13 +30,13 @@ SFA.sim({
       for(var z=1;z<=20;z++){ for(var n=0;n<=24;n++){ var st=STAB[z].indexOf(z+n)>=0, x=L+n*cs, y=Tt+(20-z)*cs;
         ctx.fillStyle=st?"#2e6b55":"#eef1f5"; ctx.fillRect(x+0.5,y+0.5,cs-1,cs-1); } }
       // ligne N = Z
-      D.line(c,L,Tt+20*cs,L+20*cs,Tt,P.amber,1.5,[4,3]);
+      D.line(c,L+cs,Tt+20*cs,L+20.5*cs,Tt+0.5*cs,P.amber,1.5,[4,3]);
       ctx.font="600 11px Mulish, system-ui"; ctx.fillStyle="#5f6b7a"; ctx.textAlign="center"; ctx.textBaseline="top";
       for(n=0;n<=24;n+=4) ctx.fillText(String(n),L+(n+0.5)*cs,Tt+20*cs+4);
       ctx.textAlign="right"; ctx.textBaseline="middle"; for(z=2;z<=20;z+=2) ctx.fillText(String(z),L-4,Tt+(20-z+0.5)*cs);
       T(c,"neutrons N →",L+12.5*cs,Tt+20*cs+20,{size:12,color:P.ink});
       T(c,"Z",L-12,Tt-9,{size:12,color:P.ink});
-      T(c,"N = Z →",L+2.5*cs,Tt+6.5*cs,{size:12,color:P.amber,align:"left"});
+      T(c,"← N = Z",L+20.9*cs,Tt+0.5*cs,{size:12,color:P.amber,align:"left"});
       ctx.strokeStyle=P.red; ctx.lineWidth=2.5; ctx.strokeRect(L+N*cs,Tt+(20-Z)*cs,cs,cs);
       var A=Z+N, stable=STAB[Z].indexOf(A)>=0;
       ro.set(0,nota(A,Z)); ro.set(1,EL[Z][1]); ro.set(2,Z+" p / "+N+" n"); ro.set(3,stable?"stable":"instable ou inexistant");
@@ -65,7 +65,7 @@ SFA.sim({
     var el = k.select("Élément", Object.keys(ISO).map(function(i){return [i,ISO[i].n+" ("+ISO[i].m[0]+" et "+ISO[i].m[1]+")"];}), "cl", function(){ sl.set(ISO[el.value].a); });
     var sl = k.slider("Abondance de l'isotope léger", 0, 100, 1, 76, "%");
     k.button("Valeur naturelle", function(){ sl.set(ISO[el.value].a); }, true);
-    var ro = k.readouts(["Masse moyenne","Valeur du tableau","Écart","Isotope le plus lourd"]);
+    var ro = k.readouts(["Masse moyenne","Valeur du tableau","Écart","Isotope dominant"]);
     var nt = k.note("","");
     k.draw(function(){
       c.clear(); var W=c.W,H=c.H,g=c.ctx, e=ISO[el.value], m1=e.m[0], m2=e.m[1], a=sl.value/100, mean=a*m1+(1-a)*m2;
@@ -84,7 +84,7 @@ SFA.sim({
       var target=Math.round((ISO[el.value].m[0]*ISO[el.value].a/100+ISO[el.value].m[1]*(1-ISO[el.value].a/100))*10)/10;
       ro.set(0,F(mean,2)+" u"); ro.set(1,F(e.tab,2)+" u"); ro.set(2,F(mean-e.tab,2)+" u");       ro.set(3, a>0.5? e.s+"-"+m1+" domine":(a<0.5? e.s+"-"+m2+" domine":"égalité"));
       var ok=Math.abs(mean-target)<=0.055;
-      nt.set("<b>Défi :</b> règle l'abondance pour obtenir <b>"+F(target,1)+" u</b> (valeur arrondie du tableau pour "+e.n.toLowerCase()+")."+(ok?" ✓ Réussi : tu retrouves l'abondance naturelle (≈ "+F(ISO[el.value].a,0)+" %) !":" Actuellement : "+F(mean,2)+" u."), ok?"ok":"warn");
+      nt.set("<b>Défi :</b> règle l'abondance pour obtenir <b>"+F(target,1)+" u</b> (moyenne calculée avec les abondances naturelles et les nombres de masse ; elle est proche de la valeur du tableau, "+F(e.tab,2)+" u, pour "+e.n.toLowerCase()+")."+(ok?" ✓ Réussi : tu retrouves l'abondance naturelle (≈ "+F(ISO[el.value].a,0)+" %) !":" Actuellement : "+F(mean,2)+" u."), ok?"ok":"warn");
     });
   }
 });
@@ -166,7 +166,7 @@ SFA.sim({
   piege:"La demi-vie n'est pas une horloge : à chaque instant, chaque atome a la même probabilité de se désintégrer, quel que soit son âge. Après 2 demi-vies, il reste 1/4 (pas 0) de l'échantillon. Avec peu d'atomes, la courbe fluctue autour de la théorie.",
   build:function(k,S){
     var c = k.canvas(380);
-    var el = k.select("Noyau radioactif", Object.keys(RAD).map(function(i){return [i,RAD[i].n+" (T = "+F(RAD[i].T,2)+" "+RAD[i].u+")"];}), "c14", function(){ init(); });
+    var el = k.select("Noyau radioactif", Object.keys(RAD).map(function(i){return [i,RAD[i].n+" (T = "+F(RAD[i].T,RAD[i].T%1===0?0:2)+" "+RAD[i].u+")"];}), "c14", function(){ init(); });
     var sp = k.slider("Vitesse", 0.2, 2, 0.1, 0.6, "demi-vies/s");
     var ro = k.readouts(["Temps écoulé","Noyaux restants","Fraction restante","Âge d'après la fraction"]);
     var nt = k.note("","");

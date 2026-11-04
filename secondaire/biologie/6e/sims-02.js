@@ -137,6 +137,7 @@ SFA.sim({
       if (N === 0) note.set("Aucun effectif : règle les curseurs.", "warn");
       else if (chi > crit) note.set("χ² = " + S.fmt(chi, 2) + " &gt; seuil " + S.fmt(crit, 2) + " : l'écart est trop grand pour être dû au seul hasard (p &lt; 5 %). <b>On rejette le modèle</b>." + (model.value === "u" ? " Pour un test-cross dihybride, cela signale des gènes liés." : ""), "warn");
       else note.set("χ² = " + S.fmt(chi, 2) + " ≤ seuil " + S.fmt(crit, 2) + " : l'écart est compatible avec le hasard. <b>Le modèle n'est pas rejeté.</b>", "ok");
+      if (model.value === "t" && N > 0) note.set(note.el.innerHTML + " <i>Modèle 3 : 1 : seules les classes 1 et 2 comptent ; les curseurs 3 et 4 sont ignorés.</i>", chi > crit ? "warn" : "ok");
       if (small && N > 0) note.set(note.el.innerHTML + " <i>Attention : un effectif attendu est inférieur à 5, le test est peu fiable.</i>", "warn");
     });
   }
@@ -163,7 +164,7 @@ SFA.sim({
       S.draw.text(c, "3ⁿ", ax.X(21.8), ax.Y(f3(21.8)) + 14, {color: P.amber, size: 13});
       S.draw.text(c, "2ⁿ", ax.X(20), ax.Y(f2(20)) + 14, {color: P.acc, size: 13});
       S.draw.line(c, ax.X(N), ax.T, ax.X(N), ax.B, P.grey, 1.2, [4, 3]);
-      var p = Math.pow(0.25, N), pa = 1 - Math.pow(1 - p, M), need = Math.log(0.05) / Math.log(1 - p);
+      var p = Math.pow(0.25, N), pa = -Math.expm1(M * Math.log1p(-p)), need = Math.log(0.05) / Math.log1p(-p);
       ro.set(0, S.sci(Math.pow(2, N), 3)); ro.set(1, S.sci(Math.pow(3, N), 3)); ro.set(2, S.sci(Math.pow(4, N), 3));
       ro.set(3, "1/" + S.sci(Math.pow(4, N), 3) + " ≈ " + S.sci(p, 2));
       ro.set(4, pa < 0.0001 ? S.sci(pa, 2) : S.fmt(pa * 100, 2) + " %");

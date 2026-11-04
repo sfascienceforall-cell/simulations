@@ -85,7 +85,7 @@ SFA.sim({
       S.draw.text(c, m > 1 ? "élévateur (U₂ > U₁)" : m < 1 ? "abaisseur (U₂ < U₁)" : "rapport 1", cx, 18, {size: 14});
       ro.set(0, S.fmt(u2, 1) + " V"); ro.set(1, S.fmt(i2, 3) + " A"); ro.set(2, ac ? S.fmt(i1, 3) + " A" : "≈ 0 (régime continu)");
       ro.set(3, S.fmt(p2, 2) + " W"); ro.set(4, ac ? S.fmt(p1, 2) + " W" : "0 W");
-      nt.set(ac ? "Rapport de transformation m = N₂/N₁ = " + S.fmt(m, 3) + ". I₁/I₂ = " + S.fmt(i2 > 0 ? i1 / i2 : 0, 3) + (eta.value === 100 ? " = m (transformateur idéal)." : " : les pertes augmentent I₁.") : "Sur courant continu, le flux est constant : aucune tension induite au secondaire (après l'instant d'enclenchement).", ac ? "ok" : "warn");
+      nt.set(ac ? "Rapport de transformation m = N₂/N₁ = " + S.fmt(m, 3) + ". I₁/I₂ = " + S.fmt(i2 > 0 ? i1 / i2 : 0, 3) + (eta.value === 100 ? " = m (transformateur idéal)." : " : les pertes augmentent I₁.") + (p2 > 10000 ? " Puissance de " + S.fmt(p2 / 1000, 0) + " kW : bien au-delà d'un transformateur de laboratoire (ordre de grandeur d'un poste de quartier) ; le calcul idéal reste valable mais l'appareil réel chaufferait." : "") : "Sur courant continu, le flux est constant : aucune tension induite au secondaire (après l'instant d'enclenchement).", ac ? (p2 > 10000 ? "warn" : "ok") : "warn");
       /* barres comparées */
       var mx = Math.max(U1.value, u2, 1), items = [["Tension", U1.value, u2, P.acc, "V"], ["Intensité", i1, i2, P.green, "A"], ["Puissance", p1, p2, P.amber, "W"]];
       var bw = (g.W - 40) / 3;

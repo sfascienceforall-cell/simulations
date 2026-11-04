@@ -88,6 +88,7 @@ SFA.sim({
       D.dot(c,ax.X(tm.value),ax.Y(cur[1]),6,P.violet);
       ro.set(0,S.fmt(cur[1],2)+" g/L"); ro.set(1,S.fmt(r.pk,2)+" g/L"); ro.set(2,A.value>0 ? S.fmt(r.tp,0)+" min" : "—"); ro.set(3,S.fmt(cur[2],0)+" g sur "+A.value+" g");
       var last = r.out[1200][1];
+      if (A.value===0){ nt.set(reg.value==="d" ? "Aucun glucose absorbé : la glycémie à jeun reste à 1,30 g/L, au-dessus de 1,26 g/L. C'est le signe d'un diabète, même sans repas." : "Aucun glucose absorbé : la glycémie reste à sa valeur de base (0,90 g/L). Ajoute du glucose pour voir la montée.", reg.value==="d" ? "warn" : "ok"); return; }
       nt.set(reg.value==="d" && last>1.26 ? "Régulation insuffisante : cinq heures après, la glycémie reste au-dessus de 1,26 g/L : le glucose n'est pas rangé assez vite." : r.pk>1.26 && reg.value==="n" ? "Pic au-dessus de 1,26 g/L, mais la glycémie revient dans la zone normale : l'organisme régule." : "Montée modérée puis retour à la normale : le glucose est stocké ou utilisé.", reg.value==="d" && last>1.26 ? "warn" : "ok");
     });
   }

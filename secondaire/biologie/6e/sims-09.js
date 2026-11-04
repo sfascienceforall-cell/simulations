@@ -49,7 +49,7 @@ SFA.sim({
     var note = k.note("", "");
     var M = 220;
     c.pointer(function(t, p){ if (t === "up") return; var ax = geo(); if (p.y > ax.B || p.y < ax.T) return; st = [Math.max(1, Math.min(M, ax.ix(p.x))), Math.max(1, Math.min(M, ax.iy(p.y)))]; k.redraw(); });
-    function geo(){ var h = 230, L = 46, R = 16, T = 12, Bm = 26, W = c.W, H = h; return {L: L, B: T + h - Bm, T: T, ix: function(px){ return (px - L) / (W - L - R) * M; }, iy: function(py){ return (T + h - Bm - py) / (h - T - Bm) * M; }}; }
+    function geo(){ var W = c.W, B0 = 250 - 28, T0 = 12, L0 = 46, R0 = 16; return {L: L0, B: B0, T: T0, ix: function(px){ return (px - L0) / (W - L0 - R0) * M; }, iy: function(py){ return (B0 - py) / (B0 - T0) * M; }}; }
     k.draw(function(){
       c.clear(); var ctx = c.ctx, k1 = K1.value, k2 = K2.value, A12 = a12.value, A21 = a21.value, r = 0.5;
       var h1 = 250; var ax1 = (function(){ var W = c.W, T = 12, Bm = 28, L = 46, R = 16, H = h1; var a = {x0: 0, x1: M, y0: 0, y1: M, L: L, R: W - R, T: T, B: H - Bm}; a.X = function(x){ return L + x / M * (W - L - R); }; a.Y = function(y){ return H - Bm - y / M * (H - T - Bm); }; return a; })();
@@ -107,7 +107,8 @@ SFA.sim({
       var mxX = 0, mxY = 0; tr.forEach(function(p){ mxX = Math.max(mxX, p[1]); mxY = Math.max(mxY, p[2]); });
       var ex0 = Mo / (e * A); sx = Math.max(150, 3 * ex0); sy = Math.max(100, 3 * (R / A)); var xs = mxX * 1.1, ys = mxY * 1.1;
       var ax = S.draw.axes(c, {x0: 0, x1: TT, y0: 0, y1: Math.max(xs, ys), stepX: 10, t: 12, b: c.H - 160, xl: "temps (années)", yl: "effectifs", l: 46});
-      var ex = Mo / (e * A), ey = Kt.value ? R * (1 - ex / 150) / A : R / A;
+      var ex = Mo / (e * A), ey = Kt.value ? R * (1 - ex / 150) / A : R / A, extinct = Kt.value && ex >= 150;
+      if (extinct){ ex = 150; ey = 0; }   /* proies trop limitées par leur milieu pour nourrir des prédateurs : équilibre (K, 0) */
       ctx.save(); ctx.beginPath(); ctx.rect(ax.L, ax.T, ax.R - ax.L, ax.B - ax.T); ctx.clip();
       [[1, P.acc], [2, P.red]].forEach(function(s){ ctx.strokeStyle = s[1]; ctx.lineWidth = 2.6; ctx.beginPath(); tr.forEach(function(p, j){ var X = ax.X(p[0]), Y = ax.Y(p[s[0]]); if (j === 0) ctx.moveTo(X, Y); else ctx.lineTo(X, Y); }); ctx.stroke(); }); ctx.restore();
       S.draw.text(c, "proies", ax.R - 6, ax.T + 10, {size: 12, color: P.acc, align: "right"}); S.draw.text(c, "prédateurs", ax.R - 6, ax.T + 28, {size: 12, color: P.red, align: "right"});
@@ -120,7 +121,7 @@ SFA.sim({
       S.draw.text(c, "plan de phase : proies → , prédateurs ↑ · touche pour le départ", c.W / 2, g.T - 8, {size: 12, color: P.grey});
       var per = 2 * Math.PI / Math.sqrt(R * Mo);
       ro.set(0, S.fmt(ex, 0)); ro.set(1, S.fmt(ey, 0)); ro.set(2, Kt.value ? "amortie (pas de période pure)" : "≈ " + S.fmt(per, 1) + " ans"); ro.set(3, S.fmt(mxX, 0) + " / " + S.fmt(mxY, 0));
-      note.set(Kt.value ? "Avec une capacité d'accueil, les oscillations s'amortissent : les effectifs convergent vers l'équilibre (point rouge)." : "Les prédateurs atteignent leur maximum un peu après les proies : leur courbe est décalée dans le temps. L'équilibre (point rouge) n'est jamais atteint : la trajectoire tourne autour.", "");
+      note.set(extinct ? "Les proies, limitées à K = 150, ne sont pas assez nombreuses pour nourrir les prédateurs (il en faudrait " + S.fmt(Mo / (e * A), 0) + ") : les prédateurs disparaissent et les proies reviennent à K (point rouge)." : Kt.value ? "Avec une capacité d'accueil, les oscillations s'amortissent : les effectifs convergent vers l'équilibre (point rouge)." : "Les prédateurs atteignent leur maximum un peu après les proies : leur courbe est décalée dans le temps. L'équilibre (point rouge) n'est jamais atteint : la trajectoire tourne autour.", "");
     });
   }
 });
@@ -148,7 +149,7 @@ SFA.sim({
     function name(a, b){ var s = [a, b].sort().join(""); return {"++": "mutualisme", "+0": "commensalisme", "+-": "parasitisme ou prédation", "--": "compétition", "-0": "amensalisme", "00": "neutralisme"}[s.split("").sort().join("")] || {"0+": "commensalisme", "-+": "parasitisme ou prédation", "-0": "amensalisme", "0-": "amensalisme", "+0": "commensalisme"}[s] || "—"; }
     function nm(a, b){ var k2 = a + b; var T = {"++": "mutualisme", "+0": "commensalisme", "0+": "commensalisme", "+-": "parasitisme ou prédation", "-+": "parasitisme ou prédation", "--": "compétition", "0-": "amensalisme", "-0": "amensalisme", "00": "neutralisme"}; return T[k2]; }
     var drag = 0;
-    c.pointer(function(t, p){ if (mode.value !== "n" || t === "up") return; var x = 2 + (p.x - 40) / (c.W - 56) * 16; if (t === "down"){ drag = Math.abs(x - m1.value) < Math.abs(x - m2.value) ? 1 : 2; } if (t === "drag" || t === "down"){ (drag === 1 ? m1 : m2).set(Math.max(2, Math.min(18, Math.round(x * 2) / 2))); k.redraw(); } });
+    c.pointer(function(t, p){ if (mode.value !== "n" || t === "up") return; var x = (p.x - 40) / (c.W - 56) * 20;   /* axe des x : 0 à 20 mm */ if (t === "down"){ drag = Math.abs(x - m1.value) < Math.abs(x - m2.value) ? 1 : 2; } if (t === "drag" || t === "down"){ (drag === 1 ? m1 : m2).set(Math.max(2, Math.min(18, Math.round(x * 2) / 2))); k.redraw(); } });
     k.draw(function(){
       c.clear(); var ctx = c.ctx;
       if (mode.value === "n"){

@@ -91,7 +91,7 @@ SFA.sim({
       c.ctx.save(); c.ctx.strokeStyle=P.grey; c.ctx.lineWidth=1.5; c.ctx.beginPath(); c.ctx.arc(O[0],O[1],26,-a,0); c.ctx.stroke(); c.ctx.restore(); T(c,"α",O[0]+34,O[1]-12,{size:12,color:P.grey});
       T(c,"flèches proportionnelles aux valeurs (échelle ajustée à l'écran)",W/2,14,{size:12,color:P.grey});
       var cas = al.value===0?"même sens : R = F₁ + F₂":al.value===180?"sens opposés : R = |F₁ − F₂|":al.value===90?"angle droit : R² = F₁² + F₂²":"—";
-      ro.set(0,F(R,1)+" N"); ro.set(1,F(beta,0)+"°"); ro.set(2,cas);
+      ro.set(0,F(R,1)+" N"); ro.set(1,R<0.05?"— (R = 0)":F(beta,0)+"°"); ro.set(2,cas);
       nt.set("R = "+F(R,1)+" N. Somme des valeurs F₁ + F₂ = "+F(A+B,0)+" N : "+(Math.abs(R-(A+B))<0.05?"égales car même sens.":"R est plus petite, car les forces ne sont pas alignées dans le même sens.")+" Glisse la pointe violette pour changer F₂ et α.","ok");
     });
   }
@@ -169,13 +169,13 @@ SFA.sim({
       ln(c,[10,gy],[W-10,gy],P.grey,2);
       for (var i=-8;i<=8;i++){ var tx=((cx+i*50-st.x*30)%(W+100)+(W+100))%(W+100)-50; ln(c,[tx,gy],[tx,gy+8],P.grey,2); }
       rect(c,cx-bw/2,gy-bh,bw,bh,"#d9b98a",P.ink,2.5,4); T(c,F(m.value,0)+" kg",cx,gy-bh/2,{size:13});
-      var k1=Math.min(1.6, (W*0.28)/Math.max(100,N));
-      D.arrow(c,cx,gy-bh/2,cx,gy-bh/2+N*k1*0.8,P.red,3); T(c,"P",cx+10,gy-bh/2+N*k1*0.5,{size:12,color:P.red,align:"left"});
-      D.arrow(c,cx+bw*0.2,gy,cx+bw*0.2,gy-N*k1*0.8,P.green,3); T(c,"N",cx+bw*0.2+10,gy-N*k1*0.5,{size:12,color:P.green,align:"left"});
-      var ky=gy-bh/2-4; if (Fv>0){ D.arrow(c,cx+bw/2,ky,cx+bw/2+Fv*1.6,ky,P.violet,3.5); T(c,"F",cx+bw/2+Fv*1.6,ky-12,{size:12,color:P.violet}); }
-      if (f>0){ D.arrow(c,cx-bw/2,gy-3,cx-bw/2-f*1.6,gy-3,P.amber,3.5); T(c,"f",cx-bw/2-f*1.6,gy-15,{size:12,color:P.amber}); }
+      var ks=0.75;   /* même échelle pour toutes les forces : 1 N ↔ 0,75 px */
+      D.arrow(c,cx,gy-bh/2,cx,gy-bh/2+N*ks,P.red,3); T(c,"P",cx+10,gy-bh/2+N*ks*0.6,{size:12,color:P.red,align:"left"});
+      D.arrow(c,cx+bw*0.2,gy,cx+bw*0.2,gy-N*ks,P.green,3); T(c,"N",cx+bw*0.2+10,gy-N*ks*0.6,{size:12,color:P.green,align:"left"});
+      var ky=gy-bh/2-4; if (Fv>0){ D.arrow(c,cx+bw/2,ky,cx+bw/2+Fv*ks,ky,P.violet,3.5); T(c,"F",cx+bw/2+Fv*ks,ky-12,{size:12,color:P.violet}); }
+      if (f>0){ D.arrow(c,cx-bw/2,gy-3,cx-bw/2-f*ks,gy-3,P.amber,3.5); T(c,"f",cx-bw/2-f*ks,gy-15,{size:12,color:P.amber}); }
       ro.set(0,F(f,1)+" N"); ro.set(1,F(Rh,1)+" N"); ro.set(2,moving?"en mouvement":(Fv>fm?"va démarrer":"à l'arrêt (équilibre)"));
-      nt.set(moving?"Résultante = "+F(Fv,0)+" − "+F(fm,1)+" = "+F(Rh,1)+" N : "+(Rh>0.05?"la vitesse augmente.":"la vitesse reste constante."):(Fv<=fm?"Équilibre : f = F = "+F(Fv,0)+" N ≤ f<sub>max</sub> = μ·m·g = "+F(fm,1)+" N. Résultante nulle, la caisse ne bouge pas.":"F dépasse f<sub>max</sub> = "+F(fm,1)+" N : la caisse démarre."),"ok");
+      nt.set(moving?"Résultante = "+F(Fv,0)+" − "+F(fm,1)+" = "+F(Rh,1)+" N : "+(Rh>0.05?"la vitesse augmente.":Rh<-0.05?"la vitesse diminue : la caisse va s'arrêter.":"la vitesse reste constante."):(Fv<=fm?"Équilibre : f = F = "+F(Fv,0)+" N ≤ f<sub>max</sub> = μ·m·g = "+F(fm,1)+" N. Résultante nulle, la caisse ne bouge pas.":"F dépasse f<sub>max</sub> = "+F(fm,1)+" N : la caisse démarre."),"ok");
     });
   }
 });

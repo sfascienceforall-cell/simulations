@@ -47,7 +47,7 @@ SFA.sim({
     var c = k.canvas(0, {ratio:1.0});
     var g = k.slider("Sucre au départ", 2, 40, 2, 20, "g");
     var T = k.slider("Température", 0, 60, 1, 30, "°C");
-    var ox = k.toggle("Dioxygène présent (récipient ouvert, agité)", false);
+    var ox = k.toggle("Dioxygène présent (récipient ouvert, agité)", false, function(){ rst(); lp.play(); });
     var ro = k.readouts(["Sucre restant", "Éthanol formé", "CO₂ dégagé", "Temps écoulé"]);
     var nt = k.note("", "");
     var st = {t:0, G:g.value, h:[], bub:[]};
@@ -73,7 +73,7 @@ SFA.sim({
       ctx.save(); ctx.fillStyle = "rgba(253,230,138,.55)"; ctx.fillRect(fx, 24, fw, fh - 10); ctx.strokeStyle = "#13233a"; ctx.lineWidth = 2.5; ctx.strokeRect(fx, 12, fw, fh + 2); ctx.restore();
       st.bub.forEach(function(b){ var bx = fx + b.x * fw, by = 24 + b.y * (fh - 14); ctx.fillStyle = "rgba(255,255,255,.9)"; ctx.beginPath(); ctx.arc(bx, by, 3.2, 0, 6.3); ctx.fill(); ctx.strokeStyle = "#b45309"; ctx.stroke(); });
       B4.txt(c, "levures + sucre, " + S.fmt(T.value, 0) + " °C", W / 2, fh + 24, B4.pal.ink, 12);
-      var ax = S.draw.axes(c, {x0:0, x1:180, y0:0, y1:Math.max(10, Math.ceil(g.value / 5) * 5), xl:"t (min)", yl:"g", stepX:30, t:fh + 40, l:40});
+      var ax = S.draw.axes(c, {x0:0, x1:180, y0:0, y1:Math.max(10, Math.ceil(g.value * (ox.value ? 1.5 : 1) / 5) * 5), xl:"t (min)", yl:"g", stepX:30, t:fh + 40, l:40});
       var pal = [B4.pal.amber, B4.pal.red, B4.pal.teal];
       [[1, pal[0], "sucre (g)"], [2, pal[1], "éthanol (g)"], [3, pal[2], "CO₂ (g)"]].forEach(function(s, q){
         ctx.save(); ctx.beginPath(); ctx.rect(ax.L, ax.T, ax.R - ax.L, ax.B - ax.T); ctx.clip(); ctx.strokeStyle = s[1]; ctx.lineWidth = 2.6; ctx.beginPath();

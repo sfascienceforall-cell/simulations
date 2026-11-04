@@ -23,15 +23,15 @@ SFA.sim({
     var nt = k.note("", "");
     k.draw(function(){
       var dH = R[rx.value][1] * 1000, C = Cc.value, mc = mw.value * CW + C, dTv = -n.value * dH / mc, T0 = 20, t0 = 60, tm = 8, tl = tau.value;
-      var ts = [], Ts = [], T = T0, t;
-      var tid = T0 + dTv;
+      var ts = [], Ts = [], T = T0, t, sub, tt;
+      /* chaleur libérée en ≈ tm secondes (source exponentielle, total = ΔT vrai) ; pertes proportionnelles à (T − T0), constante τ */
       for (t = 0; t <= 600; t += 1){
-        ts.push(t); if (t >= t0){ T += ((tid - T) / tm - (T - T0) / tl) * 1; }
-        Ts.push(T);
+        ts.push(t); Ts.push(T);
+        for (sub = 0; sub < 4; sub++){ tt = t + sub * 0.25; T += ((tt >= t0 ? dTv / tm * Math.exp(-(tt - t0) / tm) : 0) - (T - T0) / tl) * 0.25; }
       }
-      /* maximum (en valeur absolue) et extrapolation sur [t0+100, t0+300] */
-      var ext = 0, imax = 0; Ts.forEach(function(v, i){ if (Math.abs(v - T0) > Math.abs(Ts[imax] - T0)) imax = i; });
-      var xs = [], ys = [], i; for (i = t0 + 100; i <= t0 + 300; i++){ xs.push(i); ys.push(Ts[i]); }
+      /* maximum (en valeur absolue) et extrapolation (droite) sur [t0+40, t0+160], après la fin du mélange */
+      var W0 = 40, W1 = 160, ext = 0, imax = 0; Ts.forEach(function(v, i){ if (Math.abs(v - T0) > Math.abs(Ts[imax] - T0)) imax = i; });
+      var xs = [], ys = [], i; for (i = t0 + W0; i <= t0 + W1; i++){ xs.push(i); ys.push(Ts[i]); }
       var mx = xs.reduce(function(a, b){ return a + b; }, 0) / xs.length, my = ys.reduce(function(a, b){ return a + b; }, 0) / ys.length, num = 0, den = 0;
       for (i = 0; i < xs.length; i++){ num += (xs[i] - mx) * (ys[i] - my); den += (xs[i] - mx) * (xs[i] - mx); }
       var a = num / den, b0 = my - a * mx, Tex = a * t0 + b0, dTex = Tex - T0, dTmax = Ts[imax] - T0;
@@ -39,7 +39,7 @@ SFA.sim({
       var lo = Math.min(T0, T0 + dTv, Tex) - 1.5, hi = Math.max(T0, T0 + dTv, Tex) + 1.5; if (hi - lo < 4){ lo -= 2; hi += 2; }
       var ax = S.draw.axes(c, {x0: 0, x1: 600, y0: lo, y1: hi, xl: "t (s)", yl: "T (°C)", stepX: 100, l: 52});
       S.draw.fn(c, ax, function(x){ return Ts[Math.max(0, Math.min(600, Math.round(x)))]; }, pal.acc, 2.6);
-      S.draw.line(c, ax.X(t0 + 100), ax.Y(a * (t0 + 100) + b0), ax.X(t0), ax.Y(Tex), pal.red, 1.8, [5, 4]); S.draw.line(c, ax.X(t0 + 100), ax.Y(a * (t0 + 100) + b0), ax.X(t0 + 300), ax.Y(a * (t0 + 300) + b0), pal.red, 2.2);
+      S.draw.line(c, ax.X(t0 + W0), ax.Y(a * (t0 + W0) + b0), ax.X(t0), ax.Y(Tex), pal.red, 1.8, [5, 4]); S.draw.line(c, ax.X(t0 + W0), ax.Y(a * (t0 + W0) + b0), ax.X(t0 + W1), ax.Y(a * (t0 + W1) + b0), pal.red, 2.2);
       S.draw.dot(c, ax.X(t0), ax.Y(Tex), 5, pal.red); S.draw.dot(c, ax.X(imax), ax.Y(Ts[imax]), 5, pal.amber);
       S.draw.line(c, ax.X(0), ax.Y(T0 + dTv), ax.X(600), ax.Y(T0 + dTv), pal.green, 1.2, [4, 4]);
       S.draw.text(c, "ΔT vrai", ax.X(600) - 4, ax.Y(T0 + dTv) + (dTv > 0 ? -9 : 11), {size: 12, color: pal.green, align: "right"});
@@ -49,7 +49,7 @@ SFA.sim({
       ro.set(3, S.fmt(dHm / 1000, 1) + " kJ/mol"); ro.set(4, S.fmt(dHe / 1000, 1) + " kJ/mol"); ro.set(5, R[rx.value][1] + " kJ/mol");
       var dr = Math.abs(dHe / 1000 - R[rx.value][1]) / Math.abs(R[rx.value][1]);
       nt.set(dTv > 0 ? "Température qui monte : réaction exothermique (ΔH < 0). " : "Température qui baisse : réaction endothermique (ΔH > 0). ", "");
-      nt.set(nt.el.textContent + (!useC.value && C > 0 ? "Tu ne comptes pas C : les deux ΔH sont trop petits en valeur absolue." : "Le point jaune est le maximum lu ; le point rouge est l'extrapolation à t = 60 s : elle se rapproche du ΔT vrai quand les pertes sont faibles (τ grand)."), useC.value ? "ok" : "warn");
+      nt.set(nt.el.textContent + (!useC.value && C > 0 ? "Tu ne comptes pas C : les deux ΔH sont trop petits en valeur absolue." : "Le point jaune est le maximum lu ; le point rouge est l'extrapolation à t = 60 s (droite tracée après la fin du mélange) : elle se rapproche du ΔT vrai quand les pertes sont faibles (τ grand).") + (Math.abs(dTv) > 0 ? " Écart de ΔH extrapolé par rapport à la table : " + S.fmt(dr * 100, 0) + " %." : ""), !useC.value && C > 0 ? "warn" : "ok");
     });
   }
 });

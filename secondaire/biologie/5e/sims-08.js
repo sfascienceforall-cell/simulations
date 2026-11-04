@@ -15,7 +15,7 @@ SFA.sim({
   build: function(k, S){
     var c = k.canvas(280), pal = S.draw.palette;
     var a = k.slider("Âge", 0, 60, 1, 30, "ans");
-    var ro = k.readouts(["Ovocytes restants", "Ovulations cumulées (≈ 12/an)", "Spermatozoïdes produits depuis la puberté", "Part d'ovocytes ovulés"]);
+    var ro = k.readouts(["Ovocytes restants", "Ovulations cumulées (≈ 12/an)", "Spermatozoïdes produits depuis la puberté", "Part du stock de naissance ovulée"]);
     var nt = k.note("", "");
     k.draw(function(){
       c.clear();
@@ -27,8 +27,8 @@ SFA.sim({
       S.draw.line(c, ax.X(a.value), ax.T, ax.X(a.value), ax.B, pal.ink, 1.4, [5, 4]);
       var o = ovo(a.value), s = sper(a.value), ov = a.value < 12 ? 0 : Math.min(450, 12 * (Math.min(a.value, 51) - 12));
       S.draw.dot(c, ax.X(a.value), ax.Y(Math.log10(o)), 6, pal.red); if (s > 0) S.draw.dot(c, ax.X(a.value), ax.Y(Math.log10(s)), 6, pal.teal);
-      ro.set(0, S.sci(Math.round(o), 2)); ro.set(1, S.fmt(ov, 0)); ro.set(2, s > 0 ? S.sci(s, 2) : "aucun"); ro.set(3, s > 0 || a.value >= 12 ? S.fmt(100 * ov / o, 2) + " %" : "—");
-      nt.set(a.value < 13 ? "Avant la puberté, il n'y a pas encore de production de spermatozoïdes ; le stock d'ovocytes est déjà en place depuis la naissance." : "À " + a.value + " ans : il reste ≈ " + S.sci(Math.round(o), 2) + " ovocytes, alors que ≈ " + S.sci(s, 2) + " spermatozoïdes ont été produits en " + (a.value - 13) + " ans (≈ 10⁸ par jour).", "ok");
+      ro.set(0, S.sci(Math.round(o), 2)); ro.set(1, S.fmt(ov, 0)); ro.set(2, s > 0 ? S.sci(s, 2) : "aucun"); ro.set(3, a.value >= 12 ? S.fmt(100 * ov / OV[0][1], 3) + " % (" + S.fmt(ov, 0) + " sur " + S.sci(OV[0][1], 2) + ")" : "—");
+      nt.set(a.value <= 13 ? "Avant la puberté, il n'y a pas encore de production de spermatozoïdes ; le stock d'ovocytes est déjà en place depuis la naissance." : "À " + a.value + " ans : il reste ≈ " + S.sci(Math.round(o), 2) + " ovocytes, alors que ≈ " + S.sci(s, 2) + " spermatozoïdes ont été produits en " + (a.value - 13) + " ans (≈ 10⁸ par jour).", "ok");
     });
   }
 });
@@ -45,7 +45,7 @@ SFA.sim({
     var c = k.canvas(372), pal = S.draw.palette;
     var n = k.slider("Cellules mères qui entrent en méiose (de chaque sexe)", 1, 10, 1, 1, "");
     var fec = k.toggle("Fécondation de l'ovocyte II", true);
-    var ro = k.readouts(["Spermatozoïdes", "Ovules", "Ovocytes II non fécondés", "Globules polaires"]);
+    var ro = k.readouts(["Spermatozoïdes", "Ovules", "Ovocytes II non fécondés", "Globules polaires (au plus)"]);
     var nt = k.note("", "");
     k.draw(function(){
       c.clear();
@@ -65,13 +65,13 @@ SFA.sim({
         var x2 = XA + i * XS;
         B5.circ(c, x2, 226, i === 0 ? 26 : 24, i === 2 && f ? "rgba(180,35,24,.28)" : "rgba(180,35,24,.15)", pal.red, 1.8);
         if (i >= 1) B5.circ(c, x2 + 30, 202, 6, "rgba(138,149,163,.5)", pal.grey, 1.2);
-        if (i === 2 && f) B5.circ(c, x2 + 34, 226, 6, "rgba(138,149,163,.5)", pal.grey, 1.2);
+        if (i === 2 && f){ B5.circ(c, x2 + 34, 226, 6, "rgba(138,149,163,.5)", pal.grey, 1.2); B5.circ(c, x2 + 44, 206, 5, "rgba(138,149,163,.5)", pal.grey, 1.2); }
         S.draw.text(c, co[i][0], x2, 268, {size: 12, color: pal.ink, maxW: XS - 6}); S.draw.text(c, co[i][1], x2, 304, {size: 12, color: pal.grey});
         if (i < 2) S.draw.arrow(c, x2 + 36, 226, x2 + XS - 36, 226, pal.grey, 1.5);
       }
       B5.wrap(c, "Blocages : prophase I (jusqu'à l'ovulation), métaphase II (jusqu'à la fécondation). GP = globule polaire.", 10, 328, W - 20, 15, {size: 12, color: pal.grey});
-      ro.set(0, String(4 * n.value)); ro.set(1, f ? String(n.value) : "0"); ro.set(2, f ? "0" : String(n.value)); ro.set(3, String((f ? 3 : 2) * n.value));
-      nt.set(f ? "Chaque ovocyte I donne 1 ovule et 3 globules polaires, et chaque spermatocyte I donne 4 spermatozoïdes : " + (4 * n.value) + " spermatozoïdes pour " + n.value + " ovule" + (n.value > 1 ? "s" : "") + "." : "Sans fécondation, la méiose II de l'ovocyte II n'est pas achevée : il n'y a pas d'ovule (ni de 2e globule polaire).", "ok");
+      ro.set(0, String(4 * n.value)); ro.set(1, f ? String(n.value) : "0"); ro.set(2, f ? "0" : String(n.value)); ro.set(3, f ? String(3 * n.value) + " (1er GP divisé)" : String(n.value) + " (1er GP seul)");
+      nt.set(f ? "Chaque ovocyte I donne 1 ovule et 3 globules polaires, et chaque spermatocyte I donne 4 spermatozoïdes : " + (4 * n.value) + " spermatozoïdes pour " + n.value + " ovule" + (n.value > 1 ? "s" : "") + "." : "Sans fécondation, la méiose II de l'ovocyte II n'est pas achevée : il n'y a pas d'ovule (ni de 2e globule polaire) ; seul le 1er globule polaire existe.", "ok");
     });
   }
 });

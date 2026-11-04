@@ -102,7 +102,7 @@ SFA.sim({
       ctx.fillStyle = "#13233a"; var yy = 0; gaps.sort(function(p, q){ return p[0] - q[0]; });
       gaps.forEach(function(g){ ctx.fillRect(cc.xb - 5, yy, 10, Math.max(0, g[0] - yy)); yy = g[1]; }); ctx.fillRect(cc.xb - 5, yy, 10, H - yy);
       /* directions prévues */
-      var r1 = lam.value / a.value, r2 = lam.value / d.value, txt1 = r1 < 1 ? S.fmt(Math.asin(r1) * 180 / Math.PI, 0) + " °" : "aucun (λ > a)";
+      var r1 = lam.value / cc.aw, r2 = lam.value / d.value, txt1 = r1 < 1 ? S.fmt(Math.asin(r1) * 180 / Math.PI, 0) + " °" : "aucun (λ > a)";
       if (ang.value){
         var ln = W - cc.xb - 6;
         if (mode.value === "1" && r1 < 1){ [1, -1].forEach(function(s){ var th = Math.asin(r1); S.draw.line(c, cc.xb, cy, cc.xb + ln * Math.cos(th), cy - s * ln * Math.sin(th), P.red, 2, [6, 5]); }); }
@@ -180,7 +180,7 @@ SFA.sim({
       S.draw.text(c, "spectateur n° 10 (reste à sa place)", 20 + 9 * step, base + 40, {size: 12, color: P.red});
       var v = d / dl.value, nb = du.value / dl.value;
       S.draw.arrow(c, 20, 26, Math.min(W - 20, 20 + 120), 26, P.ink, 2); S.draw.text(c, "sens de l'onde", 20 + 170, 26, {size: 12});
-      ro.set(0, S.fmt(v, 1) + " m/s (" + S.fmt(v * 3.6, 0) + " km/h)"); ro.set(1, S.fmt(nb, 1)); ro.set(2, S.fmt(v * du.value, 1) + " m"); ro.set(3, "0 m");
+      ro.set(0, S.fmt(v, 1) + " m/s (" + S.fmt(v * 3.6, 0) + " km/h)"); ro.set(1, S.fmt(Math.min(nb, N), 1) + (nb > N ? " (toute la rangée de " + N + " : la bosse déborde)" : "")); ro.set(2, S.fmt(v * du.value, 1) + " m" + (v * du.value > (N - 1) * d ? " (plus longue que la rangée de " + S.fmt((N - 1) * d, 1) + " m)" : "")); ro.set(3, "0 m");
     });
     k.note("On suppose 0,50 m entre deux spectateurs voisins. Dans un vrai stade, l'ola avance à environ 10 à 12 m/s, soit 20 à 25 sièges par seconde.");
   }

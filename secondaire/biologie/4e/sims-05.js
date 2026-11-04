@@ -3,7 +3,7 @@ SFA.sim({
   id:"b4-c05-bilan", ch:"c05", tag:"Marquage isotopique · original",
   titre:"Bilan de la photosynthèse et origine de l'oxygène",
   resume:"Compte les atomes et suis le marquage ¹⁸O : le dioxygène vient de l'eau, pas du CO₂.",
-  but:"Choisis la quantité de glucose formée, l'écriture de l'équation et le composé marqué (¹⁸O). Les barres rouges montrent où va l'oxygène marqué.",
+  but:"Choisis la quantité de glucose formée et le composé marqué (¹⁸O) ; l'équation détaillée est toujours affichée. Les barres rouges montrent où va l'oxygène marqué.",
   aRetenir:"6 CO₂ + 6 H₂O → C₆H₁₂O₆ + 6 O₂ (bilan net, lumière + chlorophylle). Les atomes se conservent : 18 O de chaque côté. Avec de l'eau marquée (H₂¹⁸O), le marquage se retrouve dans O₂ : le dioxygène provient de la photolyse de l'eau. Avec du CO₂ marqué, il se retrouve dans le glucose et dans l'eau produite, pas dans O₂.",
   piege:"On lit souvent que l'O₂ vient du CO₂ : c'est faux. L'écriture détaillée 6 CO₂ + 12 H₂O → C₆H₁₂O₆ + 6 O₂ + 6 H₂O montre que 12 molécules d'eau sont d'abord scindées, et que 6 sont reformées.",
   build:function(k, S){
@@ -116,7 +116,7 @@ SFA.sim({
     function net(i, co, t){ return P(i, co, t) - R(t); }
     k.draw(function(){
       c.clear(); var ctx = c.ctx;
-      var ax = S.draw.axes(c, {x0:0, x1:100, y0:-8, y1:24, xl:"lumière (%)", yl:"O₂ net", stepX:20, stepY:8});
+      var ax = S.draw.axes(c, {x0:0, x1:100, y0:-12, y1:24, xl:"lumière (%)", yl:"O₂ net", stepX:20, stepY:6});
       S.draw.fn(c, ax, function(x){ return net(x, 0.04, 25); }, "#b8c0cc", 2.2, [5, 4]);
       S.draw.fn(c, ax, function(x){ return net(x, CO.value, T.value); }, B4.pal.green, 3);
       B4.txt(c, "gris : air ambiant, 25 °C", ax.R - 4, ax.T + 10, "#5f6b7a", 12, "right");

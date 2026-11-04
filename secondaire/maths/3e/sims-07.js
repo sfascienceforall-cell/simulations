@@ -76,6 +76,9 @@ SFA.sim({
         cum+=a2.sweep; }
       ps.forEach(function(q,i){ S.draw.dot(c,q[0],q[1],5,P.ink); });
       if(t<0.01) S.draw.text(c,"Glisse les sommets",c.W/2,16,{size:12,color:P.grey});
+      var flat=false; for(i=0;i<3;i++){ var q1=ps[i], q2=ps[(i+1)%3]; if(Math.hypot(q1[0]-q2[0],q1[1]-q2[1])<4) flat=true; }
+      var area2=Math.abs((ps[1][0]-ps[0][0])*(ps[2][1]-ps[0][1])-(ps[2][0]-ps[0][0])*(ps[1][1]-ps[0][1])); if(area2<6) flat=true;
+      if(flat){ for(i=0;i<3;i++) ro.set(i,"—"); ro.set(3,"—"); nt.set("Triangle aplati (sommets confondus ou alignés) : les angles ne sont pas définis. Écarte les sommets.","warn"); return; }
       for(i=0;i<3;i++) ro.set(i,S.fmt(ang[i].sweep,1)+"°");
       ro.set(3,S.fmt(tot,1)+"°");
       nt.set(t>0.95?"Les trois coins forment ensemble un angle plat : 180°.":"Déforme le triangle : la somme reste 180° (au dixième de degré près).","ok");
@@ -102,7 +105,7 @@ SFA.sim({
       if(m==="aca"){ if(al.value+be.value<180){ var sA=Math.sin(Math.PI-A-B); var ab=U*Math.sin(B)/sA; res.push([[0,0],[U,0],[ab*Math.cos(A),ab*Math.sin(A)]]); } }
       if(m==="aaa"){ if(al.value+be.value<180){ [U,U*1.6].forEach(function(sc){ var sA=Math.sin(Math.PI-A-B), ab=sc*Math.sin(B)/sA; res.push([[0,0],[sc,0],[ab*Math.cos(A),ab*Math.sin(A)]]); }); } }
       if(m==="ssa"){ var disc=U*U-Vv*Vv*Math.sin(A)*Math.sin(A), h=Vv*Math.sin(A);
-        if(Math.abs(U-h)<0.01){ if(Vv*Math.cos(A)>0) res.push([[0,0],[Vv,0],[Vv*Math.cos(A)*Math.cos(A)/1*1,Vv*Math.cos(A)*Math.sin(A)]]); }
+        if(Math.abs(U-h)<1e-9){ if(Vv*Math.cos(A)>1e-9) res.push([[0,0],[Vv,0],[Vv*Math.cos(A)*Math.cos(A)/1*1,Vv*Math.cos(A)*Math.sin(A)]]); }
         else if(disc>0){ [1,-1].forEach(function(sg){ var t=Vv*Math.cos(A)+sg*Math.sqrt(disc); if(t>1e-9) res.push([[0,0],[Vv,0],[t*Math.cos(A),t*Math.sin(A)]]); }); } }
       return res;
     }
@@ -126,7 +129,8 @@ SFA.sim({
       else if(m==="cac") nt.set("Toujours un seul triangle : l'angle est compris entre les deux côtés.","ok");
       else if(m==="aca") nt.set(n?"Un seul triangle : le côté est compris entre les deux angles.":"Impossible : α + β doit être inférieur à 180°.",n?"ok":"warn");
       else if(m==="aaa") nt.set(al.value+be.value<180?"Les deux triangles ont les mêmes angles mais pas les mêmes côtés : ils sont semblables, pas isométriques.":"Impossible : α + β doit être inférieur à 180°.","warn");
-      else nt.set("Hauteur de v : "+S.fmt(v.value*Math.sin(al.value*Math.PI/180),2)+". Si u est plus petit : aucun triangle ; entre la hauteur et v : deux triangles ; sinon un seul. CCA n'est donc pas un cas d'isométrie.",n===2?"warn":"ok");
+      else if(al.value>=90) nt.set("α est droit ou obtus : il n'y a un triangle que si u > v ("+S.fmt(u.value,1)+(u.value>v.value?" > ":" ≤ ")+S.fmt(v.value,1)+" : "+(n?"un seul triangle":"aucun triangle")+"). Pour α aigu, on peut en avoir deux : CCA n'est donc pas un cas d'isométrie.","warn");
+      else nt.set("Hauteur de v : "+S.fmt(v.value*Math.sin(al.value*Math.PI/180),2)+". Si u est plus petit que la hauteur : aucun triangle ; si u est égal à la hauteur : un seul (rectangle) ; entre la hauteur et v : deux triangles ; si u ≥ v : un seul. CCA n'est donc pas un cas d'isométrie.",n===2?"warn":"ok");
     });
   }
 });

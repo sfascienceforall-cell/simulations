@@ -29,12 +29,12 @@ SFA.sim({
         if(dt.value) pts.forEach(function(p){ S.draw.dot(c,ax.X(p[0]),ax.Y(p[1]),4.5,P.violet); });
         S.draw.dot(c,ax.X(s.value),ax.Y(v(s.value)),7,P.red);
       } else {
-        var ax2=S.draw.axes(c,{x0:-1.5/K,x1:4/K,y0:-0.3/V,y1:5.5/V,xl:"1/[S] (L/µmol)",yl:"1/v (s·L/µmol)"});
+        var xm1=Math.max(4/K,0.22), ax2=S.draw.axes(c,{x0:-1.5/K,x1:xm1,y0:-0.3/V,y1:1.12*((K*xm1+1)/V),xl:"1/[S] (L/µmol)",yl:"1/v (s·L/µmol)"});
         S.draw.fn(c,ax2,function(x){return (K/V)*x+1/V;},P.acc,2.6);
         S.draw.dot(c,ax2.X(0),ax2.Y(1/V),5,P.green); S.draw.text(c,"1/Vmax",ax2.X(0)+8,ax2.Y(1/V)-8,{size:10,color:P.green,align:"left"});
         S.draw.dot(c,ax2.X(-1/K),ax2.Y(0),5,P.amber); S.draw.text(c,"−1/Km",ax2.X(-1/K),ax2.Y(0)-12,{size:10,color:P.amber});
         if(dt.value) pts.forEach(function(p){ S.draw.dot(c,ax2.X(1/p[0]),ax2.Y(1/p[1]),4.5,P.violet); });
-        if(s.value>0) S.draw.dot(c,ax2.X(1/s.value),ax2.Y(1/v(s.value)),7,P.red);
+        if(s.value>0&&1/s.value<=xm1) S.draw.dot(c,ax2.X(1/s.value),ax2.Y(1/v(s.value)),7,P.red);
       }
       ro.set(0,S.fmt(V,3)+" µmol/L/s"); ro.set(1,S.fmt(v(s.value),3)+" µmol/L/s"); ro.set(2,S.fmt(v(s.value)/V*100,0)+" %");
       ro.set(3,S.sci(kc.value/(K*1e-6),2)+" L/mol/s");
@@ -72,8 +72,8 @@ SFA.sim({
         S.draw.dot(c,ax.X(s.value),ax.Y(v0(s.value)),5,P.acc); S.draw.dot(c,ax.X(s.value),ax.Y(v1(s.value)),6,P.red);
         S.draw.text(c,"bleu : sans inhibiteur · rouge : avec",ax.R-4,ax.T+10,{size:10,color:P.grey,align:"right"});
       } else {
-        var m0=Math.min(K,Ka), xm=4/m0, yc=(K/V)*xm+1/V, yi=(Ka/Va)*xm+1/Va;
-        var ax2=S.draw.axes(c,{x0:-1.5/m0,x1:xm,y0:-0.3,y1:Math.min(14,1.1*Math.max(yc,yi)),xl:"1/[S] (L/µmol)",yl:"1/v"});
+        var m0=Math.min(K,Ka), xm=Math.max(4/m0,1.1/s.value), yc=(K/V)*xm+1/V, yi=(Ka/Va)*xm+1/Va;
+        var ax2=S.draw.axes(c,{x0:-1.5/m0,x1:xm,y0:-0.3,y1:Math.min(1.1*Math.max(yc,yi),Math.max(14,1.15*Math.max(1/v0(s.value),1/v1(s.value)))),xl:"1/[S] (L/µmol)",yl:"1/v"});
         S.draw.fn(c,ax2,function(x){return (K/V)*x+1/V;},P.acc,2.4);
         S.draw.fn(c,ax2,function(x){return (Ka/Va)*x+1/Va;},P.red,2.8);
         S.draw.dot(c,ax2.X(1/s.value),ax2.Y(1/v0(s.value)),5,P.acc); S.draw.dot(c,ax2.X(1/s.value),ax2.Y(1/v1(s.value)),6,P.red);
@@ -165,7 +165,7 @@ SFA.sim({
     var ro=k.readouts(["K₀,₅ effectif","Saturation / activité à 40 (Hb) ou à K₀,₅/2 (enz.)","[S]₉₀ / [S]₁₀ = 81^(1/n)","Libération d'O₂ 100 → 40 mmHg"]);
     var nt=k.note("","");
     k.draw(function(){
-      c.clear(); var m=pr.value, nn=m==="mic"?1:n.value, Ke=K.value*f.value, hb=m==="hb", xmax=hb?120:Math.max(100,K.value*3);
+      c.clear(); var m=pr.value, nn=m==="mic"?1:n.value, Ke=K.value*f.value, hb=m==="hb", xmax=hb?Math.max(120,Math.ceil(Ke*1.3/20)*20):Math.max(100,Ke*3);
       var Y=function(x){return Math.pow(x,nn)/(Math.pow(Ke,nn)+Math.pow(x,nn));};
       var ax=S.draw.axes(c,{x0:0,x1:xmax,y0:0,y1:1.05,stepX:hb?20:xmax/5,stepY:0.25,xl:hb?"pO₂ (mmHg)":"[S] (unités arbitraires)",yl:hb?"saturation Y":"v / Vmax"});
       S.draw.fn(c,ax,function(x){return Math.pow(x,nn)/(Math.pow(K.value,nn)+Math.pow(x,nn));},P.grey,1.6,[5,4]);

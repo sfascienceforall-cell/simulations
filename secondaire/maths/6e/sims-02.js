@@ -9,12 +9,12 @@ SFA.sim({
   build:function(k,S){
     var c=k.canvas(0,{ratio:.7});
     var base=k.seg("Base a",[["2","a = 2"],["e","a = e"],["3","a = 3"],["0.5","a = 1/2"]],"e");
-    var t=k.slider("Abscisse x du point",-2,3,0.05,1,"",null);
+    var t=k.slider("Abscisse x du point",-2,2.4,0.05,1,"",null);
     var ro=k.readouts(["Hauteur f(x)","Pente f'(x)","Pente / hauteur","ln a"]);
     function B(){return base.value==="e"?Math.E:parseFloat(base.value);}
     k.draw(function(){
       c.clear(); var P=S.draw.palette, a=B(), x0=t.value, y0=Math.pow(a,x0), m=Math.log(a)*y0;
-      var ax=S.draw.axes(c,{x0:-2.5,x1:3.5,y0:-2,y1:12,xl:"x",yl:"y",stepX:1,stepY:2});
+      var ax=S.draw.axes(c,{x0:-2.5,x1:3.5,y0:-2,y1:16,xl:"x",yl:"y",stepX:1,stepY:2});
       S.draw.fn(c,ax,function(x){return Math.pow(a,x);},P.acc,3);
       S.draw.fn(c,ax,function(x){return y0+m*(x-x0);},P.red,2);
       S.draw.line(c,ax.X(x0),ax.Y(0),ax.X(x0),ax.Y(y0),P.grey,1.2,[4,4]);
@@ -23,7 +23,7 @@ SFA.sim({
       ro.set(0,S.fmt(y0,3)); ro.set(1,S.fmt(m,3)); ro.set(2,S.fmt(m/y0,3)); ro.set(3,S.fmt(Math.log(a),3));
       c._ax=ax;
     });
-    c.pointer(function(type,p){ if((type==="down"||type==="drag")&&c._ax){ var v=Math.max(-2,Math.min(3,c._ax.ix(p.x))); t.set(Math.round(v*20)/20); k.redraw(); } });
+    c.pointer(function(type,p){ if((type==="down"||type==="drag")&&c._ax){ var v=Math.max(-2,Math.min(2.4,c._ax.ix(p.x))); t.set(Math.round(v*20)/20); k.redraw(); } });
   }
 });
 
@@ -62,7 +62,7 @@ SFA.sim({
         S.draw.text(c,"K = "+S.fmt(KK,0),ax.X(T1)-6,ax.Y(KK)-10,{size:12,align:"right",color:P.grey});
         if(Y0<KK/2 && r>0){
           var ts=Math.log((KK-Y0)/Y0)/r;
-          S.draw.line(c,ax.X(0),ax.Y(KK/2),ax.X(ts),ax.Y(KK/2),P.red,1.4,[4,4]);
+          S.draw.line(c,ax.X(0),ax.Y(KK/2),ax.X(Math.min(ts,T1)),ax.Y(KK/2),P.red,1.4,[4,4]);
           if(ts<=T1){ S.draw.dot(c,ax.X(ts),ax.Y(KK/2),6,P.red); S.draw.text(c,"inflexion",ax.X(ts)+8,ax.Y(KK/2)+14,{size:12,align:"left",color:P.red}); }
           ro.set(3,"t = "+S.fmt(ts,2)+", y = "+S.fmt(KK/2,1));
           nt.set("Au point d'inflexion, y = K/2 et la vitesse y' = kK/4 = "+S.fmt(r*KK/4,2)+" est maximale.","ok");

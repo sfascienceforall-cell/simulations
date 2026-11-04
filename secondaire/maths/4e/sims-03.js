@@ -31,14 +31,14 @@ SFA.sim({
         var xs=-B/(2*A), ys=f(xs);
         S.draw.line(c,ax.X(xs),ax.T,ax.X(xs),ax.B,P.grey,1.5,[5,4]);
         S.draw.fn(c,ax,f,P.acc,3);
-        S.draw.dot(c,ax.X(xs),ax.Y(ys),7,P.red);
+        if(Math.abs(xs)<=8&&Math.abs(ys)<=8) S.draw.dot(c,ax.X(xs),ax.Y(ys),7,P.red);
         var D=B*B-4*A*C;
-        if(D>=0){ var r=Math.sqrt(D); [(-B-r)/(2*A),(-B+r)/(2*A)].forEach(function(x){ S.draw.dot(c,ax.X(x),ax.Y(0),5,P.green); }); }
+        if(D>=0){ var r=Math.sqrt(D); [(-B-r)/(2*A),(-B+r)/(2*A)].forEach(function(x){ if(Math.abs(x)<=8) S.draw.dot(c,ax.X(x),ax.Y(0),5,P.green); }); }
         S.draw.dot(c,ax.X(0),ax.Y(C),5,P.amber);
         ro.set(1,"("+S.fmt(xs,2)+" ; "+S.fmt(ys,2)+")");
         ro.set(2,"x = "+S.fmt(xs,2));
         ro.set(3, D<0 ? "aucun (Δ = "+S.fmt(D,2)+" < 0)" : (D===0 ? "un seul : x = "+S.fmt(xs,2)+" (Δ = 0)" : S.fmt((-B-Math.sqrt(D))/(2*A),2)+" et "+S.fmt((-B+Math.sqrt(D))/(2*A),2)+" (Δ = "+S.fmt(D,2)+")"));
-        nt.set(A>0?"a > 0 : parabole ouverte vers le haut, le sommet est un minimum ("+S.fmt(ys,2)+").":"a < 0 : parabole ouverte vers le bas, le sommet est un maximum ("+S.fmt(ys,2)+").",A>0?"ok":"warn");
+        nt.set((A>0?"a > 0 : parabole ouverte vers le haut, le sommet est un minimum ("+S.fmt(ys,2)+").":"a < 0 : parabole ouverte vers le bas, le sommet est un maximum ("+S.fmt(ys,2)+").")+(Math.abs(xs)>8||Math.abs(ys)>8?" Le sommet sort du cadre du graphique.":"")+(D>=0&&(Math.abs((-B-Math.sqrt(D))/(2*A))>8||Math.abs((-B+Math.sqrt(D))/(2*A))>8)?" Un zéro est hors du cadre.":""),A>0?"ok":"warn");
       } else {
         S.draw.fn(c,ax,f,P.acc,3);
         ro.set(1,"pas de sommet"); ro.set(2,"aucun"); ro.set(3, B===0 ? (C===0?"tout ℝ":"aucun") : "x = "+S.fmt(-C/B,2));

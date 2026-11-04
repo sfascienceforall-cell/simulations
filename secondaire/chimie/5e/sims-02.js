@@ -105,7 +105,13 @@ SFA.sim({
       C5.atom(at, cx - off, 35, rad, "#cfe4d8", ""); C5.atom(at, cx + off, 35, rad, "#cfe4d8", "");
       S.draw.text(at, "r = " + x + " pm", cx, 62, {size: 12, color: pal.grey});
       var rel = x < b.r0 - 3 ? "répulsion dominante" : x > b.r0 + 3 ? "attraction dominante" : "équilibre (minimum)";
-      ro.set(0, cmp.value ? "—" : S.fmt(e, 0) + " kJ/mol"); ro.set(1, b.r0 + " pm"); ro.set(2, b.D + " kJ/mol"); ro.set(3, rel);
+      var eTxt = e > 3 * b.D ? "très élevée (> " + S.fmt(3 * b.D, 0) + " kJ/mol)" : S.fmt(e, 0) + " kJ/mol";
+      if (cmp.value){
+        ro.set(0, "—"); ro.set(1, B.CC.r0 + " · " + B.CdC.r0 + " · " + B.CtC.r0 + " pm"); ro.set(2, B.CC.D + " · " + B.CdC.D + " · " + B.CtC.D + " kJ/mol"); ro.set(3, "—");
+        nt.set("C–C, C=C, C≡C : plus la liaison est multiple, plus le creux est profond (liaison forte) et décalé vers les petites distances (liaison courte).", "");
+        return;
+      }
+      ro.set(0, eTxt); ro.set(1, b.r0 + " pm"); ro.set(2, b.D + " kJ/mol"); ro.set(3, rel);
       nt.set(x > 380 ? "Les atomes sont presque séparés : E tend vers 0." : x < b.r0 - 3 ? "Trop proches : les noyaux se repoussent, l'énergie remonte brutalement." : Math.abs(x - b.r0) <= 3 ? "Minimum d'énergie : c'est la longueur de liaison. Pour séparer les atomes il faut fournir " + b.D + " kJ/mol." : "Plus loin que r₀ : les atomes s'attirent et se rapprochent spontanément.", Math.abs(x - b.r0) <= 3 ? "ok" : "");
     });
   }
@@ -184,7 +190,7 @@ SFA.sim({
     var pal = S.draw.palette;
     var c = k.canvas(270);
     var kind = k.seg("Solide", [["met", "Métal (cuivre)"], ["ion", "Cristal ionique (NaCl)"]], "met");
-    var s = k.slider("Glissement de la rangée du haut", 0, 2, 0.05, 0, "ion");
+    var s = k.slider("Glissement de la rangée du haut (en espacements ioniques)", 0, 2, 0.05, 0, "");
     var pile = k.toggle("Brancher une pile", false);
     var ro = k.readouts(["Force entre les couches", "Courant"]);
     var nt = k.note("", "");
@@ -229,7 +235,7 @@ SFA.sim({
       var fs = coh > 0.6 ? "forte attraction" : coh > 0 ? "attraction faible" : coh > -0.6 ? "répulsion" : "forte répulsion";
       ro.set(0, ion ? fs : "attraction constante"); ro.set(1, pile.value ? (ion ? "aucun (ions bloqués)" : "oui (électrons libres)") : "—");
       if (ion && coh < 0) nt.set("Des ions de même signe se font face : le cristal éclate (clivage). C'est pour ça qu'un sel est dur mais cassant.", "warn");
-      else if (ion && s.value === 0) nt.set("Chaque ion est entouré d'ions de signe contraire : attraction maximale.", "ok");
+      else if (ion && (s.value === 0 || s.value === 2)) nt.set("Chaque ion est entouré d'ions de signe contraire : attraction maximale.", "ok");
       else if (ion) nt.set("Glissement partiel : l'attraction diminue, le cristal se contraint.", "warn");
       else nt.set("Les cations glissent les uns sur les autres : le nuage d'électrons suit et garde la cohésion. Le métal se déforme sans se casser.", "ok");
     });

@@ -143,8 +143,8 @@ SFA.sim({
       c.clear(); var f = el.value ? .8 : m.value, v = [cw.value*BCF/1000], i;   /* ng/kg → µg/kg */
       for (i=1;i<5;i++) v.push(v[i-1]*f);
       var names = ["Phytoplancton","Zooplancton","Petit poisson","Grand poisson","Oiseau / humain"], cols = ["#9ccfae","#f1d27d","#f1a97d","#d98a7a","#b97a9a"];
-      var lo = -1, hi = 5, L = 20, R = c.W-16, y0 = 24, bh = 34, gap = 12, X = function(val){ return L + (Math.log10(Math.max(val,.1))-lo)/(hi-lo)*(R-L); };
-      for (var e = lo; e <= hi; e++){ D.line(c,X(Math.pow(10,e)),y0-6,X(Math.pow(10,e)),y0+5*(bh+gap)-gap+4,"#edf0f4",1); T(c,e<0?"0,1":(e<4?String(Math.pow(10,e)):"10"+(e===4?"⁴":"⁵")),X(Math.pow(10,e)),y0+5*(bh+gap)+6,{size:12,color:P.grey}); }
+      var lo = -1, hi = 6, L = 20, R = c.W-16, y0 = 24, bh = 34, gap = 12, X = function(val){ return L + (Math.log10(Math.max(val,.1))-lo)/(hi-lo)*(R-L); };
+      for (var e = lo; e <= hi; e++){ D.line(c,X(Math.pow(10,e)),y0-6,X(Math.pow(10,e)),y0+5*(bh+gap)-gap+4,"#edf0f4",1); T(c,e<0?"0,1":(e<4?String(Math.pow(10,e)):"10"+["⁴","⁵","⁶"][e-4]),X(Math.pow(10,e)),y0+5*(bh+gap)+6,{size:12,color:P.grey}); }
       for (i=0;i<5;i++){
         var y = y0 + i*(bh+gap), w = X(v[i]) - L;
         rect(c,L,y,Math.max(w,3),bh,cols[i],v[i]>SEUIL?P.red:P.ink,v[i]>SEUIL?3:1.2);

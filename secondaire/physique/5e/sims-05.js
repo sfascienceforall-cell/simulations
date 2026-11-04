@@ -113,7 +113,7 @@ SFA.sim({
       if (tt > 0 && tt < r.T) P5.vec(c, X(bx), Y(by), X(bx), Y(by) - (r.vy - g * t) * 2.2, pal.red, "", {w: 2});
       /* graphe vitesses */
       gr.clear();
-      var vm = Math.max(v0.value, 10) * 1.05, ax = S.draw.axes(gr, {x0: 0, x1: Math.max(r.T, 1), y0: -vm, y1: vm, xl: "t (s)", yl: "v (m/s)", l: 46});
+      var vm = Math.max(v0.value, Math.abs(r.vy - g * r.T), 10) * 1.05, ax = S.draw.axes(gr, {x0: 0, x1: Math.max(r.T, 1), y0: -vm, y1: vm, xl: "t (s)", yl: "v (m/s)", l: 46});
       S.draw.line(gr, ax.X(0), ax.Y(r.vx), ax.X(r.T), ax.Y(r.vx), pal.green, 2.4);
       S.draw.line(gr, ax.X(0), ax.Y(r.vy), ax.X(r.T), ax.Y(r.vy - g * r.T), pal.red, 2.4);
       S.draw.text(gr, "vₓ", ax.X(r.T) - 6, ax.Y(r.vx) - 10, {size: 12, color: pal.green}); S.draw.text(gr, "v_y", ax.X(r.T) - 6, ax.Y(r.vy - g * r.T) + 12, {size: 12, color: pal.red});
@@ -167,7 +167,7 @@ SFA.sim({
       /* arrivée */
       var fx = bx + ux * L * 0.12, fy = by + uy * L * 0.12; S.draw.line(c, fx, fy, fx + nx * 70, fy + ny * 70, pal.ink, 2, [4, 3]);
       S.draw.text(c, "arrivée", fx + 8, fy + 14, {size: 12, color: pal.ink, align: "left"});
-      for (var j0 = 0; j0 < 3; j0++) ro.set(j0, R[j0].slide ? "t = " + S.fmt(R[j0].T, 2) + " s (a = " + S.fmt(R[j0].a, 2) + ")" : "ne démarre pas");
+      for (var j0 = 0; j0 < 3; j0++) ro.set(j0, R[j0].slide ? "t = " + S.fmt(R[j0].T, 2) + " s (a = " + S.fmt(R[j0].a, 2) + " m/s²)" : "ne démarre pas");
       var best = -1, bt = 1e9; R.forEach(function(r, j){ if (r.T < bt){ bt = r.T; best = j; } });
       var names = ["bleu", "rouge", "vert"];
       nt.set(best < 0 ? "Aucun bloc ne glisse : tan α = " + S.fmt(Math.tan(A), 2) + " est inférieur ou égal à tous les μs. Augmente l'angle." : "Gagnant (pente de " + S.fmt(Lm, 0) + " m) : bloc " + names[best] + " en " + S.fmt(bt, 2) + " s. Seuil de glissement : tan α = " + S.fmt(Math.tan(A), 2) + (etr.value ? ". Le bloc 1 sur la face étroite a exactement les mêmes valeurs." : "."), best < 0 ? "warn" : "");

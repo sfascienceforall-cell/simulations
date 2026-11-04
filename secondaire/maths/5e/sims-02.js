@@ -34,7 +34,7 @@ SFA.sim({
       ro.set(0, F(ua(n), 2)); ro.set(1, F(sa(n), 2)); ro.set(2, F(ug(n), 2)); ro.set(3, F(sg(n), 2));
       var msg = "Bleu : arithmétique (points alignés). Rouge : géométrique (rapport constant).";
       if (Math.abs(q.value - 1) < 1e-9) msg += " Avec q = 1, la suite géométrique est constante.";
-      else if (q.value < 1) msg += " Avec q < 1, la suite géométrique tend vers 0 : elle converge.";
+      else if (q.value < 1 - 1e-9) msg += " Avec q < 1, la suite géométrique tend vers 0 : elle converge.";
       nt.set(msg + " (" + (n + 1) + " termes de u₀ à u_" + n + ")", "ok");
     });
   }
@@ -128,7 +128,7 @@ SFA.sim({
       var D = cap, rows = [], tot = 0;
       for (i = 1; i <= N; i++){ var it = D * t, cp = A - it; D = D - cp; rows.push({i:it, c:cp, d:Math.max(0, Math.abs(D) < 1e-6 ? 0 : D)}); tot += it; }
       var sel = Math.min(kk.value, N), ctx = c.ctx, L = 56, Rr = 12, T = 18, B = 30, w = (c.W - L - Rr) / N, sc = (c.H - T - B) / (A * 1.08);
-      var ax = S.draw.axes(c, {x0:0, x1:N, y0:0, y1:A * 1.08, l:56, xl:"année", stepX:N > 10 ? 2 : 1, grid:false});
+      var ax = S.draw.axes(c, {x0:0, x1:N, y0:0, y1:A * 1.08, l:56, r:12, t:18, b:30, xl:"année", stepX:N > 10 ? 2 : 1, grid:false});
       for (i = 0; i < N; i++){
         var x = L + i * w, y0 = c.H - B, hc = rows[i].c * sc, hi = rows[i].i * sc;
         ctx.fillStyle = (i + 1 === sel) ? P.green : "rgba(46,107,85,.6)"; ctx.fillRect(x + 1, y0 - hc, w - 2, hc);

@@ -177,7 +177,7 @@ SFA.sim({
   resume: "Des ions accélérés puis déviés par B se posent à 2r du point d'entrée : r = (1/B)·√(2·m·U/q).",
   but: "Choisis un élément. La tension U accélère les ions, le champ B les fait tourner en demi-cercle. Plus l'ion est lourd, plus il tombe loin. Observe le spectre de masse en bas.",
   aRetenir: "Accélération : q·U = ½·m·v². Déviation : r = m·v/(q·B). D'où r = (1/B)·√(2·m·U/q). À U et B fixés, r est proportionnel à √m : les isotopes lourds tombent plus loin. La hauteur des pics donne l'abondance de chaque isotope.",
-  piege: "Ce n'est pas la tension U qui sépare les isotopes mais le champ B : à U fixée, tous les ions ont la même énergie cinétique, les plus lourds vont simplement moins vite. Modèle : ions simplement chargés (q = +e), dans le vide, sans relativité.",
+  piege: "La tension U ne trie pas les isotopes : à U fixée, tous les ions de même charge reçoivent la même énergie cinétique, les plus lourds vont simplement moins vite. Le tri vient de la déviation dans B : l'ion le plus lourd a la plus grande quantité de mouvement, donc le plus grand rayon. Modèle : ions simplement chargés (q = +e), dans le vide, sans relativité.",
   build: function(k, S){
     var c = k.canvas(330), P = S.draw.palette, u = 1.66054e-27, e = 1.60218e-19;
     var els = {

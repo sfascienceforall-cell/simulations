@@ -26,7 +26,7 @@ SFA.sim({
       if(t==="up") sel=-1; });
     function eq(P1){ return Math.abs(Math.pow(P1.x-A.x,2)+Math.pow(P1.y-A.y,2)-Math.pow(P1.x-B.x,2)-Math.pow(P1.y-B.y,2))<1e-9; }
     k.draw(function(){
-      c.clear(); ax=S.draw.axes(c,{x0:-10,x1:10,y0:-10,y1:10,stepX:2,stepY:2});
+      c.clear(); ax=S.draw.axes(c,{x0:-10,x1:10,y0:-10,y1:10,stepX:2,stepY:2,equal:true});
       var degen=(A.x===B.x&&A.y===B.y);
       if(!degen){ var mx=(A.x+B.x)/2,my=(A.y+B.y)/2, dx=-(B.y-A.y),dy=B.x-A.x, n=Math.hypot(dx,dy); dx/=n; dy/=n;
         var ctx=c.ctx; ctx.save(); ctx.beginPath(); ctx.rect(ax.L,ax.T,ax.R-ax.L,ax.B-ax.T); ctx.clip();
@@ -107,9 +107,10 @@ SFA.sim({
       if(type==="mil") return [(Pp[0]+A[0])/2,(Pp[1]+A[1])/2];
       if(type==="sym") return [2*Pp[0]-A[0],2*Pp[1]-A[1]];
       var ux=Pp[0]-A[0], uy=Pp[1]-A[1], n2=ux*ux+uy*uy; /* projection de O sur (AP) : A + s·u avec s = (O−A)·u/|u|² */
+      if(n2<1e-12) return [A[0],A[1]];
       var s=((-A[0])*ux+(-A[1])*uy)/n2; return [A[0]+s*ux,A[1]+s*uy]; }
     k.draw(function(){
-      c.clear(); var W0=cons.value==='sym'?12:6.5; var ax=S.draw.axes(c,{x0:-W0,x1:W0,y0:-W0,y1:W0,stepX:cons.value==='sym'?2:1,stepY:cons.value==='sym'?2:1}); geo.ax=ax; var ctx=c.ctx;
+      c.clear(); var W0=cons.value==='sym'?12:6.5; var ax=S.draw.axes(c,{x0:-W0,x1:W0,y0:-W0,y1:W0,stepX:cons.value==='sym'?2:1,stepY:cons.value==='sym'?2:1,equal:true}); geo.ax=ax; var ctx=c.ctx;
       var A=[d.value,0], ty=cons.value;
       ctx.strokeStyle=P.acc; ctx.lineWidth=2; ctx.beginPath(); ctx.arc(ax.X(0),ax.Y(0),R*(ax.X(1)-ax.X(0)),0,2*PI); ctx.stroke();
       if(tr.value){ ctx.save(); ctx.strokeStyle=P.red; ctx.lineWidth=2.2; ctx.beginPath(); for(var a=0;a<=360;a+=2){ var q=Mof(a,A,ty); if(a===0) ctx.moveTo(ax.X(q[0]),ax.Y(q[1])); else ctx.lineTo(ax.X(q[0]),ax.Y(q[1])); } ctx.stroke(); ctx.restore(); }
@@ -148,7 +149,7 @@ SFA.sim({
     var nt=k.note("","");
     c.pointer(function(t,p){ if(!ax||t==="move")return; Pp.x=snap(ax.ix(p.x),-9,9,0.5); Pp.y=snap(ax.iy(p.y),-9,9,0.5); k.redraw(); });
     k.draw(function(){
-      c.clear(); ax=S.draw.axes(c,{x0:-10,x1:10,y0:-10,y1:10,stepX:2,stepY:2}); var ctx=c.ctx;
+      c.clear(); ax=S.draw.axes(c,{x0:-10,x1:10,y0:-10,y1:10,stepX:2,stepY:2,equal:true}); var ctx=c.ctx;
       var H=h.value,K=kk.value,Rr=R.value, u=ax.X(1)-ax.X(0);
       ctx.strokeStyle=P.acc; ctx.lineWidth=2.5; ctx.beginPath(); ctx.arc(ax.X(H),ax.Y(K),Rr*u,0,2*PI); ctx.stroke();
       S.draw.dot(c,ax.X(H),ax.Y(K),4,P.ink); S.draw.text(c,"O",ax.X(H)-10,ax.Y(K)+12,{size:13});
@@ -176,14 +177,14 @@ SFA.sim({
   aRetenir:"L'ellipse est le lieu des points M tels que MF₁ + MF₂ = L (constante). Avec foyers (±c ; 0) et L = 2a : b² = a² − c², équation x²/a² + y²/b² = 1. Si c = 0, c'est un cercle de rayon a.",
   piege:"Il faut L > F₁F₂ pour que la ficelle puisse être tendue. Si L = F₁F₂, le lieu est le segment [F₁F₂] ; si L est plus petit, il n'y a aucun point.",
   build:function(k,S){
-    var c=k.canvas(0,{ratio:.7});
+    var c=k.canvas(0,{ratio:.85});
     var L=k.slider("Longueur de la ficelle L = MF₁ + MF₂",6,18,0.5,10,"");
     var f=k.slider("Distance entre les foyers F₁F₂ = 2c",0,12,0.5,6,"");
     var t=k.slider("Position de M",0,359,1,50,"°");
     var ro=k.readouts(["MF₁","MF₂","MF₁ + MF₂","Équation","Excentricité e = c/a"]);
     var nt=k.note("","");
     k.draw(function(){
-      c.clear(); var ax=S.draw.axes(c,{x0:-10,x1:10,y0:-7,y1:7,stepX:2,stepY:2}), ctx=c.ctx;
+      c.clear(); var ax=S.draw.axes(c,{x0:-10,x1:10,y0:-10,y1:10,stepX:2,stepY:2,equal:true}), ctx=c.ctx;
       var Lv=L.value, cv=f.value/2, a=Lv/2;
       S.draw.dot(c,ax.X(-cv),ax.Y(0),7,P.ink); S.draw.dot(c,ax.X(cv),ax.Y(0),7,P.ink); S.draw.text(c,"F₁",ax.X(-cv),ax.Y(0)+16,{size:13}); S.draw.text(c,"F₂",ax.X(cv),ax.Y(0)+16,{size:13});
       if(cv>=a-1e-9){ ro.set(0,"—"); ro.set(1,"—"); ro.set(2,"—"); ro.set(3,"—"); ro.set(4,"—"); nt.set(cv>a+1e-9?"La ficelle est plus courte que la distance entre les piquets : impossible, aucun point.":"L = F₁F₂ : la ficelle est tendue en ligne droite, le lieu est le segment [F₁F₂].","warn"); if(Math.abs(cv-a)<1e-9) S.draw.line(c,ax.X(-cv),ax.Y(0),ax.X(cv),ax.Y(0),P.red,3); return; }

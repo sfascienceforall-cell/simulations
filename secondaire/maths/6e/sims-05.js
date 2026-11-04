@@ -54,6 +54,7 @@ function lin(S,A,dd,t){ // coordonnée = A + dd·t
   if(A===0) return (dd<0?"−":"")+term;
   return S.fmt(A,0)+(dd<0?" − ":" + ")+term;
 }
+function inCube(X){ return Math.abs(X[0])<=L+1e-9&&Math.abs(X[1])<=L+1e-9&&Math.abs(X[2])<=L+1e-9; }
 function cross(a,b){ return [a[1]*b[2]-a[2]*b[1], a[2]*b[0]-a[0]*b[2], a[0]*b[1]-a[1]*b[0]]; }
 function dot(a,b){ return a[0]*b[0]+a[1]*b[1]+a[2]*b[2]; }
 
@@ -148,9 +149,9 @@ SFA.sim({
       v.seg(P0,u,P.red,3);
       var nu=dot(n,u), rhs=d-dot(n,P0);
       ro.set(0,S.fmt(nu,0)); ro.set(1,S.fmt(nu,0)+"·t = "+S.fmt(rhs,2));
-      if(nu!==0){ var tt=rhs/nu, X=[P0[0]+tt*u[0],P0[1]+tt*u[1],P0[2]+tt*u[2]]; v.dot(X,7,P.violet);
+      if(nu!==0){ var tt=rhs/nu, X=[P0[0]+tt*u[0],P0[1]+tt*u[1],P0[2]+tt*u[2]], hors=!inCube(X); if(!hors) v.dot(X,7,P.violet);
         ro.set(2,"sécante"); ro.set(3,"("+X.map(function(z){return S.fmt(z,2);}).join(" ; ")+") pour t = "+S.fmt(tt,2));
-        nt.set("n·u ≠ 0 : la droite perce le plan en un seul point. Pour la rendre parallèle, cherche u tel que n·u = 0 (u ⊥ n).","ok"); }
+        nt.set("n·u ≠ 0 : la droite perce le plan en un seul point."+(hors?" <b>Ce point est hors du cube dessiné</b> (il existe quand même : voir ses coordonnées)."  : "")+" Pour la rendre parallèle, cherche u tel que n·u = 0 (u ⊥ n).",hors?"warn":"ok"); }
       else if(Math.abs(rhs)<1e-9){ ro.set(2,"contenue dans le plan"); ro.set(3,"toute la droite"); nt.set("n·u = 0 et d − n·P₀ = 0 : la droite est dans le plan, tous ses points sont communs.","ok"); }
       else { ro.set(2,"strictement parallèle"); ro.set(3,"aucun"); nt.set("n·u = 0 et d − n·P₀ ≠ 0 : l'équation 0·t = "+S.fmt(rhs,2)+" est impossible, aucun point commun.","warn"); }
     });
@@ -187,7 +188,7 @@ SFA.sim({
         return;
       }
       var c1=cross(n2,w), c2=cross(n1,w), X=[(d1*c1[0]-d2*c2[0])/ww,(d1*c1[1]-d2*c2[1])/ww,(d1*c1[2]-d2*c2[2])/ww];
-      v.seg(X,w,P.ink,3.4); v.dot(X,5,P.violet);
+      v.seg(X,w,P.ink,3.4); if(inCube(X)) v.dot(X,5,P.violet);
       ro.set(2,"sécants suivant une droite"); ro.set(3,"("+X.map(function(z){return S.fmt(z,2);}).join(" ; ")+") ; d = ("+w.map(function(z){return S.fmt(z,0);}).join(" ; ")+")");
       nt.set("Vérification : n₁·X = "+S.fmt(dot(n1,X),2)+" (= d₁ = "+S.fmt(d1,0)+") et n₂·X = "+S.fmt(dot(n2,X),2)+" (= d₂ = "+S.fmt(d2,0)+").","ok");
     });

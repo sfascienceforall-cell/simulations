@@ -104,7 +104,7 @@ SFA.sim({
       var top = 20, bot = H - 36, hh = bot - top, wi = (W - 60) / 2, xL = 20, xR = 40 + wi;
       function hgt(v){ return v / 200 * hh * 1.0; }
       function dots(x0, vol, conc, seed){
-        var r = B4.rng(seed), n = Math.round(conc * 100 * 0.5), hw = hgt(vol), y0 = bot - hw;
+        var r = B4.rng(seed), n = Math.round(conc * vol * 0.5), hw = hgt(vol), y0 = bot - hw;
         for (var i = 0; i < n; i++) S.draw.dot(c, x0 + 6 + r() * (wi - 12), y0 + 6 + r() * Math.max(1, hw - 12), 3, "#B45309");
       }
       [[xL, vL, cL, 3], [xR, vR, cR, 5]].forEach(function(a){

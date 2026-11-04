@@ -105,7 +105,7 @@ SFA.sim({
       P5.vec(c, X, Y, X + e2[0] * sc, Y - e2[1] * sc, pal.amber, "E₂", {w: 2});
       P5.vec(c, X, Y, X + et[0] * sc, Y - et[1] * sc, pal.green, "E", {w: 3.4});
       S.draw.dot(c, X, Y, 7, qt.value >= 0 ? pal.red : pal.acc);
-      S.draw.text(c, "échelle : 70 px = " + S.fmt(mx / 1000, 0) + " kN/C", c.W - 10, c.H - 12, {align: "right", size: 12, color: pal.grey});
+      S.draw.text(c, "échelle : 70 px = " + (mx >= 1000 ? S.fmt(mx / 1000, 1) + " kN/C" : S.fmt(mx, 0) + " N/C"), c.W - 10, c.H - 12, {align: "right", size: 12, color: pal.grey});
       var F = qt.value * 1e-9;
       ro.set(0, S.sci(n1, 2) + " N/C"); ro.set(1, S.sci(n2, 2) + " N/C"); ro.set(2, S.sci(nT, 2) + " N/C");
       ro.set(3, nT < 1 ? "—" : S.fmt(Math.atan2(et[1], et[0]) * 180 / Math.PI, 0) + " °"); ro.set(4, S.sci(Math.abs(F) * nT, 2) + " N");
@@ -157,10 +157,12 @@ SFA.sim({
       }
       ctx.stroke();
       if (!hit){
-        var yo = yL * 100 * dirUp, slope = a * T / V0 * dirUp, xs = Lcm + 3.5;
-        ctx.setLineDash([6, 4]); ctx.beginPath(); ctx.moveTo(X(Lcm), Y(yo)); ctx.lineTo(X(xs), Y(yo + slope * 3.5)); ctx.stroke(); ctx.setLineDash([]);
-        S.draw.line(c, X(xs), Y(-4), X(xs), Y(4), pal.grey, 3); S.draw.text(c, "écran", X(xs), Y(-4) + 14, {size: 12, color: pal.grey});
-        S.draw.dot(c, X(xs), Y(yo + slope * 3.5), 5, pal.red);
+        var yo = yL * 100 * dirUp, slope = a * T / V0 * dirUp, xs = Lcm + 3.5, yS = yo + slope * 3.5, hS = 3.2;   /* hS : demi-hauteur de l'écran (cm) */
+        var xEnd = Math.abs(yS) <= hS ? xs : Lcm + (hS * Math.sign(yS) - yo) / slope;   /* si la particule dépasse l'écran, on arrête le tracé à son bord */
+        ctx.setLineDash([6, 4]); ctx.beginPath(); ctx.moveTo(X(Lcm), Y(yo)); ctx.lineTo(X(xEnd), Y(yo + slope * (xEnd - Lcm))); ctx.stroke(); ctx.setLineDash([]);
+        S.draw.line(c, X(xs), Y(-hS), X(xs), Y(hS), pal.grey, 3); S.draw.text(c, "écran", X(xs), Y(-hS) + 14, {size: 12, color: pal.grey});
+        if (Math.abs(yS) <= hS) S.draw.dot(c, X(xs), Y(yS), 5, pal.red);
+        else S.draw.text(c, "elle passe au-dessus/au-dessous de l'écran", X(Lcm / 2), c.H - 14, {size: 12, color: pal.red});
       } else S.draw.dot(c, X(xHit * 100), Y(hd * dirUp), 6, pal.red);
       S.draw.dot(c, X(0), Y(0), 6, pal.amber);
       P5.vec(c, X(0) - 34, Y(0), X(0) - 4, Y(0), pal.green, "v₀", {dy: -12});

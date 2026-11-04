@@ -12,7 +12,7 @@ SFA.sim({
     var lg = k.slider("log₁₀ de n (n = 10 puissance …)", -3, 2, 0.1, 0, "");
     var ro = k.readouts(["n", "N = n·N_A", "Masse m"]);
     var nt = k.note("", "ok");
-    var marks = [[Math.log10(8e9), "humains sur Terre ≈ 8·10⁹"], [Math.log10(4e13), "cellules du corps humain ≈ 4·10¹³"], [Math.log10(7.5e18), "grains de sable sur Terre ≈ 10¹⁸ (estim.)"], [Math.log10(NA), "1 mole = 6,02·10²³"]];
+    var marks = [[Math.log10(8e9), "humains sur Terre ≈ 8·10⁹"], [Math.log10(4e13), "cellules du corps humain ≈ 4·10¹³"], [Math.log10(7.5e18), "grains de sable sur Terre ≈ 7,5·10¹⁸ (estim.)"], [Math.log10(NA), "1 mole = 6,02·10²³"]];
     k.draw(function(){
       var n = Math.pow(10, lg.value), N = n * NA, e = Math.log10(N), M = C4.M(sub.value), m = n * M;
       c.clear();
@@ -71,7 +71,7 @@ SFA.sim({
   resume:"Une goutte d'acide oléique s'étale en une couche d'une seule molécule d'épaisseur : on en déduit un ordre de grandeur de N_A.",
   but:"Règle la masse d'acide et la surface mesurée du film, puis compare l'estimation de N_A avec 6,02·10²³ pour deux modèles de molécule.",
   aRetenir:"Épaisseur du film e = V / S. En comptant le volume occupé par une molécule, N = V / V_molécule puis N_A = N / n avec n = m / M. Même avec un modèle grossier, on trouve un ordre de grandeur de 10²² à 10²⁴.",
-  piege:"Un modèle trop simple (molécule « cubique ») donne un résultat 20 à 30 fois trop petit : la molécule est longue et mince, pas cubique. Le résultat dépend fortement de la surface mesurée (au cube dans le modèle cubique).",
+  piege:"Un modèle trop simple (molécule « cubique ») donne, avec les réglages de départ, un résultat 20 à 30 fois trop petit : la molécule est longue et mince, pas cubique. Le résultat dépend fortement de la surface mesurée (au cube dans le modèle cubique).",
   build:function(k, S){
     var c = k.canvas(300), RHO = 0.895, MO = 282;
     var m = k.slider("Masse d'acide dans la goutte", 0.02, 0.10, 0.01, 0.05, "mg");

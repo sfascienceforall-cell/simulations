@@ -21,7 +21,17 @@ SFA.sim({
       var u1 = hit ? (P + M2 * E * (V2 - V1)) / (M1 + M2) : V1, u2 = hit ? (P + M1 * E * (V1 - V2)) / (M1 + M2) : V2;
       return {P: P, hit: hit, u1: u1, u2: u2};
     }
-    var lp = k.loop(function(dt){ t += dt; if (t > 9) lp.pause(); k.redraw(); });
+    function posAt(tm){
+      var r = res(), tc = r.hit ? 5 / (v1.value - v2.value) : Infinity, p1, p2;
+      if (tm < tc){ p1 = 1 + v1.value * tm; p2 = 7 + v2.value * tm; }
+      else { p1 = 1 + v1.value * tc + r.u1 * (tm - tc); p2 = 7 + v2.value * tc + r.u2 * (tm - tc); }
+      return [p1, p2];
+    }
+    var lp = k.loop(function(dt){
+      t += dt; var q = posAt(t);
+      if (t > 9 || q[0] < -1.8 || q[0] > 12.8 || q[1] < -1.8 || q[1] > 12.8){ t = Math.min(t, 9); lp.pause(); }   /* un chariot va sortir de l'écran : on s'arrête */
+      k.redraw();
+    });
     k.button("Lancer / rejouer", function(){ t = 0; lp.play(); }, true);
     k.draw(function(){
       var pal = S.draw.palette, ctx = c.ctx, r = res(), M1 = m1.value, M2 = m2.value;
@@ -156,7 +166,7 @@ SFA.sim({
       S.draw.text(gr, "canon : " + S.fmt(100 * Ec / tot, 2) + " %", 60, 146, {align: "left", size: 13, color: pal.acc});
       ro.set(0, S.fmt(V, 3) + " m/s"); ro.set(1, S.fmt(m.value * v.value, 0) + " kg·m/s"); ro.set(2, S.fmt(-M.value * V, 0) + " kg·m/s");
       ro.set(3, S.fmt(Ep / 1000, 1) + " kJ"); ro.set(4, S.fmt(Ec / 1000, 2) + " kJ"); ro.set(5, S.fmt(Ec / Ep, 4));
-      nt.set("M·V = m·v donne V = " + S.fmt(V, 3) + " m/s. Le rapport des énergies vaut m/M = " + S.fmt(m.value / M.value, 4) + " : le projectile emporte presque toute l'énergie. (Modèle simplifié : on néglige les gaz et le frottement.)", "");
+      nt.set("M·V = m·v donne V = " + S.fmt(V, 3) + " m/s. Le rapport des énergies vaut m/M = " + S.fmt(m.value / M.value, 4) + " : le projectile emporte presque toute l'énergie. (Modèle simplifié : on néglige les gaz et le frottement.)" + (V > 20 ? " Recul de " + S.fmt(V, 0) + " m/s : un canon aussi léger serait projeté vers l'arrière, le modèle reste valable mais n'a plus rien de réaliste." : ""), V > 20 ? "warn" : "");
     });
   }
 });
@@ -182,12 +192,12 @@ SFA.sim({
       var pal = S.draw.palette, g = P5.g, V = v.value / 3.6, T = dt.value / 1000, p = m.value * V, F = p / T, a = V / T, d = V * T / 2;
       c.clear();
       var yK = F / 1000;
-      var ymax = Math.max(40, Math.ceil(p / 0.010 / 1000 / 20) * 20);
+      var ymax = Math.max(20, Math.ceil(yK * 1.4 / 10) * 10);   /* l'axe s'adapte au point choisi */
       var ax = S.draw.axes(c, {x0: 0, x1: 300, y0: 0, y1: ymax, xl: "Δt (ms)", yl: "F moyenne (kN)", stepX: 50, l: 54});
       S.draw.fn(c, ax, function(x){ return p / (Math.max(x, 1) / 1000) / 1000; }, pal.acc);
       S.draw.line(c, ax.X(0), ax.Y(m.value * g / 1000), ax.X(300), ax.Y(m.value * g / 1000), pal.grey, 1.5, [4, 4]);
       S.draw.text(c, "poids du passager", ax.X(180), ax.Y(m.value * g / 1000) - 12, {align: "right", size: 12, color: pal.grey});
-      S.draw.dot(c, ax.X(dt.value), ax.Y(yK), 7, yK > 0.5 * ymax ? pal.red : pal.green);
+      S.draw.dot(c, ax.X(dt.value), ax.Y(yK), 7, a / g > 40 ? pal.red : a / g > 15 ? pal.amber : pal.green);
       S.draw.text(c, S.fmt(yK, 1) + " kN", ax.X(dt.value) + 10, ax.Y(yK) - 12, {align: "left", size: 13});
       ro.set(0, S.fmt(p, 0) + " kg·m/s"); ro.set(1, S.fmt(yK, 1) + " kN"); ro.set(2, S.fmt(F / (m.value * g), 1) + " ×"); ro.set(3, S.fmt(a / g, 1) + " g"); ro.set(4, S.fmt(d * 100, 0) + " cm");
       var ag = a / g;

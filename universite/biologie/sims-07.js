@@ -12,7 +12,7 @@ SFA.sim({
   titre:"Lire le code : mutations ponctuelles et décalage du cadre",
   resume:"Mute un ARNm et classe : silencieuse, faux-sens, non-sens, décalage.",
   but:"Choisis un fragment d'ARNm, une mutation (substitution, insertion, délétion), sa position, et compare les protéines.",
-  aRetenir:"Substitution : silencieuse (même acide aminé, code dégénéré), faux-sens (autre acide aminé) ou non-sens (codon stop prématuré). Insertion/délétion d'un nombre de nucléotides non multiple de 3 : décalage du cadre, tout l'aval change. Multiple de 3 : le cadre est conservé (acide aminé en plus ou en moins). Exemple réel : Glu→Val en position 6 de la β-globine (GAG→GUG) = drépanocytose.",
+  aRetenir:"Substitution : silencieuse (même acide aminé, code dégénéré), faux-sens (autre acide aminé) ou non-sens (codon stop prématuré). Insertion/délétion d'un nombre de nucléotides non multiple de 3 : décalage du cadre, tout l'aval change. Multiple de 3 : le cadre est conservé (acide aminé en plus ou en moins). Exemple réel : Glu→Val en position 6 de la β-globine (GAG→GUG) = drépanocytose (position 6 sans compter la Met initiale ; c'est le 7<sup>e</sup> codon du fragment ici, nucléotides 19 à 21).",
   piege:"Une mutation silencieuse change la séquence d'ADN mais pas la protéine (elle peut cependant affecter l'épissage ou la vitesse de traduction). Une substitution au 3<sup>e</sup> nucléotide d'un codon est le plus souvent silencieuse (dégénérescence), au 2<sup>e</sup> rarement. Le code est lu sur l'ARNm 5'→3' à partir de l'AUG.",
   build:function(k,S){
     var seqs = {
@@ -97,7 +97,7 @@ SFA.sim({
       ctx.fillStyle = t <= 28800 ? pal.green : pal.red; ctx.fillRect(30, 205, Math.min(1, t / 28800) * bw, 16);
       var fr = Math.min(1, t / 28800); S.draw.text(c, (t > 28800 ? "dépasse la phase S : " : "") + fmtT, fr > 0.6 ? 36 : 30 + fr * bw + 6, 213, {align:"left", size:11, color: fr > 0.6 ? "#fff" : "#13233a"});
       S.draw.text(c, "Fourches actives : " + (forks < 1e3 ? forks : S.fmt(forks / 1000, 1) + " mille"), 30, 238, {align:"left", size:12, weight:600});
-      ro.set(0, fmtT); ro.set(1, need < 10 ? S.fmt(need, 0) : Math.ceil(need).toLocaleString("fr-BE")); ro.set(2, nfr < 1e5 ? Math.round(nfr).toLocaleString("fr-BE") : S.sci(nfr, 2)); ro.set(3, S.sci(nfr + forks, 2));
+      ro.set(0, fmtT); ro.set(1, Math.max(1, Math.ceil(need)).toLocaleString("fr-BE")); ro.set(2, nfr < 1e5 ? Math.round(nfr).toLocaleString("fr-BE") : S.sci(nfr, 2)); ro.set(3, S.sci(nfr + forks, 2));
     });
   }
 });
@@ -178,7 +178,7 @@ SFA.sim({
       var bw = c.W - 60; ctx.fillStyle = "#e3e7ed"; ctx.fillRect(30, 240, bw, 16); ctx.fillStyle = lev > 20 ? pal.green : lev > 0 ? pal.amber : pal.grey; ctx.fillRect(30, 240, lev / 100 * bw, 16);
       S.draw.text(c, "β-galactosidase : " + S.fmt(lev, 0) + " / 100", 30, 230, {align:"left", size:12});
       ro.set(0, bound ? "oui" : "non"); ro.set(1, cap && m !== "P-" ? "oui (glucose absent)" : "non"); ro.set(2, S.fmt(lev, 0) + " / 100");
-      note.set(m === "Z-" ? "lacZ⁻ : l'opéron est transcrit comme chez le sauvage, mais la β-galactosidase est inactive (la perméase lacY et la transacétylase lacA peuvent encore être faites)." : m === "P-" ? "lacP⁻ : l'ARN polymérase ne reconnaît pas le promoteur, aucune expression." : lev === 100 ? "Lactose présent ET glucose absent : induction maximale." : lev === 5 ? "Pas de répression par LacI, mais sans CAP–AMPc (glucose présent) la transcription reste faible." : "Opérateur occupé par le répresseur : expression basale.", "ok");
+      note.set(m === "Z-" ? "lacZ⁻ : l'opéron est transcrit comme chez le sauvage, mais la β-galactosidase est inactive (la perméase lacY et la transacétylase lacA peuvent encore être faites)." : m === "P-" ? "lacP⁻ : l'ARN polymérase ne reconnaît pas le promoteur, aucune expression." : lev === 100 ? (m === "wt" ? "Lactose présent ET glucose absent : induction maximale." : "Expression constitutive : le répresseur ne bloque plus l'opérateur (mutation), et sans glucose CAP–AMPc stimule la transcription : expression maximale même sans lactose.") : lev === 5 ? "Pas de répression par LacI, mais sans CAP–AMPc (glucose présent) la transcription reste faible." : "Opérateur occupé par le répresseur : expression basale.", "ok");
     });
   }
 });
@@ -207,9 +207,9 @@ SFA.sim({
       var ladder = [100, 200, 300, 500, 750, 1000, 1500, 2000, 3000];
       function ypos(s){ return 30 + (Math.log10(3000) - Math.log10(s)) / (Math.log10(3000) - Math.log10(100)) * 230; }
       ladder.forEach(function(s){ var y = ypos(s); ctx.fillStyle = "rgba(255,255,255,.6)"; ctx.fillRect(gx + 8, y, 30, 3); S.draw.text(c, s + "", gx + 44, y + 1, {align:"left", size:9, color:"#9fb3c8", weight:600}); });
-      var vis = N > 1e10, br = Math.min(1, Math.max(0, (Math.log10(Math.max(N, 1)) - 8) / 4));
+      var vis = N > 1e10, br = Math.min(1, Math.max(0, (Math.log10(Math.max(N, 1)) - 10) / 2));
       S.draw.text(c, "échelle", gx + 24, 12, {size:10, color:pal.grey}); S.draw.text(c, "PCR", gx + 82, 12, {size:10, color:pal.grey});
-      if (N > 1e8){ ctx.fillStyle = "rgba(255,170,60," + (0.15 + 0.85 * br) + ")"; ctx.fillRect(gx + 68, ypos(sz.value), 34, 5); }
+      if (vis){ ctx.fillStyle = "rgba(255,170,60," + (0.3 + 0.7 * br) + ")"; ctx.fillRect(gx + 68, ypos(sz.value), 34, 5); }
       S.draw.text(c, "−", gx + gw + 8, 30, {size:14}); S.draw.text(c, "+", gx + gw + 8, 270, {size:14});
       var ax = S.draw.axes(c, {x0:0, x1:40, y0:0, y1:12, l:190, xl:"cycles", yl:"log₁₀(copies)", stepX:10, stepY:2, t:16, b:34});
       c.ctx.save(); c.ctx.beginPath(); c.ctx.rect(ax.L, ax.T, ax.R - ax.L, ax.B - ax.T); c.ctx.clip();

@@ -54,6 +54,8 @@ window.C4 = (function(){
   };
   function side(a){ return a.map(function(t){ return (t[0] > 1 ? t[0] + " " : "") + sub(t[1]); }).join(" + "); }
   function eq(key){ var e = REAC[key]; return side(e.r) + " → " + side(e.p); }
+  function sideU(a){ return a.map(function(t){ return (t[0] > 1 ? t[0] + " " : "") + uni(t[1]); }).join(" + "); }
+  function eqU(key){ var e = REAC[key]; return sideU(e.r) + " → " + sideU(e.p); }
   function balanced(key){
     var e = REAC[key], L = {}, R = {};
     function add(o, a){ a.forEach(function(t){ var c = parse(t[1]); for (var k in c) o[k] = (o[k] || 0) + c[k] * t[0]; }); }
@@ -96,7 +98,7 @@ window.C4 = (function(){
     left = Math.max(6, Math.min(c.W - 6 - w, left));
     S_.draw.text(c, s, left, y, {size:size || 12, color:col || "#2c3a4e", align:"left"});
   }
-  return {MM:MM, parse:parse, M:M, sub:sub, uni:uni, sup:sup, gcd:gcd, lcm:lcm, GAS:GAS, REAC:REAC, eq:eq, balanced:balanced, side:side, COL:COL, label:label, rr:rr, tag:tag, sciU:sciU, supU:supU, beaker:beaker, bar:bar, disc:disc, rnd:rnd, sci:sci};
+  return {MM:MM, parse:parse, M:M, sub:sub, uni:uni, sup:sup, gcd:gcd, lcm:lcm, GAS:GAS, REAC:REAC, eq:eq, eqU:eqU, balanced:balanced, side:side, COL:COL, label:label, rr:rr, tag:tag, sciU:sciU, supU:supU, beaker:beaker, bar:bar, disc:disc, rnd:rnd, sci:sci};
 })();
 
 /* ---------- ions ---------- */

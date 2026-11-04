@@ -61,11 +61,11 @@ SFA.sim({
     function mb(sex, mm, hh, aa){ return 10 * mm + 6.25 * hh - 5 * aa + (sex === "m" ? 5 : -161); }
     k.draw(function(){
       c.clear(); var B = mb(sx.value, m.value, h.value, a.value), tot = B * parseFloat(act.value);
-      var ax = S.draw.axes(c, {x0:30, x1:120, y0:800, y1:2800, xl:"masse (kg)", yl:"MB (kcal/jour)", stepX:10, stepY:400});
+      var ax = S.draw.axes(c, {x0:30, x1:120, y0:400, y1:2800, xl:"masse (kg)", yl:"MB (kcal/jour)", stepX:10, stepY:400});
       S.draw.fn(c, ax, function(x){ return mb("m", x, h.value, a.value); }, B4.pal.acc, 2.4);
       S.draw.fn(c, ax, function(x){ return mb("f", x, h.value, a.value); }, B4.pal.red, 2.4);
       B4.txt(c, "garçons / hommes", ax.X(120), ax.Y(mb("m", 120, h.value, a.value)) - 12, B4.pal.acc, 12, "right"); B4.txt(c, "filles / femmes", ax.X(120), ax.Y(mb("f", 120, h.value, a.value)) + 16, B4.pal.red, 12, "right");
-      S.draw.dot(c, ax.X(m.value), ax.Y(Math.max(800, Math.min(2800, B))), 7, "#13233a");
+      S.draw.dot(c, ax.X(m.value), ax.Y(Math.max(400, Math.min(2800, B))), 7, "#13233a");
       B4.txt(c, "à " + S.fmt(h.value, 0) + " cm, " + S.fmt(a.value, 0) + " ans", ax.R - 4, ax.T + 10, "#5f6b7a", 12, "right");
       var kj = tot * 4.184;
       ro.set(0, S.fmt(B, 0) + " kcal (" + S.fmt(B * 4.184, 0) + " kJ)"); ro.set(1, S.fmt(tot, 0) + " kcal (" + S.fmt(kj, 0) + " kJ)"); ro.set(2, S.fmt(kj * 0.4 / 50, 0) + " mol"); ro.set(3, S.fmt(B / tot * 100, 0) + " %");
@@ -94,16 +94,16 @@ SFA.sim({
     k.button("Régime très restrictif", function(){ g.set(100); l.set(30); p.set(60); d.set(10000); });
     k.draw(function(){
       c.clear(); var ctx = c.ctx, W = c.W, H = c.H, eg = g.value * 17, el = l.value * 37, ep = p.value * 17, tot = eg + el + ep, bil = tot - d.value;
-      var bx = 12, bw = W - 24, by = 34, bh = 26, scale = bw / 18000;
+      var bx = 12, bw = W - 24, by = 34, bh = 26, scale = bw / Math.max(18000, tot, d.value);
       ctx.fillStyle = "#e3e7ed"; ctx.fillRect(bx, by, bw, bh);
       var x = bx; [[eg, "#2e6b55", "glucides"], [el, "#B45309", "lipides"], [ep, "#1e3f8f", "protéines"]].forEach(function(s){ ctx.fillStyle = s[1]; ctx.fillRect(x, by, s[0] * scale, bh); x += s[0] * scale; });
       B4.txt(c, "Apports : " + S.fmt(tot, 0) + " kJ", bx, 14, B4.pal.ink, 12, "left");
       S.draw.line(c, bx + d.value * scale, by - 6, bx + d.value * scale, by + bh + 6, B4.pal.red, 3); B4.txt(c, "dépense " + S.fmt(d.value, 0) + " kJ", W - 12, 14, B4.pal.red, 12, "right");
       B4.txt(c, "vert glucides · orange lipides · bleu protéines", bx, by + bh + 14, "#5f6b7a", 11, "left");
-      var dm = bil * 90 / 32000;
-      var ax = S.draw.axes(c, {x0:0, x1:90, y0:-8, y1:8, xl:"jours", yl:"variation de masse (kg)", stepX:15, stepY:4, t:by + bh + 34, l:44});
+      var dm = bil * 90 / 32000, ym = Math.max(8, Math.ceil(Math.abs(dm) / 4) * 4);
+      var ax = S.draw.axes(c, {x0:0, x1:90, y0:-ym, y1:ym, xl:"jours", yl:"variation de masse (kg)", stepX:15, stepY:ym > 16 ? 8 : 4, t:by + bh + 34, l:44});
       S.draw.fn(c, ax, function(t){ return bil * t / 32000; }, bil > 0 ? B4.pal.red : B4.pal.acc, 3);
-      S.draw.dot(c, ax.X(90), ax.Y(Math.max(-8, Math.min(8, dm))), 6, "#13233a");
+      S.draw.dot(c, ax.X(90), ax.Y(dm), 6, "#13233a");
       var pg = eg / tot * 100, pl = el / tot * 100, pp = ep / tot * 100;
       ro.set(0, S.fmt(tot, 0) + " kJ (" + S.fmt(tot / 4.184, 0) + " kcal)"); ro.set(1, (bil >= 0 ? "+" : "") + S.fmt(bil, 0) + " kJ"); ro.set(2, tot ? S.fmt(pg, 0) + " / " + S.fmt(pl, 0) + " / " + S.fmt(pp, 0) + " %" : "—"); ro.set(3, (dm >= 0 ? "+" : "") + S.fmt(dm, 1) + " kg");
       var okb = Math.abs(bil) <= 300;

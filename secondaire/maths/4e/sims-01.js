@@ -40,7 +40,7 @@ SFA.sim({
       var eq = A===0 ? S.fmt(K) : pre+inner+(K===0?"":(K>0?" + ":" − ")+S.fmt(Math.abs(K)));
       ro.set(0,"g(x) = "+eq);
       var dom = (fs.value==="inv") ? "ℝ \\ {"+S.fmt(H)+"}" : (fs.value==="rt" ? "["+S.fmt(H)+" ; +∞[" : "ℝ");
-      if(A===0) dom="ℝ (g est constante)";
+      if(A===0) dom += " (g est constante sur ce domaine)";
       ro.set(1,dom);
       var img;
       if(A===0) img="{"+S.fmt(K)+"}";
@@ -49,7 +49,7 @@ SFA.sim({
       else img = A>0 ? "["+S.fmt(K)+" ; +∞[" : "]−∞ ; "+S.fmt(K)+"]";
       ro.set(2,img);
       var z="";
-      if(A===0) z = K===0 ? "tout ℝ" : "aucun";
+      if(A===0) z = K===0 ? ((fs.value==="inv"||fs.value==="rt") ? "tout le domaine" : "tout ℝ") : "aucun";
       else {
         var r=-K/A, us=[];
         switch(fs.value){
@@ -143,7 +143,7 @@ SFA.sim({
       if(t2.value) S.draw.fn(c,ax,function(x){return -f(-x);},P.green,2.2,[2,4]);
       S.draw.fn(c,ax,f,P.acc,3);
       var fa=f(a), fm=f(-a);
-      S.draw.dot(c,ax.X(a),ax.Y(fa),6,P.acc); S.draw.dot(c,ax.X(-a),ax.Y(fm),6,P.red);
+      if(Math.abs(fa)<=6) S.draw.dot(c,ax.X(a),ax.Y(fa),6,P.acc); if(Math.abs(fm)<=6) S.draw.dot(c,ax.X(-a),ax.Y(fm),6,P.red);
       var even=true,odd=true;
       for(var x=0.25;x<=4;x+=0.25){ if(Math.abs(f(x)-f(-x))>1e-9) even=false; if(Math.abs(f(x)+f(-x))>1e-9) odd=false; }
       ro.set(0,S.fmt(fa,2)); ro.set(1,S.fmt(fm,2)); ro.set(2,S.fmt(-fa,2));
@@ -183,7 +183,7 @@ SFA.sim({
       c.ctx.restore();
       S.draw.fn(c,ax,f,P.acc,3); S.draw.fn(c,ax,g,P.red,2.6);
       if(D>=-1e-9){ var rr=Math.sqrt(Math.max(0,D)); [M-rr,M+rr].forEach(function(x,i){ if(i===1&&rr<1e-6)return; if(x>=ax.x0&&x<=ax.x1&&g(x)>=ax.y0&&g(x)<=ax.y1){ S.draw.dot(c,ax.X(x),ax.Y(g(x)),6,P.ink); S.draw.line(c,ax.X(x),ax.Y(g(x)),ax.X(x),ax.Y(0),P.ink,1,[3,3]); } }); }
-      S.draw.text(c,"f",ax.X(-5),ax.Y(0.5*25-2)+12,{color:P.acc}); 
+      S.draw.text(c,"f",ax.X(-3.6)-10,ax.Y(0.5*3.6*3.6-2),{color:P.acc}); 
       S.draw.text(c,"g",ax.X(5.4),ax.Y(Math.max(-4.5,Math.min(6.5,g(5.4))))-10,{color:P.red});
       var rhs = M===0 ? S.fmt(Pp) : ((M===1?"":(M===-1?"−":S.fmt(M)))+"x"+(Pp===0?"":(Pp<0?" − "+S.fmt(-Pp):" + "+S.fmt(Pp))));
       ro.set(0,"0,5x² − 2 = "+rhs);
@@ -229,7 +229,7 @@ SFA.sim({
       ro.set(0,S.fmt(err,2));
       var ok = err<0.005;
       ro.set(1, ok ? "Bravo !" : (err<0.5?"Presque":"Continue"));
-      if(shown){ nt.set("Solution : g(x) = "+S.fmt(T.a)+"·f(x − "+S.fmt(T.h)+") + "+S.fmt(T.k)+" avec f(x) = "+({sq:"x²",ab:"|x|",rt:"√x",cu:"x³"})[T.f]+".","warn"); }
+      if(shown){ nt.set("Solution : g(x) = "+S.fmt(T.a)+"·f("+(T.h===0?"x":T.h>0?"x − "+S.fmt(T.h):"x + "+S.fmt(-T.h))+")"+(T.k===0?"":T.k>0?" + "+S.fmt(T.k):" − "+S.fmt(-T.k))+" avec f(x) = "+({sq:"x²",ab:"|x|",rt:"√x",cu:"x³"})[T.f]+".","warn"); }
       else nt.set(ok?"Les deux courbes sont confondues : tu as trouvé a, h, k et la bonne fonction de base.":"Astuce : commence par le sommet / point de départ (h ; k).",ok?"ok":"");
     });
   }

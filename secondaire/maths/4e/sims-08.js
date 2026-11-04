@@ -20,7 +20,7 @@ SFA.sim({
       if((t==="down"||t==="drag")&&sel>=0){ var q=sel===0?u:v; q.x=snap(ax.ix(p.x),-5,5); q.y=snap(ax.iy(p.y),-5,5); k.redraw(); }
       if(t==="up") sel=-1; });
     k.draw(function(){
-      c.clear(); ax=S.draw.axes(c,{x0:-10,x1:10,y0:-10,y1:10,stepX:2,stepY:2});
+      c.clear(); ax=S.draw.axes(c,{x0:-10,x1:10,y0:-10,y1:10,stepX:2,stepY:2,equal:true});
       var O=[ax.X(0),ax.Y(0)], U=[ax.X(u.x),ax.Y(u.y)], V=[ax.X(v.x),ax.Y(v.y)], W=[ax.X(u.x+v.x),ax.Y(u.y+v.y)];
       if(mode.value==="par"){ S.draw.line(c,U[0],U[1],W[0],W[1],P.green,1.5,[5,4]); S.draw.line(c,V[0],V[1],W[0],W[1],P.red,1.5,[5,4]); }
       else S.draw.arrow(c,U[0],U[1],W[0],W[1],P.green,2.5);
@@ -49,7 +49,7 @@ SFA.sim({
     var ro=k.readouts(["Vecteur t","A → A'","B → B'","C → C'","Longueur ‖t‖"]);
     k.draw(function(){
       var tp=p.value,tq=q.value; c.clear();
-      var ax=S.draw.axes(c,{x0:-10,x1:10,y0:-10,y1:10,stepX:2,stepY:2}), ctx=c.ctx;
+      var ax=S.draw.axes(c,{x0:-10,x1:10,y0:-10,y1:10,stepX:2,stepY:2,equal:true}), ctx=c.ctx;
       var T=[["A",-4,-2],["B",-1,1],["C",-3,-4]];
       function tri(pts,col,fill){ ctx.save(); ctx.beginPath(); pts.forEach(function(q2,i){ var X=ax.X(q2[0]),Y=ax.Y(q2[1]); if(i)ctx.lineTo(X,Y); else ctx.moveTo(X,Y); }); ctx.closePath(); ctx.fillStyle=fill; ctx.fill(); ctx.strokeStyle=col; ctx.lineWidth=2.5; ctx.stroke(); ctx.restore(); }
       var I=T.map(function(m){return [m[1]+tp,m[2]+tq];});
@@ -83,7 +83,7 @@ SFA.sim({
       if((t==="down"||t==="drag")&&sel>=0){ pts[sel].x=snap(ax.ix(p.x),-9,9); pts[sel].y=snap(ax.iy(p.y),-9,9); k.redraw(); }
       if(t==="up") sel=-1; });
     k.draw(function(){
-      c.clear(); ax=S.draw.axes(c,{x0:-10,x1:10,y0:-10,y1:10,stepX:2,stepY:2});
+      c.clear(); ax=S.draw.axes(c,{x0:-10,x1:10,y0:-10,y1:10,stepX:2,stepY:2,equal:true});
       var cols=[P.red,P.green,P.amber];
       for(var i=0;i<3;i++){ var a=pts[i],b=pts[i+1]; if(a.x!==b.x||a.y!==b.y) S.draw.arrow(c,ax.X(a.x),ax.Y(a.y),ax.X(b.x),ax.Y(b.y),cols[i],2.8); }
       var A=pts[0],D=pts[3]; if(A.x!==D.x||A.y!==D.y) S.draw.arrow(c,ax.X(A.x),ax.Y(A.y),ax.X(D.x),ax.Y(D.y),P.violet,4);
@@ -113,7 +113,7 @@ SFA.sim({
     var nt=k.note("","");
     k.draw(function(){
       var A=a.value,B=b.value,C=cx.value,D=d.value; c.clear();
-      var ax=S.draw.axes(c,{x0:-8,x1:8,y0:-8,y1:8,stepX:2,stepY:2}), ctx=c.ctx;
+      var ax=S.draw.axes(c,{x0:-10,x1:10,y0:-10,y1:10,stepX:2,stepY:2,equal:true}), ctx=c.ctx;
       var det=A*D-B*C;
       ctx.save(); ctx.beginPath(); ctx.moveTo(ax.X(0),ax.Y(0)); ctx.lineTo(ax.X(A),ax.Y(B)); ctx.lineTo(ax.X(A+C),ax.Y(B+D)); ctx.lineTo(ax.X(C),ax.Y(D)); ctx.closePath(); ctx.fillStyle=det===0?"rgba(180,35,24,.15)":"rgba(30,63,143,.15)"; ctx.fill(); ctx.restore();
       if(A!==0||B!==0) S.draw.arrow(c,ax.X(0),ax.Y(0),ax.X(A),ax.Y(B),P.red,3.2);
@@ -149,10 +149,10 @@ SFA.sim({
     function vec(n,a){ return [n*Math.sin(a*D2R), n*Math.cos(a*D2R)]; }
     k.draw(function(){
       var V=vec(vp.value,cap.value), Cc=vec(vc.value,dc.value), G=[V[0]+Cc[0],V[1]+Cc[1]], ng=Math.hypot(G[0],G[1]);
-      c.clear(); var W=c.W,H=c.H, sc=Math.min(W,H)/2/22*1.5, ox=W/2, oy=H*0.58;
+      c.clear(); var W=c.W,H=c.H, sc=(Math.min(W,H)/2-18)/21, ox=W/2, oy=H/2;
       var X=function(x){return ox+x*sc;}, Y=function(y){return oy-y*sc;};
-      S.draw.line(c,X(-20),Y(0),X(20),Y(0),P.light,1); S.draw.line(c,X(0),Y(-16),X(0),Y(16),P.light,1);
-      S.draw.text(c,"N",X(0),Y(15.2),{size:13,color:P.grey}); S.draw.text(c,"E",X(18.5),Y(0)-10,{size:13,color:P.grey});
+      S.draw.line(c,X(-21),Y(0),X(21),Y(0),P.light,1); S.draw.line(c,X(0),Y(-21),X(0),Y(21),P.light,1);
+      S.draw.text(c,"N",X(0)+10,Y(20),{size:13,color:P.grey}); S.draw.text(c,"E",X(20),Y(0)-10,{size:13,color:P.grey});
       S.draw.arrow(c,X(0),Y(0),X(V[0]),Y(V[1]),P.red,3);
       S.draw.arrow(c,X(V[0]),Y(V[1]),X(G[0]),Y(G[1]),P.teal,3);
       if(ng>0.01) S.draw.arrow(c,X(0),Y(0),X(G[0]),Y(G[1]),P.acc,4.5);
@@ -162,7 +162,7 @@ SFA.sim({
       ro.set(0,F(vp.value,0)+" km/h, cap "+F(cap.value,0)+"°"); ro.set(1,F(vc.value,0)+" km/h vers "+F(dc.value,0)+"°");
       ro.set(2,F(ng,2)+" km/h"); ro.set(3,isNaN(route)?"—":F(route,1)+"°"); ro.set(4,isNaN(der)?"—":F(der,1)+"°");
       var north = !isNaN(route)&&(route<1.5||route>358.5);
-      nt.set(isNaN(route)?"Vitesse sol nulle : le bateau fait du sur-place.":(north?(vc.value===0?"Pas de courant : la route est égale au cap, plein nord.":"Route plein nord ! Le cap compense le courant : la composante est de la vitesse sol est presque nulle ("+F(G[0],2)+" km/h)."):"Pour aller plein nord, la composante est de la vitesse sol doit être nulle : v·sin θ + courant_est = 0."),north?"ok":"");
+      nt.set(isNaN(route)?"Vitesse sol nulle : le bateau fait du sur-place.":(north?(vc.value===0?"Pas de courant : la route est égale au cap, plein nord.":"Route plein nord ! Le cap compense le courant : la composante vers l'est de la vitesse sol est nulle ("+F(G[0],2)+" km/h)."):"Pour aller plein nord, la composante vers l'est de la vitesse sol doit être nulle : vₚ·sin θ + (courant vers l'est) = 0."+(vc.value>vp.value&&(dc.value===90||dc.value===270)?" Ici le courant est plus fort que la vitesse propre : aucun cap ne permet d'aller plein nord.":"")),north?"ok":"");
     });
   }
 });

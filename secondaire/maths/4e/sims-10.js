@@ -98,9 +98,9 @@ SFA.sim({
     var nt=k.note("","");
     k.draw(function(){
       var A=Z.map(function(z){return 10+2*z;}), B=Z.map(function(z){return mb.value+sb.value*z;});
-      c.clear(); var W=c.W,H=c.H,L=30,R=14, X=function(v){return L+v/20*(W-L-R);};
+      c.clear(); var W=c.W,H=c.H,L=30,R=14, X=function(v){return L+(v+4)/28*(W-L-R);};
       var ctx=c.ctx;
-      for(var v=0;v<=20;v+=2){ S.draw.line(c,X(v),10,X(v),H-26,"#edf0f4",1); S.draw.text(c,String(v),X(v),H-14,{size:12,color:P.grey}); }
+      for(var v=-4;v<=24;v+=2){ S.draw.line(c,X(v),10,X(v),H-26,"#edf0f4",1); S.draw.text(c,String(v),X(v),H-14,{size:12,color:P.grey}); }
       function box(arr,y,col,name){ var s=sorted(arr), q=quart(s), md=med(s), m=mean(s), h=H*0.17;
         S.draw.line(c,X(s[0]),y,X(q[0]),y,col,2.5); S.draw.line(c,X(q[1]),y,X(s[s.length-1]),y,col,2.5);
         S.draw.line(c,X(s[0]),y-h/3,X(s[0]),y+h/3,col,2.5); S.draw.line(c,X(s[s.length-1]),y-h/3,X(s[s.length-1]),y+h/3,col,2.5);

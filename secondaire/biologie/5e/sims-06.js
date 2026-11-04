@@ -117,16 +117,18 @@ SFA.sim({
       }
       var cc = 1 - hyd.value / 100, dc = "rgb(" + Math.round(255 - 55 * cc) + "," + Math.round(245 - 95 * cc) + "," + Math.round(190 - 150 * cc) + ")";
       B5.rect(c, x0 + 5 * pw + 4, 40, pw - 8, 90, dc, "#8a95a3", 1.5);
-      S.draw.text(c, "Densité", x0 + 5 * pw + pw / 2, 24, {size: 12}); S.draw.text(c, S.fmt(dens, 3), x0 + 5 * pw + pw / 2, 148, {size: 12});
+      S.draw.text(c, "Densité", x0 + 5 * pw + pw / 2, 24, {size: 12}); S.draw.text(c, dens.toFixed(3).replace(".", ","), x0 + 5 * pw + pw / 2, 148, {size: 12});
       S.draw.text(c, "Lire la bandelette : plus la case est foncée, plus le résultat est positif.", c.W / 2, 190, {size: 12, color: pal.grey});
       S.draw.text(c, "Densité normale : 1,003 à 1,030", c.W / 2, 212, {size: 12, color: pal.grey});
-      ro.set(0, gj > 0 ? S.fmt(gj, 0) + " g/j" : "0"); ro.set(1, S.fmt(prot, 2) + " g/24 h"); ro.set(2, S.fmt(leu, 0) + " /µL"); ro.set(3, S.fmt(dens, 3));
+      ro.set(0, gj > 0 ? S.fmt(gj, 0) + " g/j" : "0"); ro.set(1, S.fmt(prot, 2) + " g/24 h"); ro.set(2, S.fmt(leu, 0) + " /µL"); ro.set(3, dens.toFixed(3).replace(".", ","));
       var dg = [];
       if (gj > 0) dg.push("glycosurie : glycémie au-dessus du seuil rénal, évoque un diabète sucré (à confirmer)");
       if (prot >= 0.5) dg.push("protéinurie " + (prot > 3.5 ? "massive" : "marquée") + " : filtre glomérulaire abîmé");
       if (nit || leu >= 100) dg.push("leucocytes ± nitrites : évoque une infection urinaire");
+      if (prot >= 0.15 && prot < 0.5) dg.push("trace de protéines : sans gravité si elle est isolée (effort, urine concentrée), à recontrôler");
+      if (leu >= 10 && leu < 100 && !nit) dg.push("quelques leucocytes : à recontrôler, pas encore une infection nette");
       if (sang && !(nit || leu >= 100)) dg.push("sang dans l'urine : atteinte du filtre ou lésion des voies urinaires");
-      nt.set(dg.length ? "Hypothèses : " + dg.join(" ; ") + "." : "Bandelette normale pour ces valeurs (densité " + S.fmt(dens, 3) + ").", dg.length ? "warn" : "ok");
+      nt.set(dg.length ? "Hypothèses : " + dg.join(" ; ") + "." : "Bandelette normale pour ces valeurs (densité " + dens.toFixed(3).replace(".", ",") + ").", dg.length ? "warn" : "ok");
     });
   }
 });

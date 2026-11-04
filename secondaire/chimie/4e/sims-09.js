@@ -60,7 +60,7 @@ SFA.sim({
       C4.tag(c, "gris : pH naïf", ax.X(0.3), ax.Y(ac ? 12 : 2), "#5f6b7a", 12, "left"); C4.tag(c, "bleu : pH réel", ax.X(0.3), ax.Y(ac ? 11 : 3), "#1e3f8f", 12, "left");
       S.draw.dot(c, ax.X(pc.value), ax.Y(pr), 7, "#b42318"); S.draw.dot(c, ax.X(pc.value), ax.Y(pn), 5, "#8a95a3");
       ro.set(0, S.sci(Math.pow(10, -pc.value), 2) + " mol/L"); ro.set(1, S.fmt(pn, 2)); ro.set(2, S.fmt(pr, 2)); ro.set(3, S.sci(Math.pow(10, -pr), 2) + " mol/L");
-      nt.set(Math.abs(pr - pn) > 0.1 ? "Le pH naïf (" + S.fmt(pn, 1) + ") est faux : il passe de l'autre côté de 7. Le pH réel reste du bon côté (" + S.fmt(pr, 2) + ")." : "À cette concentration, la formule simple est très bonne (écart < 0,1).", Math.abs(pr - pn) > 0.1 ? "warn" : "");
+      nt.set(Math.abs(pr - pn) > 0.1 ? "Le pH naïf (" + S.fmt(pn, 1) + ") est faux" + ((ac ? pn > 7 : pn < 7) ? " : il passe de l'autre côté de 7, ce qui est impossible." : " : il s'écarte du pH réel.") + " Le pH réel reste du bon côté de 7 (" + S.fmt(pr, 2) + ")." : "À cette concentration, la formule simple est très bonne (écart < 0,1).", Math.abs(pr - pn) > 0.1 ? "warn" : "");
     });
     k.note("Hypothèses : 25 °C (K<sub>w</sub> = 10<sup>−14</sup>), acide ou base forts, solution aqueuse.", "");
   }

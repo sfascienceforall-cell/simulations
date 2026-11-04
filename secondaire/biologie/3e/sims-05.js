@@ -166,8 +166,7 @@ SFA.sim({
       D.dot(c,ax.X(xp),ax.Y(st.s*100),7,P.violet);
       T(c,"pointillé gris : courbe de référence",ax.R-4,ax.Y(40),{size:12,align:"right",color:P.grey});
       ro.set(0,S.fmt(st.patm,0)+" kPa"); ro.set(1,st.pao2>0 ? S.fmt(st.pao2,1)+" kPa" : "≈ 0 kPa"); ro.set(2,S.fmt(st.s*100,0)+" %"); ro.set(3,S.fmt(st.cont,0)+" mL");
-      var base = 201*.972;
-      nt.set(st.pao2<=0 ? "Sans acclimatation, à cette altitude, la pression de O₂ devient trop faible : perte de conscience en quelques minutes. L'acclimatation (hyperventilation) est indispensable." : st.s<.75 ? "Saturation inférieure à 75 % : hypoxie sévère. Les alpinistes de très haute altitude utilisent de l'oxygène en bouteille." : st.s<.9 ? "Saturation inférieure à 90 % : hypoxie, essoufflement, maux de tête (mal des montagnes)." : co.value>=5 ? "Même au niveau de la mer, "+co.value+" % de monoxyde de carbone dans le sang réduisent le O₂ transporté de "+S.fmt(100*(1-st.cont/base),0)+" %." : "Saturation normale : l'hémoglobine est presque entièrement chargée en O₂.", st.pao2<=0||st.s<.9 ? "warn" : "ok");
+      nt.set(st.pao2<=0 ? "Sans acclimatation, à cette altitude, la pression de O₂ devient trop faible : perte de conscience en quelques minutes. L'acclimatation (hyperventilation) est indispensable." : st.s<.75 ? "Saturation inférieure à 75 % : hypoxie sévère. Les alpinistes de très haute altitude utilisent de l'oxygène en bouteille." : st.s<.9 ? "Saturation inférieure à 90 % : hypoxie, essoufflement, maux de tête (mal des montagnes)." : co.value>=5 ? "Même sans altitude, "+co.value+" % de monoxyde de carbone dans le sang réduisent d'autant (environ "+co.value+" %) le O₂ transporté : l'hémoglobine occupée par le CO ne peut plus fixer O₂." : "Saturation normale : l'hémoglobine est presque entièrement chargée en O₂.", st.pao2<=0||st.s<.9 ? "warn" : "ok");
     });
   }
 });

@@ -8,7 +8,7 @@ SFA.sim({
   resume:"Une source qui a une taille donne une ombre nette au centre et une pénombre floue autour.",
   but:"Règle la taille de la source (0 = ponctuelle), la taille de l'objet et les distances. Mesure l'ombre et la pénombre sur l'écran. (Les échelles horizontale et verticale sont différentes.)",
   aRetenir:"La lumière se propage en ligne droite dans un milieu homogène. Source ponctuelle : ombre nette de largeur h·D/d₁. Source étendue : ombre (aucune lumière) entourée d'une pénombre (une partie de la source est visible). Largeur de l'ombre : (h·D − s·d₂)/d₁.",
-  piege:"Plus l'écran est loin de l'objet, plus l'ombre est grande, mais plus la pénombre devient large et floue : l'ombre nette peut même disparaître (cas des éclipses annulaires).",
+  piege:"Plus l'écran est loin de l'objet, plus la pénombre devient large et floue. Si la source est plus grande que l'objet, l'ombre nette rétrécit quand l'écran s'éloigne et peut même disparaître (cas des éclipses annulaires) ; si la source est plus petite que l'objet, l'ombre grandit.",
   build:function(k,S){
     var c = k.canvas(300);
     var d1 = k.slider("Distance source – objet d₁", 40, 200, 10, 80, "cm");
@@ -124,11 +124,11 @@ SFA.sim({
   resume:"La Lune est toujours à moitié éclairée par le Soleil ; selon sa position, on en voit plus ou moins.",
   but:"Fais tourner la Lune autour de la Terre (curseur ou animation). Regarde la vue d'en haut et ce qu'on voit depuis la Terre.",
   aRetenir:"Le Soleil éclaire toujours une moitié de la Lune. Les phases dépendent de l'angle Soleil–Terre–Lune : on voit de face la face éclairée à la pleine lune, de dos à la nouvelle lune. Le cycle dure environ 29,5 jours.",
-  piege:"Les phases ne sont PAS dues à l'ombre de la Terre ! Cette ombre n'intervient que lors d'une éclipse de Lune. Active l'option pour voir qu'à la pleine lune, la Lune est « derrière » la Terre, mais en général pas dans son ombre.",
+  piege:"Les phases ne sont PAS dues à l'ombre de la Terre ! Cette ombre n'intervient que lors d'une éclipse de Lune. Sur ce schéma vu d'en haut, la Lune pleine semble tomber dans l'ombre, mais c'est un effet de la vue : l'orbite de la Lune est inclinée de 5° et, la plupart des mois, elle passe au-dessus ou en dessous de l'ombre (voir la simulation « Éclipses »).",
   build:function(k,S){
     var c = k.canvas(260), m = k.canvas(150), st = {a:60};
     var al = k.slider("Angle Soleil – Terre – Lune", 0, 360, 5, 60, "°", function(v){ st.a = v; });
-    var sh = k.toggle("Montrer l'ombre de la Terre (schéma non à l'échelle)", false);
+    var sh = k.toggle("Montrer l'ombre de la Terre (vue d'en haut, non à l'échelle, inclinaison de 5° invisible)", false);
     var ro = k.readouts(["Âge de la Lune (jours)", "Partie éclairée visible", "Phase"]);
     var lp = k.loop(function(dt){ st.a = (st.a + dt * 40) % 360; al.set(st.a); k.redraw(); });
     k.button("▶ / ❚❚ Un mois en accéléré", function(){ if (lp.running) lp.pause(); else lp.play(); }, true);

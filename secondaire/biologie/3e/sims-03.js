@@ -101,9 +101,9 @@ SFA.sim({
       D.line(c2,bx.L,bx.Y(5),bx.R,bx.Y(5),P.grey,1.2,[5,4]); T(c2,"5 % : l'iode ne bleuit plus",bx.R-4,bx.Y(30),{size:12,align:"right",color:P.grey});
       var tdis = kv>0 ? Math.log(20)/kv : Infinity;
       ro.set(0,S.fmt(A*100,0)+" %"); ro.set(1, tdis<1 ? S.fmt(tdis*60,0)+" s" : tdis<=120 ? S.fmt(tdis,1)+" min" : "pratiquement jamais");
-      var den = tt.value>=50, et = den ? "dénaturée (irréversible)" : A<.05 ? "inactive" : tt.value<15 ? "ralentie (réversible)" : "active";
+      var den = tt.value>=55, part = tt.value>=45 && !den, et = den ? "dénaturée (irréversible)" : part ? "en cours de dénaturation" : A<.05 ? "inactive" : tt.value<15 ? "ralentie (réversible)" : "active";
       ro.set(2, et);
-      nt.set(den ? "Au-dessus d'environ 50 °C, l'amylase est <b>dénaturée</b> : sa forme est détruite, même refroidie elle ne refonctionnera plus." : tt.value<15 ? "Au froid, l'enzyme est seulement <b>ralentie</b> : elle redeviendra active à 37 °C." : ph.value<4||ph.value>9.5 ? "pH trop éloigné de 7 : l'amylase salivaire ne marche presque plus (comme dans l'estomac, pH ≈ 2)." : Math.abs(tt.value-37)<=2&&Math.abs(ph.value-7)<=.6 ? "Conditions optimales : l'amidon disparaît le plus vite." : "Activité partielle : rapproche-toi de 37 °C et de pH 7.", den||ph.value<4||ph.value>9.5 ? "warn" : "ok");
+      nt.set(den ? "À partir d'environ 55 °C, l'amylase est <b>dénaturée</b> : sa forme est détruite, même refroidie elle ne refonctionnera plus." : part ? "Entre 45 et 55 °C, l'enzyme se <b>dénature</b> peu à peu : son activité chute, et ce qui est détruit ne revient pas en refroidissant." : tt.value<15 ? "Au froid, l'enzyme est seulement <b>ralentie</b> : elle redeviendra active à 37 °C." : ph.value<4||ph.value>9.5 ? "pH trop éloigné de 7 : l'amylase salivaire ne marche presque plus (comme dans l'estomac, pH ≈ 2)." : Math.abs(tt.value-37)<=2&&Math.abs(ph.value-7)<=.6 ? "Conditions optimales : l'amidon disparaît le plus vite." : "Activité partielle : rapproche-toi de 37 °C et de pH 7.", den||part||ph.value<4||ph.value>9.5 ? "warn" : "ok");
     });
   }
 });

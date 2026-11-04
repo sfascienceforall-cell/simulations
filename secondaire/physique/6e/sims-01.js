@@ -15,7 +15,8 @@ SFA.sim({
     k.note("B relatif : 100 = valeur sur l'axe de l'aimant à 100 px de son centre. Modèle du dipôle (aimant vu de loin).");
     var comp = {x: 0, y: 0, set: false};
     function field(dx, dy, u){
-      var r2 = dx * dx + dy * dy, r = Math.sqrt(r2), rx = dx / r, ry = dy / r, d = u.x * rx + u.y * ry;
+      var r2 = dx * dx + dy * dy; if (r2 < 1) { dx = 1; dy = 0; r2 = 1; }   /* évite la division par zéro au centre exact */
+      var r = Math.sqrt(r2), rx = dx / r, ry = dy / r, d = u.x * rx + u.y * ry;
       return {x: 3 * d * rx - u.x, y: 3 * d * ry - u.y, r: r};
     }
     function needle(x, y, ux, uy, len, big){
@@ -95,7 +96,7 @@ SFA.sim({
     var r = k.slider("Distance r au fil", 1, 20, 0.5, 5, "cm");
     var sens = k.seg("Sens du courant", [["out", "⊙ vers toi"], ["in", "⊗ vers la feuille"]], "out");
     var terre = k.toggle("Tenir compte du champ terrestre (≈ 19 µT vers le nord)", true);
-    var ro = k.readouts(["B du fil", "Déviation de la boussole nord", "B / B terrestre"]);
+    var ro = k.readouts(["B du fil", "Déviation de la boussole nord", "B du fil / B terrestre horizontal"]);
     var BH = 19;
     function Bw(i, rr){ return 20 * i / rr; }  /* µT, r en cm */
     k.draw(function(){
@@ -124,7 +125,7 @@ SFA.sim({
         if (j === 0) { S.draw.text(c, "Nord ↑", px + 34, py - 18, {size: 12, color: P.grey}); }
       }
       var dev = Math.atan(b / BH) * 180 / Math.PI;
-      ro.set(0, S.fmt(b, 1) + " µT"); ro.set(1, terre.value ? S.fmt(dev, 0) + " °" : "—"); ro.set(2, S.fmt(b / 48, 2));
+      ro.set(0, S.fmt(b, 1) + " µT"); ro.set(1, terre.value ? S.fmt(dev, 0) + " °" : "—"); ro.set(2, S.fmt(b / BH, 2));
       /* graphe B(r) */
       var ymax = Math.max(40, Math.ceil(20 * I.value / 1 / 10) * 10);
       var ax = S.draw.axes(g, {x0: 0, x1: 20, y0: 0, y1: ymax, xl: "r (cm)", yl: "B (µT)", l: 52, t: 22});

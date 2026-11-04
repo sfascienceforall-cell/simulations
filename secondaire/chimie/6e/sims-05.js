@@ -98,7 +98,7 @@ SFA.sim({
       var pT = (I.lo + I.hi) / 2, vv = veqCross(s, pT), err = vv === null ? null : (vv - 20) / 20 * 100;
       var cname = ph <= I.lo ? I.t1 : ph >= I.hi ? I.t2 : "teinte intermédiaire";
       ro.set(0, S.fmt(ph, 2)); ro.set(1, cname); ro.set(2, vv === null ? "ne vire jamais" : S.fmt(vv, 2) + " mL"); ro.set(3, err === null ? "—" : (err > 0 ? "+" : "") + S.fmt(err, 1) + " %");
-      if (vv === null) nt.set("Ce titrage ne dépasse jamais pH " + pT + " (ou ne descend pas jusque-là) : l'indicateur ne vire pas du tout.", "warn");
+      if (vv === null) nt.set("Le pH du milieu de la zone de virage (" + S.fmt(pT, 2) + ") n'est jamais traversé pendant ce titrage : l'indicateur garde la même couleur du début à la fin et ne signale rien.", "warn");
       else if (Math.abs(err) <= 0.5) nt.set("Indicateur adapté : le virage a lieu à " + S.fmt(vv, 2) + " mL, à " + S.fmt(Math.abs(err), 1) + " % de V_eq = 20,00 mL.", "ok");
       else nt.set("Indicateur inadapté : le virage a lieu à " + S.fmt(vv, 2) + " mL, soit " + S.fmt(Math.abs(err), 0) + " % d'erreur sur V_eq = 20,00 mL.", "warn");
     });

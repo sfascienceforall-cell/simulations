@@ -67,7 +67,7 @@ SFA.sim({
     k.draw(function(){
       var d = dH.value, e = Math.max(Ea.value, Math.max(0, d) + 10), adj = e !== Ea.value; c.clear();
       var lo = Math.min(0, d) - 60, hi = Math.max(e, d) + 80;
-      var ax = S.draw.axes(c, {x0: 0, x1: 1, y0: lo, y1: hi, yl: "H (kJ/mol)", stepX: 5, l: 62, b: 30});
+      var ax = S.draw.axes(c, {x0: 0, x1: 1, y0: lo, y1: hi, yl: "H (kJ/mol)", stepX: 5, l: 62, b: 30, hideZero: true});
       var sm = function(x){ return x * x * (3 - 2 * x); };
       var A = 0, f;
       var peak = function(a){ var mxv = -1e9; for (var i = 0; i <= 100; i++){ var x = i / 100, v = d * sm(x) + a * 4 * x * (1 - x); if (v > mxv) mxv = v; } return mxv; };

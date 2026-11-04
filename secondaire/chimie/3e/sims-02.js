@@ -127,7 +127,7 @@ var DEFIS = [
   {t:"Construis l'ion aluminium Al³⁺.", f:function(p,n,e){ return p===13&&e===10; }},
   {t:"Construis l'ion oxyde O²⁻.", f:function(p,n,e){ return p===8&&e===10; }},
   {t:"Construis l'atome neutre de lithium 7.", f:function(p,n,e){ return p===3&&n===4&&e===3; }},
-  {t:"Construis un atome neutre qui a le même nombre d'électrons que Ne mais un autre élément : Na⁺ ne compte pas, il faut un atome neutre ! Trouve plutôt : l'atome neutre de néon 20.", f:function(p,n,e){ return p===10&&n===10&&e===10; }}
+  {t:"Construis l'atome neutre de néon 20.", f:function(p,n,e){ return p===10&&n===10&&e===10; }}
 ];
 SFA.sim({
   id:"c3-c02-atome", ch:"c02", tag:"Classique",

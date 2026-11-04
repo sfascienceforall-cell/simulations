@@ -1,5 +1,6 @@
 /* Chapitre 6 : systèmes linéaires 3×3 */
 (function(){
+function inCube(X){ return Math.abs(X[0])<=5+1e-9&&Math.abs(X[1])<=5+1e-9&&Math.abs(X[2])<=5+1e-9; }
 function rank(M){ var m=M.map(function(r){return r.slice();}), r=0, cols=m[0].length;
   for(var c=0;c<cols&&r<m.length;c++){ var p=-1; for(var i=r;i<m.length;i++){ if(Math.abs(m[i][c])>1e-9&&(p<0||Math.abs(m[i][c])>Math.abs(m[p][c]))) p=i; }
     if(p<0) continue; var t=m[p]; m[p]=m[r]; m[r]=t;
@@ -33,14 +34,14 @@ SFA.sim({
       if(rA===3){
         var n1=A[0],n2=A[1],n3=A[2], det=SFA.dot3(n1,SFA.cross3(n2,n3)), c23=SFA.cross3(n2,n3), c31=SFA.cross3(n3,n1), c12=SFA.cross3(n1,n2);
         var X=[0,1,2].map(function(i){return (pl[0][1]*c23[i]+pl[1][1]*c31[i]+pl[2][1]*c12[i])/det;});
-        v.dot(X,7,P.ink); ro.set(2,"solution unique"); ro.set(3,"("+X.map(f).join(" ; ")+")");
-        nt.set("Déterminant des coefficients = "+S.fmt(det,0)+" ≠ 0 : les trois plans se coupent en un seul point.","ok"); return;
+        if(inCube(X)) v.dot(X,7,P.ink); ro.set(2,"solution unique"); ro.set(3,"("+X.map(f).join(" ; ")+")");
+        nt.set("Déterminant des coefficients = "+S.fmt(det,0)+" ≠ 0 : les trois plans se coupent en un seul point."+(inCube(X)?"":" <b>Ce point est hors du cube dessiné</b> : ses coordonnées restent exactes."),inCube(X)?"ok":"warn"); return;
       }
       if(rA===2){
         var pairs=[[0,1],[0,2],[1,2]], q=null; for(var i=0;i<3;i++){ var w=SFA.cross3(A[pairs[i][0]],A[pairs[i][1]]); if(Math.hypot(w[0],w[1],w[2])>0){ q=[pairs[i][0],pairs[i][1],w]; break; } }
         var w2=q[2], ww=SFA.dot3(w2,w2), n1b=A[q[0]], n2b=A[q[1]], c1=SFA.cross3(n2b,w2), c2=SFA.cross3(n1b,w2), d1=pl[q[0]][1], d2=pl[q[1]][1];
         var Y=[0,1,2].map(function(i){return (d1*c1[i]-d2*c2[i])/ww;});
-        v.seg(Y,w2,P.ink,3.6); v.dot(Y,5,P.violet);
+        v.seg(Y,w2,P.ink,3.6); if(inCube(Y)) v.dot(Y,5,P.violet);
         ro.set(2,"indéterminé : une droite"); ro.set(3,"point "+"("+Y.map(f).join(" ; ")+") + t·("+w2.map(function(z){return S.fmt(z,0);}).join(" ; ")+")");
         nt.set("Rang 2 sur 3 inconnues : une inconnue reste libre, les solutions forment une droite.","ok"); return;
       }

@@ -32,7 +32,7 @@ SFA.sim({
         S.draw.text(c, g1[i], ox + cell * (i + 0.5), oy - 10, {size: 15, color: P.acc});
         S.draw.text(c, g2[i], ox - 14, oy + cell * (i + 0.5), {size: 15, color: P.red});
         for (var j = 0; j < 2; j++){
-          var g = sortG(g1[i], g2[j]); cnt[g]++; var q = ph(g); pc[q]++; cells.push(q);
+          var g = sortG(g1[j], g2[i]); cnt[g]++; var q = ph(g); pc[q]++; cells.push(q);
           ctx.fillStyle = colors[m][q]; ctx.fillRect(ox + j * cell, oy + i * cell, cell - 2, cell - 2);
           ctx.strokeStyle = "#8a95a3"; ctx.strokeRect(ox + j * cell, oy + i * cell, cell - 2, cell - 2);
           S.draw.text(c, g, ox + j * cell + cell / 2 - 1, oy + i * cell + cell / 2 - 1, {size: 15, color: q === 0 ? "#fff" : P.ink});
@@ -118,9 +118,9 @@ SFA.sim({
       S.draw.text(c, "Vert = phénotype dominant · Jaune = phénotype récessif", c.W / 2, 94, {size: 12, color: P.grey});
       /* courbe de l'erreur, en échelle logarithmique */
       var L = 56, R = c.W - 16, T = 118, Bm = 352;
-      function Y(p){ return Bm - (Math.log10(p) + 3) / 5 * (Bm - T); }
+      function Y(p){ return Bm - (Math.log10(p) + 7) / 7 * (Bm - T); }   /* de 10⁻⁷ (bas) à 1 = 100 % (haut) */
       ctx.save(); ctx.font = "600 12px Mulish, sans-serif"; ctx.fillStyle = "#5f6b7a"; ctx.textAlign = "right"; ctx.textBaseline = "middle";
-      [[100, "100 %"], [10, "10 %"], [1, "1 %"], [0.1, "0,1 %"], [0.01, "0,01 %"], [0.001, "0,001 %"]].forEach(function(g){
+      [[100, "100 %"], [10, "10 %"], [1, "1 %"], [0.1, "0,1 %"], [0.01, "0,01 %"], [0.001, "0,001 %"], [0.0001, "0,0001 %"], [0.00001, "0,00001 %"]].forEach(function(g){
         ctx.strokeStyle = "#edf0f4"; ctx.beginPath(); ctx.moveTo(L, Y(g[0] / 100)); ctx.lineTo(R, Y(g[0] / 100)); ctx.stroke(); ctx.fillText(g[1], L - 4, Y(g[0] / 100));
       });
       ctx.textAlign = "center"; ctx.textBaseline = "top";
@@ -135,7 +135,7 @@ SFA.sim({
       var err = Math.pow(0.5, n.value) * 100;
       ro.set(0, rec + " sur " + n.value);
       ro.set(1, rec > 0 ? "Aa (certain)" : "AA probable");
-      ro.set(2, rec > 0 ? "aucune" : S.fmt(err, err < 0.1 ? 4 : 2) + " %");
+      ro.set(2, rec > 0 ? "aucune" : S.fmt(err, err < 0.001 ? 6 : err < 0.1 ? 4 : 2) + " %");
       var txt = rec > 0 ? "Un descendant aa existe : l'individu mystère a forcément donné un allèle a, donc il est Aa." : "Tous dominants : pour être sûr à 99 % (erreur < 1 %), il faut au moins 7 descendants (1/2⁷ = 0,78 %).";
       if (rev.value) txt += " <b>Génotype réel : " + (isAa ? "Aa" : "AA") + ".</b>";
       note.set(txt, rec > 0 ? "ok" : "warn");
@@ -166,7 +166,7 @@ SFA.sim({
         S.draw.text(c, g1[i], ox + cell * (i + 0.5), oy - 12, {size: 15, color: P.acc});
         S.draw.text(c, g2[i], ox - 14, oy + cell * (i + 0.5), {size: 15, color: P.red});
         for (var j = 0; j < 2; j++){
-          var g = sg(g1[i], g2[j]), q = grp(g); cnt[q]++; gens[g] = (gens[g] || 0) + 1;
+          var g = sg(g1[j], g2[i]), q = grp(g); cnt[q]++; gens[g] = (gens[g] || 0) + 1;
           ctx.fillStyle = col[q]; ctx.fillRect(ox + j * cell, oy + i * cell, cell - 2, cell - 2);
           S.draw.text(c, g, ox + j * cell + cell / 2 - 1, oy + i * cell + cell / 2 - 7, {size: 15, color: "#fff"});
           S.draw.text(c, q, ox + j * cell + cell / 2 - 1, oy + i * cell + cell / 2 + 13, {size: 12, color: "#fff", weight: 600});

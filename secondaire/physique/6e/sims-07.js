@@ -62,6 +62,7 @@ SFA.sim({
       t += dt; var xs = x0 + spd * t;
       if (xs > W - 40){ reset(); return; }
       while (nextE <= t){ ems.push({x: x0 + spd * nextE, t: nextE}); nextE += 0.22; }
+      ems = ems.filter(function(e){ return cv * (t - e.t) < c.W * 1.5; });   /* fronts devenus trop grands : inutile de les garder (source immobile) */
       k.redraw();
     });
     lp.play();

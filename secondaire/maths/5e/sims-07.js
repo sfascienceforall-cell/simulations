@@ -37,7 +37,7 @@ var PL = {
      st:["<b>Domaine :</b> 4 − x² ≥ 0 ⇔ x ∈ [−2 ; 2]. <b>Parité :</b> f(−x) = −f(x) : impaire.",
          "<b>Zéros :</b> f(x) = 0 ⇔ x = 0 ou 4 − x² = 0, soit x ∈ {−2 ; 0 ; 2}. Signe de f = signe de x sur ]−2 ; 2[.",
          "<b>Limites :</b> le domaine est borné : pas de limite en ±∞, donc aucune asymptote. Aux bornes f(±2) = 0.",
-         "<b>Dérivée :</b> f′(x) = √(4 − x²) − x²/√(4 − x²) = (4 − 2x²)/√(4 − x²) sur ]−2 ; 2[. Zéros : x = ±√2 ≈ ±1,41. Aux bornes, f′ tend vers ∓∞ : tangentes verticales en ±2.",
+         "<b>Dérivée :</b> f′(x) = √(4 − x²) − x²/√(4 − x²) = (4 − 2x²)/√(4 − x²) sur ]−2 ; 2[. Zéros : x = ±√2 ≈ ±1,41. Aux deux bornes, f′ tend vers −∞ (numérateur −4, dénominateur → 0⁺) : tangentes verticales en ±2.",
          "<b>Signe de f′ :</b> − sur ]−2 ; −√2[, + sur ]−√2 ; √2[, − sur ]√2 ; 2[. Minimum f(−√2) = −2, maximum f(√2) = 2.",
          "<b>Points de repère :</b> (−2 ; 0), (−√2 ; −2), (0 ; 0), (√2 ; 2), (2 ; 0) : la courbe est une sorte de « S » couché."],
      tab:[["x", "−2", "−√2", "√2", "2"], ["f′", "−", "0 +", "0 −", ""], ["f", "0 ↘", "−2 ↗", "2 ↘", "0"]]}
@@ -71,7 +71,7 @@ SFA.sim({
       if (s >= 5) d.crit.forEach(function(q){ S.draw.dot(c, ax.X(q[0]), ax.Y(q[1]), 6, q[2] === "max" ? P.red : P.green); clipped(c, ax, function(){ S.draw.line(c, ax.X(q[0]) - 18, ax.Y(q[1]), ax.X(q[0]) + 18, ax.Y(q[1]), q[2] === "max" ? P.red : P.green, 2); }); });
       if (s === 6){
         var pts = d.zeros.map(function(z){ return [z, 0]; }).concat(d.crit.map(function(q){ return [q[0], q[1]]; })).sort(function(a, b){ return a[0] - b[0]; });
-        c.ctx.save(); c.ctx.setLineDash([4, 4]); c.ctx.strokeStyle = P.grey; c.ctx.beginPath(); pts.forEach(function(p, i){ if (i) c.ctx.lineTo(ax.X(p[0]), ax.Y(p[1])); else c.ctx.moveTo(ax.X(p[0]), ax.Y(p[1])); }); c.ctx.stroke(); c.ctx.restore();
+        c.ctx.save(); c.ctx.setLineDash([4, 4]); c.ctx.strokeStyle = P.grey; c.ctx.beginPath(); pts.forEach(function(p, i){ var cut = i && d.va.some(function(v){ return v > pts[i - 1][0] && v < p[0]; }); if (i && !cut) c.ctx.lineTo(ax.X(p[0]), ax.Y(p[1])); else c.ctx.moveTo(ax.X(p[0]), ax.Y(p[1])); }); c.ctx.stroke(); c.ctx.restore();
       }
       if (s === 7){ S.draw.fn(c, ax, d.f, P.acc, 2.8); }
       var txt = ""; for (var i = 0; i < Math.min(s, 6); i++) txt += d.st[i] + "<br>";
@@ -129,7 +129,8 @@ SFA.sim({
       }
       cols.push(["2", "", F(fv[N], 2)]);
       var tb = tbl([0, 1, 2].map(function(r){ return cols.map(function(cc){ return cc[r]; }); }));
-      nt.set("f(−2) = 0 est imposé : f est connue à une constante près, mais ses variations ne changent pas.<br><b>Tableau de variations construit à partir du signe de f′ :</b>" + tb + (cr.length ? "" : "<br>f′ ne s'annule pas en changeant de signe : f est strictement monotone."), "ok");
+      var flat = false; for (j = 0; j < 4; j++) if (Math.abs(ys[j]) < 1e-9 && Math.abs(ys[j + 1]) < 1e-9) flat = true;
+      nt.set((flat ? "<b>Attention :</b> f′ = 0 sur tout un intervalle, donc f y est constante ; le tableau ci-dessous ne détecte pas d'extremum sur ce palier.<br>" : "") + "f(−2) = 0 est imposé : f est connue à une constante près, mais ses variations ne changent pas.<br><b>Tableau de variations construit à partir du signe de f′ :</b>" + tb + (cr.length ? "" : "<br>f′ ne s'annule pas en changeant de signe : f est strictement monotone."), "ok");
     });
   }
 });
@@ -194,7 +195,7 @@ SFA.sim({
   titre:"Une famille de fonctions : f(x) = x + m/x",
   resume:"Selon m, la courbe a deux extrema ou aucun ; l'asymptote oblique ne bouge pas.",
   but:"Fais varier m de −4 à 4 : combien d'extrema ? où ? Que reste-t-il quand m = 0 ? Quelles droites ne changent jamais ?",
-  aRetenir:"f′(x) = 1 − m/x². Si m > 0 : f′ s'annule en x = ±√m, extrema f(±√m) = ±2√m (maximum local à gauche, minimum local à droite). Si m < 0 : f′ > 0, aucun extremum. Toujours : asymptote verticale x = 0 (pour m ≠ 0) et oblique y = x.",
+  aRetenir:"f′(x) = 1 − m/x². Si m > 0 : f′ s'annule en x = ±√m, extrema f(±√m) = ±2√m (maximum local à gauche, minimum local à droite). Si m < 0 : f′ > 0, aucun extremum. Pour m ≠ 0 : asymptote verticale x = 0 et oblique y = x (pour m = 0, f(x) = x).",
   piege:"Pour une famille, on discute selon la valeur du paramètre : le nombre de solutions de f′(x) = 0 dépend de m. Ne suppose pas « les mêmes extrema » pour tout m.",
   build:function(k, S){
     var c = k.canvas(340);
@@ -209,7 +210,7 @@ SFA.sim({
       S.draw.fn(c, ax, f, P.acc, 2.8);
       if (M > 0){ var r = Math.sqrt(M); S.draw.dot(c, ax.X(-r), ax.Y(-2 * r), 6, P.red); S.draw.dot(c, ax.X(r), ax.Y(2 * r), 6, P.green); S.draw.line(c, ax.X(-r) - 20, ax.Y(-2 * r), ax.X(-r) + 20, ax.Y(-2 * r), P.red, 2); S.draw.line(c, ax.X(r) - 20, ax.Y(2 * r), ax.X(r) + 20, ax.Y(2 * r), P.green, 2); }
       ro.set(0, M > 0 ? "2 (x = ±" + F(Math.sqrt(M), 2) + ")" : "0"); ro.set(1, M > 0 ? "−" + F(2 * Math.sqrt(M), 2) + " (max) et " + F(2 * Math.sqrt(M), 2) + " (min)" : "—");
-      ro.set(2, M !== 0 ? "x = 0" : "aucune"); ro.set(3, "y = x");
+      ro.set(2, M !== 0 ? "x = 0" : "aucune"); ro.set(3, M !== 0 ? "y = x" : "aucune (f = x)");
       nt.set(M > 0 ? "m > 0 : f′(x) = 1 − m/x² = 0 ⇔ x² = m. En −√m, f passe de ↗ à ↘ : <b>maximum local</b> f(−√m) = −2√m = " + F(-2 * Math.sqrt(M), 2) + " ; en +√m, ↘ puis ↗ : <b>minimum local</b> " + F(2 * Math.sqrt(M), 2) + ". Remarque : le « maximum local » est plus bas que le « minimum local »." : M < 0 ? "m < 0 : f′(x) = 1 + |m|/x² > 0 partout : f est croissante sur chaque branche, aucun extremum." : "m = 0 : f(x) = x + 0/x = x pour x ≠ 0 : une droite privée du point (0 ; 0). Plus d'asymptote verticale.", "ok");
     });
   }

@@ -188,9 +188,9 @@ SFA.sim({
       {n:"Follicules pileux", g:0.5, h:0.06, col:"#0e7490"},
       {n:"Neurones", g:0, h:0.1, col:"#8a95a3"}
     ];
-    function sim(ti){
+    function sim(ti, TM){
       var E = dose.value / (dose.value + 10), a = 1, out = [[0, 1]], tm = 1, next = 0, cnt = 0, h = 0.25;
-      for (var t = 0; t <= 140 + 1e-9; t += h){
+      for (var t = 0; t <= TM + 1e-9; t += h){
         if (cnt < n.value && t >= next - 1e-9){ a *= 1 - ti.g * E; cnt++; next += dt.value; }
         if (ti.tumor) a *= Math.exp(0.03 * h); else a += ti.h * (1 - a) * h;
         if (Math.abs(t / 2 - Math.round(t / 2)) < 1e-9) out.push([t, a]); tm = Math.min(tm, a);
@@ -198,16 +198,16 @@ SFA.sim({
       return {pts:out, min:tm, end:a};
     }
     k.draw(function(){
-      c.clear(); var ctx = c.ctx, ax = S.draw.axes(c, {x0:0, x1:140, y0:-2, y1:0.4, xl:"jours", yl:"log₁₀ (taille relative)", stepX:20, stepY:0.5, l:50});
+      c.clear(); var ctx = c.ctx, TM = Math.max(140, Math.ceil(((n.value - 1) * dt.value + 70) / 10) * 10), ax = S.draw.axes(c, {x0:0, x1:TM, y0:-2, y1:0.4, xl:"jours", yl:"log₁₀ (taille relative)", stepX:TM > 200 ? 50 : 20, stepY:0.5, l:50});
       S.draw.line(c, ax.L, ax.Y(0), ax.R, ax.Y(0), "#b8c0cc", 1.5, [4, 4]);
-      for (var q = 0; q < n.value; q++){ var xt = ax.X(q * dt.value); if (q * dt.value <= 140){ S.draw.line(c, xt, ax.B, xt, ax.B - 12, B4.pal.ink, 3); } }
-      var res = TIS.map(function(ti){ var r = sim(ti); ctx.save(); ctx.beginPath(); ctx.rect(ax.L, ax.T, ax.R - ax.L, ax.B - ax.T); ctx.clip(); ctx.strokeStyle = ti.col; ctx.lineWidth = ti.tumor ? 3.2 : 2.2; ctx.beginPath(); r.pts.forEach(function(p, i){ var x = ax.X(p[0]), y = ax.Y(Math.log10(Math.max(1e-4, p[1]))); if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y); }); ctx.stroke(); ctx.restore(); return r; });
+      for (var q = 0; q < n.value; q++){ var xt = ax.X(q * dt.value); if (q * dt.value <= TM){ S.draw.line(c, xt, ax.B, xt, ax.B - 12, B4.pal.ink, 3); } }
+      var res = TIS.map(function(ti){ var r = sim(ti, TM); ctx.save(); ctx.beginPath(); ctx.rect(ax.L, ax.T, ax.R - ax.L, ax.B - ax.T); ctx.clip(); ctx.strokeStyle = ti.col; ctx.lineWidth = ti.tumor ? 3.2 : 2.2; ctx.beginPath(); r.pts.forEach(function(p, i){ var x = ax.X(p[0]), y = ax.Y(Math.log10(Math.max(1e-4, p[1]))); if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y); }); ctx.stroke(); ctx.restore(); return r; });
       TIS.forEach(function(ti, i){ B4.txt(c, ti.n, ax.R - 4, ax.B - 10 - (4 - i) * 14, ti.col, 12, "right"); });
       B4.txt(c, "traits noirs : cures", ax.L + 6, ax.B - 22, "#5f6b7a", 11, "left");
       ro.set(0, S.fmt(res[0].end * 100, 0) + " % du départ"); ro.set(1, S.fmt(res[1].min * 100, 0) + " %"); ro.set(2, S.fmt(res[2].min * 100, 0) + " %"); ro.set(3, S.fmt(res[3].min * 100, 0) + " %");
       var msg = "La tumeur (80 % de cellules en cycle) subit l'effet le plus fort ; les neurones, qui ne se divisent pas, ne sont pas touchés. ";
       if (res[1].min < 0.45) msg += "Moelle osseuse très atteinte (" + S.fmt(res[1].min * 100, 0) + " %) : moins de globules blancs, risque d'infection. ";
-      if (res[0].end < 0.05) msg += "La tumeur est fortement réduite."; else if (res[0].end > 1) msg += "La tumeur a recroissance supérieure à son point de départ : traitement insuffisant."; else msg += "La tumeur régresse mais subsiste.";
+      if (res[0].end < 0.05) msg += "La tumeur est fortement réduite."; else if (res[0].end > 1) msg += "La tumeur est repartie au-delà de sa taille de départ : traitement insuffisant."; else msg += "La tumeur régresse mais subsiste.";
       nt.set(msg, res[1].min < 0.45 ? "warn" : "");
     });
   }

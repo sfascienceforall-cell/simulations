@@ -146,7 +146,7 @@ SFA.sim({
     var ro = k.readouts(["Date dans l'année terrestre", "Événements déjà survenus"]);
     var note = k.note("", "");
     var MON = ["janvier", "février", "mars", "avril", "mai", "juin", "juillet", "août", "septembre", "octobre", "novembre", "décembre"], ML = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
-    function dateOf(a){ var d = (4.54 - a) / 4.54 * 365, day = Math.floor(d), m = 0; while (m < 11 && day >= ML[m]){ day -= ML[m]; m++; } var hh = (d - Math.floor(d)) * 24, h = Math.floor(hh), mn = Math.floor((hh - h) * 60); return (day + 1) + " " + MON[m] + (a < 0.02 ? ", " + h + " h " + (mn < 10 ? "0" : "") + mn : ""); }
+    function dateOf(a){ var d = Math.min(365 - 1e-6, (4.54 - a) / 4.54 * 365), day = Math.floor(d), m = 0;   /* aujourd'hui = 31 décembre, 23 h 59 */ while (m < 11 && day >= ML[m]){ day -= ML[m]; m++; } var hh = (d - Math.floor(d)) * 24, h = Math.floor(hh), mn = Math.floor((hh - h) * 60); return (day + 1) + " " + MON[m] + (a < 0.02 ? ", " + h + " h " + (mn < 10 ? "0" : "") + mn : ""); }
     k.draw(function(){
       c.clear(); var ctx = c.ctx, lx = 178, L = c.W - 16, W = L - lx, a0 = ag.value, past = 0;
       function pos(a){ return sc.value === "l" ? lx + (4.54 - a) / 4.54 * W : lx + (Math.log10(4.54) - Math.log10(Math.max(a, 0.0002))) / (Math.log10(4.54) - Math.log10(0.0002)) * W; }

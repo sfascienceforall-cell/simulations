@@ -29,7 +29,7 @@ SFA.sim({
       B5.circ(c, cx, base - hpx - 5, Math.max(2, hpx * 0.14), "rgba(180,35,24,.35)", pal.red, 1.2);
       var ev = EVT[0]; EVT.forEach(function(e){ if (sa.value >= e[0]) ev = e; });
       var st = sa.value < 10 ? "embryon" : "fœtus";
-      ro.set(0, (sa.value - 2) + " sem."); ro.set(1, st); ro.set(2, S.fmt(g.len, 1) + " cm" + (sa.value < 20 ? " (tête–bassin)" : " (tête–talon)")); ro.set(3, g.w < 10 ? S.fmt(g.w, 1) + " g" : S.fmt(g.w, 0) + " g");
+      ro.set(0, (sa.value - 2) + " sem."); ro.set(1, st); ro.set(2, g.len < 0.1 ? "< 1 mm" : S.fmt(g.len, 1) + " cm" + (sa.value < 20 ? " (tête–bassin)" : " (tête–talon)")); ro.set(3, g.w < 0.1 ? "< 0,1 g" : g.w < 10 ? S.fmt(g.w, 1) + " g" : S.fmt(g.w, 0) + " g");
       nt.set(ev[1] + ".", "ok");
     });
   }
@@ -170,7 +170,7 @@ SFA.sim({
       }
       var p = pm.value / 100, ps = 1000 * (1 - p) / 2, same = 1000 * p + 1000 * (1 - p) / 2, ws = (same - ps) / 10;
       ro.set(0, s.t); ro.set(1, s.pl + " / " + s.am); ro.set(2, S.fmt(ps, 0)); ro.set(3, S.fmt(ws, 0) + " %");
-      nt.set(typ.value === "dz" ? "Deux ovocytes, deux spermatozoïdes, deux placentas : génétiquement des frères et sœurs nés ensemble. Si 33 % des paires sont monozygotes : " + S.fmt(ps, 0) + " paires sur 1 000 sont de sexes différents (toutes dizygotes)." : "Division au jour " + dj.value + " : " + s.st + ". Génome " + s.gen + ". Estimation de Weinberg : (paires de même sexe − paires de sexes différents) / total = " + S.fmt(ws, 0) + " % de monozygotes, égale à la valeur choisie.", "ok");
+      nt.set(typ.value === "dz" ? "Deux ovocytes, deux spermatozoïdes, deux placentas : génétiquement des frères et sœurs nés ensemble. Si " + pm.value + " % des paires sont monozygotes : " + S.fmt(ps, 0) + " paires sur 1 000 sont de sexes différents (toutes dizygotes)." : "Division au jour " + dj.value + " : " + s.st + ". Génome " + s.gen + ". Estimation de Weinberg : (paires de même sexe − paires de sexes différents) / total = " + S.fmt(ws, 0) + " % de monozygotes, égale à la valeur choisie.", "ok");
     });
   }
 });

@@ -45,7 +45,7 @@ SFA.sim({
       var sb=HB/Math.tan(th), sa=HA/Math.tan(th);
       var mb=rd.value?Math.round(sb*10)/10:sb, ma=rd.value?Math.round(sa*10)/10:sa;
       var calc=HB*ma/mb;
-      var maxX=Math.max(sa+3,12), sc=Math.min((c.W-50)/(maxX+3), (c.H-80)/Math.max(HA,10)), gy=c.H-26, x0=20;
+      var maxX=Math.max(sa+sb+4,12), sc=Math.min((c.W-50)/(maxX+3), (c.H-80)/Math.max(HA,10)), gy=c.H-26, x0=20;
       S.draw.line(c,x0-10,gy,c.W-10,gy,P.grey,2);
       /* arbre en x0+... ; bâton à droite de l'ombre de l'arbre */
       var xt=x0+sc*2, xb=xt+sc*(sa+2);
@@ -80,7 +80,7 @@ SFA.sim({
       for(var i=0;i<w;i++) for(var j=0;j<h;j++){ ctx.strokeStyle="rgba(255,255,255,.9)"; ctx.lineWidth=1; ctx.strokeRect(ox+i*u,oy-(j+1)*u,u,u); }
       var X2=ox+w*u+0.8*u, ww=w*K*u, hh=h*K*u;
       R(X2,oy-hh,ww,hh,"rgba(180,35,24,.18)",P.red,2.5);
-      if(K>=1&&K*w*h<=40){ ctx.strokeStyle=P.red; ctx.lineWidth=1; for(var a=0;a<w*K;a++) for(var b=0;b<h*K;b++){ ctx.strokeRect(X2+a*u,oy-(b+1)*u,u,u); } }
+      if(K>=1){ ctx.save(); ctx.beginPath(); ctx.rect(X2,oy-hh,ww,hh); ctx.clip(); ctx.strokeStyle=P.red; ctx.lineWidth=1; for(var a=0;a<w*K;a++) for(var b=0;b<h*K;b++){ ctx.strokeRect(X2+a*u,oy-(b+1)*u,u,u); } ctx.restore(); }
       S.draw.text(c,"départ",ox+w*u/2,oy-h*u-10,{size:12,color:P.acc}); S.draw.text(c,"image (×"+S.fmt(K,1)+")",X2+ww/2,oy-hh-10,{size:12,color:P.red});
       var per=2*(w+h)*K;
       ro.set(0,S.fmt(2*(w+h),0)+" → "+S.fmt(per,1)+"  (×"+S.fmt(K,1)+")"); ro.set(1,S.fmt(w*h,0)+" → "+S.fmt(w*h*K*K,2)+"  (×"+S.fmt(K*K,2)+")"); ro.set(2,"k² = "+S.fmt(K,1)+"² = "+S.fmt(K*K,2));
@@ -102,7 +102,7 @@ SFA.sim({
     function tri(base,A,B){ var C=Math.PI-A-B, ab=base, ac=ab*Math.sin(B)/Math.sin(C), cp=[ac*Math.cos(A),ac*Math.sin(A)]; return {A:[0,0],B:[base,0],C:cp,a:Math.hypot(base-cp[0],cp[1]),b:ac,c:base}; }
     k.draw(function(){
       c.clear(); var ctx=c.ctx, A=al.value*Math.PI/180, B=be.value*Math.PI/180, K=kk.value, D=dl.value, B2=(be.value+D)*Math.PI/180;
-      if(A+B>=Math.PI-0.05||A+B2>=Math.PI-0.05){ nt.set("α + β doit rester inférieur à 180°.","warn"); return; }
+      if(A+B>=Math.PI-0.05||A+B2>=Math.PI-0.05){ for(var q=0;q<4;q++) ro.set(q,"—"); nt.set("α + β (ou α + β') atteint 180° : le triangle n'existe plus. Diminue un angle.","warn"); return; }
       var T1=tri(4,A,B), T2=tri(4*K,A,B2);
       var maxX=Math.max(T1.B[0],T2.B[0],T1.C[0],T2.C[0]), maxY=Math.max(T1.C[1],T2.C[1]), sc=Math.min((c.W-60)/maxX,(c.H-60)/maxY), ox=28, oy=c.H-28;
       function Tr(p){ return [ox+p[0]*sc, oy-p[1]*sc]; }

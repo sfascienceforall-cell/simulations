@@ -44,7 +44,7 @@ SFA.sim({
       var r = gluco({meals: [[30, D.value]], tau: TAU[ali.value], T: 360});
       var G = r.G, pk = 0, ip = 0, i;
       for (i = 0; i < G.length; i++) if (G[i] > pk){ pk = G[i]; ip = i; }
-      var back = -1; for (i = ip; i < G.length; i++) if (G[i] <= 1.1){ back = i; break; }
+      var back = -1; if (pk > 1.1) for (i = ip; i < G.length; i++) if (G[i] <= 1.1){ back = i; break; }
       c1.clear();
       var ax = S.draw.axes(c1, {x0: 0, x1: 360, y0: 0, y1: 3, xl: "t (min)", yl: "glycémie (g/L)", stepX: 60, stepY: 0.5});
       c1.ctx.fillStyle = "rgba(46,107,85,.12)"; c1.ctx.fillRect(ax.X(0), ax.Y(1.1), ax.X(360) - ax.X(0), ax.Y(0.7) - ax.Y(1.1));
@@ -59,8 +59,8 @@ SFA.sim({
       c3.clear();
       var ax3 = S.draw.axes(c3, {x0: 0, x1: 360, y0: 0, y1: 4, xl: "t (min)", yl: "glucagon (base = 1)", stepX: 60, stepY: 1});
       B5.poly(c3, ax3, r.A.map(function(a, t){ return [t, Math.min(a, 4)]; }), pal.amber, 2.6);
-      ro.set(0, S.fmt(pk, 2) + " g/L"); ro.set(1, D.value ? S.fmt(ip - 30, 0) + " min après le début" : "—");
-      ro.set(2, back < 0 ? (pk <= 1.1 ? "pas de dépassement" : "> 5 h") : S.fmt(back - 30, 0) + " min après le début"); ro.set(3, S.fmt(maxI, 0) + " u.a. (repos : 8)");
+      ro.set(0, S.fmt(pk, 2) + " g/L"); ro.set(1, D.value && ip >= 30 ? S.fmt(ip - 30, 0) + " min après le début" : "—");
+      ro.set(2, D.value === 0 || pk <= 1.1 ? "pas de dépassement" : back < 0 ? "> 5 h" : S.fmt(back - 30, 0) + " min après le début"); ro.set(3, S.fmt(maxI, 0) + " u.a. (repos : 8)");
       if (D.value === 0) nt.set("Pas de repas : la glycémie reste à 0,9 g/L, l'insuline à sa valeur de base.", "");
       else if (pk > 1.4) nt.set("Pic à " + S.fmt(pk, 2) + " g/L (> 1,4) : plus l'absorption est rapide (IG élevé) et la quantité grande, plus le pic est haut, et plus la sécrétion d'insuline est forte.", "warn");
       else nt.set("Pic modéré (" + S.fmt(pk, 2) + " g/L) : l'insuline absorbe la hausse.", "ok");
@@ -80,7 +80,7 @@ SFA.sim({
     var c1 = k.canvas(210), c2 = k.canvas(150), pal = S.draw.palette;
     var res, cap;
     var pr = k.select("Profil", [["n", "En bonne santé"], ["1", "Diabète de type 1 (non traité)"], ["2", "Diabète de type 2"], ["p", "Prédiabète"], ["x", "Réglage libre"]], "2", function(v){
-      var m = {n: [0, 100], 1: [0, 0], 2: [70, 40], p: [40, 80]}[v]; if (m){ res.set(m[0]); cap.set(m[1]); }
+      var m = {n: [0, 100], 1: [0, 0], 2: [70, 40], p: [60, 70]}[v]; if (m){ res.set(m[0]); cap.set(m[1]); }
     });
     res = k.slider("Résistance à l'insuline", 0, 90, 5, 70, "%");
     cap = k.slider("Capacité de sécrétion d'insuline", 0, 100, 5, 40, "%");
@@ -101,9 +101,11 @@ SFA.sim({
       B5.poly(c2, ax2, a.I.map(function(v, t){ return [t, v]; }), pal.grey, 2, [6, 4]); B5.poly(c2, ax2, b.I.map(function(v, t){ return [t, v]; }), pal.red, 2.6);
       var verdict = fast >= 1.26 ? "≥ 1,26 : diabète" : fast >= 1.10 ? "1,10–1,25 : anormale" : "normale";
       ro.set(0, S.fmt(fast, 2) + " g/L"); ro.set(1, S.fmt(pk, 2) + " g/L"); ro.set(2, S.fmt(two, 2) + " g/L"); ro.set(3, verdict);
+      var comp = res.value >= 50 && cap.value >= 70;
       if (cap.value === 0) nt.set("Sans insuline : le glucose ne peut pas entrer dans les cellules, la glycémie s'envole (modèle plafonné à 6 g/L). C'est le diabète de type 1 non traité.", "warn");
-      else if (res.value >= 50 && cap.value >= 70) nt.set("Les cellules sont résistantes mais le pancréas compense : très forte insuline, glycémie encore proche de la normale. Les cellules β finissent par s'épuiser.", "warn");
-      else if (fast >= 1.26) nt.set("Hyperglycémie à jeun persistante : critère de diabète. Insuline présente mais inefficace ou insuffisante.", "warn");
+      else if (fast >= 1.26) nt.set(comp ? "Les cellules sont très résistantes : même avec beaucoup d'insuline, la glycémie à jeun reste ≥ 1,26 g/L (critère de diabète). Les cellules β finissent par s'épuiser." : "Hyperglycémie à jeun persistante : critère de diabète. Insuline présente mais inefficace ou insuffisante.", "warn");
+      else if (fast >= 1.10) nt.set("Glycémie à jeun anormale (1,10 à 1,25 g/L) : " + (comp ? "le pancréas compense par une forte sécrétion d'insuline, mais la régulation est déjà moins efficace (prédiabète). Les cellules β peuvent s'épuiser." : "la régulation est moins efficace (prédiabète), à surveiller."), "warn");
+      else if (comp) nt.set("Les cellules sont résistantes mais le pancréas compense : très forte insuline, glycémie encore proche de la normale. Les cellules β finissent par s'épuiser.", "warn");
       else nt.set("Régulation efficace : la glycémie revient vers la valeur de base.", "ok");
     });
   }
@@ -134,7 +136,7 @@ SFA.sim({
         pts1.push([t, T1]); pts2.push([t, T2]);
       }
       c.clear();
-      var ymin = Math.floor(Math.min(Te.value, Ts.value, T1, T2) / 2) * 2 - 2, ymax = Math.ceil(Math.max(Ts.value, 22) / 2) * 2 + 2;
+      var ymin = Math.floor(Math.min(Te.value, Ts.value, T1, T2) / 2) * 2 - 2, ymax = Math.ceil(Math.max(Ts.value, 22, Te.value, T1, T2) / 2) * 2 + 2;
       ymin = Math.min(ymin, 14);
       var ax = S.draw.axes(c, {x0: 0, x1: N, y0: ymin, y1: ymax, xl: "t (min)", yl: "T (°C)", stepX: 20, stepY: 4});
       S.draw.line(c, ax.X(0), ax.Y(Ts.value), ax.X(N), ax.Y(Ts.value), pal.green, 1.6, [6, 4]); S.draw.text(c, "consigne", ax.X(N) - 4, ax.Y(Ts.value) - 9, {align: "right", size: 12, color: pal.green});
@@ -142,7 +144,9 @@ SFA.sim({
       B5.poly(c, ax, pts2, pal.grey, 2.2, [6, 4]); B5.poly(c, ax, pts1, pal.violet, 2.8);
       B5.leg(c, [["avec thermostat", pal.violet], ["sans régulation", pal.grey]], ax.L + 8, ax.T + 34);
       ro.set(0, S.fmt(T1, 1) + " °C"); ro.set(1, S.fmt(T1 - Ts.value, 1) + " °C"); ro.set(2, S.fmt(T2, 1) + " °C"); ro.set(3, S.fmt(uu * 100, 0) + " % de la puissance");
-      if (uu >= 0.999 && Math.abs(T1 - Ts.value) > 0.5) nt.set("Chauffage saturé à 100 % : la perturbation est trop forte, la consigne ne peut plus être tenue.", "warn");
+      if (g.value === 0) nt.set("Gain nul : le thermostat ne commande rien, c'est comme s'il n'y avait pas de régulation (la pièce suit l'extérieur).", "warn");
+      else if (uu <= 0.001 && T1 - Ts.value > 0.5) nt.set("Chauffage à l'arrêt (0 %) : la pièce est plus chaude que la consigne et ce thermostat ne sait que chauffer, il ne peut pas refroidir. La température dérive vers celle de l'extérieur.", "warn");
+      else if (uu >= 0.999 && Math.abs(T1 - Ts.value) > 0.5) nt.set("Chauffage saturé à 100 % : la perturbation est trop forte, la consigne ne peut plus être tenue.", "warn");
       else if (Math.abs(T1 - Ts.value) <= 0.5) nt.set("Écart de " + S.fmt(Math.abs(T1 - Ts.value), 1) + " °C seulement : la régulation compense bien, alors que sans régulation on dérive de " + S.fmt(Math.abs(T2 - Ts.value), 1) + " °C.", "ok");
       else nt.set("Écart de " + S.fmt(Math.abs(T1 - Ts.value), 1) + " °C : correction partielle. Augmente le gain pour réduire l'écart.", "warn");
     });

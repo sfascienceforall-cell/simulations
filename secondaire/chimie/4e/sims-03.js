@@ -131,7 +131,7 @@ SFA.sim({
         C4.label(c, C4.uni(r.f), 10, yy + rh / 2, "#0f1b2d", 13, "left");
         C4.bar(c, lw, yy + 4, W - lw - 16, rh - 10, r.p / 100, i === 0 ? "#2e6b55" : "#1e3f8f");
         C4.label(c, S.fmt(r.p, 1) + " %", lw + 6, yy + rh / 2, "#fff", 12, "left");
-        C4.label(c, S.fmt(r.p * m.value / 100, 1) + " kg", W - 22, yy + rh / 2, "#fff", 12, "right");
+        C4.label(c, S.fmt(r.p * m.value / 100, 1) + " kg", W - 22, yy + rh / 2, lw + (r.p / 100) * (W - lw - 16) > W - 90 ? "#fff" : "#2c3a4e", 12, "right");
       });
       C4.label(c, "Barres : % massique de " + gg.el + " ; à droite : masse de " + gg.el + " dans " + S.fmt(m.value, 0) + " kg de produit", W / 2, c.H - 16, "#5f6b7a", 11);
       ro.set(0, C4.sub(rows[0].f)); ro.set(1, S.fmt(rows[0].p, 1) + " %"); ro.set(2, S.fmt(rows[0].p * m.value / 100, 1) + " kg");

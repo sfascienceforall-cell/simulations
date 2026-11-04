@@ -107,7 +107,7 @@ SFA.sim({
       S.draw.text(c, "départ", x0, 226, {align: "left", size: 12, color: pal.grey}); S.draw.text(c, "arrivée (" + S.fmt(L.value, 1) + " m)", x1, 226, {align: "right", size: 12, color: pal.grey});
       ro.set(0, S.fmt(vUnmy(d.value), 1) + " m/s"); ro.set(1, S.fmt(vMy(d.value), 0) + " m/s");
       ro.set(2, T.a >= 1 ? S.fmt(T.a, 2) + " s" : S.fmt(T.a * 1000, 0) + " ms");
-      ro.set(3, S.fmt(T.b * 1000, 0) + " ms");
+      ro.set(3, T.b * 1000 < 10 ? S.fmt(T.b * 1000, 1) + " ms" : S.fmt(T.b * 1000, 0) + " ms");
       nt.set("Rapport des vitesses : fibre myélinisée ≈ " + S.fmt(vMy(d.value) / vUnmy(d.value), 0) + " × plus rapide. Animation ralentie ×" + S.fmt(slow, 0) + " (temps réels dans les cases).", "ok");
     });
   }
@@ -194,11 +194,11 @@ SFA.sim({
       ctx.fillStyle = "#c9b8ea"; ctx.fillRect(x0, y - 4, W, 8);
       var n = 12;
       for (var i = 0; i < n; i++){
-        var xa = x0 + W * i / n + 3, w = W / n - 8, seg = (i + 0.5) / n, hit = an ? (seg > 0.4 && seg < 0.6) : (seg < b);
+        var xa = x0 + W * i / n + 3, w = W / n - 8, seg = (i + 0.5) / n, hit = an ? (v > 0 && seg > 0.4 && seg < 0.6) : (seg < b);
         ctx.fillStyle = hit ? (an ? "#e8b4ac" : "#d9dde3") : "#f4c542"; ctx.fillRect(xa, y - 9, w, 18);
         ctx.strokeStyle = hit ? pal.red : "#B45309"; ctx.strokeRect(xa, y - 9, w, 18);
       }
-      if (an){ S.draw.text(c, "zone injectée", x0 + W * 0.5, y + 34, {size: 12, color: pal.red}); }
+      if (an){ if (v > 0) S.draw.text(c, "zone injectée", x0 + W * 0.5, y + 34, {size: 12, color: pal.red}); }
       else { S.draw.text(c, "manchons de myéline détruits (gris)", x0 + W * 0.3, y + 34, {size: 12, color: pal.grey}); }
       B5.circ(c, x0 - 4, y, 7, pal.red); S.draw.text(c, "stimulus", x0 + 4, y - 26, {align: "left", size: 12, color: pal.red});
       B5.circ(c, x1 + 2, y, 7, ok ? pal.green : pal.grey); S.draw.text(c, ok ? "reçu" : "rien", x1 - 2, y - 26, {align: "right", size: 12, color: ok ? pal.green : pal.grey});
@@ -208,7 +208,7 @@ SFA.sim({
       var tx = x0 + W * 15 / 110; S.draw.line(c, tx, 176, tx, 204, pal.red, 1.5, [4, 3]); S.draw.text(c, "minimum pour se propager (15 mV)", tx + 4, 216, {align: "left", size: 12, color: pal.red});
       S.draw.text(c, "temps : " + (isFinite(time) ? S.fmt(time * 1000, 0) + " ms" : "∞"), x0, 250, {align: "left", size: 13, color: pal.ink});
       ro.set(0, lab); ro.set(1, S.fmt(amp, 0) + " mV"); ro.set(2, isFinite(time) ? S.fmt(time * 1000, 0) + " ms" : "pas d'arrivée"); ro.set(3, ok ? "oui" : "non");
-      nt.set(ok ? (v === 0 ? "Fibre saine : 17 ms pour 1 m (fibre myélinisée de 10 µm)." : "Le signal passe encore, " + (an ? "avec une marge de sécurité réduite." : "mais il est ralenti.")) : (an ? "Trop de canaux bloqués : l'amplitude (" + S.fmt(amp, 0) + " mV) est sous le minimum, le PA ne se propage plus : pas de douleur ressentie." : "Plus de 80 % de la fibre est démyélinisée : bloc de conduction, perte de la fonction commandée par cette fibre."), ok ? "ok" : "warn");
+      nt.set(ok ? (v === 0 ? "Fibre saine : 17 ms pour 1 m (fibre myélinisée de 10 µm)." : "Le signal passe encore, " + (an ? "avec une marge de sécurité réduite." : "mais il est ralenti.")) : (an ? "Trop de canaux bloqués : l'amplitude (" + S.fmt(amp, 0) + " mV) est sous le minimum, le PA ne se propage plus : pas de douleur ressentie." : "Au moins 80 % de la fibre est démyélinisée : bloc de conduction, perte de la fonction commandée par cette fibre."), ok ? "ok" : "warn");
     });
   }
 });

@@ -61,9 +61,9 @@ SFA.sim({
       var rv=r.value, sv=3/rv*mv.value;
       S.draw.dot(c,ax.X(rv),ax.Y(Math.min(sv,6)),6,P.red);
       var S0=4*Math.PI*rv*rv, V=4/3*Math.PI*Math.pow(rv,3), a=Math.pow(V,1/3), Sc=6*a*a;
-      ro.set(0,S.fmt(S0*mv.value,0)+" µm²"); ro.set(1,S.fmt(V,0)+" µm³"); ro.set(2,S.fmt(sv,3)+" µm⁻¹"); ro.set(3,S.fmt(Sc/V*mv.value,3)+" µm⁻¹");
+      function dd(x){return x<10?2:x<100?1:0;} ro.set(0,S.fmt(S0*mv.value,dd(S0*mv.value))+" µm²"); ro.set(1,S.fmt(V,dd(V))+" µm³"); ro.set(2,S.fmt(sv,3)+" µm⁻¹"); ro.set(3,S.fmt(Sc/V*mv.value,3)+" µm⁻¹");
       var t=rv*rv/(6*D.value); ro.set(4,t<1?S.fmt(t*1000,1)+" ms":S.fmt(t,2)+" s");
-      nt.set("Courbe bleue : sphère ; tirets verts : avec microvillosités (×"+S.fmt(mv.value,0)+"). Le cube de même volume expose "+S.fmt((Sc/S0-1)*100,1)+" % de surface en plus que la sphère (forme moins compacte).",t>2?"warn":"ok");
+      nt.set("Courbe bleue : sphère ; tirets verts : avec microvillosités (×"+S.fmt(mv.value,0)+"). Le cube de même volume expose "+S.fmt((Sc/S0-1)*100,1)+" % de surface en plus que la sphère (forme moins compacte)."+(sv>6?" Le point rouge est collé en haut du graphique : S/V = "+S.fmt(sv,1)+" µm⁻¹ dépasse l'échelle.":""),t>2?"warn":"ok");
     });
   }
 });
@@ -91,7 +91,7 @@ SFA.sim({
         var ok=dcm>=6; (ok?pel:sup).push(o[0]);
         S.draw.text(c,o[0],8,y,{size:12,color:o[3],align:"left"});
         ctx.fillStyle=ok?o[3]:"#c8d1de"; var w=Math.max(2,X(Math.max(dcm,1e-4))-left); ctx.fillRect(left,y-10,Math.min(w,right-left),20);
-        var lab=(dcm<0.01?dcm.toExponential(1).replace("e-","·10^-"):dcm>=1000?dcm.toExponential(1).replace("e+","·10^"):S.fmt(dcm,dcm<1?2:1))+" cm"; var wc=Math.min(w,right-left);
+        var lab=(dcm<0.01?dcm.toExponential(1).replace(".",",").replace("e-","·10^-"):dcm>=1000?dcm.toExponential(1).replace(".",",").replace("e+","·10^"):S.fmt(dcm,dcm<1?2:1))+" cm"; var wc=Math.min(w,right-left);
         if(wc>110) S.draw.text(c,lab,left+wc-6,y,{size:11,color:ok?"#fff":P.ink,align:"right"}); else S.draw.text(c,lab,left+wc+6,y,{size:11,color:P.ink,align:"left"});
       });
       S.draw.line(c,X(6),40,X(6),c.H-20,P.red,1.8,[5,4]); S.draw.text(c,"6 cm = fond du tube",X(6)-4,c.H-12,{size:10,color:P.red,align:"right"});

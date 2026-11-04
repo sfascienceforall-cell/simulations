@@ -37,7 +37,7 @@ SFA.sim({
         if (chrs <= 16){
           var cols = Math.min(chrs, 4), rows = Math.ceil(chrs / cols);
           for (var j = 0; j < chrs; j++){
-            var gx = cx + ((j % cols) - (cols - 1) / 2) * 26, gy = cy + (Math.floor(j / cols) - (rows - 1) / 2) * 34;
+            var sxp = Math.min(26, (2 * r - 20) / cols), syp = Math.min(34, (2 * r - 30) / rows), gx = cx + ((j % cols) - (cols - 1) / 2) * sxp, gy = cy + (Math.floor(j / cols) - (rows - 1) / 2) * syp;
             glyph(c, gx, gy, st[5], j % 2 === 0 ? pal.red : pal.acc);
           }
         } else S.draw.text(c, chrs + " chromosomes", cx, cy, {size:13});
@@ -65,7 +65,7 @@ SFA.sim({
     var m = k.slider("M", 0.5, 2, 0.5, 1, "h");
     var dl = k.slider("Cellules lésées à chaque cycle (δ)", 0, 30, 1, 10, "%");
     var p53 = k.toggle("p53 fonctionnelle", true);
-    var ro = k.readouts(["Durée du cycle","Population après 10 j","Cellules à ADN muté après 10 j","Cycles en 10 j"]);
+    var ro = k.readouts(["Durée du cycle","Population après 10 j","Cellules à ADN lésé non éliminé après 10 j","Cycles en 10 j"]);
     k.draw(function(){
       c.clear();
       var T = g1.value + s.value + g2.value + m.value, ncyc = 240 / T, d = dl.value / 100;
@@ -118,7 +118,7 @@ SFA.sim({
       S.draw.dot(c, ax.X(nn), ax.Y((nn + ct) * Math.log10(2)), 6, pal.ink);
       var g = Math.pow(2, nn + ct);
       ro.set(0, g < 1e6 ? Math.round(g).toLocaleString("fr-BE") : S.sci(g, 2)); ro.set(1, S.sci(g * g, 2)); ro.set(2, "1/" + (Math.pow(2, nn) < 1e6 ? Math.pow(2, nn).toLocaleString("fr-BE") : S.sci(Math.pow(2, nn), 2)));
-      note.set(nn === 23 && ct === 0 ? "Humain sans crossing-over : 2²³ = 8 388 608 gamètes possibles par individu." : "Seules les paires hétérozygotes comptent ; 4<sup>c</sup>·2<sup>n−c</sup> = 2<sup>n+c</sup>.", "ok");
+      note.set(cc.value > nn ? "Il ne peut pas y avoir plus de paires avec crossing-over que de paires de chromosomes : c est ramené à n = " + nn + "." : nn === 23 && ct === 0 ? "Humain sans crossing-over : 2²³ = 8 388 608 gamètes possibles par individu." : "Seules les paires hétérozygotes comptent ; 4<sup>c</sup>·2<sup>n−c</sup> = 2<sup>n+c</sup>.", "ok");
     });
   }
 });

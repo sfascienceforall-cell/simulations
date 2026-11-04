@@ -41,7 +41,8 @@ SFA.sim({
       var W = qt.value * 1e-9 * U;
       P5.vec(c, f.X(A[0]), f.Y(A[1]), f.X(A[0]) + Ex / Math.max(Math.hypot(Ex, Ey), 1) * 40, f.Y(A[1]) - Ey / Math.max(Math.hypot(Ex, Ey), 1) * 40, pal.green, "E", {});
       ro.set(0, S.fmt(VA, 1) + " V"); ro.set(1, S.fmt(VB, 1) + " V"); ro.set(2, S.fmt(U, 1) + " V"); ro.set(3, S.fmt(W * 1e9, 1) + " nJ"); ro.set(4, S.fmt(Math.hypot(Ex, Ey), 0) + " V/m");
-      nt.set("W = q·U<sub>AB</sub> = " + S.fmt(qt.value, 1) + " nC × " + S.fmt(U, 1) + " V = " + S.fmt(W * 1e9, 1) + " nJ : " + (W > 0 ? "le champ fournit de l'énergie (la charge est accélérée de A vers B)." : W < 0 ? "il faut fournir de l'énergie pour aller de A à B." : "aucun travail."), "");
+      var near = [A, B].some(function(P){ return [-0.5, 0.5].some(function(xc){ return Math.hypot(P[0] - xc, P[1]) < 0.05; }); });
+      nt.set((near ? "<b>Attention :</b> un point est collé à une charge ponctuelle (r → 0) : V et E y tendent vers l'infini, les valeurs affichées sont limitées à r = 3 cm. Éloigne-le. " : "") + "W = q·U<sub>AB</sub> = " + S.fmt(qt.value, 1) + " nC × " + S.fmt(U, 1) + " V = " + S.fmt(W * 1e9, 1) + " nJ : " + (W > 0 ? "le champ fournit de l'énergie (la charge est accélérée de A vers B)." : W < 0 ? "il faut fournir de l'énergie pour aller de A à B." : "aucun travail."), near ? "warn" : "");
     });
   }
 });
@@ -92,12 +93,13 @@ SFA.sim({
   piege: "Le condensateur ne « se remplit » pas instantanément, et le courant n'est pas constant : il est maximal au début et tend vers 0. Et τ n'est pas la durée totale de charge : il faut environ 5τ.",
   build: function(k, S){
     var c = k.canvas(190), gr = k.canvas(150);
-    var R = k.slider("Résistance R", 1, 100, 1, 10, "kΩ");
-    var C = k.slider("Capacité C", 10, 1000, 10, 100, "µF");
-    var E = k.slider("Tension du générateur E", 1, 12, 0.5, 9, "V");
+    function restart(){ tt = 0; hist = [[0, Uc, ((mode === "charge" ? E.value : 0) - Uc) / (R.value * 1e3)]]; }   /* nouveau réglage : l'ancienne courbe n'a plus de sens */
+    var R = k.slider("Résistance R", 1, 100, 1, 10, "kΩ", restart);
+    var C = k.slider("Capacité C", 10, 1000, 10, 100, "µF", restart);
+    var E = k.slider("Tension du générateur E", 1, 12, 0.5, 9, "V", restart);
     var ro = k.readouts(["Constante de temps (R × C)", "Tension U_C", "Courant I", "Charge Q = C·U_C", "Énergie ½·C·U_C²"]);
     var nt = k.note("", ""), Uc = 0, tt = 0, mode = "charge", hist = [[0, 0, 0]];
-    function reset(m){ mode = m; tt = 0; hist = [[0, Uc, 0]]; lp.play(); }
+    function reset(m){ mode = m; restart(); lp.play(); }
     k.button("Charger (interrupteur sur E)", function(){ reset("charge"); }, true);
     k.button("Décharger (court-circuit)", function(){ reset("decharge"); });
     var lp = k.loop(function(dt){
@@ -109,12 +111,12 @@ SFA.sim({
       var pal = S.draw.palette, ctx = c.ctx, tau = R.value * 1e3 * C.value * 1e-6; c.clear(); gr.clear();
       var Ef = mode === "charge" ? E.value : 0;
       var Ee = E.value, I = (Ef - Uc) / (R.value * 1e3), Imax = Ee / (R.value * 1e3);
-      var ax = S.draw.axes(c, {x0: 0, x1: 5 * tau, y0: 0, y1: Ee * 1.1, xl: "t (s)", yl: "U_C (V)", l: 46, stepX: tau});
+      var Um = Math.max(Ee, Uc), ax = S.draw.axes(c, {x0: 0, x1: 5 * tau, y0: 0, y1: Um * 1.1, xl: "t (s)", yl: "U_C (V)", l: 46, stepX: tau});
       ctx.strokeStyle = pal.acc; ctx.lineWidth = 2.6; ctx.beginPath(); hist.forEach(function(p, i){ if (p[0] > 5 * tau) return; if (i === 0) ctx.moveTo(ax.X(p[0]), ax.Y(p[1])); else ctx.lineTo(ax.X(p[0]), ax.Y(p[1])); }); ctx.stroke();
       S.draw.line(c, ax.X(0), ax.Y(Ee), ax.X(5 * tau), ax.Y(Ee), pal.grey, 1, [4, 4]);
-      S.draw.line(c, ax.X(tau), ax.Y(0), ax.X(tau), ax.Y(Ee * 1.1), pal.amber, 1.2, [4, 4]); S.draw.text(c, "τ", ax.X(tau) + 8, ax.T + 8, {size: 13, color: pal.amber});
+      S.draw.line(c, ax.X(tau), ax.Y(0), ax.X(tau), ax.Y(Um * 1.1), pal.amber, 1.2, [4, 4]); S.draw.text(c, "τ", ax.X(tau) + 8, ax.T + 8, {size: 13, color: pal.amber});
       S.draw.dot(c, ax.X(Math.min(tt, 5 * tau)), ax.Y(Uc), 5, pal.red);
-      var Im = Imax * 1000, ax2 = S.draw.axes(gr, {x0: 0, x1: 5 * tau, y0: -Im * 1.1, y1: Im * 1.1, xl: "t (s)", yl: "I (mA)", l: 46, stepX: tau, stepY: Im / 2});
+      var Im = Math.max(Imax, Math.abs(I), Math.abs(hist[0][2])) * 1000, ax2 = S.draw.axes(gr, {x0: 0, x1: 5 * tau, y0: -Im * 1.1, y1: Im * 1.1, xl: "t (s)", yl: "I (mA)", l: 46, stepX: tau, stepY: Im / 2});
       gr.ctx.strokeStyle = pal.red; gr.ctx.lineWidth = 2.6; gr.ctx.beginPath(); hist.forEach(function(p, i){ if (p[0] > 5 * tau) return; if (i === 0) gr.ctx.moveTo(ax2.X(p[0]), ax2.Y(p[2] * 1000)); else gr.ctx.lineTo(ax2.X(p[0]), ax2.Y(p[2] * 1000)); }); gr.ctx.stroke();
       S.draw.text(gr, "1 s à l'écran = τ", gr.W - 10, gr.H - 8, {align: "right", size: 12, color: pal.grey});
       ro.set(0, S.fmt(tau, 3) + " s"); ro.set(1, S.fmt(Uc, 2) + " V"); ro.set(2, S.fmt(I * 1000, 2) + " mA"); ro.set(3, S.fmt(C.value * 1e-6 * Uc * 1e3, 2) + " mC"); ro.set(4, S.fmt(0.5 * C.value * 1e-6 * Uc * Uc * 1e3, 2) + " mJ");

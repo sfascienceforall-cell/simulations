@@ -44,7 +44,8 @@ SFA.sim({
       }
       S.draw.text(c, "bleu = observé · gris = attendu (rapport mendélien)", 20, 18, {align:"left", size:11, weight:600, color:pal.grey});
       ro.set(0, S.fmt(chi, 2)); ro.set(1, df); ro.set(2, S.fmt(crit, 2)); ro.set(3, pfmt(S, p));
-      note.set(chi > crit ? "χ² &gt; seuil : on rejette le rapport mendélien attendu (p &lt; 0,05)." : "χ² ≤ seuil : écart compatible avec le hasard, on ne rejette pas le rapport.", chi > crit ? "warn" : "ok");
+      var low = Math.min.apply(null, E) < 5;
+      note.set((chi > crit ? "χ² &gt; seuil : on rejette le rapport mendélien attendu (p &lt; 0,05)." : "χ² ≤ seuil : écart compatible avec le hasard, on ne rejette pas le rapport.") + (low ? " Attention : un effectif attendu est inférieur à 5 (" + S.fmt(Math.min.apply(null, E), 1) + ") : le test du χ² n'est pas fiable, augmente N." : ""), (chi > crit || low) ? "warn" : "ok");
     });
   }
 });
@@ -63,7 +64,7 @@ SFA.sim({
     var d2 = k.slider("Distance B–C", 1, 40, 1, 18, "cM");
     var co = k.slider("Coïncidence", 0, 1, 0.1, 0.6, "");
     var N = k.slider("Descendants N", 500, 5000, 500, 2000, "");
-    var ro = k.readouts(["Double CO attendus","Distance A–C estimée","d₁ + d₂","Interférence"]);
+    var ro = k.readouts(["Double CO attendus","Distance A–C apparente (sans les DCO)","d₁ + d₂ (distance réelle A–C)","Interférence"]);
     k.draw(function(){
       c.clear();
       var a = d1.value / 100, b = d2.value / 100, dco = co.value * a * b, n = N.value;

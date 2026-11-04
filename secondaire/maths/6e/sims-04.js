@@ -101,7 +101,7 @@ SFA.sim({
   titre:"Solide de révolution : des disques empilés",
   resume:"Fais tourner une courbe autour de l'axe des x : le volume est une somme de disques.",
   but:"Choisis une courbe, la borne b et le nombre de disques n. La somme des volumes des disques s'approche de V = π∫ f(x)² dx.",
-  aRetenir:"Le volume engendré par la rotation de y = f(x) autour de l'axe des x, de a à b, vaut V = π ∫<sub>a</sub><sup>b</sup> [f(x)]² dx : on empile des disques de rayon f(x) et d'épaisseur dx. Contrôle : pour f(x) = x/2 sur [0 ; 6], on retrouve le cône de rayon 3 et de hauteur 6 : V = ⅓π·3²·6 = 18π.",
+  aRetenir:"Le volume engendré par la rotation de y = f(x) autour de l'axe des x, de a à b, vaut V = π ∫<sub>a</sub><sup>b</sup> [f(x)]² dx : on empile des disques de rayon f(x) et d'épaisseur dx. Contrôle : pour f(x) = x/2 et b = 4, on retrouve le cône de rayon 2 et de hauteur 4 : V = ⅓π·2²·4 = 16π/3 ≈ 16,76.",
   piege:"Le rayon est f(x), mais on intègre π·f(x)² : le carré est sur f, pas sur l'intégrale. Le carré de l'intégrale (∫f)² est autre chose.",
   build:function(k,S){
     var c=k.canvas(0,{ratio:.62});

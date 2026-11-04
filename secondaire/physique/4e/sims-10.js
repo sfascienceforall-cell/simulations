@@ -102,8 +102,8 @@ SFA.sim({
       var blurPx = Math.min(40, Math.abs(a - need) * 6);
       ctx.fillStyle = sharp ? "rgba(46,107,85,.6)" : "rgba(180,35,24,.35)"; ctx.beginPath(); ctx.ellipse(xR, cy, 3 + (sharp ? 0 : blurPx * 0.35), 3 + (sharp ? 0 : blurPx), 0, 0, 6.2832); ctx.fill();
       var cinf = 1 / d - C0, far = C0 + Cc - 1 / d, near = Am + C0 + Cc - 1 / d;
-      var farTxt = far <= 0.2 ? "∞" : S.fmt(100 / far, 0) + " cm", nearTxt = near <= 0.2 ? "∞" : S.fmt(100 / near, 0) + " cm";
-      ro.set(0, sharp ? "NETTE" : (need < 0 ? "floue : image devant la rétine" : "floue : image derrière la rétine")); ro.set(1, S.fmt(a, 2) + " δ (max " + Am + ")"); ro.set(2, S.fmt(cinf, 2) + " δ"); ro.set(3, near <= 0 ? "aucune (même à l'infini, image derrière la rétine)" : "de " + nearTxt + " à " + farTxt);
+      var farTxt = far > 1e-9 ? S.fmt(100 / far, 0) + " cm" : "∞", nearTxt = near > 1e-9 ? S.fmt(100 / near, 0) + " cm" : "∞";
+      ro.set(0, sharp ? "NETTE" : (need < 0 ? "floue : image devant la rétine" : "floue : image derrière la rétine")); ro.set(1, S.fmt(a, 2) + " δ (max " + Am + ")"); ro.set(2, S.fmt(cinf, 2) + " δ"); ro.set(3, near < -1e-9 ? "aucune (même à l'infini, image derrière la rétine)" : near < 1e-9 ? "à l'infini seulement" : "de " + nearTxt + " à " + farTxt);
       nt.set(E.n + ". " + (sharp ? "L'image se forme sur la rétine : vision nette." : need < 0 ? "Le cristallin ne peut pas se « relâcher » davantage : trop convergent pour cet œil. Essaie une lentille divergente (C < 0)." : "Le cristallin ne peut pas accommoder assez : manque de convergence. Essaie une lentille convergente (C > 0)."), sharp ? "" : "warn");
     });
   }

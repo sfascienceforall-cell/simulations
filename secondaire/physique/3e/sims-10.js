@@ -26,7 +26,7 @@ SFA.sim({
     var nt = k.note("","");
     k.draw(function(){
       c.clear(); var W=c.W,H=c.H, rl=+lq.value, ro_=m.value/v.value, Pw=m.value/1000*G, f=im.value/100;
-      var Pi=rl*v.value*f*G/1000, T_=Pw-Pi, floats=ro_<rl, feq=Math.min(1,ro_/rl);
+      var Pi=rl*v.value*f*G/1000, T_=Pw-Pi, floats=ro_<rl-1e-9, neutral=Math.abs(ro_-rl)<=1e-9, feq=Math.min(1,ro_/rl);
       var cx=W*0.34, top=26, by=H*0.42, bw=W*0.5, bh=H-by-26;
       rect(c,cx-bw/2,by,bw,bh,liqCol(rl),P.ink,2.5,6);
       var hs=Math.max(40,Math.min(90,20+Math.cbrt(v.value)*8)), ytop=by-hs*(1-f);       /* le sommet de l'objet */
@@ -41,8 +41,8 @@ SFA.sim({
       D.arrow(c,cx+hs/2+26,ytop+hs/2,cx+hs/2+26,ytop+hs/2+Math.min(90,Plen),P.red,3.5); T(c,"P",cx+hs/2+38,ytop+hs/2+Math.min(90,Plen)*0.7,{size:13,color:P.red,align:"left"});
       if (Pi>0.005){ D.arrow(c,cx+hs/2+56,ytop+hs/2,cx+hs/2+56,ytop+hs/2-Math.min(90,Ilen),P.green,3.5); T(c,"Π",cx+hs/2+68,ytop+hs/2-Math.min(90,Ilen)*0.6,{size:13,color:P.green,align:"left"}); }
       T(c,"Lecture "+(T_>0?F(T_,2):"0")+" N",W*0.8,60,{size:14,color:P.ink});
-      ro.set(0,F(ro_,2)+" g/cm³"); ro.set(1,F(Pi,2)+" N"); ro.set(2,T_>0.005?F(T_,2)+" N":"0 N"); ro.set(3,floats?"flotte":"coule");
-      nt.set(floats?"ρ objet = "+F(ro_,2)+" &lt; ρ liquide = "+F(rl,2)+" : l'objet <b>flotte</b>. La lecture tombe à 0 quand "+F(feq*100,0)+" % du volume est immergé (là, Π = P). Si on pousse plus, le dynamomètre ne peut que se détendre : l'objet voudrait remonter.":"ρ objet = "+F(ro_,2)+" &gt; ρ liquide = "+F(rl,2)+" : l'objet <b>coule</b>. Même entièrement immergé, la poussée ("+F(rl*v.value*G/1000,2)+" N) est inférieure au poids ("+F(Pw,2)+" N).","ok");
+      ro.set(0,F(ro_,2)+" g/cm³"); ro.set(1,F(Pi,2)+" N"); ro.set(2,T_>0.005?F(T_,2)+" N":"0 N"); ro.set(3,neutral?"entre deux eaux":floats?"flotte":"coule");
+      nt.set(neutral?"ρ objet = ρ liquide = "+F(rl,2)+" g/cm³ : la poussée équilibre exactement le poids quand l'objet est entièrement immergé. Il reste <b>entre deux eaux</b>.":floats?"ρ objet = "+F(ro_,2)+" &lt; ρ liquide = "+F(rl,2)+" : l'objet <b>flotte</b>. La lecture tombe à 0 quand "+F(feq*100,0)+" % du volume est immergé (là, Π = P). Si on pousse plus, le dynamomètre ne peut que se détendre : l'objet voudrait remonter.":"ρ objet = "+F(ro_,2)+" &gt; ρ liquide = "+F(rl,2)+" : l'objet <b>coule</b>. Même entièrement immergé, la poussée ("+F(rl*v.value*G/1000,2)+" N) est inférieure au poids ("+F(Pw,2)+" N).","ok");
     });
   }
 });
@@ -94,7 +94,7 @@ SFA.sim({
   titre:"Le ludion : presser la bouteille, plonger le plongeur",
   resume:"En pressant la bouteille, la bulle d'air du ludion se comprime : la poussée diminue, il descend.",
   but:"Appuie sur la bouteille (pression supplémentaire) et regarde le volume d'air, la poussée, le poids et le mouvement du ludion.",
-  aRetenir:"Le ludion est une petite pipette qui contient de l'air et un peu d'eau. En pressant la bouteille, on augmente la pression dans l'eau, qui comprime la bulle d'air : de l'eau entre, le ludion devient plus lourd et sa poussée diminue légèrement : il coule. On relâche : la bulle se détend, il remonte. C'est le principe du sous-marin et de la vessie natatoire des poissons.",
+  aRetenir:"Le ludion est une petite pipette qui contient de l'air et un peu d'eau. En pressant la bouteille, on augmente la pression dans l'eau, qui comprime la bulle d'air : de l'eau entre dans la pipette : le ludion (eau comprise) devient plus lourd alors que son volume extérieur, donc la poussée (constante ici, 13,7 mN), ne change pas : il coule. On relâche : la bulle se détend, il remonte. C'est le principe du sous-marin et de la vessie natatoire des poissons.",
   piege:"La poussée d'Archimède ne vient pas de l'air de la bouteille, mais du volume d'eau déplacé par la pipette (verre + bulle). Une fois descendu un peu, le ludion s'enfonce de plus en plus vite : plus la pression est grande en profondeur, plus la bulle rétrécit. (Modèle simplifié, air = gaz parfait à température constante.)",
   build:function(k,S){
     var c = k.canvas(350);
@@ -125,7 +125,7 @@ SFA.sim({
       D.arrow(c,gx+90,gy,gx+90,gy-r.Pi*s+ (0),P.green,3.5); T(c,"Π",gx+104,gy-r.Pi*s*0.5,{size:13,color:P.green,align:"left"});
       T(c,F(r.Pw,2),gx+30,gy+r.Pw*s+14,{size:12,color:P.red}); T(c,F(r.Pi,2),gx+90,gy-r.Pi*s-10,{size:12,color:P.green});
       ro.set(0,F(r.Va,3)+" cm³"); ro.set(1,F(r.Pw,2)+" mN"); ro.set(2,F(r.Pi,2)+" mN"); ro.set(3,r.net>0.005?"monte":r.net<-0.005?"descend":"équilibre");
-      nt.set(r.net>0?"Poussée "+F(r.Pi,2)+" mN &gt; poids "+F(r.Pw,2)+" mN : le ludion remonte vers la surface.":"Le poids ("+F(r.Pw,2)+" mN) dépasse la poussée ("+F(r.Pi,2)+" mN) : il descend. Relâche la pression : la bulle se détend et il remonte (le seuil est vers 24 kPa).","ok");
+      nt.set(Math.abs(r.net)<=0.005?"Poussée et poids s'équilibrent ("+F(r.Pi,2)+" mN) : le ludion reste immobile (équilibre instable : la moindre variation de pression le fait monter ou descendre).":r.net>0?"Poussée "+F(r.Pi,2)+" mN &gt; poids "+F(r.Pw,2)+" mN : le ludion remonte vers la surface.":"Le poids ("+F(r.Pw,2)+" mN) dépasse la poussée ("+F(r.Pi,2)+" mN) : il descend. Relâche la pression : la bulle se détend et il remonte (le seuil est vers 24 kPa).","ok");
     });
   }
 });

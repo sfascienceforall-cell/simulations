@@ -70,7 +70,8 @@ SFA.sim({
       else if(A===C){ ro.set(1,"aucune"); nt.set("Droites parallèles : "+S.fmt(B,0)+" = "+S.fmt(D,0)+" est faux, aucune solution (ensemble vide).","warn"); }
       else { var x=(D-B)/(A-C); ro.set(1,"x = "+S.fmt(x,2));
         if(Math.abs(x)<=8&&Math.abs(A*x+B)<=12){ S.draw.dot(c,ax.X(x),ax.Y(A*x+B),7,P.green); S.draw.line(c,ax.X(x),ax.Y(A*x+B),ax.X(x),ax.Y(0),P.green,1.5,[4,3]); }
-        nt.set("Au croisement, y = "+S.fmt(A*x+B,2)+" pour les deux droites : x = "+S.fmt(x,2)+" est la solution.","ok"); }
+        if(Math.abs(x)<=8&&Math.abs(A*x+B)<=12) nt.set("Au croisement, y = "+S.fmt(A*x+B,2)+" pour les deux droites : x = "+S.fmt(x,2)+" est la solution.","ok");
+        else nt.set("Le croisement existe (x = "+S.fmt(x,2)+", y = "+S.fmt(A*x+B,2)+") mais il sort du cadre : la solution est bien x = "+S.fmt(x,2)+".","warn"); }
     });
   }
 });

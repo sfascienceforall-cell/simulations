@@ -101,11 +101,11 @@ SFA.sim({
       for(i=lo;i<=hi;i++){ var h=(H-T-B)*pmf(N,i,pp)/ymax; ctx.fillStyle=(i<=K)?"#7f9bd8":"#c5d2ee"; ctx.fillRect(X(i)-bw/2+1,H-B-h,Math.max(1,bw-2),h); if(i%st===0) S.draw.text(c,String(i),X(i),H-B+14,{size:12}); }
       ctx.save(); ctx.beginPath(); ctx.rect(L,T,W-L-R,H-T-B); ctx.clip(); ctx.strokeStyle=P.red; ctx.lineWidth=2.6; ctx.beginPath();
       for(var q=0;q<=240;q++){ var x=lo-0.5+(cnt)*q/240, y=phi((x-mu)/sg)/sg; if(q===0) ctx.moveTo(L+(x-lo+0.5)*bw+0*0,Y(y)); else ctx.lineTo(L+(x-lo+0.5)*bw,Y(y)); } ctx.stroke(); ctx.restore();
-      var xk=L+(K+0.5-lo+0.5)*bw; S.draw.line(c,xk,T,xk,H-B,P.violet,1.8,[5,4]); S.draw.text(c,"k + 0,5",xk+4,T+8,{size:12,align:"left",color:P.violet});
+      var xk=L+(K+0.5-lo+0.5)*bw, inWin=(K>=lo-1&&K<=hi); if(inWin){ S.draw.line(c,xk,T,xk,H-B,P.violet,1.8,[5,4]); S.draw.text(c,"k + 0,5",xk+4,T+8,{size:12,align:"left",color:P.violet}); }
       S.draw.line(c,L,H-B,W-R,H-B,"#8a95a3",1.2);
       var ex=cdfB(N,K,pp), a1=Phi((K-mu)/sg), a2=Phi((K+0.5-mu)/sg), okc=(mu>=5&&N*(1-pp)>=5);
       ro.set(0,S.fmt(ex,4)); ro.set(1,S.fmt(a1,4)+" (écart "+S.fmt(a1-ex,4)+")"); ro.set(2,S.fmt(a2,4)+" (écart "+S.fmt(a2-ex,4)+")"); ro.set(3,"np = "+S.fmt(mu,1)+" ; nq = "+S.fmt(N*(1-pp),1)+(okc?" ✓":" ✗"));
-      nt.set(okc?"Conditions remplies : l'approximation avec correction est en général la plus proche de la valeur exacte.":"np ou n(1−p) est inférieur à 5 : la cloche approche mal la binomiale (asymétrique). N'utilise pas cette approximation.", okc?"ok":"warn");
+      nt.set((inWin?"":"<b>k est hors de la fenêtre dessinée</b> (loin de la moyenne) : P(X ≤ k) vaut presque 0 ou presque 1. ")+(okc?"Conditions remplies : l'approximation avec correction est en général la plus proche de la valeur exacte.":"np ou n(1−p) est inférieur à 5 : la cloche approche mal la binomiale (asymétrique). N'utilise pas cette approximation."), okc?"ok":"warn");
     });
   }
 });

@@ -58,7 +58,7 @@ SFA.sim({
         if(s>0) pos.push(iv); else if(s<0) neg.push(iv);
       }
       S.draw.fn(c,ax,f,P.acc,3);
-      d.forEach(function(x){ S.draw.dot(c,ax.X(x),ax.Y(0),6,P.ink); });
+      d.forEach(function(x){ if(Math.abs(x)<=8) S.draw.dot(c,ax.X(x),ax.Y(0),6,P.ink); });
       ro.set(0,eq(A,B,C)); ro.set(1,d.length?d.map(function(x){return F(x,2);}).join(" ; "):"aucune");
       ro.set(2,pos.length?pos.join(" ∪ "):"∅"); ro.set(3,neg.length?neg.join(" ∪ "):"∅");
       /* tableau */
@@ -180,10 +180,10 @@ SFA.sim({
       var D=B*B-4*A*C, dom, ctx=c.ctx;
       function band(x1,x2){ var u=Math.max(x1,ax.x0),v=Math.min(x2,ax.x1); if(v>=u){ ctx.fillStyle="rgba(46,107,85,.35)"; ctx.fillRect(ax.X(u),ax.Y(0)-5,Math.max(3,ax.X(v)-ax.X(u)),10);} }
       if(D>0){ var r=Math.sqrt(D), x1=Math.min((-B-r)/(2*A),(-B+r)/(2*A)), x2=Math.max((-B-r)/(2*A),(-B+r)/(2*A));
-        S.draw.dot(c,ax.X(x1),ax.Y(0),5,P.ink); S.draw.dot(c,ax.X(x2),ax.Y(0),5,P.ink);
+        if(Math.abs(x1)<=8) S.draw.dot(c,ax.X(x1),ax.Y(0),5,P.ink); if(Math.abs(x2)<=8) S.draw.dot(c,ax.X(x2),ax.Y(0),5,P.ink);
         if(A>0){ band(-1e9,x1); band(x2,1e9); dom=strict?"]−∞ ; "+F(x1,2)+"[ ∪ ]"+F(x2,2)+" ; +∞[":"]−∞ ; "+F(x1,2)+"] ∪ ["+F(x2,2)+" ; +∞["; }
         else { band(x1,x2); dom=strict?"]"+F(x1,2)+" ; "+F(x2,2)+"["  :"["+F(x1,2)+" ; "+F(x2,2)+"]"; } }
-      else if(D===0){ var x0=-B/(2*A); S.draw.dot(c,ax.X(x0),ax.Y(0),5,P.ink);
+      else if(D===0){ var x0=-B/(2*A); if(Math.abs(x0)<=8) S.draw.dot(c,ax.X(x0),ax.Y(0),5,P.ink);
         if(A>0){ band(-1e9,1e9); dom=strict?"ℝ \\ {"+F(x0,2)+"}":"ℝ"; if(strict){ctx.clearRect(ax.X(x0)-4,ax.Y(0)-6,8,12);} }
         else { if(!strict){ band(x0,x0); } dom=strict?"∅ (le trinôme n'est jamais > 0)":"{"+F(x0,2)+"}"; } }
       else { if(A>0){ band(-1e9,1e9); dom="ℝ"; } else dom="∅ (le trinôme est toujours < 0)"; }

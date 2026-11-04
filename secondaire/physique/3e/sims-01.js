@@ -106,6 +106,7 @@ SFA.sim({
         D.arrow(c,bx1,by+28,bx1-o*len,by+28,P.red,2.5); D.arrow(c,bx2,by+28,bx2+o*len,by+28,P.red,2.5); }
       T(c,"fils : 30 cm · boules de 0,5 g · points d'attache à 10 cm",W/2,H-10,{size:12,color:P.grey});
       ro.set(0, F(Math.abs(th)*180/Math.PI,1)+"°"); ro.set(1, F((bx2-bx1)/sc*100,1)+" cm"); ro.set(2, r.F>0? S.sci(r.F*1e3,2)+" mN":"0");
+      if (a*b===0 && (a!==0||b!==0)){ ro.set(0,"≈ 2° (dessin schématique)"); ro.set(2,"très faible (non calculée)"); }
       if (a===0&&b===0) nt.set("Les deux boules sont neutres : aucune force.","");
       else if (a*b===0) nt.set("Une boule neutre est tout de même attirée par la boule chargée (polarisation, voir la simulation 4). Ici on la dessine à peine attirée sans calcul.","warn");
       else if (r.contact) nt.set("<b>Contact !</b> Les boules attirées se touchent : les charges se partagent (bouton ci-dessous). Chacune porte alors (q₁ + q₂)/2" + ((a+b)===0?" = 0 : elles se neutralisent.":", de même signe : elles se repoussent."),"warn");

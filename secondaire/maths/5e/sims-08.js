@@ -28,7 +28,7 @@ SFA.sim({
     var TG = {a:1.5, b:2, c:1, d:-1};
     k.draw(function(){
       c.clear(); var A = a.value, B = b.value, C = cc.value, D = d.value;
-      var ax = piAxes(c, S, -2 * PI, 2 * PI, -5, 5);
+      var ax = piAxes(c, S, -2 * PI, 2 * PI, -6, 6);
       if (mode.value === "D") S.draw.fn(c, ax, function(x){ return TG.a * Math.sin(TG.b * x + TG.c) + TG.d; }, "rgba(138,149,163,.55)", 6);
       S.draw.line(c, ax.L, ax.Y(D), ax.R, ax.Y(D), P.green, 1.2, [6, 5]);
       S.draw.line(c, ax.L, ax.Y(D + Math.abs(A)), ax.R, ax.Y(D + Math.abs(A)), P.light, 1.2, [3, 3]); S.draw.line(c, ax.L, ax.Y(D - Math.abs(A)), ax.R, ax.Y(D - Math.abs(A)), P.light, 1.2, [3, 3]);
@@ -128,7 +128,7 @@ SFA.sim({
       var base = ok ? sols.map(norm).sort(function(p, q){ return p - q; }).filter(function(v, j, arr){ return j === 0 || Math.abs(v - arr[j - 1]) > 1e-9; }) : [];
       var ax1 = sqAxes(c1, 1.4, 0.5); circle(c1, ax1, 1);
       if (t === "s") S.draw.line(c1, ax1.L, ax1.Y(K), ax1.R, ax1.Y(K), P.amber, 1.6, [5, 4]); else if (t === "c") S.draw.line(c1, ax1.X(K), ax1.T, ax1.X(K), ax1.B, P.amber, 1.6, [5, 4]);
-      else { S.draw.line(c1, ax1.X(1), ax1.T, ax1.X(1), ax1.B, P.light, 1.4); S.draw.line(c1, ax1.X(-3), ax1.Y(-3 * K), ax1.X(3), ax1.Y(3 * K), P.amber, 1.6, [5, 4]); S.draw.dot(c1, ax1.X(1), ax1.Y(K), 5, P.amber); }
+      else { S.draw.line(c1, ax1.X(1), ax1.T, ax1.X(1), ax1.B, P.light, 1.4); c1.ctx.save(); c1.ctx.beginPath(); c1.ctx.rect(ax1.L, ax1.T, ax1.R - ax1.L, ax1.B - ax1.T); c1.ctx.clip(); S.draw.line(c1, ax1.X(-3), ax1.Y(-3 * K), ax1.X(3), ax1.Y(3 * K), P.amber, 1.6, [5, 4]); c1.ctx.restore(); S.draw.dot(c1, ax1.X(1), ax1.Y(K), 5, P.amber); }
       base.forEach(function(x){ S.draw.line(c1, ax1.X(0), ax1.Y(0), ax1.X(Math.cos(x)), ax1.Y(Math.sin(x)), P.light, 1.2); S.draw.dot(c1, ax1.X(Math.cos(x)), ax1.Y(Math.sin(x)), 6, P.red); });
       var fun = t === "s" ? Math.sin : t === "c" ? Math.cos : Math.tan, ya = t === "t" ? 4 : 1.6;
       var ax2 = piAxes(c2, S, -2 * PI, 2 * PI, -ya, ya, "x");

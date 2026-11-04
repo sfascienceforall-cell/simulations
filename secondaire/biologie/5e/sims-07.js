@@ -142,7 +142,7 @@ SFA.sim({
         S.draw.dot(c, ax.X(i), ax.Y(th[i]), 4.5, pal.red);
       }
       B5.leg(c, [["théorie (binomiale)", pal.red], ["1 000 gamètes tirés", pal.violet]], ax.L + 8, ax.T + 34);
-      ro.set(0, S.sci(Math.pow(2, nn), 3)); ro.set(1, S.sci(Math.pow(4, nn), 3)); ro.set(2, "1 sur " + S.sci(Math.pow(2, nn), 3)); ro.set(3, nn <= 6 ? S.fmt(200 / Math.pow(2, nn), 1) + " % des gamètes" : S.sci(2 / Math.pow(2, nn), 2) + " des gamètes");
+      ro.set(0, S.sci(Math.pow(2, nn), 3)); ro.set(1, S.sci(Math.pow(4, nn), 3)); ro.set(2, "1 sur " + S.sci(Math.pow(2, nn), 3)); ro.set(3, nn <= 10 ? S.fmt(200 / Math.pow(2, nn), 2) + " % des gamètes" : "1 sur " + S.sci(Math.pow(2, nn - 1), 3) + " (2 gamètes sur " + S.sci(Math.pow(2, nn), 3) + ")");
       nt.set(nn >= 23 ? "n = 23 : environ 8,4 millions de gamètes possibles par personne et 7,0·10¹³ zygotes possibles, avant même le crossing-over." : "Avec " + nn + " paires : " + Math.pow(2, nn) + " gamètes possibles (le tirage montre que les cas « équilibrés » sont les plus fréquents).", "ok");
     });
   }
@@ -249,9 +249,9 @@ SFA.sim({
       }
       B5.wrap(c, e === "0" ? "Sans erreur, les 4 gamètes sont normaux." : e === "1" ? "Méiose I : 2 gamètes à 2 copies différentes (maternelle + paternelle), 2 gamètes sans chromosome 21." : "Méiose II : 1 gamète à 2 copies identiques, 1 gamète sans copie, 2 gamètes normaux.", 10, 208, W - 20, 16, {size: 12});
       var bad = e === "0" ? 0 : e === "1" ? 4 : 2, z3 = e === "0" ? 0 : e === "1" ? 2 : 1, z1 = e === "0" ? 0 : e === "1" ? 2 : 1;
-      var rk = riskAge(age.value);
+      var rk = riskAge(age.value), rkr = rk < 200 ? Math.round(rk / 5) * 5 : Math.round(rk / 10) * 10;
       ro.set(0, e === "0" ? "1 + 1 + 1 + 1" : e === "1" ? "2 + 2 + 0 + 0" : "2 + 0 + 1 + 1"); ro.set(1, bad + " sur 4"); ro.set(2, z3 + " trisomie, " + z1 + " monosomie");
-      ro.set(3, "≈ 1 sur " + S.fmt(Math.round(rk / 10) * 10 || 10, 0) + " (" + S.fmt(100 / rk, 2) + " %)");
+      ro.set(3, "≈ 1 sur " + S.fmt(rkr, 0) + " (" + S.fmt(100 / rk, 2) + " %)");
       nt.set("À " + age.value + " ans : environ 1 naissance sur " + S.fmt(Math.round(rk / 10) * 10, 0) + " avec trisomie 21 (ordre de grandeur) ; à 20 ans : 1 sur 1 667 ; à 45 ans : 1 sur 30. Les gamètes à 3 copies n'existent pas : l'erreur donne 0 ou 2 copies.", "ok");
     });
   }

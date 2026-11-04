@@ -108,7 +108,8 @@ SFA.sim({
       var y2100 = d[75], cross = null; for (i = 0; i < d.length; i++) if (d[i][2] >= 2){ cross = d[i][0]; break; }
       ro.set(0, S.fmt(y2100[1], 0) + " ppm"); ro.set(1, "+" + S.fmt(y2100[2], 1) + " °C"); ro.set(2, cross ? String(cross) : "pas avant 2125");
       var peak = Math.max.apply(null, d.map(function(p){ return p[1]; })), last = d[d.length - 1][1];
-      note.set(sc.value === "a" ? "Même avec des émissions constantes, le CO₂ continue de monter d'environ " + S.fmt(af.value * 10 / 2.12, 1) + " ppm par an : on ajoute du CO₂ plus vite qu'il n'est retiré." : last < peak - 1 ? "Le CO₂ atteint un maximum (" + S.fmt(peak, 0) + " ppm) puis diminue : la température cesse de monter, puis redescend lentement." : "Les émissions diminuent mais le CO₂ continue d'augmenter tant que les émissions restent non nulles.", "");
+      var nz = sc.value === "d" ? 2050 : 2075;
+      note.set(sc.value === "a" ? "Même avec des émissions constantes, le CO₂ continue de monter d'environ " + S.fmt(af.value * 10 / 2.12, 1) + " ppm par an : on ajoute du CO₂ plus vite qu'il n'est retiré." : sc.value === "b" ? "Les émissions augmentent de 1 % par an : le CO₂ monte de plus en plus vite et la température suit, avec retard." : sc.value === "c" ? "Les émissions diminuent mais ne sont jamais nulles : le CO₂ continue d'augmenter, de plus en plus lentement." : "Les émissions s'annulent en " + nz + " : la hausse du CO₂ s'arrête alors (" + S.fmt(peak, 0) + " ppm). Dans ce modèle simplifié, sans absorption supplémentaire par l'océan, il ne redescend pas ; la température se stabilise ensuite à un niveau élevé.", "");
     });
   }
 });
@@ -144,7 +145,7 @@ SFA.sim({
       S.draw.text(c, "Richesse selon la perturbation", c.W / 2, gy + gh + 14, {size: 12, color: P.grey});
       var meanA = 1 / d, mature = Math.exp(-d * 80) * 100;
       ro.set(0, cnt + " sur " + SP.length); ro.set(1, S.fmt(meanA, 0) + " ans"); ro.set(2, S.fmt(mature, 0) + " %");
-      note.set(cnt >= 9 ? "Perturbations intermédiaires : toutes les classes d'âge sont représentées en assez grande surface, la richesse en espèces est maximale." : d > 0.1 ? "Perturbations très fréquentes : presque toutes les parcelles sont jeunes, les espèces des forêts matures disparaissent." : "Perturbations très rares : la forêt mature domine, les espèces des milieux ouverts et des jeunes stades disparaissent.", cnt >= 9 ? "ok" : "warn");
+      note.set(cnt >= 9 ? "Perturbations intermédiaires : toutes les classes d'âge sont représentées en assez grande surface, la richesse en espèces est maximale." : mature < 30 ? "Perturbations fréquentes : très peu de parcelles dépassent 80 ans, les espèces des forêts matures se raréfient ou disparaissent." : "Perturbations très rares : la forêt mature domine, les espèces des milieux ouverts et des jeunes stades disparaissent.", cnt >= 9 ? "ok" : "warn");
     });
   }
 });

@@ -60,7 +60,7 @@ SFA.sim({
       rect(c,x0,y-18,(x1-x0)*Math.min(1,I/max),36,trip?P.red:I>C*0.8?P.amber:P.green,null,0,8);
       var cx=x0+(x1-x0)*C/max; ln(c,[cx,y-36],[cx,y+36],P.ink,3); T(c,"calibre "+C+" A",cx,y-46,{size:12});
       T(c,"0",x0,y+34,{size:12,color:P.grey}); T(c,F(max,0)+" A",x1,y+34,{size:12,color:P.grey,align:"right"});
-      T(c,F(I,1)+" A",Math.min(x1-30,x0+(x1-x0)*Math.min(1,I/max)+0)+0, y,{size:14,color:"#fff"});
+      var bwid=(x1-x0)*Math.min(1,I/max); if (bwid>70) T(c,F(I,1)+" A",x0+bwid-32,y,{size:14,color:"#fff"}); else T(c,F(I,1)+" A",x0+bwid+32,y,{size:14,color:P.ink});
       /* disjoncteur */
       rect(c,W/2-60,18,120,40,trip?"#fbe1dc":"#ecf6f1",trip?P.red:P.green,2,8);
       T(c,trip?"DISJONCTEUR : COUPÉ":"disjoncteur : fermé",W/2,38,{size:13,color:trip?P.red:P.green});
@@ -102,7 +102,7 @@ SFA.sim({
       var bx=W-24; rect(c,x0,H-52,x1-x0,12,"#e9edf2"); rect(c,x0,H-52,(x1-x0)*Math.min(1,Tc/1085),12,Tc>750?P.red:P.amber);
       T(c,"température du fil : 20 °C → 1 085 °C (fusion du cuivre)",W/2,H-26,{size:12,color:P.grey});
       ro.set(0,F(Pw,0)+" W"); ro.set(1,F(Q,0)+" J"); ro.set(2,melt?"≥ 1 085 °C":F(Tf,0)+" °C");
-      nt.set(Pw===0?"Aucun courant, aucune chaleur.":"Chaleur dégagée : E = R·I²·t = "+F(R.value,1)+" × "+F(I.value,1)+"² × "+F(t.value,0)+" = "+F(Q,0)+" J. Pour échauffer 10 g de cuivre (385 J/kg/K) : ΔT = E / (m·c) = "+F(dT,0)+" °C."+(melt?" Le cuivre fond à 1 085 °C : un fusible fonctionne ainsi.":""),melt?"warn":"ok");
+      nt.set(Pw===0?"Aucun courant, aucune chaleur.":"Chaleur dégagée : E = R·I²·t = "+F(R.value,1)+" × "+F(I.value,1)+"² × "+F(t.value,0)+" = "+F(Q,0)+" J. Pour échauffer 10 g de cuivre (385 J/kg/K) : ΔT = E / (m·c) "+(melt?"dépasserait "+F(1085-20,0)+" °C : le cuivre atteint 1 085 °C et fond (le calcul n'est plus valable après la fusion). Un fusible fonctionne ainsi.":"= "+F(dT,0)+" °C."),melt?"warn":"ok");
     });
   }
 });
@@ -149,7 +149,7 @@ SFA.sim({
       rect(c,W*0.52,16,110,32,diff.value?(cut?"#fbe1dc":"#ecf6f1"):"#eef0f3",diff.value?(cut?P.red:P.green):P.grey,2,6);
       T(c,diff.value?(tripD?"différentiel : COUPÉ":"différentiel 30 mA"):"pas de différentiel",W*0.52+55,32,{size:12,color:diff.value?(tripD?P.red:P.green):P.grey});
       var tc = cut?"0 V (coupé)":F(Uc,0)+" V";
-      ro.set(0,cut?"coupé en < 0,3 s":tc); ro.set(1,Ib>0?F(Ib*1000,0)+" mA":"0 mA"); ro.set(2,Itot>0?(Itot>1?F(Itot,1)+" A":F(Itot*1000,0)+" mA"):"0"); ro.set(3,diff.value?(Itot>=0.03?"déclenche":"ne déclenche pas"):"absent");
+      ro.set(0,cut?(tripD?"coupé en < 0,3 s":"coupé (disjoncteur)"):tc); ro.set(1,Ib>0?F(Ib*1000,0)+" mA":"0 mA"); ro.set(2,Itot>0?(Itot>1?F(Itot,1)+" A":F(Itot*1000,0)+" mA"):"0"); ro.set(3,diff.value?(Itot>=0.03?"déclenche":"ne déclenche pas"):"absent");
       var msg, kind;
       if (tripD){ msg="Le différentiel mesure une fuite de "+(Itot>1?F(Itot,1)+" A":F(Itot*1000,0)+" mA")+" (≥ 30 mA) et <b>coupe</b> en moins de 0,3 s : la personne n'est pas en danger prolongé."; kind="ok"; }
       else if (tripF){ msg="Le courant de défaut ("+F(Itot,1)+" A) dépasse 16 A : le disjoncteur ordinaire coupe aussi, grâce à une prise de terre de faible résistance."; kind="ok"; }

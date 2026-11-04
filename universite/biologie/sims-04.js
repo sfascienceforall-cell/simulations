@@ -85,7 +85,7 @@ SFA.sim({
       });
       S.draw.text(c,"Vert : myéline · rouge : nœuds de Ranvier · animation : 6 s pour la fibre la plus lente",c.W/2,c.H-12,{size:10,color:P.grey});
     });
-    k.note("Lois empiriques approchées (v amyélinique ≈ 1,1·√d ; v myélinisée ≈ 6·d, d = diamètre total) ; l'interpolation linéaire selon le taux de démyélinisation est un modèle qualitatif. Le dessin est schématique : seul le calcul des vitesses est quantitatif.","warn");
+    k.note("Lois empiriques approchées (v amyélinique ≈ 1,1·√d ; v myélinisée ≈ 6·d, d = diamètre total) ; l'interpolation linéaire selon le taux de démyélinisation est un modèle qualitatif. Le blocage complet de la conduction (démyélinisation sévère) n'est pas modélisé : à 100 %, la fibre myélinisée garde la vitesse d'une fibre amyélinique. Le dessin est schématique : seul le calcul des vitesses est quantitatif.","warn");
   }
 });
 
@@ -154,9 +154,9 @@ SFA.sim({
       ev.sort(function(a,b){return a[0]-b[0];});
       var V=rest, ei=0, ref=0, sp=[], tr=[];
       for(var s=0;s<=T/dt;s++){ var t=s*dt; V=rest+(V-rest)*Math.exp(-dt/tau.value);
-        while(ei<ev.length&&ev[ei][0]<=t){ if(ref<=0) V+=ev[ei][1]; ei++; }
+        while(ei<ev.length&&ev[ei][0]<=t){ if(ref<=0) V=Math.max(-85,V+ev[ei][1]); ei++; }
         ref-=dt; if(V>=th&&ref<=0){ sp.push(t); V=rest; ref=3; tr.push(0); } else tr.push(V); }
-      var ax=S.draw.axes(c,{x0:0,x1:T,y0:-80,y1:10,stepX:25,stepY:10,xl:"temps (ms)",yl:"Vm (mV)"});
+      var ax=S.draw.axes(c,{x0:0,x1:T,y0:-90,y1:10,stepX:25,stepY:10,xl:"temps (ms)",yl:"Vm (mV)"});
       S.draw.line(c,ax.L,ax.Y(th),ax.R,ax.Y(th),P.red,1.5,[6,4]); S.draw.text(c,"seuil −55 mV",ax.R-4,ax.Y(th)-8,{size:10,color:P.red,align:"right"});
       ctx.save(); ctx.beginPath(); ctx.rect(ax.L,ax.T,ax.R-ax.L,ax.B-ax.T); ctx.clip(); ctx.strokeStyle=P.acc; ctx.lineWidth=1.8; ctx.beginPath();
       tr.forEach(function(v,i){ var x=ax.X(i*dt), y=ax.Y(v); if(i===0)ctx.moveTo(x,y); else ctx.lineTo(x,y); }); ctx.stroke(); ctx.restore();
@@ -164,7 +164,7 @@ SFA.sim({
       var mean=(ne.value*fe.value*ae.value-ni.value*fi.value*ae.value)/1000*tau.value;
       ro.set(0,(mean>=0?"+":"")+S.fmt(mean,1).replace("−","−")+" mV"); ro.set(1,String(sp.length)); ro.set(2,S.fmt(sp.length/(T/1000),0)+" Hz");
     });
-    k.note("Modèle d'intégrateur à fuite : Vm = −70 mV au repos, seuil −55 mV, retour à −70 mV après un potentiel d'action, réfractaire 3 ms. Trains réguliers déphasés ; les potentiels d'action (traits verts) sont symboliques.","warn");
+    k.note("Modèle d'intégrateur à fuite : Vm = −70 mV au repos, seuil −55 mV, retour à −70 mV après un potentiel d'action, réfractaire 3 ms. Hyperpolarisation limitée à −85 mV (potentiel d'équilibre de K⁺ et Cl⁻). Trains réguliers déphasés ; les potentiels d'action (traits verts) sont symboliques.","warn");
   }
 });
 
@@ -173,7 +173,7 @@ SFA.sim({
   titre:"Rétroaction négative et positive : gain et erreur résiduelle",
   resume:"Perturbation d'une variable réglée : plus le gain est grand, plus l'erreur est petite. Une rétroaction positive emballe le système.",
   but:"Choisis la variable (glycémie ou température), le type de rétroaction et le gain. Observe l'écart à la consigne au cours du temps.",
-  aRetenir:"Rétroaction négative : x' = D − a(1 + G)·x. À l'équilibre, l'écart vaut D / [a(1 + G)] : l'erreur est réduite d'un facteur 1 + G par rapport à l'absence de régulation, et la correction est plus rapide (constante de temps 1/[a(1 + G)]). Il reste toujours un petit écart. Rétroaction positive : x' = D + a(G − 1)·x : si G ≥ 1, emballement (accouchement, coagulation, potentiel d'action).",
+  aRetenir:"Rétroaction négative : x' = D − a(1 + G)·x. À l'équilibre, l'écart vaut D / [a(1 + G)] : l'erreur est réduite d'un facteur 1 + G par rapport à l'absence de régulation, et la correction est plus rapide (constante de temps 1/[a(1 + G)]). Il reste toujours un petit écart. Rétroaction positive : x' = D + a(G − 1)·x : si G > 1, emballement exponentiel (G = 1 : croissance linéaire, sans équilibre ; accouchement, coagulation, potentiel d'action).",
   piege:"« Homéostasie » ne veut pas dire valeur constante : il reste une erreur résiduelle, et la consigne elle-même peut changer (fièvre).",
   build:function(k,S){
     var P=S.draw.palette, c=k.canvas(330);
@@ -193,9 +193,9 @@ SFA.sim({
       pts.forEach(function(p,i){ var xx=ax.X(i*0.1), yy=ax.Y(p); if(i===0)ctx.moveTo(xx,yy); else ctx.lineTo(xx,yy); }); ctx.stroke(); ctx.restore();
       S.draw.text(c,"consigne : "+S.fmt(set,1)+(isG?" g/L":" °C")+" (écart = 0)",ax.L+10,ax.B-12,{size:11,color:P.ink,align:"left"});
       var fin=pts[pts.length-1];
-      if(!pos){ ro.set(0,S.fmt(D/(a*(1+g)),3)); ro.set(1,"÷ "+S.fmt(1+g,1)); ro.set(2,S.fmt(1/(a*(1+g)),1)+" min");
-        nt.set("Valeur finale : "+S.fmt(set+D/(a*(1+g)),3)+(isG?" g/L":" °C")+" (sans régulation : "+S.fmt(set+D/a,2)+").","ok"); }
-      else { ro.set(0,runaway?"emballement (plafonné)":S.fmt(D/(a*(1-Gp)),3)); ro.set(1,Gp<1?"× "+S.fmt(1/(1-Gp),2)+" (amplifié)":"aucune"); ro.set(2,Gp<1?S.fmt(1/(a*(1-Gp)),1)+" min":"exponentielle");
+      if(!pos){ var pk=tmp.value?mx:D/(a*(1+g)); ro.set(0,S.fmt(pk,3)); ro.set(1,"÷ "+S.fmt(1+g,1)); ro.set(2,S.fmt(1/(a*(1+g)),1)+" min");
+        nt.set((tmp.value?"Valeur au pic : ":"Valeur finale : ")+S.fmt(set+pk,3)+(isG?" g/L":" °C")+" (sans régulation : "+S.fmt(set+D/a,2)+")."+(tmp.value?" Après l'arrêt de la perturbation, la variable revient à la consigne.":""),"ok"); }
+      else { ro.set(0,Gp>=1?"emballement (pas d'équilibre)":S.fmt(D/(a*(1-Gp)),3)+(runaway?" (au-delà du plafond affiché)":"")); ro.set(1,Gp<1?"× "+S.fmt(1/(1-Gp),2)+" (amplifié)":"aucune"); ro.set(2,Gp<1?S.fmt(1/(a*(1-Gp)),1)+" min":Gp===1?"croissance linéaire":"exponentielle");
         nt.set(Gp>=1?"G ≥ 1 : la perturbation s'auto-amplifie jusqu'à ce qu'un événement externe l'arrête (ex. expulsion du fœtus). Courbe plafonnée à "+S.fmt(cap,1)+" pour l'affichage.":"G < 1 : la rétroaction positive amplifie l'écart sans emballement, ce qui reste un mauvais régulateur.","warn"); }
     });
     k.note("Modèle linéaire à une variable (perturbation constante, a = 0,1 min⁻¹). La glycémie et la température sont des illustrations de la même logique ; les vraies boucles font intervenir plusieurs hormones ou effecteurs.","warn");

@@ -99,18 +99,30 @@ SFA.sim({
     var pal = S.draw.palette, K = 50, KF = 0.5;
     var c = k.canvas(170), g = k.canvas(190);
     var a = k.slider("[H₂]", 0, 1.5, 0.05, 0.5, "mol/L", function(){ reset(); }), b = k.slider("[I₂]", 0, 1.5, 0.05, 0.5, "mol/L", function(){ reset(); }), d = k.slider("[HI]", 0, 2, 0.05, 1.5, "mol/L", function(){ reset(); });
-    var run = false, st = [0.5, 0.5, 1.5], hist = [], tt = 0;
-    function reset(){ run = false; hist = []; tt = 0; st = [a.value, b.value, d.value]; }
+    var run = false, st = [0.5, 0.5, 1.5], hist = [], tt = 0, speed = 1, tStop = 20;
+    function step(s, h){ var r = KF * s[0] * s[1] - (KF / K) * s[2] * s[2]; s[0] = Math.max(0, s[0] - r * h); s[1] = Math.max(0, s[1] - r * h); s[2] = Math.max(0, s[2] + 2 * r * h); }
+    /* temps (simulé) nécessaire pour atteindre Q = K à 1 % près : sert à régler la vitesse d'animation, pour que Q rejoigne K quelles que soient les concentrations */
+    function tConv(){
+      var s = [a.value, b.value, d.value], t = 0, i;
+      for (i = 0; i < 500000; i++){
+        if (s[2] === 0 && (s[0] === 0 || s[1] === 0)) return 0;
+        if (s[0] * s[1] > 1e-12 && Math.abs(Math.log(s[2] * s[2] / (s[0] * s[1]) / K)) < 0.01) return t;
+        step(s, 0.02); t += 0.02;
+      }
+      return t;
+    }
+    function reset(){ run = false; hist = []; tt = 0; st = [a.value, b.value, d.value]; var tc = tConv(); speed = Math.max(1, tc / 6); tStop = Math.max(20, tc * 1.3); }
     k.button("Laisser évoluer", function(){ reset(); run = true; }, true);
     k.button("Revenir au départ", function(){ reset(); });
     var ro = k.readouts(["Q = [HI]² / ([H₂][I₂])", "K", "Comparaison", "Le système évolue…"]);
     var nt = k.note("", "");
     var lp = k.loop(function(dt){
       if (!run) return;
-      var h = 0.01, n = Math.round(Math.min(dt, 0.05) / h);
-      for (var i = 0; i < n * 4; i++){ var r = KF * st[0] * st[1] - (KF / K) * st[2] * st[2]; st[0] -= r * h * 0.5; st[1] -= r * h * 0.5; st[2] += 2 * r * h * 0.5; st[0] = Math.max(0, st[0]); st[1] = Math.max(0, st[1]); tt += h * 0.5; }
-      if (!hist.length || tt - hist[hist.length - 1][0] >= 0.1) hist.push([tt, st[0], st[1], st[2]]);
-      if (tt > 20) run = false; k.redraw();
+      var simdt = Math.min(dt, 0.05) * speed, n = Math.max(1, Math.ceil(simdt / 0.02)), h = simdt / n, i;
+      for (i = 0; i < n; i++){ step(st, h); tt += h; }
+      if (!hist.length || tt - hist[hist.length - 1][0] >= Math.max(0.1, tStop / 300)) hist.push([tt, st[0], st[1], st[2]]);
+      if (tt >= tStop) run = false;
+      k.redraw();
     });
     lp.play();
     k.draw(function(){
@@ -128,7 +140,7 @@ SFA.sim({
       S.draw.text(c, "échelle logarithmique : K/100 ← K → 100·K", c.W / 2, 135, {size: 12, color: pal.grey});
       var sens = noReact ? "aucune réaction" : Math.abs(Math.log(Q / K)) < 0.02 && !qinf ? "reste à l'équilibre" : (Q < K && !qinf) ? "vers la droite" : "vers la gauche";
       S.draw.text(c, run ? "évolution en cours…" : "", c.W / 2, 155, {size: 13, color: pal.grey});
-      var ax = S.draw.axes(g, {x0: 0, x1: Math.max(5, tt * 1.1), y0: 0, y1: Math.max(1.6, a.value, b.value, d.value, st[2] * 1.1), xl: "t (s)", l: 40, t: 20});
+      var ax = S.draw.axes(g, {x0: 0, x1: Math.max(5, tt * 1.1), y0: 0, y1: Math.max(1.6, a.value, b.value, d.value, st[2] * 1.1), xl: "t (unités arbitraires)", l: 40, t: 20});
       S.draw.text(g, "concentrations (mol/L)", 46, 10, {size: 12, align: "left", color: pal.grey});
       var cols = [pal.acc, pal.violet, pal.red], lab = ["H₂", "I₂", "HI"];
       for (var s = 0; s < 3; s++){ for (var i = 1; i < hist.length; i++) S.draw.line(g, ax.X(hist[i - 1][0]), ax.Y(hist[i - 1][s + 1]), ax.X(hist[i][0]), ax.Y(hist[i][s + 1]), cols[s], 2.4); S.draw.text(g, lab[s], ax.X(ax.x1) - 4, ax.Y(st[s]) - 8, {size: 12, color: cols[s], align: "right"}); }

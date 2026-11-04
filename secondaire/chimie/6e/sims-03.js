@@ -143,7 +143,7 @@ SFA.sim({
       S.draw.text(c, "■ " + T.B, 20, 215, {size: 12, color: T.cB, align: "left"});
       S.draw.text(c, "● H₂O libérée (" + (2 * n - 1) + ")", c.W - 20, 195, {size: 12, color: P.teal, align: "right"});
       var nEau = 2 * n - 1, Mch = n * T.rep + 18, Mmon = n * (T.MA + T.MB);
-      ro.set(0, nEau + " mol · " + S.fmt(nEau * 18, 0) + " g/mol"); ro.set(1, S.fmt(Mch, 0) + " g/mol"); ro.set(2, S.fmt(Mmon, 0) + " g/mol"); ro.set(3, nEau + " liaisons " + T.lien);
+      ro.set(0, nEau + " H₂O par chaîne (" + S.fmt(nEau * 18, 0) + " g par mole de chaîne)"); ro.set(1, S.fmt(Mch, 0) + " g/mol"); ro.set(2, S.fmt(Mmon, 0) + " g/mol"); ro.set(3, nEau + " liaisons " + T.lien);
       nt.set("Bilan : " + S.fmt(Mmon, 0) + " = " + S.fmt(Mch, 0) + " + " + S.fmt(nEau * 18, 0) + " ✓  (usages : " + T.usage + ")", "ok");
     });
   }

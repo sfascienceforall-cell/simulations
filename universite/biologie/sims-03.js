@@ -66,7 +66,7 @@ SFA.sim({
       var V = tm.value==="imm" ? (osm>0?300/osm:Infinity) : (ton>0?300/ton:Infinity);
       var Vs = isFinite(V)?V:9; cell(c.W/2-80,130,Vs);
       /* barres osmolarité */
-      var x0=c.W/2+60, bw=70, sc=0.45;
+      var x0=c.W/2+30, bw=Math.min(70,(c.W-x0-40)/2), sc=0.3;
       S.draw.line(c,x0-20,250,x0+2*bw+20,250,"#8a95a3",1);
       [["Osmolarité",osm,P.acc],["Tonicité",ton,P.green]].forEach(function(b,i){ var h=Math.min(b[1],600)*sc; c.ctx.fillStyle=b[2]; c.ctx.fillRect(x0+i*bw,250-h,bw-14,h); S.draw.text(c,S.fmt(b[1],0),x0+i*bw+(bw-14)/2,250-h-8,{size:11,color:P.ink}); S.draw.text(c,b[0],x0+i*bw+(bw-14)/2,266,{size:10,color:P.grey}); });
       var y300=250-300*sc; S.draw.line(c,x0-20,y300,x0+2*bw+20,y300,P.red,1.5,[5,4]); S.draw.text(c,"300",x0+2*bw+24,y300,{size:10,color:P.red,align:"left"});
@@ -145,7 +145,7 @@ SFA.sim({
   titre:"Goldman : le potentiel de repos selon les perméabilités ioniques",
   resume:"Vm tend vers le potentiel d'équilibre de l'ion le plus perméant. Hyperkaliémie et pic du potentiel d'action.",
   but:"Choisis la perméabilité relative au sodium (pNa/pK) et au chlorure, puis fais varier [K⁺] extérieur. Compare avec E(K⁺).",
-  aRetenir:"GHK à 37 °C : Vm = 61,5·log₁₀[(pK·Kₒ + pNa·Naₒ + pCl·Clᵢ) / (pK·Kᵢ + pNa·Naᵢ + pCl·Clₒ)]. Au repos pK ≫ pNa : Vm ≈ −68 mV, proche de E(K⁺) = −89 mV mais plus positif. Quand pNa/pK passe à ≈ 20 (canaux Na⁺ ouverts), Vm vire vers E(Na⁺) (≈ +67 mV) : phase ascendante du potentiel d'action. Hyperkaliémie : Kₒ augmente, E(K⁺) devient moins négatif : la cellule se dépolarise.",
+  aRetenir:"GHK à 37 °C : Vm = 61,5·log₁₀[(pK·Kₒ + pNa·Naₒ + pCl·Clᵢ) / (pK·Kᵢ + pNa·Naᵢ + pCl·Clₒ)]. Au repos pK ≫ pNa : Vm ≈ −69 mV, proche de E(K⁺) = −89 mV mais plus positif. Quand pNa/pK passe à ≈ 20 (canaux Na⁺ ouverts), Vm vire vers E(Na⁺) (≈ +67 mV) : phase ascendante du potentiel d'action. Hyperkaliémie : Kₒ augmente, E(K⁺) devient moins négatif : la cellule se dépolarise.",
   piege:"Vm au repos n'est PAS égal à E(K⁺) : un peu de Na⁺ entre en permanence (pNa/pK ≈ 0,04), compensé par la pompe Na⁺/K⁺. Le potentiel de repos n'est pas un équilibre, c'est un état stationnaire.",
   build:function(k,S){
     var P=S.draw.palette, c=k.canvas(330);
@@ -158,7 +158,7 @@ SFA.sim({
     k.draw(function(){
       c.clear();
       var pN=parseFloat(pn.value), pC=pcl.value;
-      var ax=S.draw.axes(c,{x0:1,x1:40,y0:-100,y1:80,stepX:5,stepY:20,xl:"[K⁺] extérieur (mmol/L)",yl:"Vm (mV)"});
+      var ax=S.draw.axes(c,{x0:1,x1:40,y0:-140,y1:80,stepX:5,stepY:20,xl:"[K⁺] extérieur (mmol/L)",yl:"Vm (mV)"});
       S.draw.fn(c,ax,function(x){return U*Math.log10(x/Ki);},P.grey,1.6,[5,4]);
       S.draw.fn(c,ax,function(x){return vmf(x,pN,pC);},P.acc,2.8);
       S.draw.text(c,"tirets : E(K⁺) seul",ax.X(25),ax.Y(U*Math.log10(25/Ki))+14,{size:10,color:P.grey});

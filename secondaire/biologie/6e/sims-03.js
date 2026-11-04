@@ -94,7 +94,8 @@ SFA.sim({
       var lx = ox + 2 * cell + 20; if (c.W - lx > 110){ [[P.green, "normal(e)"], [P.amber, "porteuse"], [P.red, "atteint(e)"]].forEach(function(l, n2){ ctx.fillStyle = l[0]; ctx.fillRect(lx, oy + n2 * 28, 18, 18); S.draw.text(c, l[1], lx + 26, oy + 9 + n2 * 28, {align: "left", size: 12}); }); }
       S.draw.text(c, "Chaque case = 1/4 des enfants (2 cases filles, 2 cases garçons)", c.W / 2, oy + 2 * cell + 22, {size: 12, color: P.grey});
       var nt = nF.a + nM.a;
-      ro.set(0, frac(nF.a, 2) + " des filles"); ro.set(1, frac(nM.a, 2) + " des garçons"); ro.set(2, frac(nF.c, 2) + " des filles"); ro.set(3, frac(nt, 4) + " (" + S.fmt(nt * 25, 0) + " %)");
+      var part = function(n, tot, nom, fem){ return n === 0 ? (fem ? "aucune " : "aucun ") + nom : n === tot ? (fem ? "toutes les " : "tous les ") + nom + "s" : frac(n, tot) + " des " + nom + "s"; };
+      ro.set(0, part(nF.a, 2, "fille", true)); ro.set(1, part(nM.a, 2, "garçon", false)); ro.set(2, part(nF.c, 2, "fille", true)); ro.set(3, nt + " sur 4 (" + S.fmt(nt * 25, 0) + " %)");
       var tx = oy + 2 * cell + 50;
       S.draw.text(c, "Filles : " + nF.a + " atteinte, " + nF.c + " porteuse, " + nF.n + " normale", c.W / 2, tx, {size: 13});
       S.draw.text(c, "Garçons : " + nM.a + " atteint, " + nM.n + " normal", c.W / 2, tx + 24, {size: 13});
@@ -237,6 +238,7 @@ SFA.sim({
       for (i = 0; i < G * G; i++){ if (vis[i] < 0 || seen[i]) continue; plages++; var stack = [i]; seen[i] = 1;
         while (stack.length){ var z = stack.pop(), zx = z % G, zy = Math.floor(z / G), a = []; if (zx > 0) a.push(z - 1); if (zx < G - 1) a.push(z + 1); if (zy > 0) a.push(z - G); if (zy < G - 1) a.push(z + G);
           a.forEach(function(w){ if (!seen[w] && vis[w] === vis[i]){ seen[w] = 1; stack.push(w); } }); } }
+      if (gt.value === "o" || gt.value === "n" || gt.value === "mo" || gt.value === "mn") plages = tot > 0 ? 1 : 0;
       ro.set(0, S.fmt(orange / tot * 100, 0) + " %"); ro.set(1, plages);
       var g = gt.value;
       note.set(g === "f" || g === "kl" ? "Mosaïque : chaque plage descend d'une cellule fondatrice qui a inactivé l'un des deux X. Environ la moitié des plages sont orange en moyenne." : "Un seul type d'allèle (ou un seul X actif) : pelage uniforme, aucune mosaïque, même s'il y a inactivation d'un X chez les femelles homozygotes.", g === "f" || g === "kl" ? "ok" : "");

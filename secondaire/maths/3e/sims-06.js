@@ -37,7 +37,7 @@ SFA.sim({
       M3.drawXY(c,ax,A1,B1,C1,P.acc,S); M3.drawXY(c,ax,A2,B2,C2,P.red,S);
       var r=M3.solve2(A1,B1,C1,A2,B2,C2);
       ro.set(0,M3.eqXY(A1,B1,C1,S)); ro.set(1,M3.eqXY(A2,B2,C2,S));
-      if(r.kind==="one"){ S.draw.dot(c,ax.X(r.x),ax.Y(r.y),7,P.green);
+      if(r.kind==="one"){ if(Math.abs(r.x)<=10&&Math.abs(r.y)<=10) S.draw.dot(c,ax.X(r.x),ax.Y(r.y),7,P.green);
         ro.set(2,"("+S.fmt(r.x,2)+" ; "+S.fmt(r.y,2)+")");
         ro.set(3,S.fmt(A1*r.x+B1*r.y,2)+" = "+S.fmt(C1,2)+" ✓ ; "+S.fmt(A2*r.x+B2*r.y,2)+" = "+S.fmt(C2,2)+" ✓");
         nt.set(Math.abs(r.x)>10||Math.abs(r.y)>10?"Le point d'intersection sort du cadre, mais la solution existe bien.":"Le point vert est le seul point commun aux deux droites.","ok"); }
@@ -58,11 +58,11 @@ SFA.sim({
     var ro=k.readouts(["Équation 1","Équation 2","Cas"]); var nt=k.note("");
     k.draw(function(){
       c.clear(); var M=m.value,K=kk.value;
-      var ax=S.draw.axes(c,{x0:-2,x1:8,y0:-6,y1:10,xl:"x",yl:"y",stepX:1,stepY:2});
+      var ax=S.draw.axes(c,{x0:-2,x1:8,y0:-10,y1:10,xl:"x",yl:"y",stepX:1,stepY:2});
       M3.drawXY(c,ax,2,1,6,P.acc,S); M3.drawXY(c,ax,4,M,K,P.red,S);
       var r=M3.solve2(2,1,6,4,M,K);
       ro.set(0,M3.eqXY(2,1,6,S)); ro.set(1,M3.eqXY(4,M,K,S));
-      if(r.kind==="one"){ S.draw.dot(c,ax.X(r.x),ax.Y(r.y),7,P.green); ro.set(2,"1 solution : ("+S.fmt(r.x,2)+" ; "+S.fmt(r.y,2)+")"); nt.set("Pentes différentes : les droites se coupent en un seul point.","ok"); }
+      if(r.kind==="one"){ if(r.x>=-2&&r.x<=8&&r.y>=-10&&r.y<=10) S.draw.dot(c,ax.X(r.x),ax.Y(r.y),7,P.green); ro.set(2,"1 solution : ("+S.fmt(r.x,2)+" ; "+S.fmt(r.y,2)+")"); nt.set("Pentes différentes : les droites se coupent en un seul point.","ok"); }
       else if(r.kind==="inf"){ ro.set(2,"infinité de solutions"); nt.set("4x + 2y = 12 est l'équation 1 multipliée par 2 : c'est la même droite.","warn"); }
       else { ro.set(2,"aucune solution"); nt.set("4x + 2y = "+S.fmt(K,0)+" : en divisant par 2, on obtient 2x + y = "+S.fmt(K/2,1)+", incompatible avec 2x + y = 6.","warn"); }
     });

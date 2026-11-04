@@ -122,7 +122,9 @@ SFA.sim({
       var ax = S.draw.axes(c, {x0: 0, x1: tm, y0: -11, y1: 11, xl: "t (s)", yl: "x (cm)", l: 46, t: 18, stepY: 5});
       if (env.value && g > 0 && reg === "pseudo-périodique"){ S.draw.fn(c, ax, function(t){ return x0 * Math.exp(-g * t) * Math.sqrt(1 + Math.pow(g / Math.sqrt(w0 * w0 - g * g), 2)); }, P.grey, 1.6, [6, 4]); S.draw.fn(c, ax, function(t){ return -x0 * Math.exp(-g * t) * Math.sqrt(1 + Math.pow(g / Math.sqrt(w0 * w0 - g * g), 2)); }, P.grey, 1.6, [6, 4]); }
       S.draw.fn(c, ax, f, P.acc, 2.8);
-      ro.set(0, reg); ro.set(1, isNaN(T) ? "pas d'oscillation" : S.fmt(T, 2) + " s"); ro.set(2, g > 0 ? S.fmt(Math.log(2) / g, 2) + " s" : "∞ (pas d'amortissement)"); ro.set(3, S.fmt(bc, 2) + " kg/s");
+      ro.set(0, reg); ro.set(1, isNaN(T) ? "pas d'oscillation" : S.fmt(T, 2) + " s"); var half = Math.log(2) / g;   /* enveloppe e^(−γt) : valable en régime pseudo-périodique */
+      if (g > 0 && reg !== "pseudo-périodique"){ var lo = 0, hi = 200; for (var q = 0; q < 60; q++){ var mid = (lo + hi) / 2; if (f(mid) > x0 / 2) lo = mid; else hi = mid; } half = lo; }   /* sans oscillation : on lit le temps où x = x₀/2 */
+      ro.set(2, g > 0 ? S.fmt(half, 2) + " s" : "∞ (pas d'amortissement)"); ro.set(3, S.fmt(bc, 2) + " kg/s");
     });
   }
 });

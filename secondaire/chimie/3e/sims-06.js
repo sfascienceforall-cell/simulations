@@ -64,7 +64,7 @@ SFA.sim({
   resume:"Prélève un volume de solution mère puis complète avec de l'eau : la masse de soluté reste la même, la concentration baisse.",
   but:"Règle la concentration de la solution mère, le volume prélevé et le volume final. En mode défi, trouve le volume à prélever pour obtenir la concentration visée.",
   aRetenir:"Lors d'une dilution, la masse de soluté ne change pas : ρ₀ × V₀ = ρ₁ × V₁. On prélève V₀ de solution mère, on complète avec de l'eau jusqu'à V₁ : la concentration est divisée par le facteur de dilution V₁ ÷ V₀. Pour viser ρ₁, on prélève V₀ = ρ₁ × V₁ ÷ ρ₀.",
-  piege:"On ne verse pas V₁ d'eau : on complète jusqu'au trait de jauge V₁ (volume final). Et la solution est plus pâle, mais le nombre de particules dissoutes dans la pipette est exactement le même qu'avant. Respecte les unités : mL avec mL, g/L avec g/L.",
+  piege:"On ne verse pas V₁ d'eau : on complète jusqu'au trait de jauge V₁ (volume final). Et la solution est plus pâle, mais tout le soluté prélevé dans la pipette se retrouve dans la fiole : il y en a autant qu'avant, dans un plus grand volume. Respecte les unités : mL avec mL, g/L avec g/L.",
   build:function(k,S){
     var c = k.canvas(310);
     var md = k.seg("Mode", [["libre","Libre"],["defi","Défi"]], "libre", function(){ pick(); });
@@ -117,7 +117,7 @@ SFA.sim({
   resume:"Lis la solubilité sur la courbe, refroidis la solution et regarde les cristaux apparaître.",
   but:"Choisis un soluté, une masse ajoutée à 100 g d'eau et une température. Le point (T ; masse) indique si tout est dissous ou si des cristaux se déposent. Refroidis la solution chaude pour provoquer la cristallisation.",
   aRetenir:"La solubilité est la masse maximale de soluté qui se dissout dans une quantité d'eau donnée, à une température donnée. Elle dépend de la température : celle du nitrate de potassium augmente beaucoup, celle du sel presque pas. Sous la courbe : solution non saturée ; au-dessus : excès de soluté qui se dépose.",
-  piege:"Toutes les substances ne se comportent pas pareil : refroidir une solution salée ne fait presque pas cristalliser le sel. Ici la solubilité est exprimée en g pour 100 g d'eau (valeurs arrondies de tables). Le sucre dépasse 260 g/100 g d'eau à partir de 60 °C et sort du graphe.",
+  piege:"Toutes les substances ne se comportent pas pareil : refroidir une solution salée ne fait presque pas cristalliser le sel. Ici la solubilité est exprimée en g pour 100 g d'eau (valeurs arrondies de tables). Le sucre dépasse 260 g/100 g d'eau à partir d'environ 50 °C et sort du graphe.",
   build:function(k,S){
     var c = k.canvas(340);
     var su = k.select("Soluté", Object.keys(CS).map(function(i){return [i,CS[i].n];}), "kno3");

@@ -65,7 +65,7 @@ SFA.sim({
       if (sel.length < 2){ ro.set(0, "Touche 2 espèces"); ro.set(1, "—"); ro.set(2, "—"); note.set(sel.length === 1 ? sel[0] + " sélectionné(e) : touche une deuxième espèce." : "Touche deux noms d'espèces pour comparer leur parenté.", ""); return; }
       var a2 = path(T, sel[0], []), b2 = path(T, sel[1], []), j = 0; while (j < a2.length && j < b2.length && a2[j] === b2[j]) j++;
       var m = a2[j - 1], shared = []; a2.slice(0, j).forEach(function(n){ if (n.ch !== null && n.ch !== undefined) shared.push(n.ch + 1); });
-      var dist = (a2.length - j + 1) + (b2.length - j + 1);
+      var dist = (a2.length - j) + (b2.length - j);   /* branches de l'ancêtre commun à chaque espèce */
       ro.set(0, "ancêtre de " + leaves(m).join(", ")); ro.set(1, shared.length ? shared.join(", ") : "aucun"); ro.set(2, dist);
       var all = leaves(T).filter(function(x){ return x !== sel[0] && x !== sel[1]; }), nm = {};
       all.forEach(function(x){ var pp = path(T, x, []), q = 0; while (q < pp.length && q < a2.length && pp[q] === a2[q]) q++; nm[x] = q; });
@@ -115,7 +115,7 @@ SFA.sim({
       ctx.strokeStyle = P.acc; ctx.lineWidth = 2.8; ctx.beginPath(); for (g = 0; g <= upto; g++){ var X = ax.X(g), Y = ax.Y(Math.min(1, fst[g])); if (g === 0) ctx.moveTo(X, Y); else ctx.lineTo(X, Y); } ctx.stroke();
       S.draw.dot(c, ax.X(upto), ax.Y(Math.min(1, fst[upto])), 6, P.red);
       var f = fst[upto]; ro.set(0, S.fmt(f, 2)); ro.set(1, f > 0.5 ? "très différenciées : espèces probables" : f > 0.15 ? "différenciation nette" : "encore une seule population génétique");
-      note.set(nm.value === 0 && s === 0 ? "Isolement total : seule la dérive agit. Petite taille = divergence rapide ; essaie N = 20 puis N = 200." : nm.value > 0 && s === 0 ? "Avec " + nm.value + " migrant(s) par génération, les gènes circulent et la différenciation reste faible." : s > 0 ? "La sélection divergente (s = " + s * 100 + " %) pousse les deux populations dans des directions opposées ; elle l'emporte sur la migration quand s dépasse le taux de migration (" + S.fmt(m * 100, 1) + " %)." : "", "");
+      note.set(nm.value === 0 && s === 0 ? "Isolement total : seule la dérive agit. Petite taille = divergence rapide ; essaie N = 20 puis N = 200." : nm.value > 0 && s === 0 ? "Avec " + nm.value + " migrant(s) par génération, les gènes circulent et la différenciation reste faible." : s > 0 ? "La sélection divergente (s = " + sl.value + " %) pousse les deux populations dans des directions opposées ; elle l'emporte sur la migration quand s dépasse le taux de migration (" + S.fmt(m * 100, 1) + " %)." : "", "");
     });
   }
 });
@@ -230,7 +230,7 @@ SFA.sim({
           var Th = ISO[x][1], fo = Math.pow(0.5, Y / Th), good = fo <= 0.9 && fo >= 0.001, y = 44 + q * 80;
           S.draw.text(c, ISO[x][0], 10, y, {align: "left", size: 13});
           ctx.fillStyle = "#e5e9ee"; ctx.fillRect(10, y + 14, c.W - 20, 22); ctx.fillStyle = good ? P.green : "#b0b9c4"; ctx.fillRect(10, y + 14, (c.W - 20) * Math.max(fo, 0.004), 22);
-          S.draw.text(c, "reste " + (fo < 0.0001 ? "< 0,01" : S.fmt(fo * 100, fo < 0.1 ? 2 : 1)) + " % du père (" + S.fmt(Y / Th, 2) + " demi-vie)", 16, y + 25, {align: "left", size: 12, color: good ? "#fff" : P.ink, bg: good ? null : "rgba(255,255,255,.7)"});
+          S.draw.text(c, "reste " + (fo < 0.0001 ? "< 0,01" : S.fmt(fo * 100, fo < 0.1 ? 2 : 1)) + " % du père (" + S.fmt(Y / Th, 2) + (Y / Th >= 2 ? " demi-vies)" : " demi-vie)"), 16, y + 25, {align: "left", size: 12, color: good ? "#fff" : P.ink, bg: good ? null : "rgba(255,255,255,.7)"});
           S.draw.text(c, good ? "utilisable" : fo > 0.9 ? "trop peu désintégré" : "trop désintégré", c.W - 16, y, {align: "right", size: 12, color: good ? P.green : P.red}); if (good) ok.push(ISO[x][0]);
         });
         ro.set(0, fmtAge(Y)); ro.set(1, "—"); ro.set(2, ok.length ? ok.join(", ") : "aucun isotope utilisable");

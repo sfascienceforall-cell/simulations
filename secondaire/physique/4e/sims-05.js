@@ -70,7 +70,7 @@ SFA.sim({
       S.draw.fn(g1, ax, function(a){ return Math.sin(a * D2R); }, P.red, 3); S.draw.fn(g1, ax, function(a){ return 1 / Math.sin(a * D2R); }, P.acc, 3);
       S.draw.line(g1, ax.X(0), ax.Y(1), ax.X(65), ax.Y(1), P.green, 2, [6, 4]);
       P4.label(g1, "rouge : F / (m·g) = sin α", ax.X(17), ax.Y(5.55), P.red, "left"); P4.label(g1, "bleu : L / h = 1 / sin α", ax.X(17), ax.Y(4.85), P.acc, "left"); P4.label(g1, "vert : (F·L)/(m·g·h) = 1", ax.X(17), ax.Y(4.15), P.green, "left");
-      S.draw.dot(g1, ax.X(al.value), ax.Y(s), 5, P.red); S.draw.dot(g1, ax.X(al.value), ax.Y(1 / s), 5, P.acc);
+      S.draw.dot(g1, ax.X(al.value), ax.Y(s), 5, P.red); if (1 / s <= 6) S.draw.dot(g1, ax.X(al.value), ax.Y(1 / s), 5, P.acc); else P4.label(g1, "L / h = " + S.fmt(1 / s, 1) + " (hors graphique)", ax.X(al.value) + 8, ax.Y(5.9), P.acc, "left");
       ro.set(0, S.fmt(Fp, 0) + " N"); ro.set(1, S.fmt(L, 2) + " m"); ro.set(2, S.fmt(Wp, 0) + " J"); ro.set(3, S.fmt(M * G, 0) + " N sur " + S.fmt(H, 1) + " m = " + S.fmt(Wm, 0) + " J");
       nt.set("Pente douce : force " + S.fmt(Fp / (M * G) * 100, 0) + " % du poids, rampe " + S.fmt(L / H, 1) + " fois plus longue que la hauteur. Travail identique (sans frottement).", "");
     });

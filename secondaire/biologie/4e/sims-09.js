@@ -74,7 +74,7 @@ SFA.sim({
   build:function(k, S){
     var c = k.canvas(0, {ratio:.62}), tb = k.canvas(272);
     var gene = k.select("Gène", [["hbb","β-globine (début du gène)"],["art","Gène court n° 1"],["art2","Gène court n° 2"]], "hbb");
-    var pos = k.slider("Codon lu", 0, 13, 1, 3, "");
+    var pos = k.slider("Codon lu", 0, 12, 1, 3, "");
     var ro = k.readouts(["Codon", "Anticodon de l'ARNt", "Acide aminé", "Chaîne en cours"]);
     var nt = k.note("", "");
     gene.el.addEventListener("change", function(){ pos.el.max = B4.GENES[gene.value].s.length / 3 - 1; pos.set(Math.min(pos.value, pos.el.max)); k.redraw(); });
@@ -163,6 +163,7 @@ SFA.sim({
       if (!Bm.started){ cls = "perte du démarrage"; cons = "pas de protéine"; }
       else if (T !== "s"){ cls = "décalage du cadre de lecture"; cons = nchg ? "protéine très altérée à partir du codon " + (Math.floor(p / 3) + 1) : "sans effet visible"; }
       else if (nchg === 0){ cls = "silencieuse"; cons = "protéine identique"; }
+      else if (A.stop && !Bm.stop){ cls = "perte du codon stop"; cons = "plus de codon stop : la lecture continue et la protéine est allongée"; }
       else if (Bm.aa.length < A.aa.length){ cls = "non-sens"; cons = "protéine tronquée (" + Bm.aa.length + " aa au lieu de " + A.aa.length + ")"; }
       else { cls = "faux-sens"; cons = "1 acide aminé remplacé"; }
       ro.set(0, cls); ro.set(1, nchg); ro.set(2, Bm.started ? Bm.aa.length + " aa" : "—"); ro.set(3, cons);

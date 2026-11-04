@@ -1,6 +1,7 @@
 (function(){
 var P = SFA.draw.palette, F = SFA.fmt, PI = Math.PI;
 function sqAxes(c, R, step){ var L = 46, Rr = 16, T = 16, B = 34, ph = c.H - T - B, pw = c.W - L - Rr, hx = R * pw / ph; return SFA.draw.axes(c, {x0:-hx, x1:hx, y0:-R, y1:R, stepX:step, stepY:step, xl:"x", yl:"y"}); }
+function clipAx(c, ax, fn){ var ctx = c.ctx; ctx.save(); ctx.beginPath(); ctx.rect(ax.L, ax.T, ax.R - ax.L, ax.B - ax.T); ctx.clip(); fn(); ctx.restore(); }
 function snap(v, s){ return Math.round(v / s) * s; }
 function dragTips(c, getAx, tips, onMove){ /* tips : [{x(), y(), set(x,y)}] */
   var cur = -1; c.pointer(function(type, p){ var ax = getAx(); if (!ax) return;
@@ -57,7 +58,7 @@ SFA.sim({
       var a = ux.value, b = uy.value, d = vx.value, e = vy.value, nv2 = d * d + e * e, dp = a * d + b * e;
       if (nv2 === 0){ nt.set("v est nul : on ne peut pas projeter sur un vecteur nul.", "warn"); ro.set(0, "—"); ro.set(1, "0"); ro.set(2, "—"); ro.set(3, "—"); return; }
       var nv = Math.sqrt(nv2), t = dp / nv2, px = t * d, py = t * e;
-      S.draw.line(c, ax.X(-d * 20), ax.Y(-e * 20), ax.X(d * 20), ax.Y(e * 20), P.light, 1.4, [5, 4]);
+      clipAx(c, ax, function(){ S.draw.line(c, ax.X(-d * 20), ax.Y(-e * 20), ax.X(d * 20), ax.Y(e * 20), P.light, 1.4, [5, 4]); });
       S.draw.line(c, ax.X(a), ax.Y(b), ax.X(px), ax.Y(py), P.grey, 1.6, [4, 4]);
       S.draw.line(c, ax.X(0), ax.Y(0), ax.X(px), ax.Y(py), P.green, 6);
       S.draw.arrow(c, ax.X(0), ax.Y(0), ax.X(d), ax.Y(e), P.acc, 2.6); S.draw.arrow(c, ax.X(0), ax.Y(0), ax.X(a), ax.Y(b), P.red, 2.6);
@@ -90,7 +91,7 @@ SFA.sim({
       if (n2 === 0){ nt.set("a = b = 0 : ce n'est pas une droite. Choisis a ou b non nul.", "warn"); ro.set(0, "—"); ro.set(1, "—"); ro.set(2, "—"); ro.set(3, "—"); return; }
       var nn = Math.sqrt(n2), val = A * X0 + B * Y0 + C, dist = Math.abs(val) / nn, hx = X0 - val / n2 * A, hy = Y0 - val / n2 * B;
       var q0x = -C / n2 * A, q0y = -C / n2 * B, dx = -B / nn, dy = A / nn, qx = q0x + tq.value * dx, qy = q0y + tq.value * dy;
-      S.draw.line(c, ax.X(q0x - 30 * dx), ax.Y(q0y - 30 * dy), ax.X(q0x + 30 * dx), ax.Y(q0y + 30 * dy), P.ink, 2.4);
+      clipAx(c, ax, function(){ S.draw.line(c, ax.X(q0x - 30 * dx), ax.Y(q0y - 30 * dy), ax.X(q0x + 30 * dx), ax.Y(q0y + 30 * dy), P.ink, 2.4); });
       S.draw.arrow(c, ax.X(hx), ax.Y(hy), ax.X(hx + A / nn * 1.6), ax.Y(hy + B / nn * 1.6), P.violet, 2);
       S.draw.line(c, ax.X(X0), ax.Y(Y0), ax.X(hx), ax.Y(hy), P.green, 3);
       S.draw.line(c, ax.X(X0), ax.Y(Y0), ax.X(qx), ax.Y(qy), P.amber, 1.6, [5, 4]);
@@ -98,7 +99,7 @@ SFA.sim({
       S.draw.text(c, "P", ax.X(X0) + 11, ax.Y(Y0) - 9, {color:P.red}); S.draw.text(c, "H", ax.X(hx) + 11, ax.Y(hy) + 9, {color:P.green}); S.draw.text(c, "Q", ax.X(qx) + 11, ax.Y(qy) - 9, {color:P.amber});
       var pq = Math.hypot(X0 - qx, Y0 - qy);
       ro.set(0, F(val, 2)); ro.set(1, F(dist, 3)); ro.set(2, "(" + F(hx, 2) + " ; " + F(hy, 2) + ")"); ro.set(3, F(pq, 3));
-      nt.set("Droite " + F(A, 0) + "x " + (B < 0 ? "− " : "+ ") + F(Math.abs(B), 0) + "y " + (C < 0 ? "− " : "+ ") + F(Math.abs(C), 0) + " = 0. d = |" + F(val, 2) + "|/√" + F(n2, 0) + " = " + F(dist, 3) + ". PQ = " + F(pq, 3) + " ≥ PH = " + F(dist, 3) + " : la perpendiculaire est le plus court chemin. (Flèche violette : vecteur normal (" + F(A, 0) + " ; " + F(B, 0) + ").)", "ok");
+      nt.set("Droite " + F(A, 0) + "x " + (B < 0 ? "− " : "+ ") + F(Math.abs(B), 0) + "y " + (C < 0 ? "− " : "+ ") + F(Math.abs(C), 0) + " = 0. d = |" + F(val, 2) + "|/√" + F(n2, 0) + " = " + F(dist, 3) + ". PQ = " + F(pq, 3) + " ≥ PH = " + F(dist, 3) + " : la perpendiculaire est le plus court chemin. (Flèche violette : vecteur normal (" + F(A, 0) + " ; " + F(B, 0) + ").)" + (Math.abs(hx) > ax.x1 || Math.abs(hy) > ax.y1 || Math.abs(qx) > ax.x1 || Math.abs(qy) > ax.y1 ? " <b>Le pied H ou le point Q est hors du cadre</b> : les valeurs restent justes, change c ou la position de Q pour le voir." : ""), "ok");
     });
   }
 });
@@ -120,12 +121,12 @@ SFA.sim({
     var anim = k.loop(function(dt){ xa += dt * 2.5; if (xa >= di.value){ xa = di.value; anim.pause(); } k.redraw(); });
     k.button("▶ Déplacer", function(){ xa = 0; anim.play(); }, true); k.button("↺ Recommencer", function(){ anim.pause(); xa = 0; });
     k.draw(function(){
-      c.clear(); var F0 = fo.value, T = th.value * PI / 180, D = di.value, ctx = c.ctx, gy = c.H - 46, sc = (c.W - 100) / 10, x0 = 40;
+      c.clear(); var F0 = fo.value, T = th.value * PI / 180, D = di.value, ctx = c.ctx, gy = c.H - 46, sc = (c.W - 150) / 10, x0 = 75;
       if (xa > D) xa = D;
       S.draw.line(c, 20, gy, c.W - 20, gy, P.ink, 3); for (var i = 0; i <= D; i++){ S.draw.line(c, x0 + i * sc, gy, x0 + i * sc, gy + 6, P.grey, 1.5); S.draw.text(c, i + " m", x0 + i * sc, gy + 17, {size:12, color:P.grey}); }
       S.draw.line(c, x0, gy - 14, x0 + D * sc, gy - 14, "rgba(46,107,85,.5)", 2);
       var bx = x0 + xa * sc, by = gy - 28; ctx.fillStyle = P.amber; ctx.fillRect(bx - 22, gy - 38, 44, 36);
-      var len = 14 + F0 * 0.9, fx = Math.cos(T), fy = Math.sin(T);
+      var len = 14 + F0 * 0.55, fx = Math.cos(T), fy = Math.sin(T);
       S.draw.arrow(c, bx, by, bx + fx * len, by - fy * len, P.red, 3);
       S.draw.line(c, bx, by, bx + fx * len, by, P.green, 3, [5, 4]);
       S.draw.text(c, "F", bx + fx * len + 10, by - fy * len - 6, {color:P.red});

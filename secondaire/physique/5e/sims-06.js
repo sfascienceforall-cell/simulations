@@ -149,13 +149,13 @@ SFA.sim({
       for (var q = 0; q <= 150; q += 25){ S.draw.line(gr, X(q), 66, X(q), 72, pal.grey, 1.5); S.draw.text(gr, "" + q, X(q), 86, {size: 12, color: pal.grey}); }
       S.draw.text(gr, "plage sans dérapage (km/h)", gr.W / 2, 18, {size: 12, color: pal.green});
       S.draw.line(gr, X(r.vi * 3.6), 34, X(r.vi * 3.6), 66, pal.acc, 3);
-      S.draw.dot(gr, X(vk.value), 53, 8, (vk.value / 3.6 >= r.vmin - 1e-9 && vk.value / 3.6 <= r.vmax + 1e-9) ? pal.green : pal.red);
+      S.draw.dot(gr, X(vk.value), 53, 8, (vk.value / 3.6 >= r.vmin - 0.14 && vk.value / 3.6 <= r.vmax + 0.14) ? pal.green : pal.red);
       ro.set(0, S.fmt(r.vi * 3.6, 0) + " km/h"); ro.set(1, S.fmt(r.vmin * 3.6, 0) + " km/h"); ro.set(2, isFinite(r.vmax) ? S.fmt(r.vmax * 3.6, 0) + " km/h" : "illimitée");
       ro.set(3, S.fmt(r.N / P5.g, 2) + " m·g"); ro.set(4, S.fmt(r.f / P5.g, 2) + " m·g"); ro.set(5, S.fmt(r.fmax / P5.g, 2) + " m·g");
-      var inside = vk.value / 3.6 >= r.vmin - 1e-9 && vk.value / 3.6 <= r.vmax + 1e-9;
+      var inside = vk.value / 3.6 >= r.vmin - 0.14 && vk.value / 3.6 <= r.vmax + 0.14;   /* tolérance = demi-pas du curseur (1 km/h ≈ 0,28 m/s) */
       if (inside && Math.abs(vk.value / 3.6 - r.vi) < 0.5) nt.set("Vitesse idéale : N et P suffisent, le frottement n'est pas nécessaire.", "ok");
       else if (inside) nt.set("Le véhicule tient grâce au frottement : il faut f = " + S.fmt(Math.abs(r.f) / P5.g, 2) + " m·g (vers " + (r.f > 0 ? "l'extérieur de la courbe" : "le centre du virage") + ") et il peut aller jusqu'à μ·N = " + S.fmt(r.fmax / P5.g, 2) + " m·g.", "");
-      else if (vk.value / 3.6 > r.vmax) nt.set("Trop vite : le frottement ne suffit plus, le véhicule dérape vers l'extérieur du virage (il tend à aller tout droit).", "bad");
+      else if (vk.value / 3.6 > r.vmax + 0.14) nt.set("Trop vite : le frottement ne suffit plus, le véhicule dérape vers l'extérieur du virage (il tend à aller tout droit).", "bad");
       else nt.set("Trop lentement pour cette inclinaison et cette adhérence : le véhicule glisse vers l'intérieur du virage (sur le verglas par exemple).", "bad");
     });
   }

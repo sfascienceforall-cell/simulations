@@ -12,7 +12,7 @@ var E = [null,
  ["Na","sodium",22.99,0.93,180,"s","alc",3,1],["Mg","magnésium",24.31,1.31,150,"s","ate",3,2],["Al","aluminium",26.98,1.61,125,"s","mp",3,13],["Si","silicium",28.09,1.90,110,"s","meta",3,14],["P","phosphore",30.97,2.19,100,"s","nm",3,15],["S","soufre",32.06,2.58,100,"s","nm",3,16],["Cl","chlore",35.45,3.16,100,"g","hal",3,17],["Ar","argon",39.95,null,71,"g","nob",3,18],
  ["K","potassium",39.10,0.82,220,"s","alc",4,1],["Ca","calcium",40.08,1.00,180,"s","ate",4,2],
  ["Sc","scandium",44.96,1.36,160,"s","tra",4,3],["Ti","titane",47.87,1.54,140,"s","tra",4,4],["V","vanadium",50.94,1.63,135,"s","tra",4,5],["Cr","chrome",52.00,1.66,140,"s","tra",4,6],["Mn","manganèse",54.94,1.55,140,"s","tra",4,7],["Fe","fer",55.85,1.83,140,"s","tra",4,8],["Co","cobalt",58.93,1.88,135,"s","tra",4,9],["Ni","nickel",58.69,1.91,135,"s","tra",4,10],["Cu","cuivre",63.55,1.90,135,"s","tra",4,11],["Zn","zinc",65.38,1.65,135,"s","tra",4,12],
- ["Ga","gallium",69.72,1.81,130,"s","mp",4,13],["Ge","germanium",72.63,2.01,125,"s","meta",4,14],["As","arsenic",74.92,2.18,115,"s","meta",4,15],["Se","sélénium",78.97,2.55,115,"s","nm",4,16],["Br","brome",79.90,2.96,115,"l","hal",4,17],["Kr","krypton",83.80,3.00,88,"g","nob",4,18]
+ ["Ga","gallium",69.72,1.81,130,"s","mp",4,13],["Ge","germanium",72.63,2.01,125,"s","meta",4,14],["As","arsenic",74.92,2.18,115,"s","meta",4,15],["Se","sélénium",78.97,2.55,115,"s","nm",4,16],["Br","brome",79.90,2.96,115,"l","hal",4,17],["Kr","krypton",83.80,null,88,"g","nob",4,18]
 ];
 var CAT = {alc:["Alcalins","#e76f51"], ate:["Alcalino-terreux","#f4a261"], tra:["Métaux de transition","#a3c4bc"], mp:["Autres métaux","#8ab6d6"], meta:["Métalloïdes","#d4a5c9"], nm:["Autres non-métaux","#e9d985"], hal:["Halogènes","#2a9d8f"], nob:["Gaz nobles","#9d8cd6"]};
 var MET = {alc:1,ate:1,tra:1,mp:1};
@@ -139,7 +139,7 @@ SFA.sim({
   resume:"Un trou dans la colonne : estime sa masse et sa densité à partir de ses voisins, puis compare avec l'élément découvert.",
   but:"Choisis un trou du tableau de 1869. Déplace la masse atomique supposée : la densité prévue par interpolation s'affiche. Révèle ensuite l'élément réel.",
   aRetenir:"Mendeleïev a classé les éléments par masse croissante en plaçant dans la même colonne ceux de propriétés voisines, quitte à laisser des trous. En comparant les voisins, il a prédit la masse, la densité et la formule de l'oxyde d'éléments inconnus : ils ont été découverts ensuite (gallium en 1875, germanium en 1886).",
-  piege:"L'interpolation linéaire ne donne qu'un ordre de grandeur : la densité réelle diffère de 10 à 15 %. Mendeleïev utilisait aussi les voisins de la même ligne. La formule de l'oxyde, elle, est exacte parce que la colonne partage le nombre d'électrons de valence.",
+  piege:"L'interpolation linéaire ne donne qu'un ordre de grandeur : la densité réelle diffère de 10 à 20 % (environ 10 % pour le germanium, 16 % pour le gallium). Mendeleïev utilisait aussi les voisins de la même ligne. La formule de l'oxyde, elle, est exacte parce que la colonne partage le nombre d'électrons de valence.",
   build:function(k,S){
     var c = k.canvas(330);
     var cs = k.select("Trou à combler", Object.keys(MEN).map(function(i){return [i,MEN[i].n];}), "ge", function(){ ms.set(Math.round((MEN[cs.value].up[1]+MEN[cs.value].dn[1])/2)); });

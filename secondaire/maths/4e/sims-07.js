@@ -30,7 +30,7 @@ SFA.sim({
       if(t==="up") sel=-1; });
     k.draw(function(){
       c.clear();
-      ax=S.draw.axes(c,{x0:0,x1:12,y0:0,y1:9.6,stepX:2,stepY:2});
+      ax=S.draw.axes(c,{x0:0,x1:12,y0:0,y1:9.6,stepX:2,stepY:2,equal:true});
       var A=pts[0],B=pts[1],C=pts[2];
       var a=Math.hypot(B.x-C.x,B.y-C.y), b=Math.hypot(A.x-C.x,A.y-C.y), cc=Math.hypot(A.x-B.x,A.y-B.y);
       var ctx=c.ctx; ctx.fillStyle="rgba(30,63,143,.12)"; ctx.beginPath(); ctx.moveTo(ax.X(A.x),ax.Y(A.y)); ctx.lineTo(ax.X(B.x),ax.Y(B.y)); ctx.lineTo(ax.X(C.x),ax.Y(C.y)); ctx.closePath(); ctx.fill();
@@ -115,9 +115,9 @@ SFA.sim({
     var nt=k.note("","");
     k.draw(function(){
       var Av=Aa.value*D2R, bv=b.value, av=Math.round(a.value*10)/10, W=c.W,H=c.H; c.clear(); var ctx=c.ctx;
-      var sc=Math.min((W-20)/22,(H-20)/13), X=function(x){return 10+(x+7)*sc;}, Y=function(y){return H-10-(y+3)*sc;};
+      var sc=Math.min((W-20)/25,(H-20)/13), X=function(x){return 10+(x+7)*sc;}, Y=function(y){return H-10-(y+3)*sc;};
       var Cx=bv*Math.cos(Av), Cy=bv*Math.sin(Av), h=bv*Math.sin(Av);
-      S.draw.line(c,X(-6),Y(0),X(15),Y(0),P.grey,1.5);
+      S.draw.line(c,X(-7),Y(0),X(18),Y(0),P.grey,1.5);
       ctx.save(); ctx.beginPath(); ctx.rect(0,0,W,H); ctx.clip(); ctx.strokeStyle=P.violet; ctx.lineWidth=1.5; ctx.setLineDash([5,4]); ctx.beginPath(); ctx.arc(X(Cx),Y(Cy),av*sc,0,2*PI); ctx.stroke(); ctx.restore();
       S.draw.line(c,X(0),Y(0),X(Cx),Y(Cy),P.green,3);
       arcAt(c,X(0),Y(0),22,0,Av,P.amber,2.5);

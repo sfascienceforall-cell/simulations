@@ -50,7 +50,7 @@ SFA.sim({
       ctx = gr.ctx; ctx.strokeStyle = pal.acc; ctx.lineWidth = 2.5; ctx.beginPath();
       hist.forEach(function(p, i){ if (i === 0) ctx.moveTo(ax.X(p[0]), ax.Y(p[1])); else ctx.lineTo(ax.X(p[0]), ax.Y(p[1])); });
       ctx.lineTo(ax.X(T), ax.Y(v)); ctx.stroke(); S.draw.dot(gr, ax.X(T), ax.Y(v), 5, pal.red);
-      ro.set(0, S.fmt(T, 1) + " s"); ro.set(1, S.fmt(v, 2) + " m/s"); ro.set(2, S.fmt(F, 2) + " N"); ro.set(3, S.fmt(x, 1) + " m");
+      ro.set(0, S.fmt(T, 1) + " s"); ro.set(1, S.fmt(v, 2) + " m/s"); ro.set(2, S.fmt(v > 0 ? F : 0, 2) + " N"); ro.set(3, S.fmt(x, 1) + " m");
       ro.set(4, v > 0 ? S.fmt(-F, 2) + " N" : "0 N");
       if (mu.value === 0) nt.set("μ = 0 : ΣF = 0 et la vitesse reste " + S.fmt(v0.value, 1) + " m/s. Le palet continue tout seul, sans aucune force vers l'avant.", "ok");
       else nt.set("a = −μ·g = " + S.fmt(-mu.value * P5.g, 2) + " m/s² ; arrêt après " + S.fmt(v0.value / (mu.value * P5.g), 1) + " s et " + S.fmt(v0.value * v0.value / (2 * mu.value * P5.g), 1) + " m. La masse n'intervient pas dans a.", "");
@@ -185,7 +185,7 @@ SFA.sim({
         if (fall){ vy += g * dt; yg += vy * dt; xg += vg * dt; if (yg > 0.5) { out.push([t, xe, xg, yg]); break; } }
         if (guard % 20 === 0) out.push([t, xe, xg, yg]);
       }
-      fr = {frames: out, fell: !!fall, shift: xg - d0};
+      fr = {frames: out, fell: !!fall, shift: xg - d0, A: a1, mu: m1};
       tp = 0; scale = Math.max(1, out[out.length - 1][0] / 4);   /* ralenti ×scale (durée visible ≈ 4 s) */
       lp.play();
     }
@@ -203,6 +203,7 @@ SFA.sim({
     k.draw(function(){
       c.clear();
       var pal = S.draw.palette, ctx = c.ctx, g = P5.g, a1 = A.value, m1 = mu1.value;
+      if (fr && (fr.A !== a1 || fr.mu !== m1)){ fr = null; lp.pause(); tp = 0; }   /* réglage modifié : l'ancienne animation ne correspond plus */
       var X = function(x){ return 20 + x / 0.8 * (c.W - 40); }, ty = 150;
       var st = fr ? frameAt(tp) : [0, 0, d0, 0];
       var xe = st[1], xg = st[2], yg = st[3];

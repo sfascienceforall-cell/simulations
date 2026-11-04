@@ -2,7 +2,7 @@
 SFA.sim({
   id:"b4-c04-tph", ch:"c04", tag:"Classique · graphes",
   titre:"Température et pH : la courbe en cloche",
-  resume:"Fais varier température et pH pour trois enzymes humaines ou bactériennes, puis chauffe-les trop longtemps.",
+  resume:"Fais varier température et pH pour quatre enzymes (trois humaines, une de bactérie thermophile), puis chauffe-les trop longtemps.",
   but:"Choisis une enzyme, déplace température et pH, lis l'activité relative. Le bouton « Chauffer 5 min puis refroidir » montre ce que devient l'enzyme dénaturée.",
   aRetenir:"Chaque enzyme a une température et un pH optimaux (amylase salivaire : ≈ 37 °C, pH ≈ 7 ; pepsine : pH ≈ 2). Au-delà, la structure 3D de la protéine est détruite : c'est la dénaturation, irréversible. Le froid, lui, ralentit l'enzyme sans la détruire.",
   piege:"Une enzyme dénaturée par la chaleur ne « redevient pas active » en refroidissant, contrairement à un gel qui refond. Courbes de modèle (activité relative, optimum = 100 %), pas des mesures.",
@@ -120,7 +120,8 @@ SFA.sim({
       var a = v0(S0), b = vi(S0), inh = a > 0 ? (1 - b / a) * 100 : 0;
       ro.set(0, S.fmt(a, 1)); ro.set(1, S.fmt(b, 1)); ro.set(2, S.fmt(inh, 0) + " %"); ro.set(3, comp ? S.fmt(KM * f, 1) + " mmol/L" : S.fmt(KM, 0) + " mmol/L (inchangé)");
       var m1 = comp ? "À forte [S], le substrat chasse l'inhibiteur : l'inhibition tombe à " + S.fmt(inh, 0) + " % et le plateau (Vmax = 100) est retrouvé." : "Peu importe [S] : le plateau reste abaissé à " + S.fmt(VM / f, 0) + " au lieu de 100.";
-      nt.set(ii === 0 ? "Sans inhibiteur, les deux courbes sont confondues." : (S0 > 5 * KM * f && comp ? m1 : S0 < 5 ? "À très faible [S], l'inhibition est forte pour les deux types." : m1), ii === 0 ? "" : comp ? (inh < 20 ? "ok" : "warn") : "warn");
+      var inhNC = (1 - 1 / f) * 100;
+      nt.set(ii === 0 ? "Sans inhibiteur, les deux courbes sont confondues." : comp ? (S0 > 5 * KM * f ? m1 : "À cette [S], l'inhibiteur occupe encore une bonne part des sites : inhibition de " + S.fmt(inh, 0) + " %. Augmente [S] pour le chasser.") : "Inhibiteur non compétitif : la vitesse est divisée par " + S.fmt(f, 2) + " (inhibition de " + S.fmt(inhNC, 0) + " %) quelle que soit [S]. " + m1, ii === 0 ? "" : comp ? (inh < 20 ? "ok" : "warn") : "warn");
     });
   }
 });

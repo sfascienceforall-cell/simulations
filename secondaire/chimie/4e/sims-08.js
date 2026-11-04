@@ -50,7 +50,7 @@ SFA.sim({
     k.draw(function(){
       var C1 = c1.value, C2 = c2.value, V2 = v2.value, V1 = C2 * V2 / C1, F = C1 / C2, n = C2 * V2 / 1000;
       c.clear(); var W = c.W, ctx = c.ctx;
-      var cnt = Math.max(2, Math.min(80, Math.round(n * 160)));
+      var dk = 0.0016;   /* densité de points : proportionnelle à la concentration (points par px² et par mol/L) */
       function vessel(x, w, h, frac, conc, label, nn){
         ctx.fillStyle = "rgba(30,110,210," + Math.min(0.85, 0.06 + conc * 0.3) + ")"; ctx.fillRect(x, 230 - h * frac, w, h * frac);
         ctx.strokeStyle = "#5f6b7a"; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(x, 230 - h); ctx.lineTo(x, 230); ctx.lineTo(x + w, 230); ctx.lineTo(x + w, 230 - h); ctx.stroke();
@@ -58,17 +58,14 @@ SFA.sim({
         C4.label(c, label, x + w / 2, 250, "#2c3a4e", 12);
       }
       var mw = W * 0.2, fw = W * 0.38, gx = 14, fx = W * 0.52;
-      var fr1 = Math.max(0.12, Math.min(1, V1 / 100 * 0.7 + 0.12)), nm = Math.max(1, Math.round(cnt * V1 * C1 / (C2 * V2) ));
-      vessel(gx, mw, 140, 0.8, C1, "mère " + S.fmt(C1, 1) + " mol/L", Math.round(cnt * 0));
+      var nM = Math.max(2, Math.min(80, Math.round(dk * C1 * (mw - 12) * (140 * 0.8 - 12)))), nF = Math.max(1, Math.min(80, Math.round(dk * C2 * (fw - 12) * (160 * 0.9 - 12)))), nP = Math.max(1, Math.min(30, Math.round(dk * C1 * 10 * 44)));
+      vessel(gx, mw, 140, 0.8, C1, "mère " + S.fmt(C1, 1) + " mol/L", nM);
       /* prélèvement : montrer les particules transférées (en rouge) dans la pipette */
       ctx.fillStyle = "rgba(30,110,210," + Math.min(0.85, 0.06 + C1 * 0.3) + ")"; ctx.fillRect(gx + mw + 20, 100, 16, 50); ctx.strokeStyle = "#5f6b7a"; ctx.lineWidth = 2; ctx.strokeRect(gx + mw + 20, 60, 16, 130);
-      for (var j = 0; j < Math.min(cnt, 30); j++) S.draw.dot(c, gx + mw + 28, 104 + (j * 13) % 44, 2.6, "#b42318");
+      for (var j = 0; j < nP; j++) S.draw.dot(c, gx + mw + 23 + P[j][0] * 10, 103 + P[j][1] * 44, 2.6, "#b42318");
       C4.label(c, "pipette", gx + mw + 28, 52, "#5f6b7a", 12); C4.label(c, S.fmt(V1, 1) + " mL", gx + mw + 28, 205, "#b42318", 12);
-      /* mère : particules */
-      for (j = 0; j < 40; j++) S.draw.dot(c, gx + 6 + P[j][0] * (mw - 12), 230 - 6 - P[j][1] * (140 * 0.8 - 12), 3, "#1e3f8f");
-      vessel(fx, fw, 160, 0.9, C2, "fille " + S.fmt(C2, 2) + " mol/L", Math.min(80, cnt));
-      for (j = 0; j < Math.min(cnt, 30); j++) S.draw.dot(c, fx + 6 + P[j][0] * (fw - 12), 230 - 6 - P[j][1] * (160 * 0.9 - 12), 3, "#b42318");
-      C4.label(c, "● rouge : les particules prélevées", W / 2, 270, "#b42318", 12);
+      vessel(fx, fw, 160, 0.9, C2, "fille " + S.fmt(C2, 2) + " mol/L", nF);
+      C4.label(c, "● rouge : particules dans la pipette (densité ∝ concentration, schéma qualitatif)", W / 2, 270, "#b42318", 12);
       ro.set(0, S.fmt(V1, 2) + " mL"); ro.set(1, S.fmt(F, 1)); ro.set(2, S.fmt(n * 1000, 1) + " mmol");
       nt.set(C2 >= C1 ? "c₂ ≥ c₁ : ce n'est pas une dilution (on ne peut pas diluer pour concentrer)." : V1 > V2 ? "Volume à prélever supérieur à V₂ : impossible." : "Prélève " + S.fmt(V1, 2) + " mL de mère, place-les dans une fiole de " + S.fmt(V2, 0) + " mL et complète jusqu'au trait avec de l'eau. Il y a " + S.fmt(F, 1) + " fois moins de particules par litre.", C2 >= C1 ? "warn" : "");
     });

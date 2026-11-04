@@ -156,7 +156,7 @@ var EAUX = [
   {n:"Eau déminéralisée", s:0.002, ions:"presque aucun ion", col:"#9fb4c9"},
   {n:"Eau de pluie", s:0.02, ions:"très peu d'ions (CO₂ dissous, traces)", col:"#9fb4c9"},
   {n:"Eau minérale peu minéralisée", s:0.05, ions:"quelques ions Ca²⁺, HCO₃⁻, Na⁺…", col:"#7ea6e6"},
-  {n:"Eau du robinet (ordre de grandeur)", s:0.6, ions:"Ca²⁺, Mg²⁺, HCO₃⁻, Cl⁻, SO₄²⁻, Na⁺…", col:"#7ea6e6"},
+  {n:"Eau du robinet (ordre de grandeur)", s:0.5, ions:"Ca²⁺, Mg²⁺, HCO₃⁻, Cl⁻, SO₄²⁻, Na⁺…", col:"#7ea6e6"},
   {n:"Eau minérale très minéralisée", s:2, ions:"beaucoup de Ca²⁺, Mg²⁺, SO₄²⁻, HCO₃⁻", col:"#5b8fe0"},
   {n:"Eau salée à 10 g/L", s:17, ions:"Na⁺ et Cl⁻ en grande quantité", col:"#3b6fd0"},
   {n:"Eau de mer (≈ 35 g/L de sels)", s:50, ions:"Na⁺, Cl⁻, Mg²⁺, SO₄²⁻, Ca²⁺, K⁺…", col:"#1e3f8f"}

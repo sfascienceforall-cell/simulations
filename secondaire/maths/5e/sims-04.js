@@ -9,6 +9,8 @@ function curve(c, ax, pt, t0, t1, col, dash, w){
 function piece(c, ax, f, x0, x1, col){ curve(c, ax, function(t){ return [t, f(t)]; }, x0, x1, col); }
 function hole(c, ax, x, y, col){ var ctx = c.ctx; ctx.beginPath(); ctx.arc(ax.X(x), ax.Y(y), 5.5, 0, 7); ctx.fillStyle = "#fff"; ctx.fill(); ctx.strokeStyle = col; ctx.lineWidth = 2; ctx.stroke(); }
 function inf(v){ return v === Infinity ? "+∞" : v === -Infinity ? "−∞" : F(v, 3); }
+function sg(r){ return r < 0 ? " − " + F(-r, 1) : " + " + F(r, 1); }
+function xp(p){ return p === 0 ? "x" : "x " + (p < 0 ? "+ " : "− ") + F(Math.abs(p), 0); }
 function lin(a, b){ return (a === 1 ? "" : a === -1 ? "−" : F(a, 0)) + "x" + (b === 0 ? "" : (b < 0 ? " − " : " + ") + F(Math.abs(b), 0)); }
 function poly(a, b, c){ var s = ""; if (a) s += (a === 1 ? "" : a === -1 ? "−" : F(a, 0)) + "x²"; if (b) s += (s ? (b > 0 ? " + " : " − ") : (b < 0 ? "−" : "")) + (Math.abs(b) === 1 ? "" : F(Math.abs(b), 0)) + "x"; if (c || !s) s += (s ? (c >= 0 ? " + " : " − ") : (c < 0 ? "−" : "")) + F(Math.abs(c), 0); return s; }
 
@@ -31,17 +33,16 @@ SFA.sim({
       var ax = S.draw.axes(c, {x0:-8, x1:8, y0:-10, y1:10, stepX:2, stepY:2, xl:"x", yl:"y"});
       var rem = num(Pp), vert = Math.abs(rem) > 1e-12, qa = A, qb = B + A * Pp;
       if (vert) S.draw.line(c, ax.X(Pp), ax.T, ax.X(Pp), ax.B, P.red, 1.5, [6, 5]);
-      if (A === 0 && B !== 0 && vert) S.draw.line(c, ax.L, ax.Y(B), ax.R, ax.Y(B), P.green, 1.5, [6, 5]);
-      if (A !== 0 && vert) S.draw.line(c, ax.L, ax.Y(qa * ax.x0 + qb), ax.R, ax.Y(qa * ax.x1 + qb), P.violet, 1.5, [6, 5]);
+      if (A === 0 && vert) S.draw.line(c, ax.L, ax.Y(B), ax.R, ax.Y(B), P.green, 1.5, [6, 5]);
+      if (A !== 0 && vert){ c.ctx.save(); c.ctx.beginPath(); c.ctx.rect(ax.L, ax.T, ax.R - ax.L, ax.B - ax.T); c.ctx.clip(); S.draw.line(c, ax.L, ax.Y(qa * ax.x0 + qb), ax.R, ax.Y(qa * ax.x1 + qb), P.violet, 1.5, [6, 5]); c.ctx.restore(); }
       S.draw.fn(c, ax, function(x){ return Math.abs(x - Pp) < 1e-9 ? NaN : num(x)/(x - Pp); }, P.acc, 2.6);
       var holeY = !vert ? (A === 0 ? B : qa * Pp + qb) : null;
       if (!vert) hole(c, ax, Pp, holeY, P.acc);
       ro.set(0, vert ? "x = " + F(Pp, 0) : (A === 0 && B === 0 && C === 0 ? "—" : "aucune (trou)"));
       ro.set(1, A === 0 ? (!vert ? "aucune (f constante)" : B !== 0 ? "y = " + F(B, 0) : "y = 0") : "aucune");
       ro.set(2, A !== 0 && !vert ? "aucune (f est une droite)" : A !== 0 ? "y = " + lin(qa, qb) : "aucune");
-      var m = "f(x) = (" + poly(A, B, C) + ") / (x " + (Pp < 0 ? "+ " : "− ") + F(Math.abs(Pp), 0) + (Pp === 0 ? ")" : ")");
-      if (Pp === 0) m = "f(x) = (" + poly(A, B, C) + ") / x";
-      if (A !== 0) m += "<br>Division : " + poly(A, B, C) + " = (x " + (Pp < 0 ? "+ " : "− ") + F(Math.abs(Pp), 0) + ")(" + lin(qa, qb) + ") + " + F(rem, 0) + ", donc f(x) = " + lin(qa, qb) + " + " + F(rem, 0) + "/(x " + (Pp < 0 ? "+ " : "− ") + F(Math.abs(Pp), 0) + ") et le dernier terme tend vers 0 en ±∞.";
+      var m = "f(x) = (" + poly(A, B, C) + ") / " + (Pp === 0 ? "x" : "(" + xp(Pp) + ")");
+      if (A !== 0) m += "<br>Division : " + poly(A, B, C) + " = " + (Pp === 0 ? "x" : "(" + xp(Pp) + ")") + "·(" + lin(qa, qb) + ")" + (rem === 0 ? "" : sg(rem)) + ", donc f(x) = " + lin(qa, qb) + (rem === 0 ? "." : sg(rem).replace(/(\d+(?:,\d+)?)$/, "$1") + "/" + (Pp === 0 ? "x" : "(" + xp(Pp) + ")") + " et le dernier terme tend vers 0 en ±∞.");
       if (!vert) m += "<br><b>Le numérateur s'annule en p : la fraction se simplifie, il y a un trou en (" + F(Pp, 0) + " ; " + F(holeY, 0) + "), pas d'asymptote verticale.</b>";
       nt.set(m, vert ? "ok" : "warn");
     });
@@ -133,7 +134,7 @@ SFA.sim({
     var nt = k.note("", "ok");
     k.draw(function(){
       c.clear(); var A = a.value, C = v.value, B = ty.value === "B";
-      var ax = S.draw.axes(c, {x0:-6, x1:6, y0:-7, y1:7, stepX:2, stepY:2, xl:"x", yl:"y"});
+      var ax = S.draw.axes(c, {x0:-6, x1:6, y0:-8, y1:8, stepX:2, stepY:2, xl:"x", yl:"y"});
       var f = B ? function(x){ return Math.abs(x - A) < 1e-12 ? NaN : Math.abs(x - A)/(x - A); } : function(x){ return Math.abs(x - A) < 1e-12 ? NaN : x + A; };
       piece(c, ax, f, -6, A - 1e-9, P.acc); piece(c, ax, f, A + 1e-9, 6, P.acc);
       S.draw.dot(c, ax.X(A), ax.Y(C), 6, P.red);
@@ -141,7 +142,7 @@ SFA.sim({
       if (ok) hole(c, ax, A, lg, P.acc); else { hole(c, ax, A, lg, P.acc); hole(c, ax, A, ld, P.acc); }
       if (ok && Math.abs(C - lg) < 1e-9) S.draw.dot(c, ax.X(A), ax.Y(C), 6, P.green);
       ro.set(0, ok ? F(lg, 1) : "n'existe pas"); ro.set(1, F(C, 1)); ro.set(2, ok && Math.abs(C - lg) < 1e-9 ? "OUI" : "NON");
-      nt.set(!ok ? "Limite gauche −1, limite droite +1 : saut. Quelle que soit c, la courbe ne se raccorde pas : <b>pas de prolongement possible</b>." : (Math.abs(C - lg) < 1e-9 ? "Recollé : f(x) = x + " + F(A, 1) + " pour tout x, y compris en a. La droite est complète." : "Pour x ≠ a, f(x) = x + a, qui tend vers 2a = " + F(lg, 1) + ". Tu as mis c = " + F(C, 1) + " : un point isolé reste décollé. Pose c = " + F(lg, 1) + "."), ok && Math.abs(C - lg) < 1e-9 ? "ok" : "warn");
+      nt.set(!ok ? "Limite gauche −1, limite droite +1 : saut. Quelle que soit c, la courbe ne se raccorde pas : <b>pas de prolongement possible</b>." : (Math.abs(C - lg) < 1e-9 ? "Recollé : f(x) = x" + sg(A) + " pour tout x, y compris en a. La droite est complète." : "Pour x ≠ a, f(x) = x" + sg(A) + ", qui tend vers 2a = " + F(lg, 1) + ". Tu as mis c = " + F(C, 1) + " : un point isolé reste décollé. Pose c = " + F(lg, 1) + "."), ok && Math.abs(C - lg) < 1e-9 ? "ok" : "warn");
     });
   }
 });

@@ -16,10 +16,14 @@ C5.ALK_POINTS = function(m, x0, y0, dx, dy){   /* positions des carbones : chaî
   var pts = [], i;
   for (i = 0; i < m.L; i++) pts.push({x: x0 + i * dx, y: y0 + (i % 2 ? -dy : dy) / 2, main: true, idx: i, nb: []});
   for (i = 0; i < m.L - 1; i++){ pts[i].nb.push(i + 1); pts[i + 1].nb.push(i); }
+  var cnt = {}, seen = {};
+  m.subs.forEach(function(s){ cnt[s.p] = (cnt[s.p] || 0) + 1; });
   m.subs.forEach(function(s){
     var base = pts[s.p], up = base.y < y0 ? -1 : 1, prev = s.p;
+    var j = seen[s.p] === undefined ? 0 : seen[s.p] + 1; seen[s.p] = j;
+    var off = cnt[s.p] > 1 ? (j === 0 ? -0.4 : 0.4) * dx : 0;   /* deux substituants sur le même carbone : côte à côte, pas superposés */
     for (var k = 0; k < s.len; k++){
-      var np = {x: base.x + (k % 2 ? dx * 0.45 : 0), y: base.y + up * dy * 0.9 * (k + 1), main: false, nb: [prev]};
+      var np = {x: base.x + off + (k % 2 ? dx * 0.45 : 0), y: base.y + up * dy * 0.9 * (k + 1), main: false, nb: [prev]};
       pts.push(np); pts[prev].nb.push(pts.length - 1); prev = pts.length - 1;
     }
   });
@@ -44,7 +48,7 @@ SFA.sim({
   titre: "Constructeur d'alcanes : de CH₄ à C₁₀H₂₂",
   resume: "Nombre de carbones → nom, formule, masse molaire, état, T d'ébullition, isomères.",
   but: "Fais varier n de 1 à 10. Lis le nom, la formule brute CₙH₂ₙ₊₂, la masse molaire et l'état à 20 °C. Pour n = 4, 5 et 6, parcours les isomères et compare leurs températures d'ébullition.",
-  aRetenir: "Les alcanes ont pour formule brute CₙH₂ₙ₊₂ et ne comportent que des liaisons simples C–C et C–H. Chaque carbone a 4 liaisons. Du méthane au butane : gaz ; du pentane au décane : liquides à 20 °C. Plus la chaîne est longue, plus T_eb est élevée. Les isomères de chaîne ont la même formule brute mais des enchaînements différents.",
+  aRetenir: "Les alcanes ont pour formule brute CₙH₂ₙ₊₂ et ne comportent que des liaisons simples C–C et C–H. Chaque carbone a 4 liaisons. Du méthane au butane : gaz ; du pentane au décane : liquides à 20 °C (sauf l'isomère le plus ramifié du pentane, le 2,2-diméthylpropane, qui bout à 10 °C : c'est un gaz). Plus la chaîne est longue, plus T_eb est élevée. Les isomères de chaîne ont la même formule brute mais des enchaînements différents.",
   piege: "Deux molécules de même formule brute ne sont pas forcément la même molécule : le butane et le 2-méthylpropane sont tous deux C₄H₁₀. Plus une molécule est ramifiée (compacte), plus sa température d'ébullition est BASSE à même formule. Masses molaires arrondies (C : 12 ; H : 1).",
   build: function(k, S){
     var pal = S.draw.palette;

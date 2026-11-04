@@ -52,7 +52,7 @@ SFA.sim({
     function ph(h,p){ return 6.1+Math.log10(h/(0.03*p)); }
     k.draw(function(){
       c.clear(); var ctx=c.ctx;
-      var ax=S.draw.axes(c,{x0:10,x1:100,y0:6.6,y1:7.8,stepX:10,stepY:0.1,xl:"pCO₂ (mmHg)",yl:"pH"});
+      var ax=S.draw.axes(c,{x0:10,x1:100,y0:6.2,y1:8.2,stepX:10,stepY:0.2,xl:"pCO₂ (mmHg)",yl:"pH"});
       ctx.fillStyle="rgba(46,107,85,.13)"; ctx.fillRect(ax.X(35),ax.Y(7.45),ax.X(45)-ax.X(35),ax.Y(7.35)-ax.Y(7.45));
       [[12,P.grey],[24,P.green],[36,P.grey]].forEach(function(o){
         S.draw.fn(c,ax,function(p){return ph(o[0],p);},o[1],o[0]===24?2.6:1.6,o[0]===24?null:[5,4]);
@@ -102,9 +102,9 @@ SFA.sim({
       var x0=h.value, ok=(A-x0>0.001 && HA+x0>0.001);
       var Ka=Math.pow(10,-pKa), Hh=Math.pow(10,-p0.value), beta=2.303*(Ct/1000)*Ka*Hh/Math.pow(Ka+Hh,2)*1000;
       ro.set(2,S.fmt(beta,2));
-      if(ok){ var f=phAfter(x0); S.draw.dot(c,ax.X(x0),ax.Y(f),6,P.red); S.draw.dot(c,ax.X(0),ax.Y(p0.value),5,P.green);
+      if(ok){ var f=phAfter(x0), fOut=(f<4||f>10); S.draw.dot(c,ax.X(x0),ax.Y(Math.max(4,Math.min(10,f))),6,P.red); S.draw.dot(c,ax.X(0),ax.Y(p0.value),5,P.green);
         ro.set(0,S.fmt(f,2)); ro.set(1,S.fmt(f-p0.value,2));
-        nt.set("Départ : [A⁻] = "+S.fmt(A,1)+" et [HA] = "+S.fmt(HA,1)+" mmol/L. Après ajout : [A⁻] = "+S.fmt(A-x0,1)+" et [HA] = "+S.fmt(HA+x0,1)+" mmol/L.",Math.abs(p0.value-pKa)<=1?"ok":"warn");
+        nt.set("Départ : [A⁻] = "+S.fmt(A,1)+" et [HA] = "+S.fmt(HA,1)+" mmol/L. Après ajout : [A⁻] = "+S.fmt(A-x0,1)+" et [HA] = "+S.fmt(HA+x0,1)+" mmol/L."+(fOut?" Le pH final sort de l'échelle du graphique (4 à 10) : le point est collé au bord.":"")+" Modèle simplifié : système fermé (pour le bicarbonate réel, le poumon évacue le CO₂ et le tampon est bien plus efficace).",(Math.abs(p0.value-pKa)<=1&&!fOut)?"ok":"warn");
       } else { ro.set(0,"tampon épuisé"); ro.set(1,"—");
         nt.set("Plus assez de "+(x0>0?"base conjuguée A⁻":"acide HA")+" : l'ajout dépasse la réserve ("+S.fmt(x0>0?A:HA,1)+" mmol/L). Le pH n'est plus tamponné et chute (ou grimpe) brutalement.","bad"); }
     });
@@ -142,12 +142,12 @@ SFA.sim({
       ctx.restore();
       S.draw.text(c,"COOH",xs[0]-2,28,{size:11,color:P.red,align:"center"});
       S.draw.text(c,"CH₃",xs[n-1]+8,28,{size:11,color:P.grey});
-      S.draw.text(c,f[0]+" · "+f[1]+" · "+(f[3].length?"coude(s) cis":"chaîne droite"),c.W/2,c.H-150,{size:12,color:P.ink});
+      S.draw.text(c,f[0]+" · "+f[1]+" · "+(f[3].length&&typeof f[3][0]==="number"?"coude(s) cis":"chaîne droite"),c.W/2,c.H-150,{size:12,color:P.ink});
       /* barres de Tm */
       var bx0=44,bw=(c.W-70)/F.length, zero=c.H-60, sc=0.62;
       S.draw.line(c,bx0-6,zero,c.W-8,zero,"#8a95a3",1);
       S.draw.text(c,"Point de fusion (°C)",bx0,c.H-138+10,{size:10,color:P.grey,align:"left"});
-      F.forEach(function(g,i){ var h=g[4]*sc*0.9, xx=bx0+i*bw; ctx.fillStyle=(i==sel.value)?P.acc:(g[4]>=T?"#c8d1de":"#a8cdbb");
+      F.forEach(function(g,i){ var h=g[4]*sc*0.9, xx=bx0+i*bw; ctx.fillStyle=(i==sel.value)?P.acc:(g[4]>T?"#c8d1de":"#a8cdbb");
         ctx.fillRect(xx+3,h>=0?zero-h:zero,bw-6,Math.abs(h)); S.draw.text(c,S.fmt(g[4],0),xx+bw/2,h>=0?zero-h-8:zero-h+8,{size:9,color:P.ink});
         S.draw.text(c,g[1].split(" ")[0]+(g[1].indexOf("trans")>0?"t":g[1].indexOf("cis")>0?"c":""),xx+bw/2,c.H-12,{size:9,color:P.grey}); });
       var yT=zero-T*sc*0.9; S.draw.line(c,bx0-6,yT,c.W-8,yT,P.red,1.6,[5,4]);

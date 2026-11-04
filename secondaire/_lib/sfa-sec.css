@@ -64,7 +64,7 @@ h3.sub{font:800 .78rem var(--f-ui);letter-spacing:.08em;text-transform:uppercase
 .seg button.on{background:var(--acc);border-color:var(--acc);color:#fff}
 .read{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px}
 .ro{background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:6px 10px}
-.ro small{display:block;font:800 10px var(--f-ui);letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.ro small{display:block;font:800 11px var(--f-ui);letter-spacing:.02em;color:var(--muted)}
 .ro b{font:700 1.02rem var(--f-num);color:var(--ink)}
 .note{border-radius:10px;padding:9px 12px;font:600 .86rem/1.5 var(--f-ui);background:var(--sel);border-left:4px solid var(--acc);color:var(--ink2)}
 .note.warn{background:var(--warnbg);border-left-color:var(--warn);color:#5a3d00}
@@ -92,3 +92,16 @@ h3.sub{font:800 .78rem var(--f-ui);letter-spacing:.08em;text-transform:uppercase
 /* hub */
 .hub{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px;margin-top:18px}
 .hub a.card{text-decoration:none}
+
+/* téléphone : barre des chapitres sur une ligne qui défile, en-tête compact */
+@media(max-width:700px){
+  .top{position:static;padding:8px 14px;gap:8px}
+  .top nav{gap:10px;font-size:12px;overflow-x:auto;flex-wrap:nowrap;white-space:nowrap;max-width:100%}
+  .chips{position:sticky;top:0;flex-wrap:nowrap;overflow-x:auto;white-space:nowrap;-webkit-overflow-scrolling:touch;margin:12px -20px 4px;padding:8px 20px}
+  .chips a{flex:0 0 auto}
+  section.ch{scroll-margin-top:56px}
+  .wrap{padding:16px 14px 60px}
+  .hero h1{font-size:1.5rem}
+  .sim{padding:12px 12px;margin:10px -6px}
+}
+@media(max-width:700px){.sim{scroll-margin-top:56px}}

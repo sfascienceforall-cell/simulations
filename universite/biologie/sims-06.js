@@ -77,7 +77,7 @@ SFA.sim({
       var sx = mx + mw * 0.55;
       c.ctx.fillStyle = pal.green; c.ctx.fillRect(sx - 20, my - 8, 40, 16); c.ctx.beginPath(); c.ctx.arc(sx, my + 28, 18, 0, 6.3); c.ctx.fill();
       S.draw.text(c, "ATP synthase", sx, my + 28, {color:"#fff", size:9});
-      if (cond.value !== "c") S.draw.arrow(c, sx + 28, my - 30, sx + 28, my + 6, pal.red, 2);
+      if (cond.value === "n") S.draw.arrow(c, sx + 28, my - 30, sx + 28, my + 6, pal.red, 2);
       /* barres d'énergie */
       var by = 235, bw = c.W - 190, sc = bw / 100;
       S.draw.text(c, "Énergie par ATP (kJ/mol)", 20, by - 20, {align:"left", size:12});

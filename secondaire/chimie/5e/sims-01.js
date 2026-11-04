@@ -33,7 +33,7 @@ SFA.sim({
       {t: "Trouve le gaz noble de la période 2.", ok: function(z){ return z === 10; }},
       {t: "Trouve l'élément de la période 3 qui a 2 électrons de valence.", ok: function(z){ return z === 12; }},
       {t: "Trouve l'élément dont la configuration se termine par 4s¹ 3d¹⁰.", ok: function(z){ return z === 29; }}
-    ], di = 0, defiOn = false;
+    ], di = -1, defiOn = false;
     var dn = k.note("", "");
     k.button("Défi suivant", function(){ defiOn = true; di = (di + 1) % defis.length; }, true);
     function config(Z){
@@ -136,7 +136,7 @@ SFA.sim({
   titre: "Le schéma de Lewis d'un atome et d'un ion",
   resume: "Choisis un élément (H à Ar) et une charge : les électrons de valence se placent en points.",
   but: "Choisis un élément, puis fais varier la charge de l'ion. Compte les électrons de valence, les électrons célibataires et les doublets.",
-  aRetenir: "Nombre d'électrons de valence = numéro de la colonne (groupe 1, 2, 13 à 18 : 1, 2, 3 … 8). On met d'abord un point par côté, puis on apparie. Les électrons célibataires indiquent le nombre de liaisons covalentes que l'atome peut former (8 − valence, ou 2 − valence pour H).",
+  aRetenir: "Nombre d'électrons de valence = numéro de la colonne (groupe 1, 2, 13 à 18 : 1, 2, 3 … 8). On met d'abord un point par côté, puis on apparie. Les électrons célibataires indiquent le nombre de liaisons covalentes que l'atome peut former : 8 − valence pour les groupes 14 à 17 (2 − valence pour H). Les métaux des groupes 1, 2 et 13 forment surtout des cations en perdant leurs électrons de valence.",
   piege: "Un cation a PERDU des électrons : Na⁺ n'a plus d'électron de valence « propre », sa couche externe est celle du néon (8 e⁻). On écrit habituellement [Na]⁺ sans points ; la simulation dessine en plus cette couche complète (8 points) pour montrer la configuration de gaz noble. Un anion en a GAGNÉ : Cl⁻ a 8 points.",
   build: function(k, S){
     var pal = S.draw.palette, c = k.canvas(260);
@@ -152,6 +152,7 @@ SFA.sim({
       c.clear();
       if (tot < 0){ bad = true; }
       if (vi <= 0){ cat = true; shown = per === 2 ? 2 : per === 3 ? 8 : 0; }
+      if (vi < 0) bad = true;   /* il faudrait entamer la couche inférieure : pas d'ion réaliste */
       if (!duet && !cat && vi > 8) bad = true;
       if (duet && !cat && vi > 2) bad = true;
       var cx = c.W / 2, cy = c.H / 2, sy = C5.SYM[Z - 1];
@@ -187,7 +188,11 @@ SFA.sim({
       else { pairs = Math.max(0, shown - 4); unp = shown - 2 * pairs; }
       ro.set(0, tot); ro.set(1, cat ? shown + " (couche inférieure)" : shown); ro.set(2, unp); ro.set(3, pairs);
       var iso = tot === 2 ? "He" : tot === 10 ? "Ne" : tot === 18 ? "Ar" : "";
-      if (ch === 0) nt.set("Atome neutre. Il peut former " + (capMax === 2 ? 2 - v : 8 - v) + " liaison(s) covalente(s) pour compléter sa couche (" + (capMax === 2 ? "duet" : "octet") + ").", "");
+      if (ch === 0){
+        if (Z === 2 || Z === 10 || Z === 18) nt.set("Gaz noble : couche externe complète, aucune liaison à former.", "ok");
+        else if (v <= 3 && Z > 2 && Z !== 1) nt.set("Atome neutre d'un métal (ou presque) : il a " + unp + " électron(s) célibataire(s), mais il atteint plus facilement la configuration d'un gaz noble en PERDANT ses " + v + " électron(s) de valence (cation).", "");
+        else nt.set("Atome neutre. Il peut former " + unp + " liaison(s) covalente(s) pour compléter sa couche (" + (capMax === 2 ? "duet" : "octet") + ").", "");
+      }
       else nt.set("Ion " + (ch > 0 ? "positif" : "négatif") + " : " + tot + " électrons." + (iso ? " Même configuration que le gaz noble " + iso + " (très stable)." : " Cette configuration n'est pas celle d'un gaz noble : l'ion est peu probable."), iso ? "ok" : "warn");
     });
   }
@@ -240,7 +245,7 @@ SFA.sim({
       S.draw.text(c, mode.value === "mys" ? "Sel mystère" : d.n, cx, 16, {size: 14});
       var dE = 1240 / d.l;
       if (mode.value === "mys" && !verdict){
-        ro.set(0, "?"); ro.set(1, "?"); ro.set(2, d.d);
+        ro.set(0, "?"); ro.set(1, "?"); ro.set(2, d.d.split(" (")[0]);
         nt.set("Regarde la couleur de la flamme, choisis le métal puis appuie sur « Vérifier ».", "");
       } else {
         ro.set(0, d.l + " nm"); ro.set(1, S.fmt(dE, 2) + " eV"); ro.set(2, d.d);

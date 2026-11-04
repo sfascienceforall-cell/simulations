@@ -24,7 +24,7 @@ SFA.sim({
       e.r.forEach(function(t, i){ sp.push({f:t[1], co:t[0], n0:n0[i], n:n0[i] - t[0] * x, r:true}); });
       e.p.forEach(function(t){ sp.push({f:t[1], co:t[0], n0:0, n:t[0] * x, r:false}); });
       c.clear(); var W = c.W, ctx = c.ctx, base = 230, mx = 12, hs = 170 / mx, cw = (W - 30) / sp.length;
-      C4.label(c, C4.eq(rx.value).replace(/<\/?sub>/g, ""), W / 2, 14, "#2c3a4e", 13);
+      C4.label(c, C4.eqU(rx.value), W / 2, 14, "#2c3a4e", 13);
       sp.forEach(function(s, i){
         var x0 = 15 + i * cw, bw = cw * 0.34;
         ctx.fillStyle = "#dfe4ea"; ctx.fillRect(x0 + cw * 0.1, base - s.n0 * hs, bw, s.n0 * hs);
@@ -43,7 +43,7 @@ SFA.sim({
 
 SFA.sim({
   id:"c4-c05-niveaux", ch:"c05", tag:"Comparaison",
-  titre:"Une équation, quatre lectures",
+  titre:"Une équation, trois lectures",
   resume:"Moles, masses et volumes de gaz pour la même réaction : les coefficients valent pour les moles, pas pour les masses.",
   but:"Choisis une réaction et une quantité de réaction ξ. Compare les lignes « moles », « masses » et « volumes de gaz ».",
   aRetenir:"Les coefficients donnent les rapports de moles (et de volumes de gaz à T et p identiques). Les masses se calculent avec m = n·M. La masse totale se conserve (Lavoisier), pas le nombre de moles.",
@@ -65,7 +65,7 @@ SFA.sim({
         C4.label(c, rw[0], 8, y0 + 4, "#5f6b7a", 12, "left");
         sp.forEach(function(s, i){
           var xx = 70 + i * cw, val = s[rw[1]];
-          if (val === null){ C4.label(c, "liquide", xx + cw / 2, y0 + 60, "#8a95a3", 11); }
+          if (val === null){ C4.label(c, "pas un gaz", xx + cw / 2, y0 + 60, "#8a95a3", 11); }
           else { var h = 62 * val / mx; ctx.fillStyle = s.r ? "#b42318" : "#2e6b55"; ctx.fillRect(xx + cw * 0.18, y0 + 78 - h, cw * 0.64, h); C4.label(c, S.fmt(val, val < 10 ? 2 : 1), xx + cw / 2, y0 + 78 - h - 9, "#0f1b2d", 11); }
           if (ri === 2) C4.label(c, (s.co > 1 ? s.co + " " : "") + C4.uni(s.f), xx + cw / 2, y0 + 96, "#0f1b2d", 12);
         });

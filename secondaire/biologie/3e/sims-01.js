@@ -127,10 +127,10 @@ SFA.sim({
         (function(i){ D.fn(c,ax,function(x){ var j=Math.min(out.length-1,Math.max(0,Math.round(x/.2))); return out[j][i+1]; },COL[i],which.value===i?4:2.4,which.value===i?[6,4]:null); })(i);
       }
       var last = out[out.length-1], gone = [];
-      for (i=0;i<5;i++){ ro.set(i, last[i+1]<1 ? "disparue" : S.fmt(last[i+1],0)+" %"); if (last[i+1]<1 && i!==which.value) gone.push(NM[i]); }
+      for (i=0;i<5;i++){ ro.set(i, last[i+1]<1 ? "disparue" : S.fmt(last[i+1],0)+" %"); if (last[i+1]<15 && i!==which.value) gone.push(NM[i]); }
       var lx = 8; NM.forEach(function(n,i){ var row = i<3?0:1, col = i<3?i:i-3, w = c.W/3; rect(c,6+col*w,8+row*18,10,10,COL[i]); T(c,n,20+col*w,13+row*18,{size:12,align:"left",color:P.ink}); });
       if (which.value<0) nt.set("Rien ne change : l'écosystème est à l'équilibre (les cinq courbes restent à 100 %).","ok");
-      else if (gone.length) nt.set("Effet en cascade : <b>"+gone.join(", ")+"</b> disparaî"+(gone.length>1?"ssent":"t")+" aussi à terme, faute de nourriture.","bad");
+      else if (gone.length) nt.set("Effet en cascade : <b>"+gone.join(", ")+"</b> disparaî"+(gone.length>1?"ssent":"t")+" aussi (ou "+(gone.length>1?"sont":"est")+" au bord de la disparition), faute de nourriture.","bad");
       else if (frac.value<100 && Math.abs(last[which.value+1]-100)<15) nt.set("L'écosystème a <b>encaissé</b> la perte : l'espèce touchée est revenue près de son équilibre.","ok");
       else nt.set("Les autres espèces se réorganisent : certaines augmentent, d'autres diminuent. Compare les courbes à 100 %.","warn");
     });

@@ -15,9 +15,10 @@ SFA.sim({
   piege: "Un rendement de 67 % ne veut pas dire que la réaction est « ratée » ou qu'elle s'arrête faute de temps : à l'équilibre, la composition ne change plus parce que les deux réactions se compensent. Un catalyseur (H⁺) accélère, il ne change pas K.",
   build: function(k, S){
     var c = k.canvas(300), P = S.draw.palette, t = 0;
-    var a = k.slider("n(acide) au départ", 0.1, 3, 0.1, 1, "mol", function(){ t = 0; });
-    var b = k.slider("n(alcool) au départ", 0.1, 3, 0.1, 1, "mol", function(){ t = 0; });
-    k.button("Relancer", function(){ t = 0; lp.reset(); lp.play(); }, true);
+    var a = k.slider("n(acide) au départ", 0.1, 3, 0.1, 1, "mol", function(){ restart(); });
+    var b = k.slider("n(alcool) au départ", 0.1, 3, 0.1, 1, "mol", function(){ restart(); });
+    function restart(){ t = 0; lp.reset(); lp.play(); }
+    k.button("Relancer", restart, true);
     var ro = k.readouts(["Q", "K", "n(ester)", "Rendement"]);
     k.note("Modèle simplifié : volume constant, K = 4 (alcool primaire, 25 °C environ), eau non solvant.");
     var lp = k.loop(function(dt, tt){ t = tt; k.redraw(); if (tt > 7) lp.pause(); });
@@ -97,12 +98,14 @@ SFA.sim({
       S.draw.line(c, ax.X(st), ax.B, ax.X(st), ax.T, P.amber, 1.4, [4, 4]);
       S.draw.text(c, "juste assez : " + S.fmt(st, 1) + " g", ax.X(st) + 4, ax.T + 30, {size: 12, color: P.amber, align: "left"});
       S.draw.dot(c, ax.X(mn.value), ax.Y(sav), 6, P.green);
-      var lim = Math.abs(nh - nn / 3) < nh * 0.01 ? "aucun (proportions exactes)" : (nn / 3 > nh ? "l'huile" : "la soude");
+      var exact = Math.abs(nn / (3 * nh) - 1) < 0.02;   /* tolérance de 2 % sur la masse de soude */
+      var lim = exact ? "aucun (proportions exactes à 2 % près)" : (nn / 3 > nh ? "l'huile" : "la soude");
       ro.set(0, lim); ro.set(1, S.fmt(sav, 0) + " g"); ro.set(2, S.fmt(gly, 0) + " g");
-      ro.set(3, oilLeft > 0.5 ? S.fmt(oilLeft, 0) + " g d'huile" : naLeft > 0.05 ? S.fmt(naLeft, 1) + " g de soude" : "rien");
-      if (naLeft > 0.05) nt.set("Soude en excès : " + S.fmt(naLeft, 1) + " g restent libres. Ce savon serait caustique.", "warn");
+      ro.set(3, exact ? "rien (à 2 % près)" : oilLeft > 0.5 ? S.fmt(oilLeft, 0) + " g d'huile" : naLeft > 0.05 ? S.fmt(naLeft, 1) + " g de soude" : "rien");
+      if (exact) nt.set("Proportions exactes (à 2 % près). Vérification : " + S.fmt(xi * MH + 3 * xi * MN, 0) + " g de réactifs consommés → " + S.fmt(sav + gly, 0) + " g de produits (la masse se conserve).", "ok");
+      else if (naLeft > 0.05) nt.set("Soude en excès : " + S.fmt(naLeft, 1) + " g restent libres. Ce savon serait caustique.", "warn");
       else if (oilLeft > 0.5) nt.set("Huile en excès : " + S.fmt(oilLeft, 0) + " g non saponifiés (savon « surgraissé »).", "warn");
-      else nt.set("Proportions exactes. Vérification : " + S.fmt(mh.value + mn.value, 0) + " g de réactifs → " + S.fmt(sav + gly, 0) + " g de produits.", "ok");
+      else nt.set("Proportions exactes. Vérification : " + S.fmt(xi * MH + 3 * xi * MN, 0) + " g de réactifs consommés → " + S.fmt(sav + gly, 0) + " g de produits.", "ok");
     });
   }
 });
@@ -154,7 +157,7 @@ SFA.sim({
       }
       ro.set(0, nom); ro.set(1, fb(ne, 2 * ne, 2)); ro.set(2, Me + " g/mol"); ro.set(3, od);
       if (cib.value){
-        if (ODEUR[key] && ODEUR[key].indexOf(cib.value) === 0) nt.set("Réussi : " + nom + " sent la " + cib.value.replace(/^(banane|orange|framboise|ananas|abricot)$/, "$1") + ". Quelle serait l'équation de sa formation ?", "ok");
+        if (ODEUR[key] && ODEUR[key].indexOf(cib.value) >= 0) nt.set("Réussi : " + nom + " sent la " + cib.value.replace(/^(banane|orange|framboise|ananas|abricot)$/, "$1") + ". Quelle serait l'équation de sa formation ?", "ok");
         else nt.set("Pas encore : « " + nom + " » → " + od + ". Essaie une autre combinaison.", "warn");
       } else nt.set("Choisis un arôme dans le défi, ou explore librement.", "ok");
     });

@@ -68,7 +68,7 @@ SFA.sim({
     function run(){
       var N = K, dt = .05, out = [], i, dead = null;
       for (i=0;i<=1000;i++){
-        var t = i*dt; if (i%10===0) out.push([t,N,md.value==="q" ? (N>0?q.value:0) : f.value/100*N]);
+        var t = i*dt; if (i%10===0) out.push([t,N,md.value==="q" ? (N>0?Math.min(q.value,N/dt):0) : f.value/100*N]);
         if (sh.value && i===300) N *= .75;
         var h = md.value==="q" ? Math.min(q.value,N/dt) : f.value/100*N;
         N = N + dt*(r.value*N*(1-N/K) - h);
@@ -82,10 +82,10 @@ SFA.sim({
       D.fn(c1,ax,function(x){ return o[Math.min(o.length-1,Math.round(x*2))][1]; },P.teal,3);
       c1.ctx.save(); c1.ctx.setLineDash([5,4]); c1.ctx.strokeStyle = P.grey; c1.ctx.beginPath(); c1.ctx.moveTo(ax.L,ax.Y(K/2)); c1.ctx.lineTo(ax.R,ax.Y(K/2)); c1.ctx.stroke(); c1.ctx.restore(); T(c1,"stock de rendement maximal (K/2)",ax.R-4,ax.Y(K/2)-9,{size:12,align:"right",color:P.grey});
       /* diagramme production / prélèvement */
-      c2.clear(); var bx = D.axes(c2,{x0:0,x1:K,y0:0,y1:Math.max(120,Math.ceil(msy/20)*20+40),xl:"stock N (t)",yl:"t/an",stepX:250,l:50,t:32});
+      c2.clear(); var bx = D.axes(c2,{x0:0,x1:K,y0:0,y1:Math.max(120,Math.ceil(Math.max(msy,md.value==="q"?q.value:0)/20)*20+40),xl:"stock N (t)",yl:"t/an",stepX:250,l:50,t:32});
       D.fn(c2,bx,function(x){ return r.value*x*(1-x/K); },P.green,3);
       if (md.value==="q"){ D.line(c2,bx.L,bx.Y(q.value),bx.R,bx.Y(q.value),P.red,2.5); T(c2,"quota",bx.R-4,bx.Y(q.value)-9,{size:12,align:"right",color:P.red}); }
-      else { D.line(c2,bx.X(0),bx.Y(0),bx.X(K),bx.Y(f.value/100*K),P.red,2.5); T(c2,"prélèvement",bx.X(K*.62),bx.Y(f.value/100*K*.62)-10,{size:12,align:"left",color:P.red}); }
+      else { var fe = f.value/100, xe = fe>0 ? Math.min(K, bx.y1/fe) : K; D.line(c2,bx.X(0),bx.Y(0),bx.X(xe),bx.Y(fe*xe),P.red,2.5); T(c2,"prélèvement",bx.X(xe*.62),bx.Y(fe*xe*.62)-10,{size:12,align:"left",color:P.red}); }
       T(c2,"vert : renouvellement naturel du stock",c2.W/2,10,{size:12,color:P.green});
       var last = o[o.length-1], catchLast = last[2];
       ro.set(0,S.fmt(msy,0)+" t/an"); ro.set(1,S.fmt(res.N,0)+" t"); ro.set(2,S.fmt(catchLast,0)+" t"); 
@@ -128,10 +128,11 @@ SFA.sim({
       D.fn(c,ax,function(x){ return out[Math.min(out.length-1,Math.round(x/.5))][1]; },P.green,3);
       D.fn(c,ax,function(x){ return out[Math.min(out.length-1,Math.round(x/.5))][2]; },P.red,3);
       T(c,"espèce locale",ax.X(22),ax.T+8,{size:12,align:"left",color:P.green}); T(c,"envahisseur",ax.X(58),ax.T+8,{size:12,align:"left",color:P.red});
-      ro.set(0,N1<1 ? "disparue" : S.fmt(N1,0)); ro.set(1,N2<1 ? "disparu" : S.fmt(N2,0));
-      var iss = N1<1 ? "exclusion de l'espèce locale" : N2<1 ? "échec de l'invasion" : "coexistence";
+      var p1 = out[out.length-21][1], p2 = out[out.length-21][2], g1 = N1<1 || (N1<10 && N1<p1*.9), g2 = N2<1 || (N2<10 && N2<p2*.9);
+      ro.set(0,N1<1 ? "disparue" : g1 ? S.fmt(N1,0)+" (en voie de disparition)" : S.fmt(N1,0)); ro.set(1,N2<1 ? "disparu" : g2 ? S.fmt(N2,0)+" (en voie de disparition)" : S.fmt(N2,0));
+      var iss = g1 ? "exclusion de l'espèce locale" : g2 ? "échec de l'invasion" : "coexistence";
       ro.set(2,iss);
-      nt.set(N1<1 ? "L'espèce locale est éliminée : l'envahisseur utilise mieux les ressources. Seule une intervention humaine précoce pourrait l'éviter." : N2<1 ? "L'envahisseur n'arrive pas à s'installer : l'espèce locale, bien établie, résiste." : "Les deux espèces coexistent, avec des effectifs réduits pour l'espèce locale (< 100).", N1<1 ? "warn" : "ok");
+      nt.set(g1 ? "L'espèce locale est éliminée (ou condamnée) : l'envahisseur utilise mieux les ressources. Seule une intervention humaine précoce pourrait l'éviter." : g2 ? "L'envahisseur n'arrive pas à s'installer : l'espèce locale, bien établie, résiste." : "Les deux espèces coexistent, avec des effectifs réduits pour l'espèce locale (< 100).", g1 ? "warn" : "ok");
     });
   }
 });
@@ -174,7 +175,7 @@ SFA.sim({
         if (!checked) nt.set("Relevé mystère : d'après les animaux présents, estime la pollution avec le curseur, puis clique sur « Vérifier ».","");
         else { var err = Math.abs(po.value-hidden); nt.set("Pollution réelle : "+hidden+" %. Ton estimation : "+po.value+" % (écart de "+err+" points). "+(err<=10?"Bien lu !":"Repère les taxa sensibles : plus ils manquent, plus la pollution est forte."), err<=10 ? "ok" : "warn"); }
         /* en mode mystère, la faune montre le relevé caché : l'indice affiché suit le relevé */
-      } else nt.set(ib>=7 ? "Beaucoup de taxa sensibles : eau propre et bien oxygénée." : ib>=5 ? "Les taxa sensibles ont disparu : pollution modérée." : "Seuls des organismes très tolérants subsistent : forte pollution organique, peu de O₂.", ib>=7 ? "ok" : "warn");
+      } else nt.set(gm>=4 ? "Des taxa sensibles sont présents : eau propre et bien oxygénée." : ib>=5 ? "Les taxa sensibles ont disparu : pollution modérée." : "Seuls des organismes très tolérants subsistent : forte pollution organique, peu de O₂.", gm>=4 ? "ok" : "warn");
     });
   }
 });

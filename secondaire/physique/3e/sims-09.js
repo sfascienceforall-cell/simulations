@@ -25,7 +25,7 @@ SFA.sim({
     k.draw(function(){
       c.clear(); var W=c.W,H=c.H, Fn=mb.value*nb.value*G, Sm=+face.value*1e-4, p=Fn/Sm;
       var dep=30*(1-Math.exp(-p/5000));                 /* mm, courbe qualitative */
-      var gy=H*0.7, cx=W*0.42, fc=+face.value, u=3.2;
+      var gy=H*0.7, cx=W*0.42, fc=+face.value, u=Math.min(3.2,(H*0.7-60)/((+face.value===200?5:+face.value===100?10:20)*nb.value));   /* px par cm, réduit si la pile est haute */
       var bw=(fc===50?10:20)*u, bh=(fc===200?5:fc===100?10:20)*u;
       var dpx=dep*2.4;
       c.ctx.fillStyle="#e8d6a8"; c.ctx.fillRect(10,gy,W-20,H-gy-10);

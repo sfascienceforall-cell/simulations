@@ -40,7 +40,8 @@ SFA.sim({
       }
       ro.set(0, S.fmt(q, 4)); ro.set(1, S.fmt(2 * p * q * 100, 2) + " % (1/" + S.fmt(1 / (2 * p * q), 1) + ")"); ro.set(2, S.fmt(2 * p / q, 1));
       ro.set(3, isNaN(chi) ? "—" : S.fmt(chi, 2)); ro.set(4, isNaN(pv) ? "—" : (pv < 0.001 ? "&lt; 0,001" : S.fmt(pv, 3)));
-      note.set(isNaN(chi) ? "Choisis un échantillon non vide." : chi > 3.841 ? "χ² &gt; 3,84 (1 ddl) : écart significatif à l'équilibre (p &lt; 0,05)." : "χ² ≤ 3,84 : échantillon compatible avec l'équilibre de Hardy-Weinberg.", chi > 3.841 ? "warn" : "ok");
+      var lowE = n > 0 && (2 * ((2 * a1.value + a2.value) / (2 * n)) * (1 - (2 * a1.value + a2.value) / (2 * n)) * n < 5 || Math.pow(1 - (2 * a1.value + a2.value) / (2 * n), 2) * n < 5 || Math.pow((2 * a1.value + a2.value) / (2 * n), 2) * n < 5);
+      note.set(isNaN(chi) ? "Choisis un échantillon non vide." : (chi > 3.841 ? "χ² &gt; 3,84 (1 ddl) : écart significatif à l'équilibre (p &lt; 0,05)." : "χ² ≤ 3,84 : échantillon compatible avec l'équilibre de Hardy-Weinberg.") + (lowE ? " Attention : au moins un effectif attendu est inférieur à 5 : le test du χ² est peu fiable." : ""), (chi > 3.841 || lowE) ? "warn" : "ok");
     });
   }
 });
@@ -134,7 +135,7 @@ SFA.sim({
     var ro = k.readouts(["Vitesse max rK/4","N = K/2 atteint à","Temps de doublement initial","Comportement"]);
     k.draw(function(){
       c.clear();
-      var ymax = Math.max(K.value * 1.6, 200), ax = S.draw.axes(c, {x0:0, x1:T.value, y0:0, y1:ymax, xl:"t", yl:"N", stepX:T.value > 50 ? 20 : 10});
+      var ymax = Math.max(K.value * 1.6, 200, n0.value * 1.1, (mode.value === "d" && r.value > 1) ? K.value * Math.exp(r.value - 1) / r.value * 1.1 : 0), ax = S.draw.axes(c, {x0:0, x1:T.value, y0:0, y1:ymax, xl:"t", yl:"N", stepX:T.value > 50 ? 20 : 10});
       var N0 = Math.min(n0.value, K.value * 1.5), beh = "";
       S.draw.line(c, ax.L, ax.Y(K.value), ax.R, ax.Y(K.value), pal.grey, 1.5, [5, 4]); S.draw.text(c, "K", ax.L + 8, ax.Y(K.value) - 9, {size:12, color:pal.grey});
       if (mode.value === "c"){
@@ -148,7 +149,7 @@ SFA.sim({
         beh = r.value < 2 ? "Équilibre stable" : r.value < 2.52 ? "Cycle de période 2" : r.value < 2.69 ? "Cycles de période ≥ 4" : "Chaotique";
       }
       var inf = N0 < K.value / 2 ? Math.log((K.value - N0) / N0) / r.value : 0;
-      ro.set(0, S.fmt(r.value * K.value / 4, 1) + " ind./unité"); ro.set(1, N0 < K.value / 2 ? "t = " + S.fmt(inf, 1) : "déjà dépassé"); ro.set(2, S.fmt(Math.LN2 / r.value, 2)); ro.set(3, beh);
+      ro.set(0, mode.value === "d" ? "— (modèle continu seulement)" : S.fmt(r.value * K.value / 4, 1) + " ind./unité"); ro.set(1, mode.value === "d" ? "— (modèle continu seulement)" : N0 < K.value / 2 ? "t = " + S.fmt(inf, 1) : "déjà dépassé"); ro.set(2, S.fmt(Math.LN2 / r.value, 2)); ro.set(3, beh);
     });
   }
 });
@@ -171,7 +172,7 @@ SFA.sim({
     var y0 = k.slider("Prédateurs initiaux", 5, 60, 5, 15, "");
     var kk = k.toggle("Proies : capacité de charge K", false);
     var Ks = k.slider("K", 60, 400, 10, 150, "");
-    var ro = k.readouts(["Équilibre proies x*","Équilibre prédateurs y*","Période ≈ 2π/√(αγ)","Max proies"]);
+    var ro = k.readouts(["Équilibre proies x*","Équilibre prédateurs y*","Période ≈ 2π/√(αγ)","Max proies"]), nt = k.note("", "ok");
     k.draw(function(){
       c1.clear(); c2.clear();
       var dt = 0.02, T = 60, steps = T / dt, x = x0.value, y = y0.value, X = [x], Y = [y], i, useK = kk.value, K = Ks.value;
@@ -186,12 +187,14 @@ SFA.sim({
       var ctx = c1.ctx; ctx.save(); ctx.beginPath(); ctx.rect(ax.L, ax.T, ax.R - ax.L, ax.B - ax.T); ctx.clip();
       [[X, pal.green], [Y, pal.red]].forEach(function(s){ ctx.strokeStyle = s[1]; ctx.lineWidth = 2; ctx.beginPath(); s[0].forEach(function(v, j){ var t = j * 5 * dt; if (j === 0) ctx.moveTo(ax.X(t), ax.Y(v)); else ctx.lineTo(ax.X(t), ax.Y(v)); }); ctx.stroke(); }); ctx.restore();
       S.draw.text(c1, "proies", ax.R - 50, ax.T + 8, {size:11, color:pal.green}); S.draw.text(c1, "prédateurs", ax.R - 50, ax.T + 28, {size:11, color:pal.red});
-      var ax2 = S.draw.axes(c2, {x0:0, x1:mx * 1.1, y0:0, y1:my * 1.1, xl:"proies", yl:"prédateurs", t:14, b:28});
       var xs = de.value > 0 ? ga.value / de.value : 0, ys = useK ? al.value * (1 - xs / K) / be.value : al.value / be.value;
+      var ax2 = S.draw.axes(c2, {x0:0, x1:Math.max(mx, xs) * 1.1, y0:0, y1:Math.max(my, ys) * 1.1, xl:"proies", yl:"prédateurs", t:14, b:28});
       c2.ctx.save(); c2.ctx.beginPath(); c2.ctx.rect(ax2.L, ax2.T, ax2.R - ax2.L, ax2.B - ax2.T); c2.ctx.clip(); c2.ctx.strokeStyle = pal.acc; c2.ctx.lineWidth = 1.8; c2.ctx.beginPath();
       X.forEach(function(v, j){ if (j === 0) c2.ctx.moveTo(ax2.X(v), ax2.Y(Y[j])); else c2.ctx.lineTo(ax2.X(v), ax2.Y(Y[j])); }); c2.ctx.stroke(); c2.ctx.restore();
       if (ys > 0) S.draw.dot(c2, ax2.X(xs), ax2.Y(ys), 5, pal.ink);
-      ro.set(0, S.fmt(xs, 1)); ro.set(1, ys > 0 ? S.fmt(ys, 1) : "0 (K ≤ x*)"); ro.set(2, S.fmt(2 * Math.PI / Math.sqrt(al.value * ga.value), 1)); ro.set(3, S.fmt(mx, 0));
+      ro.set(0, S.fmt(xs, 1)); ro.set(1, ys > 0 ? S.fmt(ys, 1) : "0 (K ≤ x*)"); ro.set(2, S.fmt(2 * Math.PI / Math.sqrt(al.value * ga.value), 1) + (useK ? " (sans K, indicatif)" : "")); ro.set(3, S.fmt(mx, 0));
+      var mnX = Math.min.apply(null, X), mnY = Math.min.apply(null, Y);
+      nt.set(mnX < 1 || mnY < 1 ? "Un effectif descend sous 1 individu (" + (mnX < 1 ? "proies" : "prédateurs") + ") : dans une vraie population, il y aurait extinction. Le modèle déterministe ne le voit pas ; ce n'est plus réaliste." : "Effectifs en individus (unités arbitraires) ; modèle déterministe.", mnX < 1 || mnY < 1 ? "warn" : "ok");
     });
   }
 });

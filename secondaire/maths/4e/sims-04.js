@@ -1,5 +1,6 @@
 (function(){
 var P = SFA.draw.palette;
+function d3(x){ return Math.abs(x*1000-Math.round(x*1000))<1e-9; }
 function pv(v,d){ return v<0 ? "("+SFA.fmt(v,d===undefined?3:d)+")" : SFA.fmt(v,d===undefined?3:d); }
 function term(v,sym,first){
   if(Math.abs(v)<1e-12) return "";
@@ -33,9 +34,9 @@ SFA.sim({
       if(A===0){ ro.set(1,"—"); ro.set(2,"—"); ro.set(3,"a = 0 : équation du 1er degré"); nt.set("Pour a = 0, on n'a plus une équation du 2e degré : bx + c = 0.","warn"); return; }
       var D=B*B-4*A*C;
       ro.set(1,S.fmt(D,2));
-      if(D>0){ var r=Math.sqrt(D), x1=(-B-r)/(2*A), x2=(-B+r)/(2*A); [x1,x2].forEach(function(x){ S.draw.dot(c,ax.X(x),ax.Y(0),7,P.green); });
-        ro.set(2,"2 (Δ > 0)"); ro.set(3,S.fmt(Math.min(x1,x2),3)+" et "+S.fmt(Math.max(x1,x2),3)); nt.set("Δ > 0 : la parabole coupe l'axe x en deux points.","ok"); }
-      else if(D===0){ var x0=-B/(2*A); S.draw.dot(c,ax.X(x0),ax.Y(0),8,P.amber); ro.set(2,"1 (solution double)"); ro.set(3,"x = "+S.fmt(x0,3)); nt.set("Δ = 0 : la parabole touche l'axe x en son sommet.","warn"); }
+      if(D>0){ var r=Math.sqrt(D), x1=(-B-r)/(2*A), x2=(-B+r)/(2*A); [x1,x2].forEach(function(x){ if(Math.abs(x)<=8) S.draw.dot(c,ax.X(x),ax.Y(0),7,P.green); });
+        ro.set(2,"2 (Δ > 0)"); ro.set(3,S.fmt(Math.min(x1,x2),3)+" et "+S.fmt(Math.max(x1,x2),3)); nt.set("Δ > 0 : la parabole coupe l'axe x en deux points."+(Math.abs(x1)>8||Math.abs(x2)>8?" (Un des points est hors du cadre du graphique.)":""),"ok"); }
+      else if(D===0){ var x0=-B/(2*A); if(Math.abs(x0)<=8) S.draw.dot(c,ax.X(x0),ax.Y(0),8,P.amber); ro.set(2,"1 (solution double)"); ro.set(3,"x = "+S.fmt(x0,3)); nt.set("Δ = 0 : la parabole touche l'axe x en son sommet.","warn"); }
       else { ro.set(2,"0 (Δ < 0)"); ro.set(3,"aucune dans ℝ"); nt.set("Δ < 0 : la parabole ne rencontre pas l'axe x.","warn"); }
     });
   }
@@ -68,13 +69,14 @@ SFA.sim({
       else {
         var r=Math.sqrt(D), exact=Number.isInteger(r), x1=(-B-r)/(2*A), x2=(-B+r)/(2*A);
         h+="<b>2.</b> √Δ "+(exact?"= ":"≈ ")+S.fmt(r,3)+"<br>";
-        if(D===0){ h+="<b>3.</b> Δ = 0 : x = −b/(2a) = "+S.fmt(-B)+"/"+S.fmt(2*A)+" = <b>"+S.fmt(x1,3)+"</b> (solution double)."; kind="warn"; S.draw.dot(c,ax.X(x1),ax.Y(0),7,P.amber); }
+        if(D===0){ h+="<b>3.</b> Δ = 0 : x = −b/(2a) = "+S.fmt(-B)+"/"+S.fmt(2*A)+" = <b>"+S.fmt(x1,3)+"</b> (solution double)."; kind="warn"; if(Math.abs(x1)<=6) S.draw.dot(c,ax.X(x1),ax.Y(0),7,P.amber); }
         else {
           h+="<b>3.</b> x₁ = (−b − √Δ)/(2a) = ("+S.fmt(-B)+" − "+S.fmt(r,3)+")/"+S.fmt(2*A)+" "+(exact?"= ":"≈ ")+"<b>"+S.fmt(x1,3)+"</b><br>";
           h+="<b>4.</b> x₂ = (−b + √Δ)/(2a) = ("+S.fmt(-B)+" + "+S.fmt(r,3)+")/"+S.fmt(2*A)+" "+(exact?"= ":"≈ ")+"<b>"+S.fmt(x2,3)+"</b><br>";
           var v1=A*x1*x1+B*x1+C, v2=A*x2*x2+B*x2+C;
           h+="Vérification : a·x₁² + b·x₁ + c ≈ "+S.fmt(Math.abs(v1)<1e-9?0:v1,3)+" et a·x₂² + b·x₂ + c ≈ "+S.fmt(Math.abs(v2)<1e-9?0:v2,3)+".";
-          S.draw.dot(c,ax.X(x1),ax.Y(0),7,P.green); S.draw.dot(c,ax.X(x2),ax.Y(0),7,P.green);
+          if(Math.abs(x1)<=6) S.draw.dot(c,ax.X(x1),ax.Y(0),7,P.green); if(Math.abs(x2)<=6) S.draw.dot(c,ax.X(x2),ax.Y(0),7,P.green);
+          if(Math.abs(x1)>6||Math.abs(x2)>6) h+="<br><i>(Une solution est hors du cadre du graphique.)</i>";
         }
       }
       nt.set(h,kind);

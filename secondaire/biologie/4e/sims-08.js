@@ -73,7 +73,7 @@ SFA.sim({
       for (var n = 0; n <= 4; n++){
         var cx = L + (n + 0.5) * cw, bs = bands(model, n);
         B4.rr(c, cx - 13, y, 26, hh, 12, "#f8fafc", n === hl ? B4.pal.red : "#13233a", n === hl ? 3.5 : 1.6);
-        bs.forEach(function(b){ var yy = y + hh * (0.88 - 0.7 * b.pos), th = 3 + 9 * b.frac; ctx.fillStyle = b.pos > 0.7 ? "#b42318" : b.pos > 0.3 ? "#5B21B6" : "#1e3f8f"; if (n === 0 || b.frac > 0) ctx.fillRect(cx - 12, yy - th / 2, 24, th); });
+        bs.forEach(function(b){ var yy = y + hh * (0.18 + 0.7 * b.pos), th = 3 + 9 * b.frac; ctx.fillStyle = b.pos > 0.7 ? "#b42318" : b.pos > 0.3 ? "#5B21B6" : "#1e3f8f"; if (n === 0 || b.frac > 0) ctx.fillRect(cx - 12, yy - th / 2, 24, th); });
         B4.txt(c, "G" + n, cx, y + hh + 12, B4.pal.ink, 11);
       }
     }
@@ -169,7 +169,7 @@ SFA.sim({
     var BM = [["1 m", 1], ["tour de la Terre", 4.0e7], ["Terre–Lune", 3.84e8], ["Terre–Soleil", 1.5e11], ["Soleil–Neptune", 4.5e12]];
     k.draw(function(){
       c.clear(); var ctx = c.ctx, W = c.W, H = c.H, d = D[org.value], Lc = d.bp * 0.34e-9, N = Math.pow(10, ne.value), Lt = Lc * N;
-      var lo = -7, hi = 13, L = 14, Rr = W - 14;
+      var lo = -7, hi = 15, L = 14, Rr = W - 14;
       function PX(m){ return L + (Math.log10(m) - lo) / (hi - lo) * (Rr - L); }
       var ay = H * 0.34;
       S.draw.line(c, L, ay, Rr, ay, B4.pal.ink, 2);
@@ -180,7 +180,7 @@ SFA.sim({
       S.draw.dot(c, PX(Lt), ay, 8, B4.pal.red); S.draw.line(c, PX(Lt), ay, PX(Lt), ay + 48, B4.pal.red, 2); B4.txt(c, "ADN de " + (N < 10 ? "1 cellule" : "10" + String(ne.value).replace(/\d/g, function(q){ return "⁰¹²³⁴⁵⁶⁷⁸⁹"[q]; }) + " cellules"), Math.min(W - 80, Math.max(80, PX(Lt))), ay + 58, B4.pal.red, 12);
       BM.forEach(function(b, i){ S.draw.line(c, PX(b[1]), ay - 4, PX(b[1]), ay + 5, B4.pal.green, 2.5); B4.txt(c, b[0], PX(b[1]), ay + 86 + i * 14, B4.pal.green, 11, i > 2 ? "right" : "left"); });
       var nbp = d.bp, comp = Lc / d.d, ratioSun = Lt / 1.5e11, txt;
-      ro.set(0, S.sci(nbp, 2).replace(/<\/?sup>/g, function(t){ return t === "<sup>" ? "^" : ""; })); ro.set(1, B4.len(Lc)); ro.set(2, "× " + S.fmt(comp, 0)); ro.set(3, Lt >= 1e9 ? S.fmt(Lt / 1000, 0).length > 9 ? S.sci(Lt / 1000, 1) + " km" : S.fmt(Lt / 1000, 0) + " km" : B4.len(Lt));
+      ro.set(0, S.sci(nbp, 2).replace(/<\/?sup>/g, function(t){ return t === "<sup>" ? "^" : ""; })); ro.set(1, B4.len(Lc)); ro.set(2, "× " + S.fmt(comp, 0)); ro.set(3, Lt >= 1e4 ? S.sci(Lt / 1000, 2) + " km" : B4.len(Lt));
       txt = "Chaque cellule de " + d.n + " renferme " + B4.len(Lc) + " d'ADN dans " + d.lab.replace(/\(.*\)/, "").trim() + " de " + (d.d * 1e6) + " µm : compaction ≈ " + S.fmt(comp, 0) + " fois. ";
       if (Lt > 1.5e11) txt += "Bout à bout, 10^" + ne.value + " cellules donneraient ≈ " + S.fmt(ratioSun, 0) + " fois la distance Terre–Soleil.";
       else if (Lt > 1) txt += "À cette échelle, la longueur dépasse déjà le mètre.";

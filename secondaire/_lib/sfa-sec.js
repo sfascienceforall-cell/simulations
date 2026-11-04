@@ -23,6 +23,7 @@ S.fmt = function(x, d){
   if (d === undefined) d = 2;
   var s = Number(x).toFixed(d);
   if (d > 0) s = s.replace(/\.?0+$/, "");
+  if (/^-0(\.0*)?$/.test(s)) s = s.slice(1);   /* évite « −0 » pour un tout petit négatif */
   return s.replace("-", "−").replace(".", ",");
 };
 S.sci = function(x, d){
@@ -74,9 +75,11 @@ Kit.prototype.slider = function(label, min, max, step, val, unit, fn){
   var r = el("input", {type:"range", min:min, max:max, step:step, value:val});
   d.appendChild(lab); d.appendChild(r);
   var dec = (String(step).split(".")[1] || "").length;
-  var o = {get value(){ return parseFloat(r.value); }, set:function(v){ r.value = v; show(); }, el:r};
-  function show(){ out.innerHTML = S.fmt(parseFloat(r.value), dec) + (unit ? " " + unit : ""); }
-  r.addEventListener("input", function(){ show(); if (fn) fn(o.value); self.redraw(); });
+  /* cur garde la valeur exacte : un <input type=range> arrondit au pas lors d'un r.value = v (animations en pas fins) */
+  var cur = parseFloat(r.value);
+  var o = {get value(){ return cur; }, set:function(v){ v = Math.max(parseFloat(r.min), Math.min(parseFloat(r.max), parseFloat(v))); cur = v; r.value = v; show(); }, el:r};
+  function show(){ out.innerHTML = S.fmt(cur, dec) + (unit ? " " + unit : ""); }
+  r.addEventListener("input", function(){ cur = parseFloat(r.value); show(); if (fn) fn(o.value); self.redraw(); });
   show(); return o;
 };
 Kit.prototype.select = function(label, options, val, fn){
@@ -162,6 +165,11 @@ S.draw = {
     opt = opt || {};
     var L = opt.l || 46, R = opt.r || 16, T = opt.t || 16, B = opt.b || 34;
     var W = c.W, H = c.H, ctx = c.ctx;
+    if (opt.equal){   /* même échelle en x et en y : on centre la zone de tracé */
+      var wpx = W - L - R, hpx = H - T - B, u0 = Math.min(wpx / (opt.x1 - opt.x0), hpx / (opt.y1 - opt.y0));
+      var ddx = (wpx - u0 * (opt.x1 - opt.x0)) / 2, ddy = (hpx - u0 * (opt.y1 - opt.y0)) / 2;
+      L += ddx; R += ddx; T += ddy; B += ddy;
+    }
     var ax = {x0:opt.x0, x1:opt.x1, y0:opt.y0, y1:opt.y1};
     ax.X = function(x){ return L + (x - ax.x0) / (ax.x1 - ax.x0) * (W - L - R); };
     ax.Y = function(y){ return H - B - (y - ax.y0) / (ax.y1 - ax.y0) * (H - T - B); };

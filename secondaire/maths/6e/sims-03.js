@@ -51,13 +51,16 @@ SFA.sim({
     var ys=[1,2,2,0.5,-1,-2,-1];
     var drag=-1, axf=null, axF=null;
     function f(x){ var i=Math.min(5,Math.max(0,Math.floor(x))); var t=x-i; return ys[i]*(1-t)+ys[i+1]*t; }
-    function Fv(x){ var n=Math.round(x/0.05), s=F0.value, h=0.05; for(var i=0;i<n;i++){ s+=(f(i*h)+f((i+1)*h))/2*h; } return s; }
+    var FS=[];
+    function build(){ var h=0.05, s=F0.value; FS=[s]; for(var i=0;i<120;i++){ s+=(f(i*h)+f((i+1)*h))/2*h; FS.push(s); } }
+    function Fv(x){ return FS[Math.max(0,Math.min(120,Math.round(x/0.05)))]; }
     k.draw(function(){
-      var P=S.draw.palette;
+      var P=S.draw.palette; build();
       cf.clear(); axf=S.draw.axes(cf,{x0:0,x1:6,y0:-3,y1:3,xl:"x",yl:"f(x)",stepX:1,stepY:1});
       for(var i=0;i<6;i++){ S.draw.line(cf,axf.X(i),axf.Y(ys[i]),axf.X(i+1),axf.Y(ys[i+1]),P.green,3); }
       ys.forEach(function(y,i){ S.draw.dot(cf,axf.X(i),axf.Y(y),8,P.red); });
-      cF.clear(); axF=S.draw.axes(cF,{x0:0,x1:6,y0:-8,y1:8,xl:"x",yl:"F(x)",stepX:1,stepY:2});
+      cF.clear(); var fl=Math.min.apply(null,FS), fh=Math.max.apply(null,FS), fpad=(fh-fl)*0.1+0.5;
+      axF=S.draw.axes(cF,{x0:0,x1:6,y0:Math.min(-2,fl-fpad),y1:Math.max(2,fh+fpad),xl:"x",yl:"F(x)",stepX:1});
       var ext=[], prev=null;
       S.draw.fn(cF,axF,function(x){return Fv(x);},P.acc,3);
       for(var j=0;j<6;j++){ var a=ys[j],b=ys[j+1]; if(a*b<0){ var z=j+a/(a-b); ext.push({x:z,y:Fv(z),mx:a>0}); } else if(a===0&&j>0&&ys[j-1]*b<0){ ext.push({x:j,y:Fv(j),mx:ys[j-1]>0}); } }
@@ -97,6 +100,7 @@ SFA.sim({
       c.clear(); var P=S.draw.palette, d=D[sel.value];
       ax=S.draw.axes(c,{x0:d.x0,x1:d.x1,y0:d.y0,y1:d.y1,xl:"x",yl:"y"});
       if(sel.value==="d"&&pt.x<=0.05) pt.x=0.05;
+      pt.x=Math.max(d.x0+(sel.value==="d"?0.05:0),Math.min(d.x1,pt.x)); pt.y=Math.max(d.y0,Math.min(d.y1,pt.y));
       for(var j=-8;j<=8;j++){ S.draw.fn(c,ax,function(x){return d.F(x)+j;},"#c9d2e8",1.3); }
       var C=pt.y-d.F(pt.x);
       S.draw.fn(c,ax,function(x){return d.F(x)+C;},P.acc,3.4);

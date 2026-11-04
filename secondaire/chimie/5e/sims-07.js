@@ -15,7 +15,7 @@ SFA.sim({
   resume: "Particules A et B qui se heurtent dans une boîte : température, concentration, Eₐ, catalyseur.",
   but: "Lance la simulation et compte les chocs efficaces. Double le nombre de particules, puis monte la température, puis abaisse Eₐ (ou ajoute le catalyseur). Dans quel cas la réaction va-t-elle le plus vite ?",
   aRetenir: "Une réaction a lieu quand deux particules se rencontrent (choc) avec une énergie au moins égale à Eₐ (choc efficace) et une orientation convenable. Plus de particules → plus de chocs. Plus chaud → chocs plus fréquents ET plus violents → bien plus de chocs efficaces. Un catalyseur abaisse Eₐ.",
-  piege: "Tous les chocs ne sont pas efficaces : la plupart rebondissent sans réaction. Et élever T de 10 K ne multiplie pas par deux le nombre de chocs, mais le nombre de chocs EFFICACES, d'où le doublement. Simulation en 2D, sans orientation, résultats statistiques : ils varient d'un lancement à l'autre.",
+  piege: "Tous les chocs ne sont pas efficaces : la plupart rebondissent sans réaction. Et élever T de 10 K n'augmente le nombre de chocs que de 1 à 2 %, mais le nombre de chocs EFFICACES bien davantage (environ × 2 pour une réaction réelle d'Eₐ ≈ 50 kJ/mol ; avec les petites Eₐ de la simulation, l'effet est plus modeste). Simulation en 2D, sans orientation, résultats statistiques : ils varient d'un lancement à l'autre.",
   build: function(k, S){
     var pal = S.draw.palette, S300 = 45, R = 6;
     var c = k.canvas(250), g = k.canvas(150);
@@ -115,7 +115,7 @@ SFA.sim({
       S.draw.fn(g, ax, function(t){ return Math.pow(Math.max(0, 1 - t / T0), 3); }, pal.grey, 1.8, [5, 4]);
       S.draw.fn(g, ax, function(t){ return Math.pow(Math.max(0, 1 - t / te), 3); }, pal.acc, 2.8);
       S.draw.text(g, "pointillés : n = 1, 20 °C (60 s)", ax.X(xmax) - 4, ax.Y(0.8), {size: 12, color: pal.grey, align: "right"});
-      S.draw.dot(g, ax.X(Math.min(te, xmax)), ax.Y(0), 6, pal.red);
+      if (te <= xmax) S.draw.dot(g, ax.X(te), ax.Y(0), 6, pal.red); else S.draw.text(g, "disparition après " + xmax + " s (hors graphe)", ax.X(xmax) - 4, ax.Y(0.5), {size: 12, color: pal.red, align: "right"});
       ro.set(0, Math.pow(n.value, 3)); ro.set(1, "× " + n.value); ro.set(2, "× " + S.fmt(fT, 2)); ro.set(3, S.fmt(te, te < 10 ? 2 : 1) + " s");
       nt.set(te <= 5 ? "Défi réussi : moins de 5 s. Surface ×" + n.value + " et température ×" + S.fmt(fT, 1) + " se multiplient." : "Défi : fais descendre le temps sous 5 s (agis sur n ET sur T).", te <= 5 ? "ok" : "");
     });
@@ -151,7 +151,8 @@ SFA.sim({
       if (dd > 0){ S.draw.arrow(c, ax.X(0.34), ax.Y(0), ax.X(0.34), ax.Y(e2), pal.green, 2.4); S.draw.text(c, "Eₐ' = " + e2, ax.X(0.34) + 6, ax.Y(e2 / 2) + 6, {size: 12, color: pal.green, align: "left"}); }
       var frac = Math.exp(-(cat.value ? e2 : e) * 1000 / (R * T.value)), acc = dd > 0 ? Math.exp(dd * 1000 / (R * T.value)) : 1, f10 = Math.exp(e * 1000 / R * (1 / T.value - 1 / (T.value + 10)));
       ro.set(0, e + " kJ/mol"); ro.set(1, dd > 0 ? e2 + " kJ/mol" : "—"); ro.set(2, S.sci(frac)); ro.set(3, dd > 0 ? "× " + S.sci(acc) : "× 1 (pas de catalyseur)"); ro.set(4, "× " + S.fmt(f10, 2) + " (sans catalyseur)");
-      nt.set(dd > 0 ? "ΔH reste " + d + " kJ/mol : le catalyseur ne change que la hauteur de la barrière (vitesse), pas l'écart entre réactifs et produits." : "Sans catalyseur : seul un chauffage (ou plus de concentration) accélère la réaction.", dd > 0 ? "ok" : "");
+      var clampTxt = (cat.value && dEa.value > dd ? " Abaissement limité à " + dd + " kJ/mol : la barrière doit rester au-dessus des niveaux des réactifs et des produits." : "") + (e !== Ea.value ? " Eₐ relevée à " + e + " kJ/mol : elle ne peut pas être inférieure à ΔH + 10." : "");
+      nt.set((dd > 0 ? "ΔH reste " + d + " kJ/mol : le catalyseur ne change que la hauteur de la barrière (vitesse), pas l'écart entre réactifs et produits." : "Sans catalyseur : seul un chauffage (ou plus de concentration) accélère la réaction.") + clampTxt, clampTxt ? "warn" : dd > 0 ? "ok" : "");
     });
   }
 });

@@ -20,12 +20,12 @@ SFA.sim({
     var c = k.canvas(330);
     var gl = k.slider("Glucose disponible", 0, 180, 5, 90, "g");
     var ox = k.slider("Dioxygène disponible", 0, 250, 2, 96, "g");
-    var ro = k.readouts(["Énergie libérée","dont ATP (≈ 34 %)","CO₂ produit","Eau produite","Réactif limitant"]);
+    var ro = k.readouts(["Énergie libérée","dont ATP (≈ 32 %)","CO₂ produit","Eau produite","Réactif limitant"]);
     var nt = k.note("","");
     var MG = 180.16, MO = 6*31.998, MC = 6*44.01, MW = 6*18.015;
     k.draw(function(){
       c.clear(); var xi = Math.min(gl.value/MG, ox.value/MO), used_g = xi*MG, used_o = xi*MO, co2 = xi*MC, h2o = xi*MW, left_g = gl.value-used_g, left_o = ox.value-used_o;
-      var E = xi*2803, atp = E*.34;
+      var E = xi*2803, atp = E*.32;
       var sc = 180/Math.max(100,gl.value+ox.value)/1.4, x1 = 20, w1 = 90, x2 = c.W-20-90, y0 = 40, H = 190;
       T(c,"Avant",x1+w1/2,18,{size:13}); T(c,"Après",x2+w1/2,18,{size:13});
       function stack(x,items){ var y = y0+H; items.forEach(function(it){ var h = Math.max(0,it[0]*sc*1.4); if (h>0.5){ y -= h; rect(c,x,y,w1,h,it[1],P.ink,1.2); if (h>16) T(c,it[2]+" "+S.fmt(it[0],0)+" g",x+w1/2,y+h/2,{size:12,color:P.ink}); } }); }

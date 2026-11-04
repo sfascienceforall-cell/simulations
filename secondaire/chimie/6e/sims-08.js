@@ -155,7 +155,7 @@ SFA.sim({
         nt.set(c1 === c2 ? "Concentrations égales au départ : tension nulle, la pile ne débite pas." : av.value === 100 ? "Concentrations égalisées : E = 0, la pile est usée." : "Le compartiment concentré perd du cuivre en solution (cathode), le dilué en gagne : la tension baisse.", "ok");
       } else {
         ro.set(0, "[Zn²⁺] = " + S.sci(r.a, 2) + " · [Cu²⁺] = " + S.sci(r.b, 2)); ro.set(1, S.fmt(r.E, 3) + " V"); ro.set(2, S.sci(r.a / r.b, 2));
-        nt.set("Part de Cu²⁺ consommée : " + S.fmt(fmap(av.value) * 100, 3) + " %. E reste proche de 1,0 V ; elle ne chute que quand Cu²⁺ est presque épuisé.", "ok");
+        nt.set("Compartiment 1 = Zn²⁺, compartiment 2 = Cu²⁺. Part de Cu²⁺ consommée : " + S.fmt(fmap(av.value) * 100, 3) + " %. E reste proche de 1,0 V ; elle ne chute que quand Cu²⁺ est presque épuisé.", "ok");
       }
     });
   }

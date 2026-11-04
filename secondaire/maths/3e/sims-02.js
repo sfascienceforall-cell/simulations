@@ -52,7 +52,7 @@ SFA.sim({
 SFA.sim({
   id:"m3-c02-vase", ch:"c02", tag:"Histoire-graphe", titre:"Le vase qui se remplit",
   resume:"Un robinet à débit constant remplit des vases différents : quel graphique hauteur–temps ?",
-  but:"Choisis la forme du vase, lance le remplissage et regarde la courbe se tracer. Où le niveau monte-t-il le plus vite ?",
+  but:"Choisis la forme du vase, lance le remplissage et regarde la courbe se tracer. Où le niveau monte-t-il le plus vite ? (Modèle simplifié : vase vu de face, de profondeur constante, donc la largeur dessinée est proportionnelle à la section.)",
   aRetenir:"Le niveau monte vite là où le vase est étroit, lentement là où il est large. La pente de la courbe hauteur–temps lit cette vitesse.",
   piege:"Le graphique n'est pas une photo du vase : c'est la hauteur de l'eau en fonction du temps, pas la forme du récipient.",
   build:function(k,S){

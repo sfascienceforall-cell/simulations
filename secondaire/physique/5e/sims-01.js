@@ -180,17 +180,18 @@ SFA.sim({
       var broke = T > Tmax;
       /* scène */
       c.clear();
-      var span = c.W - 120, mx = c.W / 2, top = 40, sag = Math.min(c.H - 80, (span / 2) * Math.tan(A));
-      S.draw.line(c, 60, top - 20, 60, top + 30, pal.grey, 8); S.draw.line(c, c.W - 60, top - 20, c.W - 60, top + 30, pal.grey, 8);
+      var mx = c.W / 2, top = 40, sagMax = c.H - 130, hs = Math.min((c.W - 120) / 2, sagMax / Math.tan(A)), sag = hs * Math.tan(A);   /* demi-portée adaptée : l'angle dessiné = α */
+      var xl = mx - hs, xr = mx + hs;
+      S.draw.line(c, xl, top - 20, xl, top + 30, pal.grey, 8); S.draw.line(c, xr, top - 20, xr, top + 30, pal.grey, 8);
       var col = broke ? pal.red : pal.acc;
-      S.draw.line(c, 60, top, mx, top + sag, col, 3); S.draw.line(c, c.W - 60, top, mx, top + sag, col, 3);
+      S.draw.line(c, xl, top, mx, top + sag, col, 3); S.draw.line(c, xr, top, mx, top + sag, col, 3);
       ctx.fillStyle = "#c9d6f2"; ctx.strokeStyle = pal.acc; ctx.lineWidth = 2; ctx.fillRect(mx - 20, top + sag, 40, 34); ctx.strokeRect(mx - 20, top + sag, 40, 34);
       S.draw.text(c, S.fmt(m.value, 0) + " kg", mx, top + sag + 17, {size: 12});
       var Ls = Math.min(sag * 0.7 + 25, 85);
       P5.vec(c, mx, top + sag, mx - Ls * Math.cos(A), top + sag - Ls * Math.sin(A), pal.red, "T", {dx: -2});
       P5.vec(c, mx, top + sag, mx + Ls * Math.cos(A), top + sag - Ls * Math.sin(A), pal.red, "T", {dx: 2});
       P5.vec(c, mx, top + sag + 34, mx, top + sag + 34 + 28, pal.ink, "", {});
-      S.draw.text(c, "α", 60 + 46 * Math.cos(A / 2) * 1, top + 46 * Math.sin(A / 2) + 4, {color: pal.ink, size: 12});
+      if (hs > 30) S.draw.text(c, "α", xl + 34 * Math.cos(A / 2), top + 34 * Math.sin(A / 2) + 4, {color: pal.ink, size: 12});
       if (broke) S.draw.text(c, "RUPTURE : T > " + S.fmt(lim.value, 0) + " kN", c.W / 2, c.H - 14, {color: pal.red, size: 14});
       /* graphe T(α) */
       g2.clear();

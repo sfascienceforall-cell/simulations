@@ -1,6 +1,6 @@
 (function(){
 var P = SFA.draw.palette, F = SFA.fmt;
-function wrap(u){ return /[ +−\/·]/.test(u) ? "(" + u + ")" : u; }
+function wrap(u){ return /[ +−\/·√]/.test(u) ? "(" + u + ")" : u; }
 function sqAxes(c, R, step){
   var L = 46, Rr = 16, T = 16, B = 34, ph = c.H - T - B, pw = c.W - L - Rr, hx = R * pw / ph;
   return SFA.draw.axes(c, {x0:-hx, x1:hx, y0:-R, y1:R, stepX:step, stepY:step, xl:"x", yl:"y"});
@@ -64,7 +64,7 @@ SFA.sim({
 
 /* 2. Symétrie des réciproques */
 var RC = {
-  a:{n:"f(x) = 2x − 3", f:function(x){ return 2*x - 3; }, g:function(x){ return (x + 3)/2; }, gs:"f⁻¹(x) = (x + 3)/2", lo:-3, hi:3},
+  a:{n:"f(x) = 2x − 3", f:function(x){ return 2*x - 3; }, g:function(x){ return (x + 3)/2; }, gs:"f⁻¹(x) = (x + 3)/2", lo:-1.5, hi:4.5},
   b:{n:"f(x) = x³", f:function(x){ return x*x*x; }, g:function(x){ return x < 0 ? -Math.pow(-x, 1/3) : Math.pow(x, 1/3); }, gs:"f⁻¹(x) = ∛x", lo:-1.8, hi:1.8},
   c:{n:"f(x) = √x", f:function(x){ return x >= 0 ? Math.sqrt(x) : NaN; }, g:function(x){ return x >= 0 ? x*x : NaN; }, gs:"f⁻¹(x) = x² (x ≥ 0)", lo:0, hi:6},
   d:{n:"f(x) = x² + 1 (x ≥ 0)", f:function(x){ return x >= 0 ? x*x + 1 : NaN; }, g:function(x){ return x >= 1 ? Math.sqrt(x - 1) : NaN; }, gs:"f⁻¹(x) = √(x − 1)", lo:0, hi:2.2},
@@ -91,11 +91,13 @@ SFA.sim({
       S.draw.fn(c, ax, r.f, P.acc, 2.6); S.draw.fn(c, ax, r.g, P.green, 2.6);
       var av = a.value, b = r.f(av);
       if (!isFinite(b)){ nt.set("a = 0 est interdit pour 1/x : f n'est pas définie.", "warn"); ro.set(0, "indéfini"); ro.set(1, "indéfini"); ro.set(2, "—"); return; }
+      var out = Math.abs(av) > 6 || Math.abs(b) > 6;
       S.draw.line(c, ax.X(av), ax.Y(b), ax.X(b), ax.Y(av), P.amber, 1.5, [3, 3]);
       S.draw.dot(c, ax.X(av), ax.Y(b), 6, P.acc); S.draw.dot(c, ax.X(b), ax.Y(av), 6, P.green);
       S.draw.text(c, "P", ax.X(av) + 10, ax.Y(b) - 10, {color:P.acc}); S.draw.text(c, "Q", ax.X(b) + 10, ax.Y(av) - 10, {color:P.green});
       S.draw.text(c, "f", ax.R - 14, ax.T + 12, {color:P.acc, size:13}); S.draw.text(c, "f⁻¹", ax.R - 30, ax.T + 28, {color:P.green, size:13});
       ro.set(0, "(" + F(av, 2) + " ; " + F(b, 2) + ")"); ro.set(1, "(" + F(b, 2) + " ; " + F(av, 2) + ")"); ro.set(2, F(r.g(b), 2));
+      if (out){ nt.set("<b>" + r.gs + "</b>. P ou Q sort du cadre (|coordonnée| > 6) : les valeurs affichées restent justes, rapproche P de l'origine pour voir les deux points.", "warn"); return; }
       nt.set("<b>" + r.gs + "</b>. P et Q sont symétriques par rapport à y = x : le segment PQ est perpendiculaire à la droite et son milieu y est situé.", "ok");
     });
     sel.el.dispatchEvent(new Event("change"));

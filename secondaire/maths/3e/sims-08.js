@@ -107,7 +107,7 @@ SFA.sim({
     k.draw(function(){
       c.clear(); var n=+N.value, D=d.value, r=Math.sqrt(n), p=Math.pow(10,D), perfect=Math.round(r)*Math.round(r)===n;
       var lo=perfect?r:Math.floor(r*p+1e-9)/p, hi=perfect?r:lo+1/p;
-      var w=Math.max(1/p*3,0.02), x0=lo-w, x1=hi+w;
+      var w=3/p, x0=lo-w, x1=hi+w;
       var X=M3.nline(c,S,{x0:x0,x1:x1,y:c.H*0.62,step:1/p,dec:D,from:lo,to:hi,fo:false,too:false,color:P.red});
       S.draw.text(c,"√"+n+" est ici",c.W/2,c.H*0.2,{size:13,color:P.grey}); S.draw.dot(c,X(r),c.H*0.62,5,P.ink);
       ro.set(0,S.fmt(lo,D)); ro.set(1,S.fmt(hi,D)); ro.set(2,S.fmt(lo*lo,2*D+1)); ro.set(3,S.fmt(hi*hi,2*D+1));

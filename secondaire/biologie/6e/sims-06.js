@@ -136,14 +136,15 @@ SFA.sim({
     k.draw(function(){
       c.clear(); var ctx = c.ctx, p = pr.value / 100, z = zq(p), i_ = B.phi(z) / p, Sd = i_ * sd, R = h2.value * Sd, G = gen.value;
       var mean = function(g){ return mu0 + R * Math.min(g, stop.value); };
-      var m = mean(G), ax = S.draw.axes(c, {x0: 6, x1: 22, y0: 0, y1: 0.8, stepX: 2, stepY: 0.2, xl: "longueur du bec (mm)", yl: "fréquence relative", t: 14, b: 190, l: 44});
+      var top = mean(20), XM = Math.max(16, Math.ceil(top + 3 * sd + 0.5)), YM = Math.max(14, Math.ceil(top + 1));   /* axes adaptés : la moyenne peut dépasser 30 mm si la sélection est forte */
+      var m = mean(G), ax = S.draw.axes(c, {x0: 6, x1: XM, y0: 0, y1: 0.8, stepX: XM > 26 ? 4 : 2, stepY: 0.2, xl: "longueur du bec (mm)", yl: "fréquence relative", t: 14, b: 190, l: 44});
       var f = function(x, mu){ return B.phi((x - mu) / sd) / sd; };
-      if (G <= stop.value){ var thr = m + z * sd; ctx.fillStyle = "rgba(180,35,24,.25)"; ctx.beginPath(); ctx.moveTo(ax.X(thr), ax.Y(0)); for (var x = thr; x <= 22; x += 0.05) ctx.lineTo(ax.X(x), ax.Y(f(x, m))); ctx.lineTo(ax.X(22), ax.Y(0)); ctx.closePath(); ctx.fill(); S.draw.line(c, ax.X(thr), ax.T, ax.X(thr), ax.B, P.red, 1.6, [5, 4]); S.draw.text(c, "reproducteurs", ax.X(Math.min(thr + 1.8, 20.8)), ax.T + 14, {size: 12, color: P.red}); }
+      if (G <= stop.value){ var thr = m + z * sd; ctx.fillStyle = "rgba(180,35,24,.25)"; ctx.beginPath(); ctx.moveTo(ax.X(thr), ax.Y(0)); for (var x = thr; x <= XM; x += 0.05) ctx.lineTo(ax.X(x), ax.Y(f(x, m))); ctx.lineTo(ax.X(XM), ax.Y(0)); ctx.closePath(); ctx.fill(); S.draw.line(c, ax.X(thr), ax.T, ax.X(thr), ax.B, P.red, 1.6, [5, 4]); S.draw.text(c, "reproducteurs", ax.X(Math.min(thr + 1.8, XM - 1.2)), ax.T + 14, {size: 12, color: P.red}); }
       S.draw.fn(c, ax, function(x){ return f(x, mu0); }, "#9aa6b5", 1.8, [5, 4]);
       S.draw.fn(c, ax, function(x){ return f(x, m); }, P.acc, 3);
       S.draw.line(c, ax.X(m), ax.Y(f(m, m)), ax.X(m), ax.B, P.acc, 1.4, [3, 3]);
       /* moyenne selon les générations */
-      var ay = S.draw.axes(c, {x0: 0, x1: 20, y0: 8, y1: 20, stepX: 5, stepY: 4, xl: "générations", yl: "moyenne (mm)", t: ax.B + 46, b: 34, l: 44});
+      var ay = S.draw.axes(c, {x0: 0, x1: 20, y0: 8, y1: YM, stepX: 5, stepY: YM > 28 ? 8 : 4, xl: "générations", yl: "moyenne (mm)", t: ax.B + 46, b: 34, l: 44});
       ctx.strokeStyle = P.green; ctx.lineWidth = 2.6; ctx.beginPath(); for (var g = 0; g <= 20; g++){ var X = ay.X(g), Y = ay.Y(mean(g)); if (g === 0) ctx.moveTo(X, Y); else ctx.lineTo(X, Y); } ctx.stroke();
       S.draw.dot(c, ay.X(G), ay.Y(m), 6, P.red);
       ro.set(0, S.fmt(z, 2)); ro.set(1, S.fmt(Sd, 2)); ro.set(2, S.fmt(R, 2)); ro.set(3, S.fmt(m, 2));

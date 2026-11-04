@@ -61,10 +61,15 @@ SFA.sim({
       check();
     }
     function check(){
-      var groups = [st.cur].concat(st.fr.map(function(f){return f.a;})), ok = true, all = [];
+      var groups = [st.cur].concat(st.fr.map(function(f){return f.a;})), ok = true;
       groups.forEach(function(g){ if(g.length>1) ok=false; });
-      if (ok && st.cur.length+st.fr.length>0 && log.length){
-        nt.set("<b>Bravo !</b> Chaque constituant est isolé"+(lost.length?" (le liquide évaporé, <i>"+lost.join(", ")+"</i>, est perdu dans l'air)":"")+". Essaie un autre mélange.","ok");
+      var precious = lost.filter(function(n){ return n!=="eau"; });
+      if (!st.cur.length && !st.fr.length){
+        nt.set("Il ne reste plus rien : tout est parti dans l'air ("+lost.join(", ")+"). Recommence et récupère les constituants avant d'évaporer.","warn");
+      } else if (ok && log.length && !precious.length){
+        nt.set("<b>Bravo !</b> Chaque constituant est isolé"+(lost.length?" (l'eau évaporée est perdue dans l'air, c'est acceptable ici)":"")+". Essaie un autre mélange.","ok");
+      } else if (ok && log.length){
+        nt.set("Les constituants restants sont séparés, mais tu as évaporé <i>"+precious.join(", ")+"</i> : il est perdu. Recommence et utilise une technique qui le récupère (décantation, distillation).","warn");
       } else nt.set("Un groupe contient encore plusieurs constituants : continue.","warn");
     }
     [["Aimant","aimant"],["Ajouter de l'eau","eau"],["Filtration","filtre"],["Décantation","decante"],["Évaporation","evap"],["Distillation","dist"]].forEach(function(p){ k.button(p[0], function(){ act(p[1]); }); });
@@ -255,7 +260,7 @@ SFA.sim({
       T(c,"fractions de 20 mL (violet = éthanol)",cx1+(W-cx1)/2-2,H-10,{size:12,color:P.grey});
       ro.set(0,F(st.head,1)+" °C"); ro.set(1,F(st.V,0)+" mL ("+F(x*100,0)+" % éth.)"); ro.set(2,F(st.col,0)+" mL");
       ro.set(3,st.vol[0]>0?F(st.tubes[0]/st.vol[0]*100,0)+" %":"—");
-      if (st.done) nt.set("Terminé : le tube 1 contient "+F(st.tubes[0]/st.vol[0]*100,0)+" % d'éthanol, le tube 5 seulement "+F(st.tubes[4]/Math.max(st.vol[4],1e-9)*100,0)+" %. La température en tête est passée de plus bas à "+F(st.head,0)+" °C.","ok");
+      if (st.done) nt.set("Terminé : le tube 1 contient "+F(st.tubes[0]/st.vol[0]*100,0)+" % d'éthanol, le tube 5 seulement "+F(st.tubes[4]/Math.max(st.vol[4],1e-9)*100,0)+" %. La température en tête est montée jusqu'à "+F(st.head,0)+" °C.","ok");
     });
   }
 });

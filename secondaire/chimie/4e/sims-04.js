@@ -27,7 +27,7 @@ SFA.sim({
       var v = V.value, Tk = T.value + 273, p = pres(v, T.value, n.value);
       c.clear(); var W = c.W, ctx = c.ctx, bw = W - 70, pw = (v / 3) * bw;
       ctx.fillStyle = "#f6f9fc"; ctx.fillRect(20, 20, pw, 130); ctx.strokeStyle = "#5f6b7a"; ctx.lineWidth = 3; ctx.strokeRect(20, 20, bw, 130);
-      ctx.fillStyle = "#8a95a3"; ctx.fillRect(20 + pw, 14, 12, 142); ctx.fillRect(32 + pw, 80, Math.min(40, W - 60 - pw - 12), 6);
+      ctx.fillStyle = "#8a95a3"; ctx.fillRect(20 + pw, 14, 12, 142); ctx.fillRect(32 + pw, 80, Math.max(0, Math.min(40, W - 60 - pw - 12)), 6);
       var cnt = Math.round(n.value * 1000);
       for (var i = 0; i < cnt; i++){ var q = P[i]; S.draw.dot(c, 24 + q.x * (pw - 8), 24 + q.y * 122, 3.2, "#1e3f8f"); }
       C4.label(c, "V = " + S.fmt(v, 1) + " L", 20 + pw / 2, 170, "#2c3a4e", 13);
@@ -62,7 +62,7 @@ SFA.sim({
       var r = Math.cbrt(Math.max(use, 0) * 1000 * 3 / (4 * Math.PI)) * 2.0;
       ctx.fillStyle = md.value === "K" ? "rgba(30,63,143,.22)" : "rgba(180,35,24,.2)"; ctx.strokeStyle = md.value === "K" ? "#1e3f8f" : "#b42318"; ctx.lineWidth = 3;
       if (use > 0.001){ ctx.beginPath(); ctx.ellipse(W * 0.4, 80, r * 1.15, r, 0, 0, 7); ctx.fill(); ctx.stroke(); } else { C4.label(c, "volume nul ou négatif : absurde", W * 0.4, 80, "#b42318", 14); }
-      if (tc < -150){ for (var i = 0; i < 12; i++) S.draw.dot(c, W * 0.75 + (i % 4) * 14, 110 + Math.floor(i / 4) * 12, 5, "rgba(140,190,230,.7)"); C4.label(c, "N₂ liquide", W * 0.75 + 20, 150, "#0e7490", 12); }
+      if (tc < -150){ for (var i = 0; i < 12; i++) S.draw.dot(c, W * 0.75 + (i % 4) * 14, 110 + Math.floor(i / 4) * 12, 5, "rgba(140,190,230,.7)"); C4.label(c, "bain très froid (N₂ liquide : −196 °C)", W * 0.75 + 20, 150, "#0e7490", 12); }
       var ax = S.draw.axes(g, {x0:-300, x1:120, y0:0, y1:3, xl:"θ (°C)", yl:"V (L)", stepX:50, l:40});
       S.draw.fn(g, ax, function(x){ return V0 * (x + 273) / 293; }, "#1e3f8f", 3);
       if (md.value === "C") S.draw.fn(g, ax, function(x){ return V0 * x / 20; }, "#b42318", 2, [6, 4]);

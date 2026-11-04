@@ -46,7 +46,7 @@ SFA.sim({
       T(c,"film accéléré ×6",c.W-8,c.H-8,{size:12,align:"right",color:P.grey});
       var I = Math.pow(20/ds.value,2)*100;
       ro.set(0,S.fmt(I,0)+" %"); ro.set(1,S.fmt(r,0)+" / min"); ro.set(2,S.fmt(r*60*.003,1)+" mL");
-      nt.set(!on.value ? "Lampe éteinte : plus de photosynthèse, donc plus de bulles (la plante respire seulement)." : cb.value===0 ? "Presque pas de CO₂ dissous : la plante manque de matière première, la production est très faible." : r>=30 ? "Plateau : un autre facteur limite maintenant (ici, la capacité de la plante)." : "Rapproche la lampe ou ajoute du CO₂ : le nombre de bulles augmente.","ok");
+      nt.set(!on.value ? "Lampe éteinte : plus de photosynthèse, donc plus de bulles (la plante respire seulement)." : cb.value===0 ? "Presque pas de CO₂ dissous : la plante manque de matière première, la production est très faible." : r>=25 ? "Plateau : un autre facteur limite maintenant (ici, la capacité de la plante)." : "Rapproche la lampe ou ajoute du CO₂ : le nombre de bulles augmente.","ok");
     });
   }
 });
@@ -123,8 +123,8 @@ SFA.sim({
       function lab(s){ return s>.66 ? "bleu-noir (beaucoup d'amidon)" : s>.2 ? "bleu-violet (un peu d'amidon)" : "brun-jaune (pas d'amidon)"; }
       T(c,"1) ébouillanter  2) décolorer (alcool chaud)  3) iode",c.W/2,y+hh+40,{size:12,color:P.grey});
       ro.set(0,lab(v.green)); ro.set(1,al.value ? lab(v.mask) : "—"); ro.set(2,pa.value ? lab(v.white) : "—");
-      var wrong = !pr.value && al.value && v.mask>.2;
-      nt.set(wrong ? "Attention : la plante contenait déjà de l'amidon. La zone sous l'aluminium bleuit aussi : l'expérience ne prouve plus rien. Mets d'abord la plante à l'obscurité." : (lu.value==="n"||!cb.value) ? "Sans lumière ou sans CO₂, il ne se forme pas d'amidon : la feuille reste brun-jaune après le test." : h.value===0 ? "Durée nulle : pas le temps de fabriquer de l'amidon." : "L'amidon n'apparaît que dans la partie verte éclairée : lumière, chlorophylle et CO₂ sont nécessaires à la photosynthèse.", wrong ? "warn" : "ok");
+      var noSyn = (lu.value==="n"||!cb.value), wrong = !pr.value && ((al.value && v.mask>.2) || (pa.value && v.white>.2) || (noSyn && v.green>.2));
+      nt.set(wrong ? "Attention : la plante contenait déjà de l'amidon. Des zones qui n'ont pas pu en fabriquer (sous l'aluminium, bord blanc, ou feuille sans lumière ou sans CO₂) bleuissent aussi : l'expérience ne prouve plus rien. Mets d'abord la plante à l'obscurité." : (lu.value==="n"||!cb.value) ? "Sans lumière ou sans CO₂, il ne se forme pas d'amidon : la feuille reste brun-jaune après le test." : h.value===0 ? "Durée nulle : pas le temps de fabriquer de l'amidon." : "L'amidon n'apparaît que dans la partie verte éclairée : lumière, chlorophylle et CO₂ sont nécessaires à la photosynthèse.", wrong ? "warn" : "ok");
     });
   }
 });

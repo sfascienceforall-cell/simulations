@@ -20,7 +20,7 @@ SFA.sim({
       var pal = S.draw.palette, ctx = c.ctx, M1 = MT * fT.value, M2 = ML * fL.value, r = d.value * 1e6;
       var F = G * M1 * M2 / (r * r), aL = F / M2, aT = F / M1, T = 2 * Math.PI * Math.sqrt(r * r * r / (G * (M1 + M2))), rL = r * M1 / (M1 + M2), vL = 2 * Math.PI * rL / T;
       c.clear();
-      var cx = c.W / 2, cy = 130, sc = Math.min(c.W / 2 - 50, 190) / 800 * 1.0, rr = r / 1e6 * sc;      /* px */
+      var cx = c.W / 2, cy = 130, sc = Math.min(c.W / 2 - 50, 105) / 800, rr = r / 1e6 * sc;      /* px */
       var rE = rr * (M2 / (M1 + M2)), rM = rr * (M1 / (M1 + M2));
       ctx.strokeStyle = "#cbd3de"; ctx.setLineDash([4, 4]); ctx.beginPath(); ctx.arc(cx, cy, rM, 0, 2 * Math.PI); ctx.stroke(); ctx.setLineDash([]);
       var ex = cx - rE * Math.cos(ph), ey = cy + rE * Math.sin(ph), mx = cx + rM * Math.cos(ph), my = cy - rM * Math.sin(ph);
@@ -118,6 +118,9 @@ SFA.sim({
     k.draw(function(){
       var pal = S.draw.palette, ctx = c.ctx, r0 = RT + h0.value * 1000, V = v0.value * 1000, vc = Math.sqrt(GMT / r0), ve = Math.SQRT2 * vc;
       var o = orbit(r0, V); c.clear();
+      /* périgée / apogée exacts (énergie et moment cinétique conservés) : plus fiables que l'intégration numérique */
+      var q = V * V / (vc * vc), rpe = V < vc ? r0 * q / (2 - q) : r0, rap = V >= vc ? (q < 2 ? r0 * q / (2 - q) : Infinity) : r0;
+      o.impact = V < vc && rpe <= RT; if (!o.impact){ o.minr = rpe; o.maxr = rap; }
       var half = Math.min(c.W, c.H) / 2 - 12, view = Math.max(r0 * 2.6, 1.6 * Math.min(o.maxr, r0 * 6)), sc = half / (view / 2) * 1.0;
       var cx = c.W / 2, cy = c.H / 2;
       sc = Math.min((c.W / 2 - 14) / (view / 2), (c.H / 2 - 14) / (view / 2));
@@ -129,12 +132,12 @@ SFA.sim({
       S.draw.text(c, "départ", cx + 8, cy - r0 * sc - 10, {align: "left", size: 12, color: pal.amber});
       var res, kind;
       if (V >= ve - 1) { res = "évasion (trajectoire ouverte)"; kind = "ok"; }
-      else if (Math.abs(V - vc) < 0.012 * 1000) { res = "orbite quasi circulaire"; kind = "ok"; }
       else if (o.impact) { res = "retombe au sol"; kind = "warn"; }
+      else if (Math.abs(V - vc) < 0.012 * 1000) { res = "orbite quasi circulaire"; kind = "ok"; }
       else { res = "orbite elliptique"; kind = "ok"; }
       ro.set(0, S.fmt(vc / 1000, 2) + " km/s"); ro.set(1, S.fmt(ve / 1000, 2) + " km/s"); ro.set(2, res);
       ro.set(3, o.impact ? "0 (impact)" : S.fmt((o.minr - RT) / 1000, 0) + " km"); ro.set(4, V >= ve - 1 ? "∞" : S.fmt((o.maxr - RT) / 1000, 0) + " km");
-      nt.set(V >= ve - 1 ? "v ≥ √2·v_c : l'énergie est suffisante pour échapper à l'attraction de la Terre (modèle sans air et sans autres astres)." : o.impact ? "La vitesse est inférieure à v_c : la trajectoire finit par couper le sol. Plus v est grande, plus l'impact est loin." : "v est comprise entre v_c et √2·v_c (ou égale à v_c) : le projectile ne touche plus le sol, il tourne autour de la Terre.", kind);
+      nt.set(V >= ve - 1 ? "v ≥ √2·v_c : l'énergie est suffisante pour échapper à l'attraction de la Terre (modèle sans air et sans autres astres)." : o.impact ? "La vitesse est inférieure à v_c : la trajectoire finit par couper le sol. Plus v est grande, plus l'impact est loin." : V < vc ? "v est inférieure à v_c, mais le point le plus bas de l'ellipse reste au-dessus du sol : le projectile tourne autour de la Terre (le point de tir est l'apogée)." : "v est comprise entre v_c et √2·v_c (ou égale à v_c) : le projectile ne touche plus le sol, il tourne autour de la Terre.", kind);
     });
   }
 });

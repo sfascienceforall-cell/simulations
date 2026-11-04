@@ -68,7 +68,7 @@ SFA.sim({
       C4.tag(c, "O₂ (×4)", ax.X(120), ax.Y(480) - 10, "#1e3f8f", 12); C4.tag(c, "CO₂ (×2,75)", ax.X(140), ax.Y(385) - 12, "#b42318", 12); C4.tag(c, "H₂O (×2,25)", ax.X(150), ax.Y(337) + 14, "#2e6b55", 12);
       [[4 * x, "#1e3f8f"], [2.75 * x, "#b42318"], [2.25 * x, "#2e6b55"]].forEach(function(p){ S.draw.dot(c, ax.X(x), ax.Y(p[0]), 6, p[1]); });
       S.draw.line(c, ax.X(x), ax.Y(0), ax.X(x), ax.Y(4 * x), "#b8c0cc", 1, [3, 3]);
-      ro.set(0, S.fmt(2 * n * 24, 1) + " L"); ro.set(1, S.fmt(2 * n * 24 / 0.21, 0) + " L"); ro.set(2, S.fmt(44 * n, 1) + " g"); ro.set(3, S.fmt(36 * n, 1) + " g");
+      ro.set(0, S.fmt(64 * n, 1) + " g (" + S.fmt(2 * n * 24, 1) + " L)"); ro.set(1, S.fmt(2 * n * 24 / 0.21, 0) + " L"); ro.set(2, S.fmt(44 * n, 1) + " g"); ro.set(3, S.fmt(36 * n, 1) + " g");
       nt.set("n(CH₄) = " + S.fmt(n, 3) + " mol. Volumes à 20 °C et 1 atm (V<sub>m</sub> = 24 L/mol) ; l'eau est supposée liquide ; air = 21 % de O₂ en volume.", "");
     });
   }

@@ -45,7 +45,7 @@ SFA.sim({
     var nt=k.note("");
     k.draw(function(){
       c.clear(); var A=a.value,B=b.value,X1=x1.value,DX=dx.value,X2=X1+DX,f=function(x){return A*x+B;};
-      var ax=S.draw.axes(c,{x0:-6,x1:6,y0:-12,y1:12,xl:"x",yl:"y",stepX:1,stepY:4});
+      var ax=S.draw.axes(c,{x0:-6,x1:6,y0:-16,y1:16,xl:"x",yl:"y",stepX:1,stepY:4});
       S.draw.fn(c,ax,f,P.acc,3);
       var Y1=f(X1),Y2=f(X2);
       S.draw.line(c,ax.X(X1),ax.Y(Y1),ax.X(X2),ax.Y(Y1),P.amber,2.5); S.draw.line(c,ax.X(X2),ax.Y(Y1),ax.X(X2),ax.Y(Y2),P.green,2.5);
@@ -69,6 +69,11 @@ SFA.sim({
     var A={x:-2,y:-1}, B={x:2,y:3}, sel=null, ax;
     function gcd(p,q){p=Math.abs(p);q=Math.abs(q);while(q){var t=p%q;p=q;q=t;}return p;}
     function frac(n,d){ if(d<0){n=-n;d=-d;} var g=gcd(n,d)||1; n/=g;d/=g; return d===1?S.fmt(n,0):S.fmt(n,0)+"/"+d; }
+    function eqf(n,d,bn){ /* équation exacte avec fractions : y = (n/d)x + bn/d */
+      if(d<0){n=-n;d=-d;bn=-bn;} var g=gcd(n,d)||1, an=n/g, ad=d/g, g2=gcd(bn,d)||1, bb=bn===0?null:frac(bn,d), s="y = ";
+      if(an===0) return s+(bb===null?"0":bb);
+      var at=ad===1?(an===1?"":an===-1?"−":S.fmt(an,0)):S.fmt(an,0)+"/"+ad; s+=at+"x";
+      if(bn>0) s+=" + "+bb; else if(bn<0) s+=" − "+frac(-bn,d); return s; }
     k.button("Exemple 1",function(){A.x=-2;A.y=-1;B.x=2;B.y=3;});
     k.button("Exemple 2",function(){A.x=-3;A.y=4;B.x=3;B.y=-2;});
     k.button("Pente non entière",function(){A.x=-4;A.y=-2;B.x=2;B.y=1;});
@@ -86,7 +91,7 @@ SFA.sim({
       var vert=A.x===B.x;
       if(vert){ S.draw.line(c,ax.X(A.x),ax.T,ax.X(A.x),ax.B,P.red,3); }
       else{ var a=(B.y-A.y)/(B.x-A.x), b=A.y-a*A.x; S.draw.fn(c,ax,function(x){return a*x+b;},P.acc,3);
-        ro.set(0,frac(B.y-A.y,B.x-A.x)); ro.set(1,frac(A.y*(B.x-A.x)-(B.y-A.y)*A.x,B.x-A.x)); ro.set(2,M3.lin(a,b,S));
+        ro.set(0,frac(B.y-A.y,B.x-A.x)); ro.set(1,frac(A.y*(B.x-A.x)-(B.y-A.y)*A.x,B.x-A.x)); ro.set(2,eqf(B.y-A.y,B.x-A.x,A.y*(B.x-A.x)-(B.y-A.y)*A.x));
         nt.set("a = ("+S.fmt(B.y,0)+" − "+(A.y<0?"("+S.fmt(A.y,0)+")":S.fmt(A.y,0))+") ÷ ("+S.fmt(B.x,0)+" − "+(A.x<0?"("+S.fmt(A.x,0)+")":S.fmt(A.x,0))+") = "+frac(B.y-A.y,B.x-A.x)+". Puis b = "+S.fmt(A.y,0)+" − a × "+(A.x<0?"("+S.fmt(A.x,0)+")":S.fmt(A.x,0))+" = "+frac(A.y*(B.x-A.x)-(B.y-A.y)*A.x,B.x-A.x)+".","ok"); }
       if(vert){ ro.set(0,"indéfinie"); ro.set(1,"—"); ro.set(2,"x = "+S.fmt(A.x,0)); nt.set("A et B ont le même x : droite verticale, pas de fonction du premier degré. Déplace un point.","warn"); }
       S.draw.dot(c,ax.X(A.x),ax.Y(A.y),8,P.red); S.draw.dot(c,ax.X(B.x),ax.Y(B.y),8,P.green);

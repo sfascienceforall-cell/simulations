@@ -91,7 +91,7 @@ SFA.sim({
       D.dot(c2,bx.X(Math.min(mx,Hs)),bx.Y(Math.min(mx,Ls)),5,P.red);
       /* période : écart entre deux maxima de lièvres */
       var pk = []; for (i=2;i<o.length-1;i++) if (o[i][1]>o[i-1][1] && o[i][1]>=o[i+1][1] && o[i][1]>Hs*1.05) pk.push(o[i][0]);
-      var per = pk.length>=2 ? pk[1]-pk[0] : null, last = o[o.length-1], gone = last[2]<.5;
+      var per = pk.length>=2 ? pk[1]-pk[0] : null, last = o[o.length-1], gone = last[2]<.5 || (lim.value && m.value/a.value>=100);
       ro.set(0,S.fmt(Hs,0)); ro.set(1,S.fmt(Ls,0)); ro.set(2, per ? S.fmt(per,1)+" ans" : "—");
       var amort = pk.length>=2 && (o[o.length-1][1]-Hs)<Hs*.05;
       ro.set(3, gone ? "lynx disparus" : lim.value && (Math.abs(last[1]-Hs)<Hs*.05) ? "équilibre stable" : "oscillations");
@@ -175,8 +175,8 @@ SFA.sim({
         c1.ctx.save(); c1.ctx.setLineDash([5,4]); c1.ctx.strokeStyle = P.grey; c1.ctx.beginPath(); c1.ctx.moveTo(ax.L,ax.Y(Kc)); c1.ctx.lineTo(ax.R,ax.Y(Kc)); c1.ctx.stroke(); c1.ctx.restore(); T(c1,"capacité du milieu",ax.R-4,ax.Y(Kc)-9,{size:12,align:"right",color:P.grey}); }
       c2.clear(); var bx = D.axes(c2,{x0:0,x1:48,y0:0,y1:Math.max(2,s0.value),xl:"temps (h)",yl:"sucre (g/L)",stepX:8,l:50});
       D.fn(c2,bx,function(x){ return o[Math.min(o.length-1,Math.round(x*5))][2]; },P.amber,3);
-      var t95 = null; for (var i=0;i<o.length;i++) if (o[i][1]>=.9*Kc){ t95 = o[i][0]; break; }
-      var mu0 = r.mu0, td = mu0>DR ? Math.LN2/((mu0*s0.value/(KS+s0.value))-DR) : null;
+      var t95 = null; for (var i=0;i<o.length;i++) if (o[i][0]>48) break; else if (o[i][1]>=.9*Kc){ t95 = o[i][0]; break; }
+      var mu0 = r.mu0, mue = mu0*s0.value/(KS+s0.value), td = mue>DR ? Math.LN2/(mue-DR) : null;
       ro.set(0,S.fmt(Kc,1)+" million/mL"); ro.set(1, t95===null ? "pas dans les 48 h" : S.fmt(t95,0)+" h"); ro.set(2, td && td<100 ? S.fmt(td,1)+" h" : "pas de croissance");
       nt.set(mu0<=DR ? "Température trop basse ou trop haute : les levures ne se multiplient presque pas." : "Capacité = population de départ + rendement × sucre ≈ "+S.fmt(Kc,1)+" million/mL. Plus de sucre : plateau plus haut. Plus chaud (jusqu'à ≈ 35 °C) : plateau atteint plus vite, mais pas plus haut.","ok");
     });
