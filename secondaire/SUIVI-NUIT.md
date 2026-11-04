@@ -10,3 +10,5 @@ Branche : `nuit-2026-11-04` (rien sur main). Dossiers : `secondaire/` (maths, ph
 | 00:42 | Phase 2 : construction (le professeur de la matière conçoit et construit chaque page), lot 1 = maths 3e-6e + physique 3e-6e | en cours |
 | 01:09 | Lot 1 terminé : maths 3e (40 sims, 102 ex.), 4e (49, 100), 5e (40, 100), 6e (40, 101) ; physique 3e (40, 100), 4e (40, 100), 5e (40, 101), 6e (40, 100). 0 erreur JS. Poussé sur la branche. | fait |
 | 01:10 | Lot 2 : chimie 3e-6e + biologie 3e-6e | en cours |
+| 01:58 | Lot 2 terminé : chimie 3e (40 sims, 110 ex.), 4e (40, 100), 5e (40, 100), 6e (41, 100) ; biologie 3e (40, 100), 4e (40, 100), 5e (40, 101), 6e (40, 100). 0 erreur JS. Poussé. | fait |
+| 02:00 | Lot 3 : université — chimie compléments (2 agents), biologie BA1 (2), biostatistique BA1 (2), réétagement des exercices de chimie existants (1) | en cours |
