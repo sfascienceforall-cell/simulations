@@ -241,10 +241,10 @@ function openSim(d, host){
   var kit = new Kit(stage, ctrl, panel);
   var onResize = function(){ kit._cv.forEach(function(o){ o.resize(); }); };
   window.addEventListener("resize", onResize);
-  S.open = {id:d.id, close:function(){ kit._alive = false; if (kit._raf) cancelAnimationFrame(kit._raf); window.removeEventListener("resize", onResize); panel.remove(); S.open = null; history.replaceState(null, "", location.pathname + location.search); }};
+  S.open = {id:d.id, close:function(){ kit._alive = false; if (kit._raf) cancelAnimationFrame(kit._raf); window.removeEventListener("resize", onResize); panel.remove(); S.open = null; try{history.replaceState(null, "", location.pathname + location.search);}catch(e){} }};
   panel.querySelector(".x").addEventListener("click", function(){ S.open && S.open.close(); });
   try { d.build(kit, S); } catch (e){ stage.appendChild(el("div", {"class":"note bad"}, "Erreur dans la simulation : " + e.message)); if (window.console) console.error(e); }
-  history.replaceState(null, "", "#" + d.id);
+  try{history.replaceState(null, "", "#" + d.id);}catch(e){}
   panel.scrollIntoView({behavior:"smooth", block:"start"});
 }
 S.openSim = function(id){ var d = S.sims.filter(function(s){ return s.id === id; })[0]; var c = document.querySelector('[data-sim="' + id + '"]'); if (d && c) openSim(d, c.closest(".grid")); };
