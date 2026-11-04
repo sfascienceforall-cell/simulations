@@ -16,3 +16,4 @@ Branche : `nuit-2026-11-04` (rien sur main). Dossiers : `secondaire/` (maths, ph
 | 02:37 | Phase 3 : relecture par 6 professeurs (maths, physique, chimie secondaire, chimie BA1, biologie, statistique) | en cours |
 | 02:48 | Phase 3 terminée : relecture des 6 professeurs, ~133 corrections (aucun index de QCM faux ; ~8 corrigés numériques faux corrigés ; erreurs de fond corrigées : raie du K, Kw à 37 °C, PbCl₂, seuil HH, IC σ connu, Mann-Whitney…). Rapports RELECTURE-PROF-*.md. | fait |
 | 02:54 | Livraison intermédiaire sur le SSD (zip + agents). Phase 4 : audit du code des simulations (9 auditeurs) | en cours |
+| 06:30 | Phase 4 terminée : audit du code de 509 simulations (secondaire + biologie BA1), 264 corrigées. Correctifs du moteur (curseurs animés, repères à échelle égale, affichage téléphone). Livraison. | fait |
