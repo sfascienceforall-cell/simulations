@@ -334,5 +334,16 @@ S.render = function(){
   var h = location.hash.slice(1);
   if (h && !/^ch-/.test(h)) setTimeout(function(){ S.openSim(h); }, 50);
 };
-document.addEventListener("DOMContentLoaded", function(){ S.render(); });
+/* page dédiée à une seule simulation (kit/sim-page.js) */
+S.mount = function(d, host){
+  var body = el("div", {"class":"sim-body"}), stage = el("div", {"class":"stage"}), ctrl = el("div", {"class":"ctrl"});
+  body.appendChild(stage); body.appendChild(ctrl); host.appendChild(body);
+  if (d.aRetenir) host.appendChild(el("div", {"class":"note ok", style:"margin-top:12px"}, "<b>À retenir.</b> " + d.aRetenir));
+  if (d.piege) host.appendChild(el("div", {"class":"note warn", style:"margin-top:8px"}, "<b>Piège.</b> " + d.piege));
+  var kit = new Kit(stage, ctrl, host);
+  window.addEventListener("resize", function(){ kit._cv.forEach(function(o){ o.resize(); }); });
+  try { d.build(kit, S); } catch (e){ stage.appendChild(el("div", {"class":"note bad"}, "Erreur dans la simulation : " + e.message)); if (window.console) console.error(e); }
+  return kit;
+};
+document.addEventListener("DOMContentLoaded", function(){ if (!window.SFA_SIMPAGE) S.render(); });
 })();
