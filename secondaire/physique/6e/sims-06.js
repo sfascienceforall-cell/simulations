@@ -7,7 +7,7 @@ SFA.sim({
   aRetenir: "Une onde progressive transporte de l'énergie sans transporter de matière : chaque point oscille autour de sa position de repos. Relation fondamentale : v = λ·f. La célérité v est fixée par le milieu (ici v = √(T/μ)) ; si on augmente la fréquence, c'est la longueur d'onde qui diminue. Transversale : déformation perpendiculaire à la propagation ; longitudinale : déformation parallèle (son, ressort).",
   piege: "Changer la fréquence ne change pas la vitesse de l'onde dans la corde : λ s'adapte. Et la matière ne voyage pas : suis le point rouge, il reste à sa place. Dessin : l'amplitude verticale est exagérée.",
   build: function(k, S){
-    var c = k.canvas(260), P = S.draw.palette;
+    var c = k.canvas(260), g1 = k.canvas(130), g2 = k.canvas(130), P = S.draw.palette;
     var typ = k.seg("Type d'onde", [["tr", "Transversale"], ["lo", "Longitudinale"]], "tr");
     var f = k.slider("Fréquence f", 0.5, 4, 0.1, 1, "Hz");
     var Tn = k.slider("Tension T de la corde", 1, 20, 1, 4, "N");
@@ -17,12 +17,13 @@ SFA.sim({
     var t = 0;
     var lp = k.loop(function(dt){ t += dt; k.redraw(); }); lp.play();
     k.draw(function(){
-      c.clear(); var ctx = c.ctx, W = c.W, H = c.H, cy = H / 2 - 6, Lm = 12, px = (W - 40) / Lm, x0 = 20;
+      c.clear(); g1.clear(); g2.clear(); PH6.bg(c, "#f8fafd", "#eaf0f7"); var ctx = c.ctx, W = c.W, H = c.H, cy = H / 2 - 6, Lm = 12, px = (W - 40) / Lm, x0 = 20;
       var v = Math.sqrt(Tn.value / mu.value), lam = v / f.value, a = A.value * 7;
       function ph(x){ return 2 * Math.PI * (f.value * t - x / lam); }
       var x6 = 6;
       if (typ.value === "tr"){
-        ctx.beginPath(); ctx.strokeStyle = P.acc; ctx.lineWidth = 3;
+        PH6.metal(c, 2, cy - 18, 16, 36, 4, "#5b6678"); S.draw.line(c, 18, cy, x0, cy - a * Math.sin(ph(0)), "#5b6678", 4);
+        ctx.beginPath(); ctx.strokeStyle = P.acc; ctx.lineWidth = 4.5; ctx.lineJoin = "round";
         for (var i = 0; i <= 300; i++){ var xm = Lm * i / 300; var y = cy - a * Math.sin(ph(xm)); if (i) ctx.lineTo(x0 + xm * px, y); else ctx.moveTo(x0 + xm * px, y); }
         ctx.stroke();
         S.draw.line(c, x0, cy, x0 + Lm * px, cy, "#c7cdd6", 1, [4, 4]);
@@ -47,6 +48,18 @@ SFA.sim({
       /* flèche de propagation et mesure de λ */
       S.draw.arrow(c, x0 + 4, H - 22, x0 + 74, H - 22, P.ink, 2); S.draw.text(c, "propagation", x0 + 112, H - 22, {size: 12});
       if (lam < Lm) { var lx = x0 + 3 * px; S.draw.line(c, lx, 22, lx + lam * px, 22, P.green, 3); S.draw.text(c, "λ", lx + lam * px / 2, 12, {size: 13, color: P.green, math: true}); }
+      /* mesures : λ sur la « photo », T sur le « film » d'une particule */
+      var Tn_ = 1 / f.value, amax = Math.max(A.value, 1) * 1.25;
+      var a1 = S.draw.axes(g1, {x0: 0, x1: Lm, y0: -amax, y1: amax, xl: "x (m)", yl: "y (cm)", l: 46, t: 18, b: 30, stepY: amax > 4 ? 2 : 1, stepX: 2, hideZero: true});
+      S.draw.text(g1, "PHOTO à un instant : on lit λ", a1.L + 4, 8, {size: 11, align: "left", color: P.ink});
+      if (typ.value === "tr") S.draw.fn(g1, a1, function(xm){ return A.value * Math.sin(ph(xm)); }, P.acc, 2.6);
+      else S.draw.fn(g1, a1, function(xm){ return A.value * Math.sin(ph(xm)); }, P.acc, 2.6, [4, 3]);
+      if (lam < Lm){ var xl0 = 0.6, yl_ = a1.Y(-amax * 0.78); S.draw.line(g1, a1.X(xl0), yl_, a1.X(xl0 + lam), yl_, P.green, 3); S.draw.line(g1, a1.X(xl0), yl_ - 5, a1.X(xl0), yl_ + 5, P.green, 2); S.draw.line(g1, a1.X(xl0 + lam), yl_ - 5, a1.X(xl0 + lam), yl_ + 5, P.green, 2); S.draw.label(g1, "λ = " + S.fmt(lam, 2) + " m", a1.X(xl0 + lam / 2), yl_ - 12, {color: P.green, size: 11}); }
+      var tspan = Math.max(2 * Tn_, 1.2), a2 = S.draw.axes(g2, {x0: 0, x1: tspan, y0: -amax, y1: amax, xl: "t (s)", yl: "y (cm)", l: 46, t: 18, b: 30, stepY: amax > 4 ? 2 : 1, hideZero: true});
+      S.draw.text(g2, "FILM d'une particule : on lit T", a2.L + 4, 8, {size: 11, align: "left", color: P.ink});
+      S.draw.fn(g2, a2, function(tq){ return A.value * Math.sin(2 * Math.PI * (f.value * tq - x6 / lam)); }, P.red, 2.6);
+      var yT_ = a2.Y(-amax * 0.78); S.draw.line(g2, a2.X(0.1), yT_, a2.X(0.1 + Tn_), yT_, P.amber, 3); S.draw.line(g2, a2.X(0.1), yT_ - 5, a2.X(0.1), yT_ + 5, P.amber, 2); S.draw.line(g2, a2.X(0.1 + Tn_), yT_ - 5, a2.X(0.1 + Tn_), yT_ + 5, P.amber, 2); S.draw.label(g2, "T = " + S.fmt(Tn_, 2) + " s", a2.X(0.1 + Tn_ / 2), yT_ - 12, {color: P.amber, size: 11});
+      var tcur = t % tspan; S.draw.dot(g2, a2.X(tcur), a2.Y(A.value * Math.sin(2 * Math.PI * (f.value * tcur - x6 / lam))), 5, P.red);
       ro.set(0, S.fmt(v, 2) + " m/s"); ro.set(1, S.fmt(lam, 2) + " m"); ro.set(2, S.fmt(1 / f.value, 2) + " s"); ro.set(3, S.fmt(lam * f.value, 2) + " m/s");
     });
   }
@@ -161,7 +174,7 @@ SFA.sim({
   aRetenir: "Une onde est la propagation d'une perturbation de proche en proche. Ici, la vitesse de l'onde est v = (distance entre sièges) / (retard entre voisins), sans que personne ne se déplace. Le nombre de personnes debout en même temps vaut (durée debout) / (retard), et la « longueur » de la bosse est v × durée debout.",
   piege: "On confond souvent la vitesse de l'onde (plusieurs m/s) avec celle des spectateurs (ils font juste un aller-retour vertical). Une onde transporte de l'information et de l'énergie, pas de la matière.",
   build: function(k, S){
-    var c = k.canvas(270), g1 = k.canvas(120), g2 = k.canvas(120), P = S.draw.palette, Pm = window.PH6;
+    var c = k.canvas(300), g1 = k.canvas(130), g2 = k.canvas(130), P = S.draw.palette, Pm = window.PH6;
     var dl = k.slider("Retard entre voisins", 0.04, 0.5, 0.02, 0.1, "s");
     var du = k.slider("Durée debout", 0.3, 1.5, 0.1, 0.8, "s");
     var dr = k.seg("Sens de l'ola", [["1", "vers la droite →"], ["-1", "← vers la gauche"]], "1");
@@ -186,7 +199,7 @@ SFA.sim({
       if (upv > 0.05){ ctx.strokeStyle = col; ctx.lineWidth = 2.4 * s; ctx.lineCap = "round"; ctx.beginPath(); ctx.moveTo(x - 4 * s, base - h - 9 * s); ctx.lineTo(x - 8 * s, base - h - 21 * s - upv * 5); ctx.moveTo(x + 4 * s, base - h - 9 * s); ctx.lineTo(x + 8 * s, base - h - 21 * s - upv * 5); ctx.stroke(); }
     }
     k.draw(function(){
-      c.clear(); g1.clear(); g2.clear(); Pm.bg(c, "#f3f6fb", "#e4eaf3"); var ctx = c.ctx, W = c.W, H = c.H, x0 = 16, step = (W - 32) / (N - 1), base = H - 46; geo.step = step; geo.x0 = x0;
+      c.clear(); g1.clear(); g2.clear(); Pm.bg(c, "#f3f6fb", "#e4eaf3"); var ctx = c.ctx, W = c.W, H = c.H, x0 = 16, step = (W - 32) / (N - 1), base = H - 64; geo.step = step; geo.x0 = x0;
       /* gradins */
       ctx.fillStyle = "#c9d1dd"; ctx.fillRect(0, base + 8, W, 8); ctx.fillStyle = "#b5bfcd"; ctx.fillRect(0, base + 16, W, H - base);
       ctx.fillStyle = "#dbe1ea"; ctx.fillRect(0, base - 30, W, 8);

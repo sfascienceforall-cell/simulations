@@ -97,11 +97,11 @@ SFA.sim({
   piege: "Q et K ne sont égaux qu'à l'équilibre. Q > K ne veut pas dire que la réaction a « fini » : cela veut dire qu'il y a trop de produits par rapport à l'équilibre : la réaction inverse prend le dessus. Les vitesses de la simulation sont arbitraires (seul le résultat final compte).",
   build: function(k, S){
     var pal = S.draw.palette, K = 50, KF = 0.5;
-    var c = k.canvas(170), g = k.canvas(190);
+    var c = k.canvas(300), g = k.canvas(190);
     var a = k.slider("[H₂]", 0, 1.5, 0.05, 0.5, "mol/L", function(){ reset(); }), b = k.slider("[I₂]", 0, 1.5, 0.05, 0.5, "mol/L", function(){ reset(); }), d = k.slider("[HI]", 0, 2, 0.05, 1.5, "mol/L", function(){ reset(); });
-    var run = false, st = [0.5, 0.5, 1.5], hist = [], tt = 0, speed = 1, tStop = 20;
+    var run = false, st = [0.5, 0.5, 1.5], hist = [], tt = 0, speed = 1, tStop = 20, tm = 0, touched = false;
     function step(s, h){ var r = KF * s[0] * s[1] - (KF / K) * s[2] * s[2]; s[0] = Math.max(0, s[0] - r * h); s[1] = Math.max(0, s[1] - r * h); s[2] = Math.max(0, s[2] + 2 * r * h); }
-    /* temps (simulé) nécessaire pour atteindre Q = K à 1 % près : sert à régler la vitesse d'animation, pour que Q rejoigne K quelles que soient les concentrations */
+    /* temps (simulé) nécessaire pour atteindre Q = K à 1 % près : règle la vitesse d'animation pour que Q rejoigne K quelles que soient les concentrations */
     function tConv(){
       var s = [a.value, b.value, d.value], t = 0, i;
       for (i = 0; i < 500000; i++){
@@ -111,41 +111,61 @@ SFA.sim({
       }
       return t;
     }
-    function reset(){ run = false; hist = []; tt = 0; st = [a.value, b.value, d.value]; var tc = tConv(); speed = Math.max(1, tc / 6); tStop = Math.max(20, tc * 1.3); }
+    function reset(){ run = false; tt = 0; st = [a.value, b.value, d.value]; hist = [[0, st[0], st[1], st[2]]]; var tc = tConv(); speed = Math.max(1, tc / 6); tStop = Math.max(20, tc * 1.3); }
     k.button("Laisser évoluer", function(){ reset(); run = true; }, true);
     k.button("Revenir au départ", function(){ reset(); });
     var ro = k.readouts(["Q = [HI]² / ([H₂][I₂])", "K", "Comparaison", "Le système évolue…"]);
     var nt = k.note("", "");
-    var lp = k.loop(function(dt){
-      if (!run) return;
-      var simdt = Math.min(dt, 0.05) * speed, n = Math.max(1, Math.ceil(simdt / 0.02)), h = simdt / n, i;
-      for (i = 0; i < n; i++){ step(st, h); tt += h; }
-      if (!hist.length || tt - hist[hist.length - 1][0] >= Math.max(0.1, tStop / 300)) hist.push([tt, st[0], st[1], st[2]]);
-      if (tt >= tStop) run = false;
+    var tilt = 0;
+    k.loop(function(dt, t){
+      tm = t;
+      if (run){
+        var simdt = Math.min(dt, 0.05) * speed, n = Math.max(1, Math.ceil(simdt / 0.02)), h = simdt / n, i;
+        for (i = 0; i < n; i++){ step(st, h); tt += h; }
+        if (tt - hist[hist.length - 1][0] >= Math.max(0.1, tStop / 300)) hist.push([tt, st[0], st[1], st[2]]);
+        if (tt >= tStop) run = false;
+      }
       k.redraw();
-    });
-    lp.play();
+    }).play();
     k.draw(function(){
-      c.clear(); g.clear();
-      var H2 = hist.length || run ? st[0] : a.value, I2 = hist.length || run ? st[1] : b.value, HI = hist.length || run ? st[2] : d.value;
+      c.clear(); g.clear(); var ctx = c.ctx;
+      var H2 = st[0], I2 = st[1], HI = st[2];
       var Q = HI * HI / Math.max(H2 * I2, 1e-12), noReact = (HI === 0 && (H2 === 0 || I2 === 0)), qinf = H2 * I2 <= 1e-9 && HI > 0;
-      /* balance Q / K sur échelle logarithmique */
-      var x0 = 30, x1 = c.W - 30, y = 90, lg = function(v){ return Math.max(-2, Math.min(2, Math.log(v / K) / Math.LN10)); };
-      var X = function(l){ return (x0 + x1) / 2 + l / 2 * (x1 - x0) / 2; };
-      c.ctx.fillStyle = "#cfe4d8"; c.ctx.fillRect(x0, y - 10, (x1 - x0) / 2, 20); c.ctx.fillStyle = "#f6d9a8"; c.ctx.fillRect((x0 + x1) / 2, y - 10, (x1 - x0) / 2, 20);
-      S.draw.text(c, "Q < K : vers la droite →", (x0 + (x0 + x1) / 2) / 2, y - 24, {size: 12, color: pal.green}); S.draw.text(c, "← Q > K : vers la gauche", ((x0 + x1) / 2 + x1) / 2, y - 24, {size: 12, color: pal.amber});
-      S.draw.line(c, (x0 + x1) / 2, y - 16, (x0 + x1) / 2, y + 16, pal.ink, 2); S.draw.text(c, "Q = K", (x0 + x1) / 2, y + 28, {size: 12});
-      var xm = noReact ? (x0 + x1) / 2 : qinf ? x1 : X(lg(Math.max(Q, 1e-12)));
-      S.draw.dot(c, xm, y, 10, pal.red); S.draw.text(c, "Q", xm, y, {size: 12, color: "#ffffff"});
-      S.draw.text(c, "échelle logarithmique : K/100 ← K → 100·K", c.W / 2, 135, {size: 12, color: pal.grey});
+      /* enceinte : les nombres de particules suivent les concentrations */
+      var bw = Math.min(230, c.W * 0.5), bh = 150, bx = 10, by = 10, sc = 14;
+      C5.gasbox(c, bx, by, bw, bh, [
+        {n: Math.min(40, H2 * sc), mol: [[-3.5, 0, 3.6, C5.CPK.H], [3.5, 0, 3.6, C5.CPK.H]]},
+        {n: Math.min(40, I2 * sc), mol: [[-6, 0, 6, "#8a5cc4"], [6, 0, 6, "#8a5cc4"]]},
+        {n: Math.min(60, HI * sc), mol: [[-4, 0, 3.6, C5.CPK.H], [5, 0, 6, "#8a5cc4"]]}
+      ], tm);
+      S.draw.legend(c, [["#b9c3d1", "H₂ (petites billes blanches)"], ["#8a5cc4", "I₂ (billes violettes)"], [pal.red, "HI = une blanche + une violette"]], bx, by + bh + 10, {box: false});
+      /* balançoire Q / K */
+      var rx = bx + bw + 18, rw = c.W - rx - 10, pcx = rx + rw / 2, py = 96;
+      var tl = noReact ? 0 : qinf ? 1 : Math.max(-1, Math.min(1, Math.log(Q / K) / Math.LN10 / 2));
+      tilt += (tl - tilt) * 0.2; var ang = tilt * 0.32, Lh = Math.min(70, rw / 2 - 12);
+      S.draw.panel(c, rx - 6, by, rw + 2, bh, {shadow: false, title: "Balance Q / K"});
+      var lx = pcx - Math.cos(ang) * Lh, ly = py + 14 + Math.sin(ang) * Lh * 0.9, rx2 = pcx + Math.cos(ang) * Lh, ry2 = py + 14 - Math.sin(ang) * Lh * 0.9;
+      ctx.fillStyle = "#8e9aab"; ctx.beginPath(); ctx.moveTo(pcx, py + 14); ctx.lineTo(pcx - 12, py + 56); ctx.lineTo(pcx + 12, py + 56); ctx.closePath(); ctx.fill();
+      S.draw.line(c, lx, ly, rx2, ry2, "#2c3a4e", 5);
+      C5.atom(c, lx, ly - 4, 14, pal.red, "Q", "#ffffff"); C5.atom(c, rx2, ry2 - 4, 14, "#8a95a3", "K", "#ffffff");
+      S.draw.text(c, noReact ? "Q indéfini" : "Q = " + (qinf ? "∞" : S.fmt(Q, Q < 10 ? 2 : 1)), pcx, by + 34, {size: 13, color: pal.red}); 
+      /* sens de la réaction */
       var sens = noReact ? "aucune réaction" : Math.abs(Math.log(Q / K)) < 0.02 && !qinf ? "reste à l'équilibre" : (Q < K && !qinf) ? "vers la droite" : "vers la gauche";
-      S.draw.text(c, run ? "évolution en cours…" : "", c.W / 2, 155, {size: 13, color: pal.grey});
+      var yy = by + bh + 44;
+      S.draw.label(c, sens === "vers la droite" ? "H₂ + I₂ → 2 HI  (sens direct)" : sens === "vers la gauche" ? "H₂ + I₂ ← 2 HI  (sens inverse)" : noReact ? "pas de réaction" : "H₂ + I₂ ⇌ 2 HI  (équilibre)", c.W / 2, yy, {color: sens === "vers la droite" ? pal.green : sens === "vers la gauche" ? pal.amber : pal.acc, size: 14});
+      /* échelle logarithmique */
+      var x0 = 30, x1 = c.W - 30, y = yy + 56, mid = (x0 + x1) / 2, lg = function(v){ return Math.max(-2, Math.min(2, Math.log(v / K) / Math.LN10)); }, X = function(l){ return mid + l / 2 * (x1 - x0) / 2; };
+      ctx.fillStyle = "#cfe4d8"; ctx.fillRect(x0, y - 9, mid - x0, 18); ctx.fillStyle = "#f6d9a8"; ctx.fillRect(mid, y - 9, x1 - mid, 18);
+      S.draw.text(c, "Q < K : droite →", (x0 + mid) / 2, y - 22, {size: 11.5, color: pal.green}); S.draw.text(c, "← Q > K : gauche", (mid + x1) / 2, y - 22, {size: 11.5, color: pal.amber});
+      S.draw.line(c, mid, y - 14, mid, y + 14, pal.ink, 2); S.draw.text(c, "Q = K", mid, y + 26, {size: 12});
+      var xm = noReact ? mid : qinf ? x1 : X(lg(Math.max(Q, 1e-12)));
+      S.draw.dot(c, xm, y, 10, pal.red); S.draw.text(c, "Q", xm, y, {size: 11, color: "#ffffff"});
       var ax = S.draw.axes(g, {x0: 0, x1: Math.max(5, tt * 1.1), y0: 0, y1: Math.max(1.6, a.value, b.value, d.value, st[2] * 1.1), xl: "t (unités arbitraires)", l: 40, t: 20});
       S.draw.text(g, "concentrations (mol/L)", 46, 10, {size: 12, align: "left", color: pal.grey});
       var cols = [pal.acc, pal.violet, pal.red], lab = ["H₂", "I₂", "HI"];
-      for (var s = 0; s < 3; s++){ for (var i = 1; i < hist.length; i++) S.draw.line(g, ax.X(hist[i - 1][0]), ax.Y(hist[i - 1][s + 1]), ax.X(hist[i][0]), ax.Y(hist[i][s + 1]), cols[s], 2.4); S.draw.text(g, lab[s], ax.X(ax.x1) - 4, ax.Y(st[s]) - 8, {size: 12, color: cols[s], align: "right"}); }
+      for (var s = 0; s < 3; s++){ for (var i = 1; i < hist.length; i++) S.draw.line(g, ax.X(hist[i - 1][0]), ax.Y(hist[i - 1][s + 1]), ax.X(hist[i][0]), ax.Y(hist[i][s + 1]), cols[s], 2.4); S.draw.dot(g, ax.X(tt), ax.Y(st[s]), 4.5, cols[s]); S.draw.text(g, lab[s], ax.X(ax.x1) - 4, ax.Y(st[s]) - 8, {size: 12, color: cols[s], align: "right"}); }
       ro.set(0, noReact ? "—" : qinf ? "→ ∞ (un réactif absent)" : S.fmt(Q, Q < 10 ? 2 : 1)); ro.set(1, "50"); ro.set(2, noReact ? "—" : (Math.abs(Math.log(Q / K)) < 0.02 && !qinf) ? "Q = K" : (Q < K && !qinf) ? "Q < K" : "Q > K"); ro.set(3, sens);
-      nt.set(noReact ? "Sans HI et sans l'un des réactifs, rien ne peut se produire." : run ? "Observe Q se rapprocher de K." : "Prévois : " + sens + ". Puis appuie sur « Laisser évoluer » pour vérifier.", "");
+      nt.set(noReact ? "Sans HI et sans l'un des réactifs, rien ne peut se produire." : run ? "Observe Q se rapprocher de K : la balance se remet à l'horizontale." : "Prévois : " + sens + ". Puis appuie sur « Laisser évoluer » pour vérifier.", "");
     });
     reset();
   }

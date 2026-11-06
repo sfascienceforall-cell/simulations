@@ -86,6 +86,36 @@ C6.phColor = function(pH){
   for (var i = 1; i < st.length; i++) if (pH <= st[i][0]) return C6.mix(st[i - 1][1], st[i][1], (pH - st[i - 1][0]) / (st[i][0] - st[i - 1][0]));
   return C6.mix(st[6][1], st[6][1], 0);
 };
+/* particule qui erre dans [0,1]² (position en fonction du temps, sans état) */
+C6.wander = function(i, t, sp){
+  sp = sp || 1; var a = C6.rnd(i, 1) * 6.28, b = C6.rnd(i, 2) * 6.28, f1 = 0.45 + C6.rnd(i, 3) * 0.9, f2 = 0.4 + C6.rnd(i, 4) * 0.9;
+  return [0.5 + 0.47 * Math.sin(t * sp * f1 + a + 1.1 * Math.sin(t * sp * 0.31 + b)), 0.5 + 0.47 * Math.sin(t * sp * f2 + b + 0.9 * Math.sin(t * sp * 0.27 + a))];
+};
+/* étiquette d'atome sur fond clair */
+C6.at = function(c, txt, x, y, col, size){ S.draw.text(c, txt, x, y, {size: size || 14, color: col || P.red, bg: "rgba(255,255,255,.88)", weight: 800}); };
+/* formule topologique (ligne brisée) : o = {n, p (1..n), form: "ane|ol|al|one|oic", x, y (centre), dx, a, alpha, branch (indice de C portant un méthyle), col}
+   renvoie {X, Y (fonctions), fx, fy (carbone fonctionnel), s (sens du substituant)} */
+C6.skel = function(c, o){
+  var n = o.n, dx = o.dx || 34, a = o.a || dx * 0.3, j = (o.p || 1) - 1, form = o.form || "ane", ctx = c.ctx, col = o.col || "#2c3a4e", L = dx * 0.82, i;
+  var x0 = o.x - dx * (n - 1) / 2, yc = o.y, w = o.w || 2.6;
+  function X(k){ return x0 + k * dx; } function Y(k){ return yc + (k % 2 === 0 ? a : -a); }
+  ctx.save(); ctx.globalAlpha = o.alpha == null ? 1 : o.alpha;
+  for (i = 0; i < n - 1; i++) S.draw.line(c, X(i), Y(i), X(i + 1), Y(i + 1), col, w);
+  var s = (j % 2 === 0) ? 1 : -1, fx = X(j), fy = Y(j), R = P.red;
+  if (o.branch != null){ var bj = o.branch, bs = (bj % 2 === 0) ? 1 : -1; S.draw.line(c, X(bj), Y(bj), X(bj), Y(bj) - bs * L * 0.8, col, w); }
+  if (form === "ol"){ S.draw.line(c, fx, fy, fx, fy + s * L, col, w); C6.at(c, "OH", fx, fy + s * (L + 11), R); }
+  if (form === "one"){ C6.bond(c, fx, fy, fx, fy + s * L, 2, R, w - 0.4); C6.at(c, "O", fx, fy + s * (L + 10), R); }
+  if (form === "al" || form === "oic"){ C6.bond(c, fx, fy, fx - dx * 0.72, fy - L * 0.62, 2, R, w - 0.4); C6.at(c, "O", fx - dx * 0.72 - 3, fy - L * 0.62 - 10, R);
+    if (form === "oic"){ S.draw.line(c, fx, fy, fx, fy + L, col, w); C6.at(c, "OH", fx, fy + L + 11, R); } else { S.draw.line(c, fx, fy, fx, fy + L * 0.62, "#9aa6b5", 1.6); C6.at(c, "H", fx, fy + L * 0.62 + 9, "#6b7686", 12); } }
+  ctx.restore();
+  return {X: X, Y: Y, fx: fx, fy: fy, s: s};
+};
+/* pastille « n H » : nombre de H portés par le carbone fonctionnel */
+C6.hcount = function(c, x, y, nH, col){
+  var ctx = c.ctx; ctx.save(); S.draw.rrect(c, x - 22, y - 10, 44, 20, 10); ctx.fillStyle = "rgba(255,255,255,.95)"; ctx.fill(); ctx.strokeStyle = col || P.amber; ctx.lineWidth = 1.6; ctx.stroke(); ctx.restore();
+  S.draw.text(c, nH + " H", x - 7, y, {size: 12, color: col || P.amber, weight: 800});
+  for (var i = 0; i < 2; i++) S.draw.dot(c, x + 8 + i * 7, y, 2.6, i < nH ? (col || P.amber) : "#d6dce5");
+};
 })();
 (function(){
 function wrap(c, S, txt, x, y, maxW, opt){
@@ -180,63 +210,123 @@ var ALC = [
 SFA.sim({
   id: "c6-c01-oxydation", ch: "c01", tag: "Classique",
   titre: "Oxydation ménagée d'un alcool",
-  resume: "Primaire, secondaire ou tertiaire ? Défaut ou excès d'oxydant ? Prévois le produit et la couleur du tube.",
-  but: "Choisis l'alcool, l'oxydant et les conditions, puis fais avancer la réaction avec le curseur : suis la couleur et le produit formé.",
-  aRetenir: "Alcool primaire : aldéhyde (si on l'arrête, par exemple en le distillant) puis acide carboxylique (oxydant en excès). Alcool secondaire : cétone, et elle s'arrête là. Alcool tertiaire : pas d'oxydation ménagée. Le dichromate passe de l'orange (Cr₂O₇²⁻) au vert (Cr³⁺).",
+  resume: "Primaire, secondaire ou tertiaire ? Défaut ou excès d'oxydant ? Regarde le ballon virer et le carbone perdre ses H.",
+  but: "Choisis l'alcool, l'oxydant et les conditions, puis lance la réaction (ou fais glisser le curseur, ou la barre de composition) : suis la couleur du ballon, les espèces présentes et le nombre de H du carbone fonctionnel.",
+  aRetenir: "Alcool primaire : aldéhyde (si on l'arrête, par exemple en le distillant) puis acide carboxylique (oxydant en excès, reflux). Alcool secondaire : cétone, et elle s'arrête là. Alcool tertiaire : pas d'oxydation ménagée. Le dichromate passe de l'orange (Cr₂O₇²⁻) au vert (Cr³⁺).",
   piege: "Un alcool secondaire ne donne jamais d'acide en oxydation ménagée, et un alcool tertiaire ne réagit pas du tout : pour qu'il y ait oxydation, le carbone qui porte le –OH doit porter au moins un H.",
   build: function(k, S){
-    var c = k.canvas(300), P = S.draw.palette;
+    var c = k.canvas(500), P = S.draw.palette, H = window.C6;
+    var ALC = [
+      {nom: "éthanol", cl: "I", n: 2, p: 1, ald: "éthanal", cet: null, ac: "acide éthanoïque"},
+      {nom: "propan-1-ol", cl: "I", n: 3, p: 1, ald: "propanal", cet: null, ac: "acide propanoïque"},
+      {nom: "butan-1-ol", cl: "I", n: 4, p: 1, ald: "butanal", cet: null, ac: "acide butanoïque"},
+      {nom: "propan-2-ol", cl: "II", n: 3, p: 2, ald: null, cet: "propanone", ac: null},
+      {nom: "butan-2-ol", cl: "II", n: 4, p: 2, ald: null, cet: "butanone", ac: null},
+      {nom: "2-méthylpropan-2-ol", cl: "III", n: 3, p: 2, ald: null, cet: null, ac: null, br: 1}
+    ];
     var al = k.select("Alcool", ALC.map(function(a, i){ return [i, a.nom + " (" + a.cl + ")"]; }), 0);
-    var ox = k.seg("Oxydant (en milieu acide)", [["cr","Dichromate"],["mn","Permanganate"]], "cr");
-    var cond = k.seg("Conditions", [["def","Oxydant en défaut, distillation"],["exc","Oxydant en excès, reflux"]], "def");
-    var av = k.slider("Avancement de la réaction", 0, 100, 5, 0, "%");
-    var ro = k.readouts(["Produit formé", "Couleur du tube", "Test à la liqueur de Fehling"]);
+    var ox = k.seg("Oxydant (en milieu acide)", [["cr", "Dichromate"], ["mn", "Permanganate"]], "cr");
+    var cond = k.seg("Conditions", [["def", "Oxydant en défaut · distillation"], ["exc", "Oxydant en excès · reflux"]], "def");
+    var av = k.slider("Avancement de la réaction", 0, 100, 1, 0, "%");
+    var go = false, tt = 0;
+    var anim = k.loop(function(dt, t){ tt = t; if (go){ var v = av.value + dt * 16; if (v >= 100){ v = 100; go = false; } av.set(v); } k.redraw(); if (!go && t > 0.2 && !run) anim.pause(); });
+    var run = false;
+    k.button("▶ Lancer la réaction", function(){ if (av.value >= 100) av.set(0); go = true; run = true; anim.play(); setTimeout(function(){ run = false; }, 100); }, true);
+    k.button("↺ Recommencer", function(){ go = false; av.set(0); });
+    var ro = k.readouts(["Produit présent", "Couleur du ballon", "Test à la liqueur de Fehling"]);
     var nt = k.note("", "ok");
-    function mix(c1, c2, t){ var r = []; for (var i = 0; i < 3; i++) r.push(Math.round(c1[i] + (c2[i] - c1[i]) * t)); return "rgb(" + r.join(",") + ")"; }
-    function box(x, y, w, h, txt, on, dead){
-      var ctx = c.ctx; ctx.save(); ctx.fillStyle = on ? "#e6f3ec" : "#f4f6f9"; ctx.strokeStyle = on ? P.green : P.light; ctx.lineWidth = on ? 2.5 : 1.2;
-      ctx.beginPath(); ctx.rect(x, y, w, h); ctx.fill(); ctx.stroke(); ctx.restore();
-      S.draw.text(c, txt, x + w / 2, y + h / 2, {size: 12, color: dead ? P.grey : P.ink});
+    var geo = {};
+    c.pointer(function(type, p){ if (type === "move" || type === "up") return; if (p.y > geo.by - 8 && p.y < geo.by + 30 && p.x > geo.bx - 6 && p.x < geo.bx + geo.bw + 6){ go = false; av.set(Math.round(Math.max(0, Math.min(1, (p.x - geo.bx) / geo.bw)) * 100)); k.redraw(); } });
+    function mixa(c1, c2, t){ return [0, 1, 2].map(function(i){ return Math.round(c1[i] + (c2[i] - c1[i]) * t); }); }
+    function card(x, y, w, h, form, name, a, A, nH, on){
+      var ctx = c.ctx; ctx.save(); ctx.globalAlpha = 0.45 + 0.55 * a;
+      S.draw.panel(c, x, y, w, h, {stroke: on ? P.green : "#e3e7ed", shadow: on});
+      if (on){ ctx.strokeStyle = P.green; ctx.lineWidth = 2.2; S.draw.rrect(c, x, y, w, h, 9); ctx.stroke(); }
+      ctx.restore();
+      var dx = Math.min(34, (w - 56) / Math.max(1, A.n - 1));
+      H.skel(c, {n: A.n, p: A.p, form: form, x: x + w / 2, y: y + h * 0.40, dx: dx, alpha: 0.35 + 0.65 * a, branch: A.br});
+      S.draw.text(c, name, x + w / 2, y + h - 11, {size: 12, color: P.ink, weight: 800});
+      if (nH != null) H.hcount(c, x + w - 34, y + 18, nH, on ? P.green : P.amber);
     }
     k.draw(function(){
-      c.clear();
-      var a = ALC[al.value], t = av.value / 100, ctx = c.ctx;
-      var prod = null, kind = "";
-      if (a.cl === "I"){ prod = cond.value === "def" ? a.ald : a.ac; kind = cond.value === "def" ? "ald" : "ac"; }
-      if (a.cl === "II"){ prod = a.cet; kind = "cet"; }
-      var react = a.cl !== "III";
-      var c0 = ox.value === "cr" ? [235, 130, 20] : [110, 20, 140], c1 = ox.value === "cr" ? [60, 140, 90] : [245, 238, 240];
-      var col = react ? mix(c0, c1, Math.min(1, t * 1.0)) : mix(c0, c0, 0);
-      /* tube */
-      var tx = Math.max(14, c.W * 0.08), ty = 40, tw = 70, th = 180;
-      ctx.save(); ctx.fillStyle = col; ctx.fillRect(tx, ty + 55, tw, th - 55); ctx.strokeStyle = P.ink; ctx.lineWidth = 2.5;
-      ctx.beginPath(); ctx.moveTo(tx, ty); ctx.lineTo(tx, ty + th); ctx.lineTo(tx + tw, ty + th); ctx.lineTo(tx + tw, ty); ctx.stroke(); ctx.restore();
-      S.draw.text(c, ox.value === "cr" ? "Cr₂O₇²⁻" : "MnO₄⁻", tx + tw / 2, ty + th + 16, {size: 12, color: P.grey});
-      /* chaîne de réaction (colonne) */
-      var bx = Math.max(tx + tw + 40, c.W * 0.40), bw = c.W - bx - 16, bh = 40, y1 = 44, y2 = 112, y3 = 180;
-      var names = [a.nom, a.ald || a.cet || "—", a.ac || "—"];
-      var stage = !react ? 0 : (t < 0.15 ? 0 : (kind === "ac" ? (t < 0.55 ? 1 : 2) : 1));
-      S.draw.text(c, a.cl === "I" ? "Alcool primaire" : a.cl === "II" ? "Alcool secondaire" : "Alcool tertiaire", bx + bw / 2, 22, {size: 14, color: P.green});
-      box(bx, y1, bw, bh, names[0], stage === 0);
-      if (a.cl === "I"){
-        box(bx, y2, bw, bh, names[1], stage === 1);
-        box(bx, y3, bw, bh, names[2], stage === 2, cond.value === "def");
-        S.draw.arrow(c, bx + bw / 2, y1 + bh, bx + bw / 2, y2, P.ink, 2); S.draw.arrow(c, bx + bw / 2, y2 + bh, bx + bw / 2, y3, cond.value === "def" ? P.light : P.ink, 2);
-        wrap(c, S, cond.value === "def" ? "aldéhyde distillé : l'oxydation s'arrête" : "excès d'oxydant : l'aldéhyde s'oxyde à son tour", bx + bw / 2, y3 + bh + 20, bw, {size: 12, color: P.amber});
-      } else if (a.cl === "II"){
-        box(bx, y2, bw, bh, names[1], stage === 1); S.draw.arrow(c, bx + bw / 2, y1 + bh, bx + bw / 2, y2, P.ink, 2);
-        box(bx, y3, bw, bh, "pas d'acide", false, true); S.draw.text(c, "✕", bx + bw / 2 + 50, (y2 + bh + y3) / 2, {size: 18, color: P.red});
-        wrap(c, S, "la cétone ne s'oxyde plus", bx + bw / 2, y3 + bh + 20, bw, {size: 12, color: P.amber});
-      } else {
-        wrap(c, S, "✕ aucune oxydation ménagée", bx + bw / 2, y2 - 10, bw, {size: 14, color: P.red});
-        wrap(c, S, "le C porteur du –OH n'a pas de H", bx + bw / 2, y2 + 34, bw, {size: 12, color: P.amber});
+      c.clear(); H.bg(c, {top: "#fbfcfd", bottom: "#eaf0f6"});
+      var A = ALC[al.value], t = av.value / 100, ctx = c.ctx, small = c.W < 560, cr = ox.value === "cr";
+      var react = A.cl !== "III", exc = cond.value === "exc";
+      /* composition : alcool / carbonylé / acide */
+      var fa = 1, fc = 0, fz = 0;
+      if (react){
+        if (A.cl === "II" || !exc){ fa = 1 - t; fc = t; }
+        else if (t < 0.5){ fa = 1 - 2 * t; fc = 2 * t; } else { fc = 2 - 2 * t; fz = 2 * t - 1; }
       }
-      var colName = !react ? (ox.value === "cr" ? "orange (inchangé)" : "violet (inchangé)") : (t < 0.1 ? (ox.value === "cr" ? "orange" : "violet") : t > 0.9 ? (ox.value === "cr" ? "vert (Cr³⁺)" : "incolore (Mn²⁺)") : "en transition");
-      var wait = !react || t < 0.15, cur = (kind === "ac" && t < 0.55) ? "ald" : kind, shown = wait ? "aucun pour l'instant" : (cur === "ald" ? a.ald : prod);
+      var carb = A.cl === "I" ? A.ald : A.cet, cur = fz > fc && fz > fa ? "ac" : fc > fa && fc >= fz ? "carb" : "alc";
+      /* ---------- ballon ---------- */
+      var sw = c.W, sh = 280;
+      var c0 = cr ? [237, 128, 22] : [128, 24, 160], c1 = cr ? [64, 150, 96] : [244, 238, 240];
+      var rt = react ? Math.min(1, t * 1.15) : 0, col = mixa(c0, c1, rt);
+      var fw = 104, fh = 118, fx = sw * 0.30, fy = sh - 202;
+      /* chauffe-ballon + flamme */
+      S.draw.rrect(c, fx - 10, fy + fh + 6, fw + 20, 22, 5); ctx.fillStyle = "#56627a"; ctx.fill();
+      if (go || (t > 0 && t < 1)){ for (var q = 0; q < 5; q++){ var fl = 6 + 5 * Math.sin(tt * 11 + q * 1.7); ctx.fillStyle = q % 2 ? "rgba(255,170,40,.9)" : "rgba(255,110,30,.85)"; ctx.beginPath(); ctx.ellipse(fx + 14 + q * (fw - 28) / 4, fy + fh + 6, 4.5, fl, 0, 0, 7); ctx.fill(); } }
+      /* condenseur / distillation */
+      var nx = fx + fw / 2, ny = fy + fh * 0.32 - 2;
+      if (exc){
+        S.draw.rrect(c, nx - 14, ny - 108, 28, 108, 5); ctx.fillStyle = "rgba(120,190,235,.35)"; ctx.fill(); ctx.strokeStyle = "#5b6e86"; ctx.lineWidth = 2; ctx.stroke();
+        S.draw.line(c, nx, ny - 100, nx, ny, "rgba(255,255,255,.8)", 5);
+        S.draw.text(c, "réfrigérant à reflux", nx + 22, ny - 90, {size: 11, color: P.grey, align: "left"});
+        S.draw.text(c, "↑ eau", nx - 20, ny - 58, {size: 10, color: P.teal, align: "right"});
+        if (go) for (var d = 0; d < 3; d++){ var u = ((tt * 0.8 + d / 3) % 1); S.draw.dot(c, nx + Math.sin(d * 3) * 3, ny - 100 + u * 96, 2.6, "rgba(90,140,200,.8)"); }
+      } else {
+        var rx = Math.min(sw - 44, nx + 120);
+        ctx.save(); ctx.strokeStyle = "#5b6e86"; ctx.lineWidth = 9; ctx.lineCap = "round"; ctx.lineJoin = "round"; ctx.beginPath(); ctx.moveTo(nx, ny); ctx.lineTo(nx, ny - 70); ctx.lineTo(rx, ny - 40); ctx.lineTo(rx, ny + 6); ctx.stroke();
+        ctx.strokeStyle = "rgba(235,242,250,.95)"; ctx.lineWidth = 5; ctx.stroke(); ctx.restore();
+        S.draw.text(c, "distillation", nx + 8, ny - 80, {size: 11, color: P.grey, align: "left"});
+        /* éprouvette réceptrice : aldéhyde / cétone distillé */
+        var rcol = react && fc > 0.02 ? [200, 215, 235] : [235, 240, 246];
+        H.glass(c, "tube", rx - 15, ny + 4, 30, 78, {level: Math.min(0.9, 0.04 + fc * 0.7 * (react ? 1 : 0)), color: rcol, alpha: 0.7, shine: true});
+        S.draw.text(c, "distillat", rx, ny + 96, {size: 11, color: P.grey});
+        if (go && fc > 0.02 && fc < 0.98) S.draw.dot(c, rx, ny + 2 + ((tt * 2) % 1) * 16, 2.4, "rgba(90,140,200,.9)");
+      }
+      H.glass(c, "flask", fx, fy, fw, fh, {level: 0.62, color: col, alpha: 0.85, shine: true,
+        inside: function(top){ if (go){ for (var b = 0; b < 9; b++){ var u = (tt * 0.7 + H.rnd(b, 1)) % 1; S.draw.dot(c, fx + 14 + H.rnd(b, 2) * (fw - 28) + Math.sin(tt * 4 + b) * 3, fy + fh - 8 - u * (fy + fh - top), 2 + H.rnd(b, 3) * 2, "rgba(255,255,255,.55)"); } } }});
+      S.draw.label(c, (cr ? "Cr₂O₇²⁻" : "MnO₄⁻") + " + H⁺ + " + A.nom, 14, 18, {color: cr ? P.amber : P.violet, align: "left"});
+      /* barre de composition (cliquable) */
+      var bx = 22, bw = c.W - 44, by = sh - 22;
+      geo.bx = bx; geo.bw = bw; geo.by = by;
+      var segs = [[fa, P.amber, "alcool"], [fc, P.teal, A.cl === "II" ? "cétone" : "aldéhyde"], [fz, P.red, "acide"]], xx = bx;
+      ctx.save(); S.draw.rrect(c, bx, by, bw, 16, 8); ctx.clip(); ctx.fillStyle = "#e3e7ed"; ctx.fillRect(bx, by, bw, 16);
+      segs.forEach(function(sg){ ctx.fillStyle = sg[1]; ctx.fillRect(xx, by, bw * sg[0], 16); xx += bw * sg[0]; }); ctx.restore();
+      var hx = bx + bw * t; S.draw.dot(c, hx, by + 8, 9, "#fff"); S.draw.dot(c, hx, by + 8, 6, P.acc);
+      S.draw.text(c, "composition du ballon · glisse le point", bx, by - 10, {size: 11, color: P.grey, align: "left"});
+      /* ---------- molécules ---------- */
+      var mx = 10, my = sh + 6, mw = c.W - 20, gapx = 24, cw = (mw - 2 * gapx) / 3, chh = 130, y1 = my + 26;
+      var xs = [mx, mx + cw + gapx, mx + 2 * (cw + gapx)], ym = y1 + chh / 2;
+      S.draw.text(c, A.cl === "I" ? "Alcool primaire : le C–OH porte 2 H" : A.cl === "II" ? "Alcool secondaire : le C–OH porte 1 H" : "Alcool tertiaire : le C–OH ne porte aucun H", c.W / 2, my + 8, {size: 13, color: P.green, weight: 800});
+      function ghost(x, txt){ var ctx2 = c.ctx; ctx2.save(); ctx2.setLineDash([5, 4]); ctx2.strokeStyle = "#c5ccd6"; ctx2.lineWidth = 1.5; S.draw.rrect(c, x, y1, cw, chh, 9); ctx2.stroke(); ctx2.restore(); S.draw.text(c, txt, x + cw / 2, y1 + chh / 2, {size: 12, color: P.grey}); }
+      card(xs[0], y1, cw, chh, "ol", A.nom, fa, A, A.cl === "I" ? 2 : A.cl === "II" ? 1 : 0, cur === "alc");
+      if (A.cl === "I"){
+        S.draw.arrow(c, xs[0] + cw + 3, ym, xs[1] - 3, ym, P.ink, 2);
+        card(xs[1], y1, cw, chh, "al", A.ald, fc, A, 1, cur === "carb");
+        S.draw.arrow(c, xs[1] + cw + 3, ym, xs[2] - 3, ym, exc ? P.ink : "#c5ccd6", 2);
+        card(xs[2], y1, cw, chh, "oic", A.ac, fz, A, 0, cur === "ac");
+        S.draw.text(c, exc ? "Excès d'oxydant : l'aldéhyde s'oxyde à son tour en acide." : "L'aldéhyde est distillé au fur et à mesure : l'oxydation s'arrête là.", c.W / 2, y1 + chh + 18, {size: 12, color: P.amber, weight: 700});
+      } else if (A.cl === "II"){
+        S.draw.arrow(c, xs[0] + cw + 3, ym, xs[1] - 3, ym, P.ink, 2);
+        card(xs[1], y1, cw, chh, "one", A.cet, fc, A, 0, cur === "carb");
+        S.draw.text(c, "✕", xs[1] + cw + gapx / 2, ym, {size: 20, color: P.red});
+        ghost(xs[2], "pas d'acide");
+        S.draw.text(c, "Plus d'H sur le C=O : la cétone ne s'oxyde plus.", c.W / 2, y1 + chh + 18, {size: 12, color: P.amber, weight: 700});
+      } else {
+        S.draw.text(c, "✕", xs[1] + cw + gapx / 2 - cw / 2 - gapx / 2 + 6, ym, {size: 20, color: P.red});
+        ghost(xs[1], "pas d'aldéhyde"); ghost(xs[2], "pas d'acide");
+        S.draw.text(c, "Aucune oxydation ménagée : il n'y a pas de H à perdre sur le C–OH.", c.W / 2, y1 + chh + 18, {size: 12, color: P.red, weight: 700});
+      }
+      /* sorties */
+      var colName = !react ? (cr ? "orange (inchangé)" : "violet (inchangé)") : (t < 0.08 ? (cr ? "orange" : "violet") : t > 0.88 ? (cr ? "vert (Cr³⁺)" : "incolore (Mn²⁺)") : "en transition");
+      var wait = !react || t < 0.04;
+      var shown = wait ? "aucun pour l'instant" : cur === "ac" ? A.ac : cur === "carb" ? carb : A.nom + " (reste)";
       ro.set(0, shown); ro.set(1, colName);
-      ro.set(2, wait ? "—" : (cur === "ald" ? "positif (précipité rouge)" : cur === "cet" ? "négatif" : "négatif (acide : pas d'aldéhyde)"));
-      var msg = !react ? "Alcool tertiaire : le mélange reste de la couleur de l'oxydant." : (t < 0.15 ? "Fais avancer la réaction." : "Produit à cet instant : <b>" + shown + "</b>" + (cur === "ald" && kind === "ac" ? " (avec un excès d'oxydant, il va s'oxyder en acide)." : "."));
-      nt.set(msg, !react ? "warn" : "ok");
+      ro.set(2, wait ? "—" : fc > 0.03 && A.cl === "I" ? "positif (précipité rouge brique)" : fz > 0.5 ? "négatif (acide : pas d'aldéhyde)" : A.cl === "II" ? "négatif (cétone)" : "—");
+      nt.set(!react ? "Alcool tertiaire : le mélange garde la couleur de l'oxydant, rien ne se passe." : wait ? "Lance la réaction ou glisse le curseur d'avancement." : "À cet instant : alcool " + S.fmt(fa * 100, 0) + " % · " + (A.cl === "II" ? "cétone " : "aldéhyde ") + S.fmt(fc * 100, 0) + " %" + (A.cl === "I" ? " · acide " + S.fmt(fz * 100, 0) + " %." : "."), !react ? "warn" : "ok");
     });
   }
 });

@@ -7,7 +7,7 @@ SFA.sim({
   aRetenir: "Toutes les ondes électromagnétiques se propagent dans le vide à la même vitesse c = 3,00·10⁸ m/s et vérifient c = λ·f. De la radio aux rayons γ, la fréquence augmente quand la longueur d'onde diminue. La lumière visible n'occupe qu'un étroit domaine (≈ 380 à 750 nm). L'énergie d'un photon E = h·f augmente avec la fréquence : les X et γ sont ionisants, pas les ondes radio.",
   piege: "Radio, micro-ondes, lumière, rayons X sont de même nature : seule la fréquence change. Et un four à micro-ondes n'émet pas de rayonnement ionisant : l'énergie du photon est trop faible. Les limites entre domaines sont conventionnelles (elles varient légèrement selon les sources).",
   build: function(k, S){
-    var c = k.canvas(150), P = S.draw.palette, C = 3.00e8, HEV = 1.2398e-6;
+    var c = k.canvas(200), z = k.canvas(78), P = S.draw.palette, C = 3.00e8, HEV = 1.2398e-6;
     var bands = [[-13, -11, "gamma", "#6d28d9"], [-11, -8, "X", "#7c3aed"], [-8, Math.log10(3.8e-7), "UV", "#a78bfa"], [Math.log10(3.8e-7), Math.log10(7.5e-7), "visible", "#16a34a"], [Math.log10(7.5e-7), -3, "infrarouge", "#dc2626"], [-3, 0, "micro-ondes", "#f59e0b"], [0, 4, "ondes radio", "#0e7490"]];
     var x = k.slider("Exposant : λ = 10^x mètres", -13, 4, 0.1, -6.26, "");
     k.select("Repère rapide", [["", "— choisir —"], ["-12", "Rayons γ d'un noyau (≈ 10⁻¹² m)"], ["-10", "Rayons X médicaux (≈ 0,1 nm)"], ["-7", "Ultraviolet (≈ 100 nm)"], ["-6.26", "Lumière verte (550 nm)"], ["-5", "Infrarouge du corps humain (≈ 10 µm)"], ["-1.9", "Four à micro-ondes et Wi-Fi (12 cm)"], ["0.5", "Radio FM (≈ 3 m)"], ["2.5", "Radio grandes ondes (≈ 300 m)"]], "", function(v){ if (v !== "") x.set(parseFloat(v)); });
@@ -15,23 +15,46 @@ SFA.sim({
     var nt = k.note("", "ok");
     function lam(l){ return l < 1e-9 ? S.sci(l * 1e12) + " pm" : l < 1e-6 ? S.fmt(l * 1e9, 1) + " nm" : l < 1e-3 ? S.fmt(l * 1e6, 1) + " µm" : l < 1 ? S.fmt(l * 1e3, 1) + " mm" : l < 1e3 ? S.fmt(l, 1) + " m" : S.fmt(l / 1e3, 1) + " km"; }
     function frq(f){ return f >= 1e18 ? S.fmt(f / 1e18, 1) + " EHz" : f >= 1e15 ? S.fmt(f / 1e15, 1) + " PHz" : f >= 1e12 ? S.fmt(f / 1e12, 1) + " THz" : f >= 1e9 ? S.fmt(f / 1e9, 1) + " GHz" : f >= 1e6 ? S.fmt(f / 1e6, 1) + " MHz" : S.fmt(f / 1e3, 1) + " kHz"; }
+    var geo = {};
+    c.cv.style.touchAction = "none"; c.cv.style.cursor = "ew-resize";
+    c.pointer(function(tp, p){ if (tp === "move" || tp === "up" || !geo.x1) return; var v = -13 + (geo.x1 - p.x) / (geo.x1 - geo.x0) * 17; x.set(Math.round(Math.max(-13, Math.min(4, v)) * 10) / 10); k.redraw(); });
+    var EX = [[-12.3, "noyaux", 1], [-10, "radiographie", 0], [-7.4, "bronzage", 1], [-6.3, "lumière", 0], [-4.6, "chaleur", 1], [-2.1, "Wi-Fi · four", 0], [0.6, "radio FM", 1], [3, "grandes ondes", 0]];
     k.draw(function(){
-      c.clear(); var ctx = c.ctx, W = c.W, x0 = 16, x1 = W - 16;
+      c.clear(); z.clear(); var ctx = c.ctx, W = c.W, x0 = 14, x1 = W - 14; geo.x0 = x0; geo.x1 = x1;
       function X(v){ return x1 - (v + 13) / 17 * (x1 - x0); }   /* les petites λ à droite */
-      bands.forEach(function(b){
-        if (b[2] === "visible"){ var g = ctx.createLinearGradient(X(b[0]), 0, X(b[1]), 0); for (var i = 0; i <= 10; i++){ g.addColorStop(i / 10, P6.rgb(380 + (750 - 380) * i / 10)); } ctx.fillStyle = g; }
+      var by = 78, bh = 40;
+      S.draw.text(c, "plus petite λ →", x1, 14, {size: 11.5, align: "right", color: P.grey}); S.draw.text(c, "← plus grande λ", x0, 14, {size: 11.5, align: "left", color: P.grey});
+      bands.forEach(function(b, bi){
+        var xa = X(b[1]), xb = X(b[0]);
+        if (b[2] === "visible"){ var g = ctx.createLinearGradient(xa, 0, xb, 0); for (var i = 0; i <= 10; i++){ g.addColorStop(i / 10, P6.rgb(750 - (750 - 380) * i / 10)); } ctx.fillStyle = g; }
         else ctx.fillStyle = b[3];
-        ctx.globalAlpha = b[2] === "visible" ? 1 : 0.8; ctx.fillRect(X(b[1]), 70, X(b[0]) - X(b[1]), 34); ctx.globalAlpha = 1;
-        S.draw.text(c, b[2], (X(b[0]) + X(b[1])) / 2, 87, {size: b[2] === "visible" ? 11 : 12, color: b[2] === "visible" ? "#0f1b2d" : "#fff"});
+        ctx.globalAlpha = b[2] === "visible" ? 1 : 0.88; ctx.fillRect(xa, by, xb - xa, bh); ctx.globalAlpha = 1;
+        var nm = {"gamma": "γ", "X": "X", "UV": "UV", "visible": "", "infrarouge": "IR", "micro-ondes": "micro-ondes", "ondes radio": "ondes radio"}[b[2]];
+        if (W < 520 && b[2] === "micro-ondes") nm = "µ-ondes"; if (W < 520 && b[2] === "ondes radio") nm = "radio";
+        if (nm) S.draw.text(c, nm, (xa + xb) / 2, by + bh / 2, {size: 12.5, color: "#fff"});
       });
-      for (var e = -13; e <= 4; e += 1){ S.draw.line(c, X(e), 104, X(e), 110, P.ink, 1); if (e % 3 === 0 && e > -13 && e < 4) S.draw.text(c, "10" + (e < 0 ? "⁻" : "") + String(Math.abs(e)).replace(/\d/g, function(d){ return "⁰¹²³⁴⁵⁶⁷⁸⁹"[d]; }) + " m", X(e), 122, {size: 12, color: P.grey}); }
+      S.draw.line(c, (X(bands[3][0]) + X(bands[3][1])) / 2, by + bh, (X(bands[3][0]) + X(bands[3][1])) / 2, by + bh + 32, P.green, 1.2, [2, 2]);
+      ctx.strokeStyle = "rgba(15,27,45,.35)"; ctx.lineWidth = 1; ctx.strokeRect(x0, by, x1 - x0, bh);
+      for (var e = -13; e <= 4; e += 1){ S.draw.line(c, X(e), by + bh, X(e), by + bh + (e % 3 === 0 ? 8 : 4), P.ink, 1); if (e % 3 === 0 && e > -13 && e < 4) S.draw.text(c, "10" + (e < 0 ? "⁻" : "") + String(Math.abs(e)).replace(/\d/g, function(d){ return "⁰¹²³⁴⁵⁶⁷⁸⁹"[d]; }) + " m", X(e), by + bh + 21, {size: 10.5, color: "#4a5668", weight: 600}); }
       var l = Math.pow(10, x.value), f = C / l, E = HEV / l, px = X(x.value);
-      ctx.fillStyle = P.ink; ctx.beginPath(); ctx.moveTo(px, 66); ctx.lineTo(px - 8, 52); ctx.lineTo(px + 8, 52); ctx.closePath(); ctx.fill();
-      S.draw.text(c, "plus petite λ →", x1 - 4, 18, {size: 12, align: "right", color: P.grey}); S.draw.text(c, "← plus grande λ", x0 + 4, 18, {size: 12, align: "left", color: P.grey});
-      var dom = bands.filter(function(b){ return x.value >= b[0] && x.value < b[1] + 1e-9; }).pop(); var nm = dom ? dom[2] : "";
-      ro.set(0, lam(l)); ro.set(1, frq(f)); ro.set(2, E >= 1000 ? S.sci(E / 1000) + " keV" : E < 1e-3 ? S.sci(E) + " eV" : S.sci(E) + " eV"); ro.set(3, nm);
-      var info = {gamma: "Rayons γ : émis par des noyaux ; très ionisants ; radiothérapie, stérilisation.", X: "Rayons X : radiographie, scanner ; ionisants.", UV: "Ultraviolets : bronzage, coups de soleil ; les UV-C stérilisent. Ionisants dans leur partie la plus énergétique.", visible: "Lumière visible : le seul domaine que l'œil perçoit. Rouge ≈ 700 nm, violet ≈ 400 nm.", infrarouge: "Infrarouge : chaleur rayonnée, télécommandes, caméras thermiques.", "micro-ondes": "Micro-ondes : four (2,45 GHz), Wi-Fi, GSM, radar.", "ondes radio": "Ondes radio : radio FM (≈ 100 MHz), télévision, communications."};
-      nt.set(info[nm] || "", "ok");
+      /* repères d'exemples sous la règle */
+      EX.forEach(function(q){ if (W < 520 && (q[1] === "radiographie" || q[1] === "grandes ondes")) return; S.draw.text(c, q[1], Math.min(Math.max(X(q[0]), 34), W - 34), by + bh + 42 + (q[2] ? 15 : 0), {size: 10.5, color: q[1] === "lumière" ? P.green : "#5f6b7a", weight: q[1] === "lumière" ? 800 : 600}); });
+      /* curseur */
+      S.draw.line(c, px, by - 20, px, by + bh, P.ink, 2); ctx.fillStyle = P.ink; ctx.beginPath(); ctx.moveTo(px, by - 4); ctx.lineTo(px - 8, by - 22); ctx.lineTo(px + 8, by - 22); ctx.closePath(); ctx.fill();
+      S.draw.label(c, "λ = " + lam(l), Math.min(Math.max(px, 50), W - 50), 38, {color: P.ink, size: 12.5});
+      S.draw.label(c, "f = " + frq(f), Math.min(Math.max(px, 50), W - 50), 58, {color: P.acc, size: 11.5});
+      /* loupe sur le visible */
+      var zx0 = 16, zx1 = z.W - 16, zc = z.ctx, vis = x.value >= bands[3][0] - 1e-9 && x.value <= bands[3][1] + 1e-9;
+      for (var wv = 0; wv <= 1; wv += 1 / 120){ zc.fillStyle = P6.rgb(380 + 370 * wv); zc.fillRect(zx0 + wv * (zx1 - zx0), 18, (zx1 - zx0) / 120 + 1, 26); }
+      zc.strokeStyle = "rgba(15,27,45,.35)"; zc.strokeRect(zx0, 18, zx1 - zx0, 26);
+      [400, 450, 500, 550, 600, 650, 700, 750].forEach(function(wv){ var xx = zx0 + (wv - 380) / 370 * (zx1 - zx0); S.draw.line(z, xx, 44, xx, 49, P.ink, 1); if (wv % 100 === 0 || z.W > 520) S.draw.text(z, wv, xx, 59, {size: 10.5, color: "#4a5668", weight: 600}); });
+      S.draw.text(z, "Zoom sur le visible (nm)", z.W / 2, 7, {size: 11, color: P.green});
+      if (vis){ var wn = l * 1e9, xx2 = zx0 + (wn - 380) / 370 * (zx1 - zx0); S.draw.line(z, xx2, 14, xx2, 44, P.ink, 2.4); S.draw.label(z, S.fmt(wn, 0) + " nm", Math.min(Math.max(xx2, 40), z.W - 40), 70, {color: P.ink, size: 11}); }
+      else S.draw.text(z, "(le curseur est hors du visible)", z.W / 2, 70, {size: 11, color: P.grey, weight: 600});
+      var dom = bands.filter(function(b){ return x.value >= b[0] && x.value < b[1] + 1e-9; }).pop(); var nm2 = dom ? dom[2] : "";
+      ro.set(0, lam(l)); ro.set(1, frq(f)); ro.set(2, E >= 1000 ? S.sci(E / 1000) + " keV" : E < 1e-3 ? S.sci(E) + " eV" : S.sci(E) + " eV"); ro.set(3, nm2);
+    var info = {gamma: "Rayons γ : émis par des noyaux ; très ionisants ; radiothérapie, stérilisation.", X: "Rayons X : radiographie, scanner ; ionisants.", UV: "Ultraviolets : bronzage, coups de soleil ; les UV-C stérilisent. Ionisants dans leur partie la plus énergétique.", visible: "Lumière visible : le seul domaine que l'œil perçoit. Rouge ≈ 700 nm, violet ≈ 400 nm.", infrarouge: "Infrarouge : chaleur rayonnée, télécommandes, caméras thermiques.", "micro-ondes": "Micro-ondes : four (2,45 GHz), Wi-Fi, GSM, radar.", "ondes radio": "Ondes radio : radio FM (≈ 100 MHz), télévision, communications."};
+      nt.set(info[nm2] || "", "ok");
     });
   }
 });
@@ -44,7 +67,7 @@ SFA.sim({
   aRetenir: "Deux fentes éclairées par la même lumière donnent des franges alternativement brillantes et sombres, d'interfrange i = λ·D/a (petits angles) : plus λ est grande, plus les franges sont larges. Avec N fentes, les maxima restent à la même place mais s'affinent. Un réseau (grand N, pas d = 1/n) disperse la lumière : maxima à sin θ = m·λ/d. La lumière blanche donne des spectres colorés (violet le moins dévié, rouge le plus).",
   piege: "Rouge, vert, bleu n'ont pas le même interfrange : λ intervient. L'interfrange diminue quand on rapproche l'écran (D) mais augmente si on rapproche les fentes l'une de l'autre (a plus petit). Modèle : fentes infiniment fines, lumière monochromatique cohérente, écran lointain.",
   build: function(k, S){
-    var c = k.canvas(330), P = S.draw.palette;
+    var c = k.canvas(440), P = S.draw.palette;
     var mode = k.seg("Dispositif", [["y", "Fentes d'Young"], ["g", "Réseau"]], "y");
     var lam = k.slider("Longueur d'onde λ", 400, 700, 10, 600, "nm");
     var white = k.toggle("Lumière blanche (mode réseau)", false);
@@ -54,32 +77,50 @@ SFA.sim({
     var n = k.slider("Traits par mm (réseau)", 50, 600, 10, 300, "/mm");
     var ro = k.readouts(["Interfrange i = λD/a", "Pas du réseau d", "Angle de l'ordre 1", "Ordre maximal"]);
     var nt = k.note("", "ok");
+    function scene(oy){
+      var ctx = c.ctx, W = c.W, cy = oy / 2 - 2, xp = W * 0.4, xs = W - 22, g = mode.value === "g", colA = P6.rgb(lam.value);
+      ctx.fillStyle = "#eef3fa"; S.draw.rrect(c, 8, 6, W - 16, oy - 12, 10); ctx.fill();
+      PH6.metal(c, 14, cy - 11, 34, 22, 4, "#5b6678"); S.draw.dot(c, 50, cy, 3, colA); S.draw.text(c, "laser", 31, cy + 24, {size: 10.5, color: "#5f6b7a"});
+      ctx.fillStyle = colA; ctx.globalAlpha = 0.55; ctx.fillRect(50, cy - 2, xp - 50, 4); ctx.globalAlpha = 1;
+      var nS = g ? 9 : N.value, pitch = g ? 3 + 220 / n.value * 0.4 / 0.4 * 0.04 : 4 + a.value * 30;
+      pitch = g ? Math.max(3.2, 70 / (n.value / 50)) / 4.2 : pitch; var tot = (nS - 1) * pitch;
+      ctx.fillStyle = "#394456"; ctx.fillRect(xp - 3, 12, 6, oy - 24);
+      var ys = []; for (var q = 0; q < nS; q++){ var yy = cy - tot / 2 + q * pitch; ys.push(yy); ctx.fillStyle = "#eef3fa"; ctx.fillRect(xp - 3, yy - 1.2, 6, 2.4); }
+      ctx.fillStyle = "#4b5565"; ctx.fillRect(xs, 12, 6, oy - 24);
+      for (var r2 = -2; r2 <= 2; r2++){ var ye = cy + r2 * (oy - 44) / 5; ctx.beginPath(); ctx.moveTo(xp, cy); var spread = g ? 1 : 1; ctx.strokeStyle = r2 === 0 ? colA : colA; ctx.globalAlpha = r2 === 0 ? 0.75 : 0.4; ctx.lineWidth = r2 === 0 ? 2.2 : 1.4; ctx.lineTo(xs, ye); ctx.stroke(); ctx.globalAlpha = 1; ctx.fillStyle = colA; ctx.fillRect(xs - 1, ye - 3, 4, 6); }
+      S.draw.line(c, xp, oy - 14, xs, oy - 14, "#5f6b7a", 1.2); S.draw.line(c, xp, oy - 19, xp, oy - 9, "#5f6b7a", 1.2); S.draw.line(c, xs, oy - 19, xs, oy - 9, "#5f6b7a", 1.2);
+      S.draw.text(c, g ? "réseau : " + n.value + " traits/mm" : "D = " + S.fmt(D.value, 1) + " m", (xp + xs) / 2, oy - 24, {size: 11, color: "#2c3a4e", bg: "#eef3fa"});
+      S.draw.text(c, g ? "réseau" : (N.value + " fentes"), xp, 8, {size: 10.5, color: "#5f6b7a", base: "top"});
+      if (!g){ S.draw.line(c, xp - 14, ys[0], xp - 14, ys[ys.length - 1] === ys[0] ? ys[0] + 1 : ys[ys.length - 1], P.amber, 2); S.draw.text(c, "a", xp - 24, cy, {size: 12, color: P.amber, math: true}); }
+      S.draw.text(c, "écran", xs, 8, {size: 10.5, color: "#5f6b7a", base: "top", align: "right"});
+    }
     k.draw(function(){
-      c.clear(); var ctx = c.ctx, W = c.W, H = c.H, l = lam.value * 1e-9;
+      c.clear(); var ctx = c.ctx, W = c.W, H = c.H, l = lam.value * 1e-9, oy = 112, colL = P6.rgb(lam.value);
+      scene(oy);
       if (mode.value === "y"){
         var i = l * D.value / (a.value * 1e-3), half = 5 * i, ax;
         /* bande image */
         var sh = 90, x0 = 46, x1 = W - 16, col = P6.rgb(lam.value), rgb = col.match(/\d+/g).map(Number);
         function I(x){ var ph = Math.PI * (a.value * 1e-3) * x / (l * D.value), s = Math.sin(ph); if (Math.abs(s) < 1e-9) return 1; var r = Math.sin(N.value * ph) / (N.value * s); return r * r; }
-        for (var px = x0; px <= x1; px++){ var xx = (px - (x0 + x1) / 2) / ((x1 - x0) / 2) * half, v = Math.pow(I(xx), 0.8); ctx.fillStyle = "rgb(" + Math.round(rgb[0] * v) + "," + Math.round(rgb[1] * v) + "," + Math.round(rgb[2] * v) + ")"; ctx.fillRect(px, 14, 1.5, sh); }
-        ctx.strokeStyle = P.ink; ctx.lineWidth = 1; ctx.strokeRect(x0, 14, x1 - x0, sh);
-        ax = S.draw.axes(c, {x0: -half * 1000, x1: half * 1000, y0: 0, y1: 1.1, xl: "x (mm)", yl: "I", l: x0, r: 16, t: sh + 26, b: 34, stepY: 0.5});
+        for (var px = x0; px <= x1; px++){ var xx = (px - (x0 + x1) / 2) / ((x1 - x0) / 2) * half, v = Math.pow(I(xx), 0.8); ctx.fillStyle = "rgb(" + Math.round(rgb[0] * v) + "," + Math.round(rgb[1] * v) + "," + Math.round(rgb[2] * v) + ")"; ctx.fillRect(px, oy + 14, 1.5, sh); }
+        ctx.strokeStyle = P.ink; ctx.lineWidth = 1; ctx.strokeRect(x0, oy + 14, x1 - x0, sh);
+        ax = S.draw.axes(c, {x0: -half * 1000, x1: half * 1000, y0: 0, y1: 1.1, xl: "x (mm)", yl: "I", l: x0, r: 16, t: oy + sh + 22, b: 34, stepY: 0.5});
         S.draw.fn(c, ax, function(xm){ return I(xm / 1000); }, P.red, 2.4);
-        S.draw.line(c, ax.X(0), 14 + sh, ax.X(0), ax.B, "#c7cdd6", 1, [3, 3]);
-        S.draw.line(c, ax.X(i * 1000), ax.Y(1.05), ax.X(2 * i * 1000), ax.Y(1.05), P.amber, 3); S.draw.text(c, "i", (ax.X(i * 1000) + ax.X(2 * i * 1000)) / 2, ax.Y(1.05) - 10, {size: 13, color: P.amber, math: true});
+        S.draw.line(c, ax.X(0), oy + 14 + sh, ax.X(0), ax.B, "#c7cdd6", 1, [3, 3]);
+        S.draw.line(c, ax.X(0), ax.Y(1.07), ax.X(i * 1000), ax.Y(1.07), P.amber, 3); S.draw.label(c, "i = " + S.fmt(i * 1000, 2) + " mm", (ax.X(0) + ax.X(i * 1000)) / 2 + 30, ax.Y(1.07) - 12, {color: P.amber, size: 11.5});S.draw.text(c, "", 0, 0, {size: 13, color: P.amber, math: true});
         ro.set(0, S.fmt(i * 1000, 2) + " mm"); ro.set(1, "—"); ro.set(2, "—"); ro.set(3, "—");
         nt.set("Interfrange mesurée sur l'écran : i = " + S.fmt(i * 1000, 2) + " mm. Avec N = " + N.value + " fentes, il y a " + (N.value - 2) + " petit(s) maximum(s) secondaire(s) entre deux maxima principaux.", "ok");
       } else {
         var d = 1e-3 / n.value, mmax = Math.floor(d / (white.value ? 400e-9 : l));
-        var ax2 = S.draw.axes(c, {x0: -90, x1: 90, y0: 0, y1: 1, xl: "angle θ (°)", yl: "", l: 20, r: 20, t: 40, b: 40, stepX: 30, stepY: 1, grid: false});
-        ctx.fillStyle = "#0f1b2d"; ctx.fillRect(ax2.L, 40, ax2.R - ax2.L, ax2.B - 40 - 1);
-        function spot(thDeg, wl, h, w){ ctx.fillStyle = P6.rgb(wl); ctx.fillRect(ax2.X(thDeg) - w / 2, 40 + (ax2.B - 40) * (1 - h) , w, (ax2.B - 40) * h); }
+        var ax2 = S.draw.axes(c, {x0: -90, x1: 90, y0: 0, y1: 1, xl: "angle θ (°)", yl: "", l: 20, r: 20, t: oy + 22, b: 40, stepX: 30, stepY: 1, grid: false});
+        ctx.fillStyle = "#0f1b2d"; ctx.fillRect(ax2.L, oy + 22, ax2.R - ax2.L, ax2.B - oy - 22 - 1);
+        
         for (var m = -mmax; m <= mmax; m++){
           if (white.value){
-            if (m === 0){ ctx.fillStyle = "#fff"; ctx.fillRect(ax2.X(0) - 3, 40, 6, ax2.B - 40); continue; }
-            for (var w = 400; w <= 700; w += 5){ var s = m * w * 1e-9 / d; if (Math.abs(s) < 1){ var th = Math.asin(s) * 180 / Math.PI; ctx.fillStyle = P6.rgb(w); ctx.fillRect(ax2.X(th) - 1.6, 40, 3.2, ax2.B - 40); } }
+            if (m === 0){ ctx.fillStyle = "#fff"; ctx.fillRect(ax2.X(0) - 3, oy + 22, 6, ax2.B - oy - 22); continue; }
+            for (var w = 400; w <= 700; w += 5){ var s = m * w * 1e-9 / d; if (Math.abs(s) < 1){ var th = Math.asin(s) * 180 / Math.PI; ctx.fillStyle = P6.rgb(w); ctx.fillRect(ax2.X(th) - 1.6, oy + 22, 3.2, ax2.B - oy - 22); } }
           } else {
-            var s2 = m * l / d; if (Math.abs(s2) <= 1){ var th2 = Math.asin(s2) * 180 / Math.PI; var rgb2 = P6.rgb(lam.value); ctx.fillStyle = rgb2; ctx.fillRect(ax2.X(th2) - 2.5, 40, 5, ax2.B - 40); S.draw.text(c, "m = " + m, ax2.X(th2), 28, {size: 12, color: P.ink}); }
+            var s2 = m * l / d; if (Math.abs(s2) <= 1){ var th2 = Math.asin(s2) * 180 / Math.PI; var rgb2 = P6.rgb(lam.value); ctx.fillStyle = rgb2; ctx.fillRect(ax2.X(th2) - 2.5, oy + 22, 5, ax2.B - oy - 22); S.draw.text(c, "m = " + m, ax2.X(th2), oy + 12, {size: 12, color: P.ink}); }
           }
         }
         var th1 = (l / d <= 1) ? Math.asin(l / d) * 180 / Math.PI : NaN;

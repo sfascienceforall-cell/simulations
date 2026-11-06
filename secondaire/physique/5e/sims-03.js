@@ -7,7 +7,7 @@ SFA.sim({
   aRetenir: "Le système (chariot + masse suspendue) est accéléré par la seule force motrice m·g : (M + m)·a = m·g − f. Donc a < g toujours, et plus on ajoute de masse au chariot, plus a diminue.",
   piege: "La tension du fil n'est pas égale à m·g : la masse suspendue accélère, donc T = m·(g − a) < m·g. Elle n'égale m·g que si a = 0.",
   build: function(k, S){
-    var c = k.canvas(190), gr = k.canvas(190);
+    var c = k.canvas(250), gr = k.canvas(190);
     var M = k.slider("Masse du chariot M", 0.2, 2, 0.1, 1, "kg");
     var m = k.slider("Masse suspendue m", 0.02, 0.5, 0.01, 0.1, "kg");
     var mu = k.slider("Frottement du chariot (μ)", 0, 0.3, 0.01, 0, "");
@@ -23,20 +23,29 @@ SFA.sim({
     k.button("Lâcher le chariot", function(){ t = 0; x = 0; v = 0; lp.play(); }, true);
     k.draw(function(){
       var pal = S.draw.palette, ctx = c.ctx, g = P5.g, a = acc();
-      c.clear();
-      var X0 = 30, tw = c.W - 100, ty = 90;
-      ctx.fillStyle = "#c9a77c"; ctx.fillRect(X0, ty, tw, 10);
-      var px = X0 + (x / L) * (tw - 70);
-      ctx.fillStyle = "#c9d6f2"; ctx.strokeStyle = pal.acc; ctx.lineWidth = 2; ctx.fillRect(px, ty - 34, 56, 30); ctx.strokeRect(px, ty - 34, 56, 30);
-      S.draw.dot(c, px + 12, ty - 2, 5, pal.ink); S.draw.dot(c, px + 44, ty - 2, 5, pal.ink);
-      S.draw.text(c, "M", px + 28, ty - 19, {size: 12});
-      var pulx = X0 + tw + 14; S.draw.dot(c, pulx, ty - 18, 10, pal.grey);
-      S.draw.line(c, px + 56, ty - 18, pulx, ty - 18, pal.ink, 1.5);
-      var hang = 56 + (x / L) * 40;
-      S.draw.line(c, pulx + 10, ty - 18, pulx + 10, ty + hang, pal.ink, 1.5);
-      ctx.fillStyle = "#f2c9c9"; ctx.strokeStyle = pal.red; ctx.fillRect(pulx - 4, ty + hang, 28, 24); ctx.strokeRect(pulx - 4, ty + hang, 28, 24);
-      S.draw.text(c, "m", pulx + 10, ty + hang + 12, {size: 12});
-      S.draw.text(c, "sol : x = " + S.fmt(x, 2) + " m", 10, c.H - 12, {align: "left", size: 12, color: pal.grey});
+      c.clear(); P5x.sky(c, "#eef3fa", "#f9fbfe");
+      var X0 = 24, tw = c.W - 110, ty = 98;
+      /* table */
+      ctx.fillStyle = P5x.lin(ctx, 0, ty, 0, ty + 12, [[0, "#d9b98c"], [1, "#b8945f"]]); ctx.fillRect(X0 - 10, ty, tw + 30, 12);
+      ctx.fillStyle = "#a07c4c"; ctx.fillRect(X0 + 6, ty + 12, 10, c.H - ty - 12); ctx.fillRect(X0 + tw - 6, ty + 12, 10, c.H - ty - 12);
+      for (var gx = 0; gx <= 12; gx++){ var mx = X0 + 20 + gx * (tw - 90) / 12; ctx.fillStyle = "rgba(15,27,45,.35)"; ctx.fillRect(mx, ty + 12, 1.5, gx % 5 ? 4 : 8); }
+      var cw = 62, ch = 38, px = X0 + 20 + (x / L) * (tw - 90) - cw / 2 + cw / 2;
+      var pulx = X0 + tw + 14, puly = ty - 14;
+      /* poulie */
+      S.draw.line(c, pulx, puly + 10, pulx, ty + 2, pal.grey, 3);
+      ctx.fillStyle = "#9aa6b6"; ctx.beginPath(); ctx.arc(pulx, puly, 13, 0, 2 * Math.PI); ctx.fill(); ctx.fillStyle = "#e8edf3"; ctx.beginPath(); ctx.arc(pulx, puly, 8, 0, 2 * Math.PI); ctx.fill(); S.draw.dot(c, pulx, puly, 3, pal.ink);
+      var hang = 46 + (x / L) * 70, mby = ty + hang + 30;
+      S.draw.line(c, px + cw / 2, ty - ch / 2 - 4 + 0, pulx, puly - 13, pal.ink, 1.6);
+      S.draw.line(c, pulx + 13, puly, pulx + 13, mby - 30, pal.ink, 1.6);
+      P5x.cart(c, px, ty, cw, ch, pal.acc, "M", {size: 13});
+      var mw = 20 + 40 * (m.value - 0.02) / 0.48;
+      P5x.box(c, pulx + 13, mby, mw, 20 + 12 * m.value / 0.5 + 10, pal.red, "m", {size: 12});
+      /* forces sur le chariot (échelle : 10 px par N) et sur la masse */
+      var sc = 22;
+      var Tn = a > 0 ? M.value * (a + mu.value * g) : m.value * g;
+      if (a > 0 || m.value * g > 0){ P5.vec(c, px + 6, ty - ch - 8, px + 6 + Math.min(70, Tn * sc), ty - ch - 8, pal.green, "T", {dy: -6}); }
+      if (a > 0) P5.vec(c, pulx + 36, mby - 14, pulx + 36, mby - 14 + Math.min(60, m.value * g * sc), pal.ink, "m·g", {dx: 6});
+      S.draw.label(c, "x = " + S.fmt(x, 2) + " m   t = " + S.fmt(t, 2) + " s   v = " + S.fmt(v, 2) + " m/s", 10, 16, {color: pal.acc, size: 12, align: "left"});
       /* graphe a(m) */
       gr.clear();
       var Mv = M.value, mus = mu.value;
@@ -242,7 +251,7 @@ SFA.sim({
   aRetenir: "La balance mesure la réaction normale N : N − m·g = m·a, donc N = m·(g + a) (a positif vers le haut). a > 0 : plus lourd ; a = 0 : poids normal ; a = −g : N = 0, impondérabilité.",
   piege: "La balance ne donne pas la vitesse : monter ou descendre à vitesse constante donne la même lecture. C'est le signe de l'accélération qui compte (monter en freinant donne a < 0, comme descendre en accélérant).",
   build: function(k, S){
-    var c = k.canvas(260), gr = k.canvas(170);
+    var c = k.canvas(330), gr = k.canvas(170);
     var a = k.slider("Accélération de la cabine (+ : vers le haut)", -12, 6, 0.1, 2, "m/s²");
     var m = k.slider("Masse de la personne", 40, 100, 1, 70, "kg");
     k.button("Démarrage en montée", function(){ a.set(2); });
@@ -250,20 +259,42 @@ SFA.sim({
     k.button("Câble rompu", function(){ a.set(-9.81); });
     var ro = k.readouts(["Poids réel m·g", "Réaction N", "La balance indique", "N / (m·g)"]);
     var nt = k.note("", "");
+    var pos = 0.5, vel = 0, tt = 0;
+    var lp = k.loop(function(dt){ dt = Math.min(dt, 0.05); var A = a.value; vel += A * dt; pos += vel * dt * 0.05;
+      if (pos > 0.9 || pos < 0.1){ pos = Math.min(0.9, Math.max(0.1, pos)); vel = 0; }
+      k.redraw(); });
+    lp.play();
     k.draw(function(){
       var pal = S.draw.palette, ctx = c.ctx, g = P5.g, A = a.value;
       var N = Math.max(0, m.value * (g + A)), P = m.value * g;
-      c.clear();
-      var cw = 150, cx = c.W / 2 - cw / 2;
-      ctx.fillStyle = "#eef3fa"; ctx.strokeStyle = pal.acc; ctx.lineWidth = 2; ctx.fillRect(cx, 20, cw, 210); ctx.strokeRect(cx, 20, cw, 210);
-      ctx.fillStyle = "#13233a"; ctx.fillRect(cx + 40, 214, 70, 8);
-      S.draw.dot(c, cx + 75, 152, 13, pal.amber); S.draw.line(c, cx + 75, 165, cx + 75, 210, pal.ink, 5);
-      S.draw.text(c, "La balance indique " + S.fmt(N / g, 1) + " kg", cx + 75, 247, {size: 13, color: pal.ink});
-      var sc = 45 / P;
-      P5.vec(c, cx + 95, 152, cx + 95, 152 + P * sc, pal.ink, "P", {dx: 14});
-      P5.vec(c, cx + 55, 152, cx + 55, 152 - N * sc, pal.red, "N", {dx: -14});
-      if (A !== 0) P5.vec(c, cx - 40, 125, cx - 40, 125 - A * 7, pal.green, "a", {dx: -10});
-      
+      c.clear(); P5x.sky(c, "#eef3fa", "#f9fbfe");
+      var sx = c.W / 2 - 100, sw = 200, top = 14, bot = c.H - 14;
+      /* gaine */
+      ctx.fillStyle = "#dde5ef"; ctx.fillRect(sx - 8, top, sw + 16, bot - top); ctx.fillStyle = "#f4f7fb"; ctx.fillRect(sx, top, sw, bot - top);
+      for (var yy = top + 20; yy < bot; yy += 40){ ctx.fillStyle = "#c9d3df"; ctx.fillRect(sx - 8, yy, 8, 2); ctx.fillRect(sx + sw, yy, 8, 2); }
+      var ch = 236, cy = top + 14 + (1 - pos) * (bot - top - ch - 28);
+      ctx.strokeStyle = "#6b7685"; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(c.W / 2, top); ctx.lineTo(c.W / 2, cy); ctx.stroke();
+      var cx = sx + 20, cw = sw - 40;
+      ctx.save(); ctx.shadowColor = "rgba(15,27,45,.25)"; ctx.shadowBlur = 10; ctx.shadowOffsetY = 3;
+      P5x.rr(ctx, cx, cy, cw, ch, 6); ctx.fillStyle = P5x.lin(ctx, 0, cy, 0, cy + ch, [[0, "#fdfefe"], [1, "#e4ecf6"]]); ctx.fill(); ctx.restore();
+      ctx.strokeStyle = pal.acc; ctx.lineWidth = 2.5; P5x.rr(ctx, cx, cy, cw, ch, 6); ctx.stroke();
+      ctx.fillStyle = "#13233a"; ctx.fillRect(cx, cy + ch - 12, cw, 12);
+      /* balance */
+      var bx = c.W / 2, by = cy + ch - 12;
+      P5x.rr(ctx, bx - 38, by - 12, 76, 12, 3); ctx.fillStyle = "#9aa6b6"; ctx.fill();
+      S.draw.display(c, S.fmt(N / g, 1) + " kg", cx + cw - 54, cy + 52, {w: 84, h: 44, size: 14, caption: "balance"});
+      /* personne : s'écrase un peu si N > P, flotte si N = 0 */
+      var lift = N === 0 ? 10 : 0, sq = Math.max(-0.08, Math.min(0.1, (N / P - 1) * 0.12));
+      P5x.person(c, bx, by - 12 - lift, 92 * (1 - sq), pal.amber, {arm: 0.2});
+      /* vecteurs : P et N à côté de la personne */
+      var sc = 40 / P, hy = by - 112;
+      P5.vec(c, bx + 46, hy, bx + 46, hy + P * sc, pal.ink, "P", {dx: 14});
+      if (N > 0) P5.vec(c, bx - 46, hy, bx - 46, hy - N * sc, pal.red, "N", {dx: -14});
+      /* accélération */
+      if (Math.abs(A) > 0.05){ var al = Math.max(-80, Math.min(80, A * 9)); P5.vec(c, sx - 34, top + 150, sx - 34, top + 150 - al, pal.green, "a", {dx: -14}); }
+      S.draw.label(c, "a = " + S.fmt(A, 1) + " m/s²", sx - 34, top + 14, {color: pal.green, size: 12});
+      S.draw.label(c, "ΣF = N − P = m·a", sx + sw + 12, top + 14, {color: pal.acc, size: 12, align: "left"});
+      if (N === 0) S.draw.label(c, "impondérabilité", bx, cy + 18, {color: pal.amber, size: 12});
       /* graphe N(a) */
       gr.clear();
       var ax = S.draw.axes(gr, {x0: -12, x1: 6, y0: 0, y1: m.value * (g + 6) * 1.05 / 1, xl: "a (m/s²)", yl: "N (N)", stepX: 3, l: 56});

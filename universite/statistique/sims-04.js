@@ -171,7 +171,7 @@ SFA.sim({
       S.draw.fn(c, ax, dens, P.green, 2.8);
       S.draw.line(c, ax.X(K + 0.5), ax.Y(0), ax.X(K + 0.5), ax.T, P.ink, 1.6, [5, 4]);
       S.draw.label(c, "k + 0,5", ax.X(K + 0.5), ax.T - 2, {color: P.ink, size: 11, base: "bottom"});
-      S.draw.legend(c, [[S.draw.tint(P.mat, .7), "binomiale (X ≤ k en rouge)"], [P.green, "normale N(np ; np(1−p))"]], c.W - 10, 8, {align: "right"});
+      S.draw.legend(c, [[S.draw.tint(P.mat, .7), "binomiale (X ≤ k en rouge)"], [P.green, "normale N(np ; np(1−p))"]], ax.L + 8, ax.T + 4);
       var a1 = Phi((K - m) / s), a2 = Phi((K + 0.5 - m) / s);
       ro.set(0, F(ex, 4)); ro.set(1, F(a1, 4)); ro.set(2, F(a2, 4)); ro.set(3, F(a2 - ex, 4));
       var okk = m >= 5 && N * (1 - q) >= 5;

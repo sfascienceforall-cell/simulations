@@ -11,52 +11,64 @@ SFA.sim({
     var metals = {Li: 1, Be: 1, Na: 1, Mg: 1, Al: 1, K: 1, Ca: 1};
     var names = ["H","Li","Be","B","C","N","O","F","Na","Mg","Al","Si","P","S","Cl","K","Ca","Br","I"];
     var opts = names.map(function(x){ return [x, x + " (" + S.fmt(EN[x], 1) + ")"]; });
-    var c = k.canvas(250);
+    var c = k.canvas(360);
     var a = k.select("Atome A", opts, "Na"), b = k.select("Atome B", opts, "Cl");
     var ro = k.readouts(["EN de A", "EN de B", "ΔEN", "Type de liaison"]);
     var nt = k.note("", "");
-    var col = function(x){ return metals[x] ? "#d6dde8" : (EN[x] > 3 ? "#f6c6c6" : "#cfe4d8"); };
+    var cibles = [
+      {t: "Trouve une liaison covalente apolaire entre deux atomes DIFFÉRENTS (ΔEN < 0,5).", ok: function(r){ return r.type === "covalente apolaire" && r.A !== r.B; }},
+      {t: "Trouve une liaison covalente polaire (0,5 ≤ ΔEN < 1,7).", ok: function(r){ return r.type === "covalente polaire"; }},
+      {t: "Trouve une liaison ionique (métal + non-métal, ΔEN ≥ 1,7).", ok: function(r){ return r.type === "ionique"; }},
+      {t: "Trouve une liaison entre deux non-métaux avec ΔEN ≥ 1,7 (indice : le fluor).", ok: function(r){ return !r.any && r.d >= 1.7; }}
+    ], ci = -1;
+    var dn = k.note("Appuie sur « Défi suivant » pour une mission, ou explore librement.", "");
+    k.button("Défi suivant", function(){ ci = (ci + 1) % cibles.length; }, true);
+    var T = 0; var lp = k.loop(function(dt, t){ T = t; k.redraw(); }); lp.play();
+    var rnd = C5.rng(11), pts = []; for (var i = 0; i < 70; i++){ var u = rnd() || 0.5, v = rnd(); pts.push({gx: Math.sqrt(-2 * Math.log(u)) * Math.cos(6.2832 * v), gy: Math.sqrt(-2 * Math.log(u)) * Math.sin(6.2832 * v), ph: rnd() * 6.28}); }
+    var cobj = function(x){ return metals[x] ? "#c9d2de" : C5.CPK[x] || "#cfe4d8"; };
     k.draw(function(){
       var A = a.value, B = b.value, eA = EN[A], eB = EN[B], d = Math.round(Math.abs(eA - eB) * 10) / 10;
-      var both = metals[A] && metals[B], any = metals[A] || metals[B], type, kind = "";
-      if (both) type = "métallique";
-      else if (d < 0.5) type = "covalente apolaire";
-      else if (d < 1.7) type = "covalente polaire";
-      else type = any ? "ionique" : "covalente très polaire";
-      c.clear(); var cx = c.W / 2, cy = 110, ctx = c.ctx;
-      /* l'atome le plus électronégatif est à droite */
-      var left = eA <= eB ? A : B, right = eA <= eB ? B : A, dist = 130, xl = cx - dist / 2, xr = cx + dist / 2;
-      if (type === "ionique"){ xl -= 22; xr += 22; }
-      var rr = 36;
-      C5.atom(c, xl, cy, rr, col(left), left); C5.atom(c, xr, cy, rr, col(right), right);
-      if (both){
-        for (var i = 0; i < 14; i++){ var px = cx - 70 + (i * 37 % 140), py = cy - 40 + (i * 53 % 80); S.draw.dot(c, px, py, 3, pal.acc); }
-        S.draw.text(c, "électrons mis en commun entre tous les atomes", cx, cy + 62, {size: 12, color: pal.grey});
-      } else if (type === "ionique"){
-        S.draw.text(c, "+", xl + 10, cy - 20, {size: 22, color: pal.red}); S.draw.text(c, "−", xr + 10, cy - 20, {size: 22, color: pal.acc});
-        S.draw.arrow(c, xl + rr, cy + 54, xr - rr, cy + 54, pal.acc, 2);
-        S.draw.text(c, "électron transféré", cx, cy + 72, {size: 12, color: pal.grey});
+      var both = metals[A] && metals[B], any = metals[A] || metals[B], type;
+      if (both) type = "métallique"; else if (d < 0.5) type = "covalente apolaire"; else if (d < 1.7) type = "covalente polaire"; else type = any ? "ionique" : "covalente très polaire";
+      c.clear(); var ctx = c.ctx, cx = c.W / 2, cy = 105;
+      var left = eA <= eB ? A : B, right = eA <= eB ? B : A, ionic = type === "ionique";
+      var rr = Math.min(40, c.W / 9), dist = Math.min(170, c.W * 0.42) + (ionic ? 20 : 0), xl = cx - dist / 2, xr = cx + dist / 2;
+      var rl = ionic ? rr * 0.72 : rr, rrr = ionic ? rr * 1.2 : rr;
+      /* nuage électronique : points qui vibrent, décalés vers l'atome le plus électronégatif */
+      var s = both ? 0 : ionic ? 1 : Math.min(1, d / 2.0);
+      var ccx = both ? cx : ionic ? xr : cx + s * dist * 0.4;
+      S.draw.glow(c, xl, cy, rl * 2, ionic || d < 0.5 && !both ? "#9fb4d6" : pal.acc, 0.25 + (1 - s) * 0.1);
+      C5.atom(c, xl, cy, rl, cobj(left), left); C5.atom(c, xr, cy, rrr, cobj(right), right);
+      if (!both){
+        for (var i = 0; i < pts.length; i++){
+          var p = pts[i], sig = ionic ? rrr * 0.55 : 22 + (1 - s) * 22;
+          var px = ccx + p.gx * sig * (ionic ? 1 : 1.5) + Math.sin(T * 3 + p.ph) * 2, py = cy + p.gy * sig * 0.75 + Math.cos(T * 2.6 + p.ph) * 2;
+          S.draw.dot(c, px, py, 2.3, "rgba(31,75,158,.8)");
+        }
       } else {
-        var sh = Math.min(1, d / 2.2) * 0.45 * dist;
-        ctx.save(); ctx.globalAlpha = 0.35; ctx.fillStyle = pal.acc;
-        ctx.beginPath(); ctx.ellipse(cx + sh, cy, dist / 2 + 12, 24, 0, 0, 2 * Math.PI); ctx.fill(); ctx.restore();
-        S.draw.dot(c, cx + sh - 6, cy, 3.5, pal.ink); S.draw.dot(c, cx + sh + 6, cy, 3.5, pal.ink);
-        if (d >= 0.5){
-          S.draw.text(c, "δ⁺", xl, cy - 52, {size: 16, color: pal.red}); S.draw.text(c, "δ⁻", xr, cy - 52, {size: 16, color: pal.acc});
-          S.draw.arrow(c, xl, cy + 56, xr, cy + 56, pal.ink, 2); S.draw.text(c, "moment dipolaire", cx, cy + 74, {size: 12, color: pal.grey});
-        } else S.draw.text(c, "nuage centré : pas de charges partielles", cx, cy + 62, {size: 12, color: pal.grey});
+        for (var j = 0; j < 40; j++){ var q = pts[j], mx = xl - dist * 0.55 + ((q.ph * 40 + T * 40 + j * 9) % (dist * 2.1)), my = cy - rr - 6 + ((j * 37) % 100) / 100 * (2 * rr + 12); S.draw.dot(c, mx, my, 2.3, "rgba(31,75,158,.7)"); }
       }
-      /* barre d'échelle */
-      var bx0 = 30, bx1 = c.W - 30, by = 205, X = function(v){ return bx0 + v / 3.3 * (bx1 - bx0); };
-      ctx.fillStyle = "#e3e7ed"; ctx.fillRect(X(0), by, X(0.5) - X(0), 12); ctx.fillStyle = "#cfe4d8"; ctx.fillRect(X(0.5), by, X(1.7) - X(0.5), 12); ctx.fillStyle = "#f6d9a8"; ctx.fillRect(X(1.7), by, X(3.3) - X(1.7), 12);
-      S.draw.text(c, "apolaire", (X(0) + X(0.5)) / 2 + 14, by + 28, {size: 12, color: pal.grey}); S.draw.text(c, "polaire", (X(0.5) + X(1.7)) / 2, by + 28, {size: 12, color: pal.grey}); S.draw.text(c, "ionique", (X(1.7) + X(3.3)) / 2, by + 28, {size: 12, color: pal.grey});
-      S.draw.dot(c, X(d), by + 6, 8, pal.red); S.draw.text(c, "ΔEN = " + S.fmt(d, 1), Math.min(bx1 - 40, Math.max(bx0 + 40, X(d))), by - 12, {size: 12, color: pal.red});
+      /* charges partielles ou ions */
+      if (ionic){ S.draw.label(c, "+", xl, cy - rl - 18, {color: pal.red, size: 15}); S.draw.label(c, "−", xr, cy - rrr - 18, {color: pal.acc, size: 15}); }
+      else if (!both && d >= 0.5){ S.draw.label(c, "δ⁺", xl, cy - rl - 18, {color: pal.red, size: 14}); S.draw.label(c, "δ⁻", xr, cy - rrr - 18, {color: pal.acc, size: 14}); }
+      S.draw.text(c, "EN " + S.fmt(EN[left], 1), xl, cy + rl + 16, {size: 12, color: pal.grey}); S.draw.text(c, "EN " + S.fmt(EN[right], 1), xr, cy + rrr + 16, {size: 12, color: pal.grey});
+      var cap = both ? "électrons de valence partagés par tous les atomes du métal" : ionic ? "l'électron a été transféré : cation + anion" : d < 0.5 ? "nuage centré : pas de charges partielles" : "nuage attiré vers l'atome le plus électronégatif";
+      S.draw.text(c, cap, cx, cy + 92, {size: 12.5, color: pal.ink});
+      if (!both && d >= 0.5 && !ionic) S.draw.arrow(c, xl, cy - rl - 42, xr, cy - rl - 42, pal.ink, 2);
+      /* échelle de ΔEN */
+      var bx0 = 24, bx1 = c.W - 24, by = 250, X = function(v){ return bx0 + v / 3.3 * (bx1 - bx0); };
+      S.draw.panel(c, 8, by - 40, c.W - 16, 100, {shadow: false});
+      var zones = [[0, 0.5, "#dfe5ee", "apolaire"], [0.5, 1.7, "#cfe9db", "polaire"], [1.7, 3.3, "#f7dcae", "ionique (métal + non-métal)"]];
+      zones.forEach(function(z){ ctx.fillStyle = z[2]; ctx.fillRect(X(z[0]), by, X(z[1]) - X(z[0]), 14); S.draw.text(c, z[3], (X(z[0]) + X(z[1])) / 2, by + 28, {size: 12, color: pal.grey}); });
+      [0, 0.5, 1.7, 3.3].forEach(function(v){ S.draw.text(c, S.fmt(v, 1), X(v), by + 46, {size: 11, color: pal.grey}); });
+      S.draw.dot(c, X(Math.min(d, 3.3)), by + 7, 9, pal.red); S.draw.label(c, "ΔEN = " + S.fmt(d, 1), Math.min(bx1 - 40, Math.max(bx0 + 40, X(d))), by - 17, {color: pal.red});
       ro.set(0, S.fmt(eA, 1)); ro.set(1, S.fmt(eB, 1)); ro.set(2, S.fmt(d, 1)); ro.set(3, type);
       if ((A === "H" && B === "F") || (A === "F" && B === "H")) nt.set("ΔEN = 1,8 ≥ 1,7, mais ce sont deux non-métaux : HF est une molécule covalente très polaire, pas un cristal d'ions.", "warn");
       else if (type === "métallique") nt.set("Deux métaux : les électrons de valence sont délocalisés dans tout le solide.", "");
-      else if (type === "ionique") nt.set("Le métal cède son électron, le non-métal le capte : cation + anion, attirés par la force électrique.", "");
+      else if (ionic) nt.set("Le métal cède son électron, le non-métal le capte : cation (plus petit) + anion (plus gros), attirés par la force électrique.", "");
       else if (A === B) nt.set("Deux atomes identiques : ΔEN = 0, les électrons sont partagés également (ex. Cl₂, H₂).", "ok");
       else nt.set(type === "covalente apolaire" ? "ΔEN petit : le nuage reste quasi centré." : "Le nuage est attiré vers l'atome le plus électronégatif : charges partielles δ⁺ et δ⁻.", "");
+      if (ci >= 0){ var r = {type: type, A: A, B: B, d: d, any: any}, good = cibles[ci].ok(r); dn.set("<b>Défi.</b> " + cibles[ci].t + (good ? " ✔ Réussi : " + A + "–" + B + ", ΔEN = " + S.fmt(d, 1) + "." : ""), good ? "ok" : ""); }
     });
   }
 });
@@ -127,15 +139,18 @@ SFA.sim({
   build: function(k, S){
     var pal = S.draw.palette;
     var X = {Be: {v: 2, p: 2}, B: {v: 3, p: 2}, C: {v: 4, p: 2}, N: {v: 5, p: 2}, O: {v: 6, p: 2}, P: {v: 5, p: 3}, S: {v: 6, p: 3}};
-    var c = k.canvas(300);
+    var c = k.canvas(360);
     var x = k.select("Atome central X", Object.keys(X).map(function(q){ return [q, q + " (" + X[q].v + " e⁻ de valence)"]; }), "S");
     var n = k.slider("Nombre de liaisons X–F", 1, 6, 1, 6, "");
     var ro = k.readouts(["Doublets non liants", "Électrons autour de X", "Verdict"]);
     var nt = k.note("", "");
+    var cibles = ["octet incomplet", "octet dépassé", "octet respecté"], ci = -1, dn = k.note("Appuie sur « Défi suivant » : trouve une molécule XFₙ qui correspond au verdict demandé.", "");
+    k.button("Défi suivant", function(){ ci = (ci + 1) % cibles.length; }, true);
+    var T = 0; k.loop(function(dt, t){ T = t; k.redraw(); }).play();
     k.draw(function(){
       var xa = x.value, v = X[xa].v, per = X[xa].p, nn = n.value; c.clear();
-      var rest = v - nn, e = nn + v, cx = c.W / 2, cy = c.H / 2, R = Math.min(105, c.H / 2 - 40);
-      var invalid = rest < 0, radical = !invalid && rest % 2 !== 0, lp = invalid ? 0 : Math.floor(rest / 2);
+      var rest = v - nn, e = nn + v, cx = c.W / 2, cy = 150, R = Math.min(105, c.W / 3.4);
+      var invalid = rest < 0, radical = !invalid && rest % 2 !== 0, lp = invalid ? 0 : Math.floor(rest / 2), ctx = c.ctx;
       var verdict, kind;
       if (invalid){ verdict = "impossible"; kind = "warn"; }
       else if (per === 2 && e > 8){ verdict = "impossible (période 2)"; kind = "warn"; }
@@ -143,38 +158,47 @@ SFA.sim({
       else if (e < 8){ verdict = "octet incomplet"; kind = "warn"; }
       else if (e === 8){ verdict = "octet respecté"; kind = "ok"; }
       else { verdict = "octet dépassé"; kind = "warn"; }
+      S.draw.text(c, xa + "F" + C5.sub(nn), 12, 16, {size: 17, align: "left", math: true});
       if (invalid){
-        S.draw.text(c, xa + "F" + C5.sub(nn), cx, cy, {size: 30, math: true});
+        S.draw.text(c, "X n'a que " + v + " e⁻ de valence :", cx, cy - 10, {size: 14, color: pal.red}); S.draw.text(c, "il ne peut pas former " + nn + " liaisons", cx, cy + 12, {size: 14, color: pal.red});
         ro.set(0, "—"); ro.set(1, "—"); ro.set(2, verdict);
-        nt.set("X n'a que " + v + " électron(s) de valence à partager : il ne peut pas former " + nn + " liaisons simples (n ≤ v).", "warn"); return;
+        nt.set("X n'a que " + v + " électron(s) de valence à partager : il ne peut pas former " + nn + " liaisons simples (n ≤ v).", "warn");
+      } else {
+        var ang = [], i;
+        for (i = 0; i < nn; i++) ang.push(-Math.PI / 2 + 2 * Math.PI * i / nn);
+        /* couche de valence de X (cercle) */
+        ctx.save(); ctx.setLineDash([5, 4]); ctx.strokeStyle = e > 8 ? pal.amber : e === 8 ? pal.green : pal.grey; ctx.lineWidth = 1.6; ctx.beginPath(); ctx.arc(cx, cy, 30, 0, 2 * Math.PI); ctx.stroke(); ctx.restore();
+        for (i = 0; i < nn; i++){
+          var ax = cx + R * Math.cos(ang[i]), ay = cy + R * Math.sin(ang[i]);
+          S.draw.line(c, cx, cy, ax, ay, "#2c3a4e", 4); S.draw.line(c, cx, cy, ax, ay, "#e8eef6", 1.4);
+          C5.atom(c, ax, ay, 15, C5.CPK.F, "F");
+        }
+        C5.atom(c, cx, cy, 22, C5.CPK[xa] || "#cfe4d8", xa, "#0f1b2d");
+        var gap = 2 * Math.PI / nn;
+        for (i = 0; i < lp; i++){
+          var a2 = nn === 1 ? Math.PI / 2 + i * 0.9 - (lp - 1) * 0.45 : ang[i % nn] + gap / 2 + (i >= nn ? 0.4 : 0);
+          var rx = cx + 48 * Math.cos(a2), ry = cy + 48 * Math.sin(a2);
+          ctx.save(); ctx.translate(rx, ry); ctx.rotate(a2); ctx.fillStyle = "rgba(232,89,74,.22)"; ctx.strokeStyle = pal.red; ctx.lineWidth = 1.3; ctx.beginPath(); ctx.ellipse(0, 0, 15, 8, 0, 0, 2 * Math.PI); ctx.fill(); ctx.stroke(); ctx.restore();
+          S.draw.dot(c, rx - 5 * Math.cos(a2), ry - 5 * Math.sin(a2), 2.6, pal.red); S.draw.dot(c, rx + 5 * Math.cos(a2), ry + 5 * Math.sin(a2), 2.6, pal.red);
+        }
+        if (radical) S.draw.dot(c, cx, cy + 46, 3.2, pal.red);
+        /* jauge d'électrons autour de X */
+        var gx = (c.W - 12 * 22) / 2, gy = c.H - 38;
+        S.draw.panel(c, 8, gy - 26, c.W - 16, 64, {shadow: false});
+        S.draw.text(c, e + " électrons autour de " + xa, c.W / 2, gy - 11, {size: 13, color: kind === "ok" ? pal.green : pal.amber});
+        for (i = 0; i < 12; i++){ var gxx = gx + i * 22 + 11; ctx.beginPath(); ctx.arc(gxx, gy + 12, 7, 0, 2 * Math.PI); ctx.fillStyle = i < e ? (i >= 8 ? pal.amber : kind === "ok" ? pal.green : pal.acc) : "#e3e7ed"; ctx.fill(); }
+        ctx.strokeStyle = pal.ink; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(gx + 8 * 22, gy + 1); ctx.lineTo(gx + 8 * 22, gy + 23); ctx.stroke();
+        S.draw.text(c, "8 (octet)", gx + 8 * 22, gy + 31, {size: 11, color: pal.grey});
+        ro.set(0, radical ? lp + " + 1 électron seul" : lp); ro.set(1, e); ro.set(2, verdict);
+        var msg;
+        if (per === 2 && e > 8) msg = "Période 2 : il n'y a que 4 orbitales (2s et 2p), donc 8 électrons au maximum autour de " + xa + ".";
+        else if (radical) msg = "Nombre impair d'électrons de valence restants : un électron reste seul (espèce très réactive, un radical).";
+        else if (e < 8) msg = xa + " a " + e + " électrons seulement : octet incomplet, " + (xa === "B" ? "typique du bore (BF₃ réagit avidement avec les doublets d'autres molécules)." : xa === "Be" ? "typique du béryllium." : "peu stable.");
+        else if (e === 8) msg = "Les " + e + " électrons autour de " + xa + " forment un octet.";
+        else msg = "Période 3 : la couche n = 3 possède aussi des orbitales 3d vides ; l'octet peut être dépassé (" + e + " électrons).";
+        nt.set(msg, kind);
       }
-      /* ligands répartis sur le cercle, doublets non liants sur le reste */
-      var slots = nn + lp + (radical ? 1 : 0), ang = [], i;
-      for (i = 0; i < nn; i++) ang.push(-Math.PI / 2 + 2 * Math.PI * i / Math.max(nn, 1));
-      for (i = 0; i < nn; i++){
-        var ax = cx + R * Math.cos(ang[i]), ay = cy + R * Math.sin(ang[i]);
-        S.draw.line(c, cx, cy, ax, ay, pal.ink, 3);
-        C5.atom(c, ax, ay, 15, "#f6d9a8", "F");
-      }
-      C5.atom(c, cx, cy, 23, "#cfe4d8", xa);
-      /* doublets non liants : placés entre les liaisons, près de X */
-      var gap = nn >= 1 ? 2 * Math.PI / Math.max(nn, 1) : 0;
-      for (i = 0; i < lp; i++){
-        var a2 = nn === 1 ? Math.PI / 2 + i * 0.9 - (lp - 1) * 0.45 : ang[i % nn] + gap / 2;
-        var rx = cx + 34 * Math.cos(a2), ry = cy + 34 * Math.sin(a2), pxv = -Math.sin(a2) * 5, pyv = Math.cos(a2) * 5;
-        S.draw.dot(c, rx + pxv, ry + pyv, 3.5, pal.red); S.draw.dot(c, rx - pxv, ry - pyv, 3.5, pal.red);
-      }
-      if (radical) S.draw.dot(c, cx, cy + 40, 3.5, pal.red);
-      S.draw.text(c, e + " e⁻ autour de " + xa, c.W - 8, 14, {size: 13, align: "right", color: kind === "ok" ? pal.green : pal.amber});
-      S.draw.text(c, xa + "F" + C5.sub(nn), 8, 14, {size: 15, align: "left", math: true});
-      ro.set(0, radical ? lp + " + 1 électron seul" : lp); ro.set(1, e); ro.set(2, verdict);
-      var msg;
-      if (per === 2 && e > 8) msg = "Période 2 : il n'y a que 4 orbitales (2s et 2p), donc 8 électrons au maximum autour de " + xa + ".";
-      else if (radical) msg = "Nombre impair d'électrons de valence restants : un électron reste seul (espèce très réactive, un radical).";
-      else if (e < 8) msg = xa + " a " + e + " électrons seulement : octet incomplet, " + (xa === "B" ? "typique du bore (BF₃ réagit avidement avec les doublets d'autres molécules)." : xa === "Be" ? "typique du béryllium." : "peu stable.");
-      else if (e === 8) msg = "Les " + e + " électrons autour de " + xa + " forment un octet.";
-      else msg = "Période 3 : la couche n = 3 possède aussi des orbitales 3d vides ; l'octet peut être dépassé (" + e + " électrons).";
-      nt.set(msg, kind);
+      if (ci >= 0){ var good = verdict === cibles[ci]; dn.set("<b>Défi.</b> Trouve une molécule XFₙ avec « " + cibles[ci] + " »." + (good ? " ✔ " + xa + "F" + C5.sub(nn) + " convient." : ""), good ? "ok" : ""); }
     });
   }
 });

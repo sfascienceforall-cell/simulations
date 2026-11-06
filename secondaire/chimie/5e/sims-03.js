@@ -24,53 +24,73 @@ SFA.sim({
     var pal = S.draw.palette, st = {yaw: 0.6, pitch: 0.35};
     var TET = [[1,1,1],[1,-1,-1],[-1,1,-1],[-1,-1,1]].map(function(v){ return v.map(function(x){ return x / Math.sqrt(3); }); });
     var DIR = {2: [[1,0,0],[-1,0,0]], 3: [[1,0,0],[-0.5,0.866,0],[-0.5,-0.866,0]], 4: TET,
-      5: [[1,0,0],[-0.5,0.866,0],[-0.5,-0.866,0],[0,0,1],[0,0,-1]], 6: [[0,0,1],[0,0,-1],[1,0,0],[-1,0,0],[0,1,0],[0,-1,0]]};
+      5: [[0,0,1],[0,0,-1],[1,0,0],[-0.5,0.866,0],[-0.5,-0.866,0]], 6: [[0,0,1],[0,0,-1],[1,0,0],[-1,0,0],[0,1,0],[0,-1,0]]};
     var TAB = {
       "2,0": ["linéaire", "180°", "CO₂, BeCl₂"], "3,0": ["triangulaire plane", "120°", "BF₃"], "2,1": ["coudée", "≈ 120° (SO₂ : 119°)", "SO₂"],
       "4,0": ["tétraédrique", "109,5°", "CH₄"], "3,1": ["pyramidale à base triangulaire", "≈ 107° (NH₃)", "NH₃"], "2,2": ["coudée", "≈ 104,5° (H₂O)", "H₂O"],
       "5,0": ["bipyramide trigonale", "90° et 120°", "PCl₅"], "4,1": ["en bascule", "< 90° et < 120°", "SF₄"], "3,2": ["en T", "≈ 90°", "ClF₃"], "2,3": ["linéaire", "180°", "XeF₂"],
       "6,0": ["octaédrique", "90°", "SF₆"], "5,1": ["pyramide à base carrée", "≈ 90°", "BrF₅"], "4,2": ["plane carrée", "90°", "XeF₄"]
     };
-    var c = k.canvas(300);
+    var MOLS = [["2,0", "CO₂ (2 liants, 0 non liant)"], ["3,0", "BF₃"], ["4,0", "CH₄"], ["3,1", "NH₃"], ["2,2", "H₂O"], ["2,1", "SO₂"], ["5,0", "PCl₅"], ["4,1", "SF₄"], ["6,0", "SF₆"], ["4,2", "XeF₄"]];
+    var NOMS = {"2,0": "CO₂", "3,0": "BF₃", "4,0": "CH₄", "3,1": "NH₃", "2,2": "H₂O", "2,1": "SO₂", "5,0": "PCl₅", "4,1": "SF₄", "6,0": "SF₆", "4,2": "XeF₄"};
+    var c = k.canvas(340);
     var b = k.slider("Doublets liants (atomes liés)", 2, 6, 1, 2, "");
     var l = k.slider("Doublets non liants", 0, 3, 1, 2, "");
+    var pick = k.select("Ou choisis une molécule connue", MOLS, "2,2", function(v){ var q = v.split(","); b.set(+q[0]); l.set(+q[1]); });
+    var poly = k.toggle("Montrer le polyèdre des doublets", true);
     var auto = k.toggle("Rotation automatique", true);
     var ro = k.readouts(["Doublets autour de A", "Forme de la molécule", "Angles idéaux", "Exemple"]);
     var nt = k.note("", "");
+    var dnn = k.note("Appuie sur « Défi suivant » : construis la molécule demandée avec les curseurs.", ""), keys = Object.keys(NOMS), di = -1;
+    k.button("Défi suivant", function(){ di = (di + 1) % keys.length; }, true);
     C5.drag3d(c, st);
-    var lp = k.loop(function(dt){ if (auto.value && !st.dirty) st.yaw += dt * 0.5; st.dirty = false; k.redraw(); }); lp.play();
+    var lp = k.loop(function(dt){ if (auto.value && !st.dragging) st.yaw += dt * 0.5; k.redraw(); }); lp.play();
     k.draw(function(){
       var nb = b.value, nl = l.value, tot = nb + nl, key = nb + "," + nl; c.clear();
-      var info = TAB[key];
+      var info = TAB[key], ctx = c.ctx, cx = c.W / 2, cy = c.H / 2 - 4;
+      if (di >= 0){ var tg = keys[di].split(","); var good = (+tg[0] === nb && +tg[1] === nl); dnn.set("<b>Défi.</b> Construis " + NOMS[keys[di]] + " : " + tg[0] + " doublets liants et " + tg[1] + " non liant(s)." + (good ? " ✔ Réussi : " + info[0] + "." : ""), good ? "ok" : ""); }
       if (!info){
-        S.draw.text(c, "A", c.W / 2, c.H / 2, {size: 40, math: true});
+        S.draw.text(c, "Combinaison non traitée", cx, cy - 10, {size: 16, color: pal.red});
+        S.draw.text(c, tot > 6 ? "plus de 6 doublets autour de A" : "elle ne figure pas au programme", cx, cy + 14, {size: 13, color: pal.grey});
         ro.set(0, tot); ro.set(1, "—"); ro.set(2, "—"); ro.set(3, "—");
         nt.set(tot > 6 ? "Plus de 6 doublets autour de l'atome central : non traité à ce niveau." : "Cette combinaison n'est pas courante : elle ne figure pas dans le programme.", "warn"); return;
       }
-      var dirs = DIR[tot], R = Math.min(105, c.H / 2 - 30), cx = c.W / 2, cy = c.H / 2, items = [], i;
-      for (i = 0; i < tot; i++){
-        var v = C5.rot(dirs[i], st.yaw, st.pitch); items.push({v: v, lone: i < nl});
+      var dirs = DIR[tot], R = Math.min(118, c.H / 2 - 40), items = [], i, j;
+      /* en bipyramide, les doublets non liants vont à l'équateur ; sinon les premiers de la liste */
+      var order = [], idx = tot === 5 ? [2, 3, 4, 0, 1] : dirs.map(function(_, q){ return q; });
+      for (i = 0; i < tot; i++) order.push(idx[i]);
+      for (i = 0; i < tot; i++){ var v = C5.rot(dirs[order[i]], st.yaw, st.pitch); items.push({v: v, lone: i < nl}); }
+      var P = function(v, f){ var s = 1 / (1 - 0.1 * v[2]); return [cx + R * f * v[0] * s, cy - R * f * v[1] * s, s]; };
+      /* polyèdre des doublets */
+      if (poly.value && tot >= 3){
+        var md = 9; for (i = 0; i < tot; i++) for (j = i + 1; j < tot; j++){ var q1 = items[i].v, q2 = items[j].v; md = Math.min(md, Math.hypot(q1[0] - q2[0], q1[1] - q2[1], q1[2] - q2[2])); }
+        ctx.save(); ctx.strokeStyle = "rgba(95,107,122,.45)"; ctx.lineWidth = 1.2; ctx.setLineDash([4, 4]);
+        for (i = 0; i < tot; i++) for (j = i + 1; j < tot; j++){ var u1 = items[i].v, u2 = items[j].v; if (Math.hypot(u1[0] - u2[0], u1[1] - u2[1], u1[2] - u2[2]) < md * 1.2){ var p1 = P(u1, 1), p2 = P(u2, 1); ctx.beginPath(); ctx.moveTo(p1[0], p1[1]); ctx.lineTo(p2[0], p2[1]); ctx.stroke(); } }
+        ctx.restore();
       }
-      items.sort(function(p, q){ return p.v[2] - q.v[2]; });
-      var drawn = false, ctx = c.ctx;
-      function proj(v, f){ var s = 1 / (1 - 0.1 * v[2]); return [cx + R * f * v[0] * s, cy - R * f * v[1] * s, s]; }
-      items.forEach(function(it){
-        if (!drawn && it.v[2] > 0){ C5.atom(c, cx, cy, 17, "#cfe4d8", "A"); drawn = true; }
-        var p = proj(it.v, 1);
+      var all = items.map(function(it){ return it; }); all.push({v: [0, 0, 0], center: true});
+      all.sort(function(p, q){ return p.v[2] - q.v[2]; });
+      all.forEach(function(it){
+        if (it.center){ S.draw.glow(c, cx, cy, 34, "#8fd3b8", 0.35); C5.atom(c, cx, cy, 20, C5.CPK.A, "A"); return; }
+        var p = P(it.v, 1), ang = Math.atan2(p[1] - cy, p[0] - cx);
         if (it.lone){
-          var q = proj(it.v, 0.62), ang = Math.atan2(p[1] - cy, p[0] - cx);
-          ctx.save(); ctx.translate(q[0], q[1]); ctx.rotate(ang); ctx.globalAlpha = 0.5; ctx.fillStyle = "#f6c6c6"; ctx.strokeStyle = pal.red; ctx.lineWidth = 1.5;
-          ctx.beginPath(); ctx.ellipse(0, 0, 26 * q[2], 14 * q[2], 0, 0, 2 * Math.PI); ctx.fill(); ctx.globalAlpha = 1; ctx.stroke(); ctx.restore();
-          S.draw.dot(c, q[0] - 5 * Math.cos(ang), q[1] - 5 * Math.sin(ang), 2.5, pal.red); S.draw.dot(c, q[0] + 5 * Math.cos(ang), q[1] + 5 * Math.sin(ang), 2.5, pal.red);
+          var q = P(it.v, 0.58), g = ctx.createRadialGradient(q[0], q[1], 2, q[0], q[1], 30 * q[2]);
+          ctx.save(); ctx.translate(q[0], q[1]); ctx.rotate(ang);
+          g.addColorStop(0, "rgba(255,176,170,.95)"); g.addColorStop(1, "rgba(232,89,74,.28)");
+          ctx.translate(-q[0], -q[1]); ctx.translate(q[0], q[1]);
+          var gg = ctx.createRadialGradient(0, 0, 1, 0, 0, 30 * q[2]); gg.addColorStop(0, "rgba(255,190,184,.95)"); gg.addColorStop(1, "rgba(232,89,74,.3)");
+          ctx.fillStyle = gg; ctx.strokeStyle = "rgba(192,50,29,.7)"; ctx.lineWidth = 1.3; ctx.beginPath(); ctx.ellipse(0, 0, 30 * q[2], 16 * q[2], 0, 0, 2 * Math.PI); ctx.fill(); ctx.stroke(); ctx.restore();
+          S.draw.dot(c, q[0] - 6 * Math.cos(ang), q[1] - 6 * Math.sin(ang), 2.8, pal.red); S.draw.dot(c, q[0] + 6 * Math.cos(ang), q[1] + 6 * Math.sin(ang), 2.8, pal.red);
         } else {
-          S.draw.line(c, cx, cy, p[0], p[1], pal.ink, 3.2);
-          C5.atom(c, p[0], p[1], 12 * p[2], "#f6d9a8", "X");
+          S.draw.line(c, cx, cy, p[0], p[1], "#2c3a4e", 4.2 * p[2]); S.draw.line(c, cx, cy, p[0], p[1], "#dfe7f1", 1.3);
+          C5.atom(c, p[0], p[1], 14 * p[2], C5.CPK.X, "X");
         }
       });
-      if (!drawn) C5.atom(c, cx, cy, 17, "#cfe4d8", "A");
-      S.draw.text(c, "● doublet non liant  — liaison A–X", 8, c.H - 10, {size: 12, align: "left", color: pal.grey});
+      S.draw.legend(c, [[pal.ink, "liaison A–X"], [pal.red, "doublet non liant"]], 8, c.H - 48);
+      S.draw.text(c, "glisse pour tourner", c.W - 10, c.H - 12, {size: 11.5, color: pal.grey, align: "right"});
+      S.draw.label(c, info[0], cx, 20, {color: pal.acc, size: 14});
       ro.set(0, tot + " (" + nb + " liants + " + nl + " non liants)"); ro.set(1, info[0]); ro.set(2, info[1]); ro.set(3, info[2]);
-      nt.set(nl > 0 ? "Les " + nl + " doublet(s) non liant(s) occupent de l'espace (ovales roses) mais on ne les compte pas dans le nom : la forme est celle des atomes X autour de A." : "Aucun doublet non liant : la forme est celle des doublets.", "");
+      nt.set(nl > 0 ? "Les " + nl + " doublet(s) non liant(s) occupent de l'espace (lobes roses) mais on ne les compte pas dans le nom : la forme est celle des atomes X autour de A." : "Aucun doublet non liant : la forme est celle des doublets.", "");
     });
   }
 });
@@ -100,44 +120,66 @@ SFA.sim({
       CH3Cl: M("CH₃Cl", "C", ["H", "H", "H", "Cl"], TET),
       CHCl3: M("CHCl₃", "C", ["H", "Cl", "Cl", "Cl"], TET)
     };
-    var c = k.canvas(300);
+    var c = k.canvas(340);
     var sel = k.select("Molécule", Object.keys(MOL).map(function(x){ return [x, MOL[x].name]; }), "H2O");
     var showB = k.toggle("Montrer les dipôles de liaison", true), showN = k.toggle("Montrer la résultante", true);
+    var field = k.toggle("Placer la molécule entre deux plaques chargées", false);
     var ro = k.readouts(["Liaisons polaires ?", "Résultante", "Molécule"]);
     var nt = k.note("", "");
+    var al = {f: 0}, T = 0;
     C5.drag3d(c, st);
-    var lp = k.loop(function(dt){ if (!st.dirty) st.yaw += dt * 0.35; st.dirty = false; k.redraw(); }); lp.play();
+    var lp = k.loop(function(dt, t){ T = t; al.f += ((field.value ? 1 : 0) - al.f) * Math.min(1, dt * 3); if (!st.dragging && !field.value) st.yaw += dt * 0.35; k.redraw(); }); lp.play();
+    function cross(a, b){ return [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]]; }
+    function rodr(v, ax, ang){ var cs = Math.cos(ang), sn = Math.sin(ang), cr = cross(ax, v), dt = ax[0] * v[0] + ax[1] * v[1] + ax[2] * v[2]; return [v[0] * cs + cr[0] * sn + ax[0] * dt * (1 - cs), v[1] * cs + cr[1] * sn + ax[1] * dt * (1 - cs), v[2] * cs + cr[2] * sn + ax[2] * dt * (1 - cs)]; }
     k.draw(function(){
       var m = MOL[sel.value]; c.clear();
-      var cx = c.W / 2, cy = c.H / 2, R = 95, net = [0, 0, 0], items = [], ctx = c.ctx, anyPolar = false;
+      var cx = c.W / 2, cy = c.H / 2 - 6, R = Math.min(100, c.W / 3.6), net = [0, 0, 0], items = [], ctx = c.ctx, anyPolar = false, W = c.W, H = c.H;
       m.dirs.forEach(function(u, i){
         var d = EN[m.lig[i]] - EN[m.cen]; if (Math.abs(d) >= 0.5) anyPolar = true;
         net[0] += d * u[0]; net[1] += d * u[1]; net[2] += d * u[2];
         items.push({u: u, d: d, lab: m.lig[i]});
       });
       var mag = Math.hypot(net[0], net[1], net[2]); if (mag < 0.02) mag = 0;
-      items.forEach(function(it){ it.v = C5.rot(it.u, st.yaw, st.pitch); });
-      items.sort(function(p, q){ return p.v[2] - q.v[2]; });
-      function P(v, f){ var s = 1 / (1 - 0.1 * v[2]); return [cx + R * f * v[0] * s, cy - R * f * v[1] * s, s]; }
-      var drawnC = false;
-      items.forEach(function(it){
-        if (!drawnC && it.v[2] > 0){ C5.atom(c, cx, cy, 16, "#cfe4d8", m.cen); drawnC = true; }
-        var p = P(it.v, 1); S.draw.line(c, cx, cy, p[0], p[1], pal.ink, 3);
-        C5.atom(c, p[0], p[1], 13 * p[2], it.lab === "H" ? "#ffffff" : "#f6d9a8", it.lab);
-        if (showB.value && Math.abs(it.d) >= 0.3){   /* flèche : de δ+ vers δ− */
-          var a = P(it.v, it.d > 0 ? 0.30 : 0.80), z = P(it.v, it.d > 0 ? 0.80 : 0.30);
-          S.draw.arrow(c, a[0], a[1] + 10, z[0], z[1] + 10, pal.acc, 2.6);
+      /* plaques : la molécule polaire s'oriente (δ⁻ vers la plaque +), l'apolaire reste indifférente */
+      if (al.f > 0.01){
+        ctx.save(); ctx.fillStyle = "rgba(192,50,29,.16)"; ctx.fillRect(W - 40, 56, 26, H - 100); ctx.fillStyle = "rgba(47,127,209,.16)"; ctx.fillRect(14, 56, 26, H - 100); ctx.restore();
+        S.draw.text(c, "+", W - 27, H / 2, {size: 22, color: pal.red}); S.draw.text(c, "−", 27, H / 2, {size: 22, color: pal.acc});
+        S.draw.text(c, "plaque −", 27, H - 36, {size: 11.5, color: pal.grey}); S.draw.text(c, "plaque +", W - 27, H - 36, {size: 11.5, color: pal.grey});
+      }
+      var axv = [0, 0, 0], angA = 0, nvn = null;
+      if (mag > 0){ nvn = [net[0] / mag, net[1] / mag, net[2] / mag]; axv = cross(nvn, [1, 0, 0]); var sl = Math.hypot(axv[0], axv[1], axv[2]); angA = Math.acos(Math.max(-1, Math.min(1, nvn[0]))); if (sl < 1e-6){ axv = [0, 1, 0]; if (nvn[0] < 0) angA = Math.PI; } else axv = [axv[0] / sl, axv[1] / sl, axv[2] / sl]; }
+      var rotM = function(u){
+        var w = u;
+        if (al.f > 0.001){
+          if (mag > 0) w = rodr(u, axv, angA * al.f * (1 + 0.0) + Math.sin(T * 5) * 0.06 * (1 - al.f) * 0);
+          else w = rodr(u, [1, 0, 0], T * 2.2 * al.f);
+        }
+        return C5.rot(w, al.f > 0.5 ? st.yaw * (1 - al.f) : st.yaw, al.f > 0.5 ? st.pitch * (1 - al.f) : st.pitch);
+      };
+      items.forEach(function(it){ it.v = rotM(it.u); });
+      var P = function(v, f){ var s = 1 / (1 - 0.1 * v[2]); return [cx + R * f * v[0] * s, cy - R * f * v[1] * s, s]; };
+      if (showN.value && mag > 0){
+        var nv = rotM([nvn[0], nvn[1], nvn[2]]), L = 46 + mag * 36;
+        S.draw.arrow(c, cx - nv[0] * L * 0.35, cy + nv[1] * L * 0.35, cx + nv[0] * L, cy - nv[1] * L, pal.red, 4.6);
+        S.draw.label(c, "résultante", cx + nv[0] * L, cy - nv[1] * L - 18, {color: pal.red, size: 12});
+      } else if (showN.value) S.draw.label(c, "résultante nulle", cx, c.H - 22, {color: pal.green, size: 13});
+      var all = items.slice(); all.push({center: true, v: [0, 0, 0]}); all.sort(function(p, q){ return p.v[2] - q.v[2]; });
+      all.forEach(function(it){
+        if (it.center){ var cd = mag > 0 ? "#cfe4d8" : "#cfe4d8"; C5.atom(c, cx, cy, 17, C5.CPK[m.cen] || cd, m.cen, "#0f1b2d"); var sg = items.reduce(function(q, w){ return q + w.d; }, 0); if (Math.abs(sg) >= 0.5) S.draw.label(c, sg < 0 ? "δ⁻" : "δ⁺", cx - 24, cy - 22, {color: sg < 0 ? pal.acc : pal.red, size: 12}); return; }
+        var p = P(it.v, 1), dEN = it.d;
+        S.draw.line(c, cx, cy, p[0], p[1], "#2c3a4e", 4 * p[2]); S.draw.line(c, cx, cy, p[0], p[1], "#dfe7f1", 1.2);
+        if (Math.abs(dEN) >= 0.5) S.draw.glow(c, p[0], p[1], 30 * p[2], dEN > 0 ? "#2f7fd1" : "#e8594a", 0.0);
+        C5.atom(c, p[0], p[1], 14 * p[2], C5.CPK[it.lab] || "#f3c987", it.lab, "#0f1b2d");
+        if (Math.abs(dEN) >= 0.5){ S.draw.label(c, dEN > 0 ? "δ⁻" : "δ⁺", p[0] + 16 * p[2], p[1] - 17 * p[2], {color: dEN > 0 ? pal.acc : pal.red, size: 12}); }
+        if (showB.value && Math.abs(dEN) >= 0.3){
+          var a = P(it.v, dEN > 0 ? 0.26 : 0.72), z = P(it.v, dEN > 0 ? 0.72 : 0.26), nx = -(z[1] - a[1]), ny = z[0] - a[0], nl2 = Math.hypot(nx, ny) || 1;
+          S.draw.arrow(c, a[0] + nx / nl2 * 9, a[1] + ny / nl2 * 9, z[0] + nx / nl2 * 9, z[1] + ny / nl2 * 9, "#2f7fd1", 2.6);
         }
       });
-      if (!drawnC) C5.atom(c, cx, cy, 16, "#cfe4d8", m.cen);
-      if (showN.value && mag > 0){
-        var nv = C5.rot([net[0] / mag, net[1] / mag, net[2] / mag], st.yaw, st.pitch), L = 40 + mag * 38;
-        S.draw.arrow(c, cx - nv[0] * L * 0.3, cy + nv[1] * L * 0.3 - 0, cx + nv[0] * L, cy - nv[1] * L, pal.red, 4.2);
-        S.draw.text(c, "résultante", cx + nv[0] * L, cy - nv[1] * L - 14, {size: 12, color: pal.red});
-      } else if (showN.value) S.draw.text(c, "résultante nulle", cx, c.H - 16, {size: 14, color: pal.green});
-      S.draw.text(c, "flèche bleue : dipôle de liaison", 6, 12, {size: 12, align: "left", color: pal.grey});
+      S.draw.legend(c, [["#2f7fd1", "dipôle de liaison (vers δ⁻)"], [pal.red, "résultante"]], 8, 8);
+      S.draw.text(c, al.f < 0.5 ? "glisse pour tourner" : mag > 0 ? "la molécule s'oriente dans le champ" : "aucune orientation privilégiée", c.W - 10, c.H - 12, {size: 11.5, color: pal.grey, align: "right"});
       ro.set(0, anyPolar ? "oui" : "non (ΔEN < 0,5)"); ro.set(1, mag ? S.fmt(mag, 1) + " (unités ΔEN)" : "nulle"); ro.set(2, mag ? "polaire" : "apolaire");
-      nt.set(mag ? "Les dipôles ne se compensent pas : un côté est δ⁻, l'autre δ⁺." : (anyPolar ? "Les liaisons sont polaires, mais la symétrie annule la somme : molécule apolaire." : "Presque aucune différence d'électronégativité : molécule apolaire."), mag ? "" : "ok");
+      nt.set((mag ? "Les dipôles ne se compensent pas : un côté est δ⁻, l'autre δ⁺." : (anyPolar ? "Les liaisons sont polaires, mais la symétrie annule la somme : molécule apolaire." : "Presque aucune différence d'électronégativité : molécule apolaire.")) + (field.value ? (mag ? " Dans le champ, le côté δ⁻ se tourne vers la plaque +." : " Dans le champ, rien ne la fait s'orienter : elle tourne librement.") : ""), mag ? "" : "ok");
     });
   }
 });
@@ -220,26 +262,46 @@ SFA.sim({
     var pal = S.draw.palette, RHO_ICE = 0.917;
     var TT = [0, 4, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100], RR = [0.99984, 0.99997, 0.99970, 0.99821, 0.99565, 0.99222, 0.98803, 0.98320, 0.97778, 0.97182, 0.96535, 0.95835];
     function rhoW(t){ for (var i = 0; i < TT.length - 1; i++) if (t <= TT[i + 1]) return RR[i] + (RR[i + 1] - RR[i]) * (t - TT[i]) / (TT[i + 1] - TT[i]); return RR[RR.length - 1]; }
-    var c = k.canvas(220), g = k.canvas(200);
+    var c = k.canvas(290), g = k.canvas(200), cube = {y: null, v: 0, drag: false, target: 0, wl: 0, sz: 66, cx: 0, by: 0, by2: 0, bh: 0, off: 0};
     var liq = k.seg("Liquide", [["eau", "Eau pure"], ["mer", "Eau de mer"], ["eth", "Éthanol"]], "eau");
     var T = k.slider("Température du liquide", 0, 100, 1, 4, "°C");
     var mol = k.toggle("Vue moléculaire à la place du graphe", false);
     var ro = k.readouts(["Masse volumique du liquide", "Masse volumique de la glace", "Part immergée", "Verdict"]);
     var nt = k.note("", "");
     /* eau de mer (35 g/kg) : 1,0247 g/cm³ à 20 °C, même dilatation que l'eau pure ; éthanol : 0,789 à 20 °C, −0,00085 g/cm³ par °C */
+    c.pointer(function(type, p){
+      if (type === "down" && Math.abs(p.x - cube.cx) < cube.sz && p.y > cube.y - 12 && p.y < cube.y + cube.sz + 12){ cube.drag = true; cube.off = p.y - cube.y; cube.v = 0; }
+      else if (type === "drag" && cube.drag){ cube.y = Math.max(cube.by - 10, Math.min(cube.by + cube.bh - cube.sz - 3, p.y - cube.off)); cube.v = 0; }
+      else if (type === "up") cube.drag = false;
+    });
+    k.loop(function(dt){ if (cube.y != null && !cube.drag){ var a = (cube.target - cube.y) * 45 - cube.v * 5.5; cube.v += a * dt; cube.y += cube.v * dt; if (cube.y > cube.by + cube.bh - cube.sz - 3){ cube.y = cube.by + cube.bh - cube.sz - 3; cube.v = 0; } } k.redraw(); }).play();
     function rho(){ return liq.value === "eau" ? rhoW(T.value) : liq.value === "mer" ? 1.0247 * rhoW(T.value) / rhoW(20) : 0.789 - 0.00085 * (T.value - 20); }
     k.draw(function(){
       var r = rho(), f = RHO_ICE / r, ctx = c.ctx; c.clear(); g.clear();
-      var bx = c.W / 2 - 100, bw = 200, by = 20, bh = 180;
-      ctx.fillStyle = liq.value === "eth" ? "#e8f0fb" : "#cfe4f6"; ctx.fillRect(bx, by + 40, bw, bh - 40);
-      ctx.strokeStyle = pal.ink; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.moveTo(bx, by); ctx.lineTo(bx, by + bh); ctx.lineTo(bx + bw, by + bh); ctx.lineTo(bx + bw, by); ctx.stroke();
-      var s = 64, wl = by + 40;   /* niveau de l'eau */
-      var cy;
-      if (f < 1){ cy = wl - s * (1 - f); } else { cy = by + bh - s - 2; }
-      ctx.fillStyle = "rgba(235,246,255,.92)"; ctx.fillRect(c.W / 2 - s / 2, cy, s, s); ctx.strokeStyle = pal.acc; ctx.lineWidth = 2; ctx.strokeRect(c.W / 2 - s / 2, cy, s, s);
-      S.draw.text(c, "glace", c.W / 2, cy + s / 2, {size: 13, color: pal.acc});
-      S.draw.line(c, bx, wl, bx + bw, wl, pal.acc, 1.5, [5, 4]);
-      if (f < 1) S.draw.text(c, S.fmt((1 - f) * 100, 1) + " % dépasse", c.W / 2 + s / 2 + 8, wl - 16, {size: 12, align: "left", color: pal.red});
+      var bw = Math.min(250, c.W - 60), bh = 190, bx = (c.W - bw) / 2, by = 28, sz = 66, cxm = c.W / 2;
+      C5.bench(c, by + bh + 2);
+      var gl = C5.beaker(c, bx, by, bw, bh, liq.value === "eth" ? "#d6e4f6" : liq.value === "mer" ? "#a6d1ec" : "#bde0f6", 0.72, {taper: 6}), wl = gl.top;
+      cube.target = f < 1 ? wl - sz * (1 - f) : by + bh - sz - 3; cube.wl = wl; cube.sz = sz; cube.cx = cxm; cube.by = by; cube.bh = bh;
+      if (cube.y == null) cube.y = cube.target - 40;
+      var cyc = cube.y, amp = Math.min(1, Math.abs(cube.v) / 60);
+      /* ondulations autour du glaçon */
+      ctx.save(); ctx.strokeStyle = "rgba(255,255,255,.75)"; ctx.lineWidth = 1.6;
+      for (var rp = 0; rp < 2; rp++){ ctx.beginPath(); ctx.ellipse(cxm, wl + 1, sz / 2 + 8 + rp * 12 + amp * 10, 2.5 + rp, 0, 0, 2 * Math.PI); ctx.stroke(); }
+      ctx.restore();
+      /* glaçon : partie émergée claire, partie immergée teintée par le liquide */
+      ctx.save(); S.draw.rrect(c, cxm - sz / 2, cyc, sz, sz, 9);
+      var gi = ctx.createLinearGradient(0, cyc, 0, cyc + sz); gi.addColorStop(0, "#fbfeff"); gi.addColorStop(1, "#d3eafb"); ctx.fillStyle = gi; ctx.fill(); ctx.clip();
+      if (cyc + sz > wl){ ctx.fillStyle = liq.value === "eth" ? "rgba(150,180,220,.35)" : "rgba(80,150,215,.38)"; ctx.fillRect(cxm - sz / 2, Math.max(cyc, wl), sz, cyc + sz - Math.max(cyc, wl)); }
+      ctx.strokeStyle = "rgba(255,255,255,.9)"; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(cxm - sz / 2 + 9, cyc + 8); ctx.lineTo(cxm - sz / 2 + 9, cyc + sz - 14); ctx.stroke(); ctx.restore();
+      ctx.save(); S.draw.rrect(c, cxm - sz / 2, cyc, sz, sz, 9); ctx.strokeStyle = "#6fa6d6"; ctx.lineWidth = 2; ctx.stroke(); ctx.restore();
+      S.draw.text(c, "glace", cxm, cyc + sz / 2 - 2, {size: 13, color: "#2c5d94"}); S.draw.text(c, "0,917", cxm, cyc + sz / 2 + 14, {size: 11, color: "#5f7ea3", weight: 600});
+      S.draw.line(c, bx + 2, wl, bx + bw - 2, wl, "rgba(31,75,158,.6)", 1.4, [5, 4]);
+      if (f < 1 && cyc < wl - 2){
+        var rx = cxm + sz / 2 + 16; S.draw.line(c, rx, cyc, rx, wl, pal.red, 2); S.draw.line(c, rx - 4, cyc, rx + 4, cyc, pal.red, 2); S.draw.line(c, rx - 4, wl, rx + 4, wl, pal.red, 2);
+        S.draw.label(c, S.fmt((1 - f) * 100, 1) + " % dépasse", Math.min(rx + 8, c.W - 96), (cyc + wl) / 2 - 14, {color: pal.red, align: "left", size: 12});
+      }
+      S.draw.text(c, "attrape le glaçon et enfonce-le : il remonte", c.W / 2, 12, {size: 12, color: pal.grey});
+      if (f >= 1) S.draw.label(c, "il coule", cxm, by + bh + 18, {color: pal.red, size: 13});
       var ax = S.draw.axes(g, {x0: 0, x1: 100, y0: 0.95, y1: 1.002, xl: "T (°C)", stepX: 10, stepY: 0.01, l: 52, t: 26});
       if (mol.value){
         g.clear(); var ctx2 = g.ctx, gw = g.W / 2;
@@ -271,7 +333,7 @@ SFA.sim({
         S.draw.text(g, "ρ de l'eau liquide (g/cm³)", 8, 10, {size: 12, align: "left", color: pal.grey});
         S.draw.dot(g, ax.X(4), ax.Y(rhoW(4)), 5, pal.green); S.draw.text(g, "maximum à 4 °C", ax.X(4) + 8, ax.Y(rhoW(4)) + 16, {size: 12, color: pal.green, align: "left"});
         if (liq.value === "eau") S.draw.dot(g, ax.X(T.value), ax.Y(rhoW(T.value)), 7, pal.red);
-        S.draw.text(g, "(glace : 0,917, sous le bas du graphe)", g.W - 8, 10, {size: 12, color: pal.grey, align: "right"});
+        S.draw.text(g, "glace : 0,917", g.W - 8, 10, {size: 12, color: pal.grey, align: "right"});
       }
       ro.set(0, S.fmt(r, liq.value === "eau" ? 5 : 3) + " g/cm³"); ro.set(1, "0,917 g/cm³"); ro.set(2, f < 1 ? S.fmt(f * 100, 1) + " %" : "100 % (coule)"); ro.set(3, f < 1 ? "flotte" : "coule");
       if (liq.value === "eth" && T.value > 78) nt.set("L'éthanol bout à 78 °C : au-delà, ce n'est plus un liquide et le calcul n'a plus de sens.", "warn");

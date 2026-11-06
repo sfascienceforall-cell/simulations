@@ -55,7 +55,7 @@ SFA.sim({
   aRetenir: "Une charge q accélérée depuis le repos par une tension U gagne l'énergie cinétique E<sub>c</sub> = q·U, donc v = √(2qU/m) (formule classique). Un électron accéléré par 1 V gagne 1 eV = 1,6·10⁻¹⁹ J. À grande tension, la vitesse approche celle de la lumière sans jamais l'atteindre.",
   piege: "Doubler U ne double pas v : v ∝ √U (il faut 4 fois plus de tension pour doubler la vitesse). Et la formule ½mv² = qU ne marche plus au-delà de quelques dizaines de kV pour un électron (vitesse proche de c) : la vitesse réelle est inférieure.",
   build: function(k, S){
-    var c = k.canvas(0, {ratio: 0.62});
+    var sc0 = k.canvas(150), c = k.canvas(0, {ratio: 0.5});
     var part = k.seg("Particule", [["e", "Électron"], ["p", "Proton"], ["a", "Particule α"]], "e");
     var x = k.slider("Exposant x : U = 10^x volts", 1, 6.3, 0.05, 3, "");
     var ro = k.readouts(["Tension U", "Énergie cinétique", "Vitesse (formule classique)", "Vitesse réelle", "v / c (réelle)"]);
@@ -63,13 +63,43 @@ SFA.sim({
     function P(){ return part.value === "e" ? {m: ME, q: QE, n: "électron"} : part.value === "p" ? {m: MP, q: QE, n: "proton"} : {m: MA, q: 2 * QE, n: "particule α"}; }
     function vcl(p, U){ return Math.sqrt(2 * p.q * U / p.m); }
     function vrel(p, U){ var g = 1 + p.q * U / (p.m * C0 * C0); return C0 * Math.sqrt(1 - 1 / (g * g)); }
+    var ph = 0;
+    var lp = k.loop(function(dt){ ph = (ph + dt / 3.2) % 1; k.redraw(); }); lp.play();
+    function scene(p, U){
+      var pal = S.draw.palette, ctx = sc0.ctx, W = sc0.W, H = sc0.H, ay = H / 2 + 6;
+      sc0.clear(); P5x.sky(sc0, "#eef3fa", "#f9fbfe");
+      var vc = vcl(p, U), vr = vrel(p, U), beta = vr / C0;
+      var gx0 = W * 0.2, gx1 = W * 0.4;
+      /* tube */
+      P5x.rr(ctx, 14, ay - 22, W - 28, 44, 20); ctx.fillStyle = "#dfe8f3"; ctx.fill(); ctx.strokeStyle = "#9aa6b6"; ctx.lineWidth = 2; ctx.stroke();
+      /* plaques */
+      ctx.fillStyle = pal.red; ctx.fillRect(gx0 - 4, ay - 34, 8, 68); ctx.fillStyle = pal.acc; ctx.fillRect(gx1 - 4, ay - 34, 8, 68);
+      ctx.fillStyle = "rgba(255,255,255,.8)"; ctx.fillRect(gx0 - 1.5, ay - 6, 3, 12); ctx.fillRect(gx1 - 1.5, ay - 6, 3, 12);
+      S.draw.text(sc0, "+", gx0, ay - 44, {size: 15, color: pal.red}); S.draw.text(sc0, "−", gx1, ay - 44, {size: 15, color: pal.acc});
+      /* champ */
+      for (var i = 1; i < 4; i++){ S.draw.arrow(sc0, gx0 + 8, ay - 26 + i * 13, gx1 - 8, ay - 26 + i * 13, "rgba(192,50,29,.35)", 1.6); }
+      /* particule : accélère entre les plaques puis file à vitesse constante (largeur de traînée ∝ v/c) */
+      var px, trail;
+      var tpar = ph * 1.0;
+      if (tpar < 0.35){ var u = tpar / 0.35; px = gx0 - 40 + (gx1 - gx0 + 40) * u * u; trail = 0.15 + 0.85 * u * beta; }
+      else { px = gx1 + (W - 40 - gx1) * ((tpar - 0.35) / 0.65) * (0.25 + 0.75 * Math.min(1, Math.sqrt(beta) * 1.1)); trail = beta; }
+      var tl = 6 + 90 * Math.min(1, trail * 1.2);
+      var gr = ctx.createLinearGradient(px - tl, 0, px, 0); gr.addColorStop(0, "rgba(31,75,158,0)"); gr.addColorStop(1, "rgba(31,75,158,.55)");
+      ctx.fillStyle = gr; ctx.beginPath(); ctx.moveTo(px - tl, ay); ctx.lineTo(px, ay - 6); ctx.lineTo(px, ay + 6); ctx.closePath(); ctx.fill();
+      S.draw.glow(sc0, px, ay, 20, p.n === "électron" ? "#2f7fd1" : "#c26a0c", 0.5);
+      P5x.ball(sc0, px, ay, p.n === "électron" ? 5 : 8, p.n === "électron" ? "#2f7fd1" : p.n === "proton" ? "#c0321d" : "#8a5ac4");
+      S.draw.display(sc0, (U >= 1000 ? S.fmt(U / 1000, 1) + " kV" : S.fmt(U, 0) + " V"), (gx0 + gx1) / 2, 28, {w: 96, h: 32, size: 13});
+      S.draw.label(sc0, "v = " + S.fmt(beta, 4) + " c" + (beta > 0.1 ? "  (relativiste)" : ""), W - 16, H - 14, {color: beta > 0.1 ? pal.red : pal.acc, size: 12, align: "right"});
+      S.draw.label(sc0, p.n + " : Ec = q·U = " + S.sci(p.q * U / QE, 2) + " eV", 18, H - 14, {color: pal.ink, size: 12, align: "left"});
+    }
     k.draw(function(){
       c.clear(); var pal = S.draw.palette, ctx = c.ctx, p = P(), U = Math.pow(10, x.value);
+      scene(p, U);
       var ax = S.draw.axes(c, {x0: 1, x1: 6.3, y0: 0, y1: 1.5, xl: "x (U = 10^x V)", yl: "v / c", stepX: 1, stepY: 0.25, l: 52});
       S.draw.fn(c, ax, function(xx){ return vcl(p, Math.pow(10, xx)) / C0; }, pal.red, 2.2, [6, 4]);
       S.draw.fn(c, ax, function(xx){ return vrel(p, Math.pow(10, xx)) / C0; }, pal.acc);
       S.draw.line(c, ax.X(1), ax.Y(1), ax.X(6.3), ax.Y(1), pal.amber, 1.5, [3, 3]); S.draw.text(c, "c", ax.X(6.2), ax.Y(1) - 10, {size: 13, color: pal.amber});
-      S.draw.text(c, "pointillés rouges : formule classique", ax.X(1.1), ax.Y(1.42), {align: "left", size: 12, color: pal.red}); S.draw.text(c, "trait bleu : vitesse réelle", ax.X(1.1), ax.Y(1.3), {align: "left", size: 12, color: pal.acc});
+      S.draw.legend(c, [[pal.red, "formule classique", true], [pal.acc, "vitesse réelle"]], ax.X(1.45), ax.Y(1.45));
       var vc = vcl(p, U), vr = vrel(p, U);
       S.draw.line(c, ax.X(x.value), ax.Y(0), ax.X(x.value), ax.Y(1.5), pal.grey, 1.2, [4, 4]);
       if (vc / C0 < 1.5) S.draw.dot(c, ax.X(x.value), ax.Y(vc / C0), 5, pal.red);

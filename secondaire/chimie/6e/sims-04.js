@@ -25,40 +25,54 @@ SFA.sim({
   id: "c6-c04-dissociation", ch: "c04", tag: "Classique",
   titre: "Dans le bécher : acide fort ou acide faible ?",
   resume: "Même concentration, deux acides : combien de molécules ont cédé leur proton ? Lis le pH et le taux de dissociation.",
-  but: "Choisis un acide et dilue-le (curseur de pc = −log c). Regarde la part de molécules dissociées (points bleu et rouge) et compare au pH d'un acide fort.",
+  but: "Choisis un acide et dilue-le (curseur de pc = −log c ou bouton ×10). Regarde la part de molécules dissociées (ions rouge et bleu qui apparaissent et disparaissent) et compare le pH à celui d'un acide fort.",
   aRetenir: "Un acide fort est totalement dissocié (HA + H₂O → A⁻ + H₃O⁺). Un acide faible l'est partiellement : HA + H₂O ⇌ A⁻ + H₃O⁺, avec un taux α = [A⁻]/c qui augmente quand on dilue. La force d'un acide (pKa) n'a rien à voir avec sa concentration.",
   piege: "Fort ou faible ne veut pas dire concentré ou dilué. Un acide faible concentré peut être très dangereux, un acide fort très dilué est inoffensif. Et pour un acide faible, pH ≠ −log c.",
   build: function(k, S){
-    var c = k.canvas(300), P = S.draw.palette, N = 200, pts = [], i, seed = 7;
-    function rnd(){ seed = (seed * 16807) % 2147483647; return seed / 2147483647; }
-    for (i = 0; i < N; i++) pts.push([rnd(), rnd(), rnd(), rnd()]);
+    var c = k.canvas(440), P = S.draw.palette, H = window.C6, N = 110, tt = 0;
     var ac = k.select("Acide", ACI.map(function(a, j){ return [j, a.nom]; }), 4);
     var pc = k.slider("pc (c = 10^−pc mol/L)", 0, 4, 0.1, 1, "");
+    k.button("Diluer ×10", function(){ pc.set(Math.min(4, pc.value + 1)); }, true); k.button("Concentrer ×10", function(){ pc.set(Math.max(0, pc.value - 1)); });
     var ro = k.readouts(["Concentration c", "pH", "Taux de dissociation α", "pH d'un acide fort"]);
     var nt = k.note("", "ok");
+    var lp = k.loop(function(dt, t){ tt = t; k.redraw(); }); lp.play();
     k.draw(function(){
-      c.clear();
-      var a = ACI[ac.value], cc = Math.pow(10, -pc.value), ph = phAcide(a.pKa, cc), h = Math.pow(10, -ph), Ka = Math.pow(10, -a.pKa);
-      var alpha = Math.min(1, cc * Ka / (Ka + h) / cc), nd = Math.round(alpha * N), ctx = c.ctx;
-      var bx = 20, by = 36, bw = Math.min(c.W - 40, 360), bh = c.H - 70;
-      ctx.fillStyle = "rgba(120,170,230,.18)"; ctx.fillRect(bx, by, bw, bh); ctx.strokeStyle = P.ink; ctx.lineWidth = 2.4; ctx.strokeRect(bx, by, bw, bh);
+      c.clear(); H.bg(c, {top: "#fbfcfd", bottom: "#eef2f7"});
+      var a = ACI[ac.value], cc = Math.pow(10, -pc.value), ph = phAcide(a.pKa, cc), h = Math.pow(10, -ph), Ka = Math.pow(10, -a.pKa), ctx = c.ctx, i;
+      var alpha = Math.min(1, Ka / (Ka + h)), phF = Math.max(0, -Math.log10(cc));
+      var bx = 12, by = 46, bw = c.W - 24, bh = 196, nd = 0;
+      ctx.save(); S.draw.rrect(c, bx, by, bw, bh, 12); var g = ctx.createLinearGradient(0, by, 0, by + bh); g.addColorStop(0, "#e7f1fb"); g.addColorStop(1, "#cfe2f5"); ctx.fillStyle = g; ctx.fill(); ctx.clip();
       for (i = 0; i < N; i++){
-        var x = bx + 14 + pts[i][0] * (bw - 28), y = by + 14 + pts[i][1] * (bh - 28);
-        if (i < nd){ S.draw.dot(c, x, y, 4.5, P.red); S.draw.dot(c, x + 10 * (pts[i][2] - .5) + 7, y + 10 * (pts[i][3] - .5) + 7, 4.5, P.acc); }
-        else { S.draw.dot(c, x, y, 5, P.grey); }
+        var p = H.wander(i, tt, 0.8), x = bx + 14 + p[0] * (bw - 28), y = by + 14 + p[1] * (bh - 28);
+        var diss = ((tt * 0.33 + H.rnd(i, 9)) % 1) < alpha;
+        if (!diss){
+          ctx.fillStyle = "#8793a3"; ctx.beginPath(); ctx.arc(x, y, 8.5, 0, 7); ctx.fill(); ctx.fillStyle = "#f4f6fa"; ctx.beginPath(); ctx.arc(x + 7, y - 6, 4, 0, 7); ctx.fill(); ctx.strokeStyle = "rgba(15,27,45,.25)"; ctx.lineWidth = 1; ctx.stroke();
+        } else {
+          nd++; var q = H.wander(300 + i, tt, 1.1), x2 = bx + 14 + q[0] * (bw - 28), y2 = by + 14 + q[1] * (bh - 28);
+          ctx.fillStyle = P.red; ctx.beginPath(); ctx.arc(x, y, 8.5, 0, 7); ctx.fill(); S.draw.line(c, x - 4, y, x + 4, y, "#fff", 2);
+          ctx.fillStyle = P.blue; ctx.beginPath(); ctx.arc(x2, y2, 6.5, 0, 7); ctx.fill(); S.draw.line(c, x2 - 3.5, y2, x2 + 3.5, y2, "#fff", 2); S.draw.line(c, x2, y2 - 3.5, x2, y2 + 3.5, "#fff", 2);
+        }
       }
-      var lx = bx + bw + 14;
-      if (c.W - lx > 90){
-        S.draw.dot(c, lx + 6, 60, 5, P.grey); S.draw.text(c, a.f, lx + 16, 60, {size: 12, align: "left"});
-        S.draw.dot(c, lx + 6, 84, 5, P.red); S.draw.text(c, a.b, lx + 16, 84, {size: 12, align: "left"});
-        S.draw.dot(c, lx + 6, 108, 5, P.acc); S.draw.text(c, "H₃O⁺", lx + 16, 108, {size: 12, align: "left"});
-      }
-      var pTxt = pct(alpha) || (S.fmt(alpha * 100, alpha < 0.1 ? 2 : 0) + " %");
-      S.draw.text(c, nd + " dissociées sur 200 (≈ " + pTxt.replace(/<sup>(.*?)<\/sup>/, "^$1") + ")", c.W / 2, 18, {size: 13, color: P.ink});
-      ro.set(0, S.sci(cc, 2) + " mol/L"); ro.set(1, S.fmt(ph, 2)); ro.set(2, alpha > 0.995 ? "≈ 100 % (fort)" : pct(alpha) || (S.fmt(alpha * 100, alpha < 0.1 ? 2 : 1) + " %")); ro.set(3, S.fmt(Math.max(0, -Math.log10(cc)), 2));
-      if (alpha < 0.005 && nd === 0) nt.set("Moins d'une particule sur 200 est dissociée : le taux est trop faible pour apparaître dans le dessin, mais il est bien non nul (α ≈ " + (pct(alpha) || (S.fmt(alpha * 100, 2) + " %")) + ").", "warn");
-      else if (alpha > 0.995) nt.set("Acide fort : toutes les particules sont dissociées, pH = −log c.", "ok");
-      else nt.set("Acide faible : le pH (" + S.fmt(ph, 2) + ") est plus élevé que celui d'un acide fort de même concentration (" + S.fmt(-Math.log10(cc), 2) + ").", "ok");
+      ctx.restore(); ctx.strokeStyle = "#5b6e86"; ctx.lineWidth = 2; S.draw.rrect(c, bx, by, bw, bh, 12); ctx.stroke();
+      /* légende */
+      var lg = [["#8793a3", a.f], [P.red, a.b], [P.blue, "H₃O⁺"]];
+      lg.forEach(function(it, j){ var lx = 14 + j * (c.W - 28) / 3; S.draw.dot(c, lx + 7, 22, 7, it[0]); S.draw.text(c, it[1], lx + 20, 22, {size: 13, align: "left", math: true, weight: 800}); });
+      S.draw.text(c, "échantillon de " + N + " molécules (la dissociation va et vient)", c.W / 2, by + bh + 14, {size: 11, color: P.grey});
+      /* pH-mètre et échelle de pH */
+      S.draw.display(c, S.fmt(ph, 2), 76, by + bh + 64, {w: 118, h: 58, caption: "pH de la solution", size: 24});
+      S.draw.text(c, "α ≈ " + (alpha > 0.995 ? "100 %" : alpha < 0.0095 ? S.fmt(alpha * 100, 2) + " %" : S.fmt(alpha * 100, 1) + " %"), 76, by + bh + 108, {size: 12.5, color: P.ink, weight: 800});
+      var sx0 = 150, sx1 = c.W - 20, sy = by + bh + 70;
+      for (i = 0; i < 70; i++){ ctx.fillStyle = H.phColor(i / 5); ctx.fillRect(sx0 + (sx1 - sx0) * i / 70, sy, (sx1 - sx0) / 70 + 1, 14); }
+      S.draw.text(c, "0", sx0, sy + 26, {size: 10.5, color: P.grey}); S.draw.text(c, "7", sx0 + (sx1 - sx0) / 2, sy + 26, {size: 10.5, color: P.grey}); S.draw.text(c, "14", sx1, sy + 26, {size: 10.5, color: P.grey});
+      var px = function(v){ return sx0 + (sx1 - sx0) * Math.max(0, Math.min(14, v)) / 14; };
+      S.draw.dot(c, px(ph), sy + 7, 8, "#fff"); S.draw.dot(c, px(ph), sy + 7, 5, P.ink);
+      S.draw.label(c, "ta solution " + S.fmt(ph, 2), Math.max(sx0 + 46, Math.min(sx1 - 46, px(ph))), sy - 12, {color: P.ink, size: 11});
+      if (alpha < 0.995){ var tx = px(phF); ctx.save(); ctx.fillStyle = P.amber; ctx.beginPath(); ctx.moveTo(tx, sy + 17); ctx.lineTo(tx - 6, sy + 30); ctx.lineTo(tx + 6, sy + 30); ctx.closePath(); ctx.fill(); ctx.restore();
+        S.draw.label(c, "acide fort : " + S.fmt(phF, 2), Math.max(sx0 + 56, Math.min(sx1 - 56, tx)), sy + 44, {color: P.amber, size: 11}); }
+      ro.set(0, S.sci(cc, 2) + " mol/L"); ro.set(1, S.fmt(ph, 2)); ro.set(2, alpha > 0.995 ? "≈ 100 % (fort)" : pct(alpha) || (S.fmt(alpha * 100, alpha < 0.1 ? 2 : 1) + " %")); ro.set(3, S.fmt(phF, 2));
+      if (alpha > 0.995) nt.set("Acide fort : toutes les molécules sont dissociées, pH = −log c.", "ok");
+      else if (alpha < 0.03) nt.set("Acide faible très peu dissocié : sur " + N + " molécules, il en apparaît seulement " + S.fmt(alpha * N, 1) + " en moyenne (α ≈ " + (pct(alpha) || (S.fmt(alpha * 100, 2) + " %")) + "). Le pH (" + S.fmt(ph, 2) + ") est bien plus élevé que celui d'un acide fort de même concentration (" + S.fmt(phF, 2) + ").", "warn");
+      else nt.set("Acide faible : le pH (" + S.fmt(ph, 2) + ") est plus élevé que celui d'un acide fort de même concentration (" + S.fmt(phF, 2) + ").", "ok");
     });
   }
 });
@@ -77,20 +91,19 @@ SFA.sim({
     var pc = k.slider("pc (c = 10^−pc mol/L)", 0, 6, 0.1, 1, "");
     var ro = k.readouts(["pH exact", "Formule approchée", "Écart", "Taux α (acide) ou β (base)"]);
     var nt = k.note("", "ok");
+    c.pointer(function(type, pp){ if (type === "move" || type === "up" || !c._ax) return; pc.set(Math.round(Math.max(0, Math.min(6, c._ax.ix(pp.x))) * 10) / 10); k.redraw(); });
     function exact(p, q){ return ty.value === "a" ? phAcide(p, Math.pow(10, -q)) : phBase(p, Math.pow(10, -q)); }
     function faible(p, q){ return ty.value === "a" ? Math.max(0, 0.5 * (p + q)) : Math.min(14, 7 + 0.5 * (p - q)); }
     function fort(q){ return ty.value === "a" ? q : 14 - q; }
     k.draw(function(){
       c.clear();
-      var ax = S.draw.axes(c, {x0: 0, x1: 6, y0: 0, y1: 14, stepX: 1, stepY: 2, xl: "pc = −log c", yl: "pH"});
+      var ax = S.draw.axes(c, {x0: 0, x1: 6, y0: 0, y1: 14, stepX: 1, stepY: 2, xl: "pc = −log c", yl: "pH"}); c._ax = ax;
       S.draw.fn(c, ax, function(x){ return fort(x); }, P.amber, 2, [6, 4]);
       S.draw.fn(c, ax, function(x){ return faible(pk.value, x); }, P.violet, 2, [2, 4]);
       S.draw.fn(c, ax, function(x){ return exact(pk.value, x); }, P.green, 3);
       var ph = exact(pk.value, pc.value), cc = Math.pow(10, -pc.value), h = Math.pow(10, -ph), Ka = Math.pow(10, -pk.value);
       S.draw.dot(c, ax.X(pc.value), ax.Y(ph), 6, P.green);
-      S.draw.text(c, "— exact", ax.R - 6, ax.Y(13) + 4, {size: 12, color: P.green, align: "right"});
-      S.draw.text(c, "- - pH de l'acide (ou base) fort(e)", ax.R - 6, ax.Y(12) + 4, {size: 12, color: P.amber, align: "right"});
-      S.draw.text(c, "··· formule du faible", ax.R - 6, ax.Y(11) + 4, {size: 12, color: P.violet, align: "right"});
+      S.draw.legend(c, [[P.green, "exact"], [P.amber, ty.value === "a" ? "acide fort : pH = −log c" : "base forte : pH = 14 − pc", true], [P.violet, "formule du faible", true]], ax.L + 8, ty.value === "a" ? ax.T + 6 : ax.B - 62, {});
       var al = ty.value === "a" ? Ka / (Ka + h) : h / (Ka + h);
       var ap = faible(pk.value, pc.value), usable = ty.value === "a" ? (al < 0.05 && ph < 6.5) : (al < 0.05 && ph > 7.5);
       ro.set(0, S.fmt(ph, 2)); ro.set(1, S.fmt(ap, 2)); ro.set(2, S.fmt(Math.abs(ph - ap), 2)); ro.set(3, S.fmt(al * 100, al < 0.1 ? 2 : 0) + " %");
@@ -124,7 +137,7 @@ SFA.sim({
   aRetenir: "pH < pKa : la forme acide prédomine. pH > pKa : la forme basique prédomine. pH = pKa : les deux formes sont à parts égales. Pour [A⁻]/[HA] = 10^(pH − pKa) : un pH d'une unité au-dessus du pKa donne 10 fois plus de base que d'acide. Un ampholyte (comme HCO₃⁻) est à la fois base d'un couple et acide d'un autre.",
   piege: "« Prédominer » ne veut pas dire « être seul » : à pH = pKa + 1, il reste encore 9 % de forme acide. Et un polyacide a un pKa par acidité : le diagramme se découpe en plusieurs zones.",
   build: function(k, S){
-    var c = k.canvas(330), P = S.draw.palette, cols = [P.red, P.amber, P.green, P.acc];
+    var c = k.canvas(400), P = S.draw.palette, cols = [P.red, P.amber, P.green, P.acc];
     var sy = k.select("Espèce", SYS.map(function(s, i){ return [i, s.nom]; }), 0);
     var ph = k.slider("pH", 0, 14, 0.1, 4.8, "");
     var ro = k.readouts(["Forme prédominante", "Fractions"]);
@@ -132,7 +145,13 @@ SFA.sim({
     c.pointer(function(t, p){ if (t === "move" || t === "up") return; var ax = c._ax; if (!ax) return; var v = Math.max(0, Math.min(14, ax.ix(p.x))); ph.set(Math.round(v * 10) / 10); k.redraw(); });
     k.draw(function(){
       c.clear();
-      var s = SYS[sy.value], ax = S.draw.axes(c, {x0: 0, x1: 14, y0: 0, y1: 1.05, stepX: 2, stepY: 0.25, xl: "pH", yl: "fraction"}); c._ax = ax;
+      var s = SYS[sy.value], H = window.C6, frT = fractions(s.pk, ph.value), ctxT = c.ctx, xb = 14, wb = c.W - 28;
+      H.bg(c, {top: "#fbfcfd", bottom: "#eef2f7"});
+      S.draw.text(c, "Composition à pH = " + S.fmt(ph.value, 1), 14, 14, {size: 12.5, color: P.ink, align: "left", weight: 800});
+      ctxT.save(); S.draw.rrect(c, xb, 28, wb, 30, 10); ctxT.clip();
+      frT.forEach(function(f, j){ ctxT.fillStyle = cols[j]; ctxT.fillRect(xb, 28, wb * f + 0.5, 30); if (f > 0.09){ S.draw.text(c, s.sp[j] + " " + S.fmt(f * 100, 0) + " %", xb + wb * f / 2, 43, {size: 11.5, color: "#fff", weight: 800, math: true}); } xb += wb * f; });
+      ctxT.restore();
+      var ax = S.draw.axes(c, {x0: 0, x1: 14, y0: 0, y1: 1.05, stepX: 2, stepY: 0.25, xl: "pH", yl: "fraction", t: 76}); c._ax = ax;
       var j;
       for (j = 0; j < s.sp.length; j++){ (function(jj){ S.draw.fn(c, ax, function(x){ return fractions(s.pk, x)[jj]; }, cols[jj], 2.6); })(j); }
       s.pk.forEach(function(p, i){ S.draw.line(c, ax.X(p), ax.T, ax.X(p), ax.B, P.light, 1.2, [4, 3]); S.draw.text(c, "pKa " + S.fmt(p, 2), ax.X(p) + 4, ax.T + 28 + i * 14, {size: 12, color: P.grey, align: "left"}); });
@@ -164,16 +183,24 @@ SFA.sim({
   aRetenir: "Un antiacide est une base : il consomme les ions H⁺ en excès. Pouvoir neutralisant = z × n(antiacide), avec z le nombre de H⁺ consommés par formule (CaCO₃ : 2, Mg(OH)₂ : 2, NaHCO₃ : 1, Al(OH)₃ : 3). Par gramme, c'est Al(OH)₃ puis Mg(OH)₂ qui neutralisent le plus.",
   piege: "Neutraliser tout l'acide n'est pas le but : l'estomac a besoin d'un pH acide pour digérer. De plus, le modèle est simplifié (volume constant, pas de renouvellement de l'acide, CO₂ dégagé ignoré) et ne calcule pas le pH au-delà de 3.",
   build: function(k, S){
-    var c = k.canvas(320), P = S.draw.palette;
+    var c = k.canvas(440), P = S.draw.palette, H = window.C6, tt = 0;
     var an = k.select("Antiacide", ANT.map(function(a, i){ return [i, a.nom]; }), 0);
     var m = k.slider("Masse d'antiacide", 0, 900, 10, 250, "mg");
     var ro = k.readouts(["n(H⁺) au départ", "H⁺ neutralisés", "pH final", "H⁺ neutralisés par gramme"]);
     var nt = k.note("", "ok");
     var V = 0.3, ph0 = 1.5, nh0 = Math.pow(10, -ph0) * V * 1000;   /* mmol */
     function pHm(a, mg){ var nl = nh0 - a.z * mg / a.M; if (nl <= 0) return null; var p = -Math.log10(nl / 1000 / V); return p > 3 ? null : p; }
+    var lpA = k.loop(function(dt, t){ tt = t; k.redraw(); }); lpA.play();
     k.draw(function(){
-      c.clear();
-      var ax = S.draw.axes(c, {x0: 0, x1: 900, y0: 1, y1: 3.5, stepX: 100, stepY: 0.5, xl: "masse / mg", yl: "pH"});
+      c.clear(); H.bg(c, {top: "#fbfcfd", bottom: "#eef2f7"});
+      var a0 = ANT[an.value], pp0 = pHm(a0, m.value), ph0 = pp0 === null ? 3.2 : pp0, nn0 = m.value / a0.M, cn0 = Math.min(nh0, a0.z * nn0);
+      H.glass(c, "beaker", 28, 26, 100, 104, {level: 0.72, color: H.phColor(ph0).match(/\d+/g).map(Number), alpha: 0.9, shine: true,
+        inside: function(top){ for (var q = 0; q < 8; q++){ var u = (tt * 0.6 + q / 8) % 1; if (m.value > 5) S.draw.dot(c, 40 + H.rnd(q, 1) * 76, 126 - u * (126 - top), 2.2, "rgba(255,255,255,.7)"); } }});
+      var ctx_t = c.ctx; ctx_t.save(); ctx_t.fillStyle = "#f4f6fa"; ctx_t.strokeStyle = "rgba(15,27,45,.35)"; S.draw.rrect(c, 60, 118 - Math.min(14, m.value / 60), 36, Math.min(14, m.value / 60) + 4, 4); ctx_t.fill(); ctx_t.stroke(); ctx_t.restore();
+      S.draw.text(c, "estomac (300 mL)", 78, 146, {size: 12, color: P.grey, weight: 700});
+      S.draw.display(c, pp0 === null ? "> 3" : S.fmt(ph0, 2), c.W - 98, 56, {w: 120, h: 54, caption: "pH de l'estomac", size: 24});
+      S.draw.text(c, S.fmt(cn0 / nh0 * 100, 0) + " % des H⁺ neutralisés", c.W - 98, 102, {size: 12, color: P.green, weight: 800});
+      var ax = S.draw.axes(c, {x0: 0, x1: 900, y0: 1, y1: 3.5, stepX: 100, stepY: 0.5, xl: "masse / mg", yl: "pH", t: 176, b: 34});
       var cols = [P.acc, P.green, P.amber, P.violet], i;
       S.draw.line(c, ax.L, ax.Y(3), ax.R, ax.Y(3), P.light, 1.4, [4, 4]);
       S.draw.text(c, "modèle limité à pH 3", ax.R - 6, ax.Y(3) - 9, {size: 12, color: P.grey, align: "right"});

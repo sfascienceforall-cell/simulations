@@ -145,16 +145,16 @@ SFA.sim({
   build: function(k, S){
     var pal = S.draw.palette;
     var L = {
-      eau: {n: "Eau", pol: 1, rho: 1.00, col: [120, 170, 235]}, glyc: {n: "Glycérol", pol: 1, rho: 1.26, col: [120, 205, 150]},
-      eth: {n: "Éthanol", pol: 1, rho: 0.79, col: [200, 160, 235]}, huile: {n: "Huile végétale", pol: 0, rho: 0.92, col: [240, 205, 70]}, cyc: {n: "Cyclohexane", pol: 0, rho: 0.78, col: [240, 150, 110]}
+      eau: {n: "Eau", pol: 1, rho: 1.00, col: [96, 160, 235]}, glyc: {n: "Glycérol", pol: 1, rho: 1.26, col: [92, 200, 140]},
+      eth: {n: "Éthanol", pol: 1, rho: 0.79, col: [190, 140, 235]}, huile: {n: "Huile végétale", pol: 0, rho: 0.92, col: [240, 200, 60]}, cyc: {n: "Cyclohexane", pol: 0, rho: 0.78, col: [240, 140, 100]}
     };
     var opts = Object.keys(L).map(function(x){ return [x, L[x].n]; });
-    var c = k.canvas(290);
+    var c = k.canvas(380);
     var A = k.select("Liquide A", opts, "eau"), B = k.select("Liquide B", opts, "huile");
     var vb = k.slider("Part de B dans le mélange", 10, 90, 10, 40, "%");
     var shaken = false, tm = 0, shakeT = 99;
-    k.button("Agiter", function(){ shaken = true; shakeT = 0; }, true);
-    k.button("Remettre à zéro", function(){ shaken = false; shakeT = 99; });
+    k.button("Agiter le tube", function(){ shaken = true; shakeT = 0; }, true);
+    k.button("Laisser reposer / remettre à zéro", function(){ shaken = false; shakeT = 99; });
     var ro = k.readouts(["Nature de A", "Nature de B", "Résultat", "Couche du haut"]);
     var nt = k.note("", "");
     function result(a, b){
@@ -164,39 +164,75 @@ SFA.sim({
       if (a === "eth" || b === "eth") return "partiellement";
       return "non miscibles";
     }
-    var lp = k.loop(function(dt, t){ tm = t; if (shaken && shakeT < 3) shakeT += dt; k.redraw(); }); lp.play();
+    var rnd = C5.rng(5), N = 90, dots = [], i;
+    for (i = 0; i < N; i++) dots.push({u: rnd(), v: rnd(), w: rnd(), x: rnd(), y: rnd(), r: 2.5 + rnd() * 3.5});
+    k.loop(function(dt, t){ tm = t; if (shaken) shakeT += dt; k.redraw(); }).play();
     A.el.addEventListener("change", function(){ shaken = false; shakeT = 99; }); B.el.addEventListener("change", function(){ shaken = false; shakeT = 99; });
+    var rgb = function(col, al){ return "rgba(" + Math.round(col[0]) + "," + Math.round(col[1]) + "," + Math.round(col[2]) + "," + al + ")"; };
+    var lerpc = function(p, q, m){ return [p[0] + (q[0] - p[0]) * m, p[1] + (q[1] - p[1]) * m, p[2] + (q[2] - p[2]) * m]; };
+    function glyph(x, y, liq, rot, sc){
+      var ctx = c.ctx, col = "rgb(" + liq.col.join(",") + ")";
+      ctx.save(); ctx.translate(x, y); ctx.rotate(rot); ctx.scale(sc, sc);
+      if (liq.pol){ S.draw.line(c, 0, 0, -5, 5, "#6b7686", 1.2); S.draw.line(c, 0, 0, 5, 5, "#6b7686", 1.2); C5.atom(c, 0, 0, 5.5, C5.shade(col, 0), "");
+        C5.atom(c, -5.5, 5.5, 3, "#f4f6fa", ""); C5.atom(c, 5.5, 5.5, 3, "#f4f6fa", ""); }
+      else { var pts = [[-9, 3], [-3, -3], [3, 3], [9, -3]]; for (var q = 0; q < 3; q++) S.draw.line(c, pts[q][0], pts[q][1], pts[q + 1][0], pts[q + 1][1], "#6b7686", 1.6); pts.forEach(function(p){ C5.atom(c, p[0], p[1], 3.4, col, ""); }); }
+      ctx.restore();
+    }
     k.draw(function(){
       var a = A.value, b = B.value, la = L[a], lb = L[b], res = result(a, b), ctx = c.ctx; c.clear();
-      var tw = 90, tx = 26, ty = 20, th = 230, fb = vb.value / 100, fa = 1 - fb;
-      var heavyA = la.rho >= lb.rho, bot = heavyA ? la : lb, top = heavyA ? lb : la, fBot = heavyA ? fa : fb, fTop = 1 - fBot;
-      var rgb = function(col, al){ return "rgba(" + col[0] + "," + col[1] + "," + col[2] + "," + al + ")"; };
-      var mixed = shaken && shakeT >= 2.2 && (res === "miscibles" || res === "même liquide");
-      var mixing = shaken && shakeT < 2.2, y0 = ty + 10, hh = th - 20;
-      ctx.save(); ctx.beginPath(); ctx.rect(tx, ty, tw, th - 4); ctx.clip();
-      if (mixed){
-        var mc = [Math.round(la.col[0] * fa + lb.col[0] * fb), Math.round(la.col[1] * fa + lb.col[1] * fb), Math.round(la.col[2] * fa + lb.col[2] * fb)];
-        ctx.fillStyle = rgb(mc, 0.7); ctx.fillRect(tx, y0, tw, hh);
-      } else if (mixing || (shaken && res === "partiellement" && shakeT < 3)){
-        ctx.fillStyle = rgb(top.col, 0.3); ctx.fillRect(tx, y0, tw, hh);
-        for (var i = 0; i < 40; i++){ var dx = tx + ((Math.sin(i * 12.9 + tm * 6) * 0.5 + 0.5) * tw), dy = y0 + ((Math.cos(i * 7.7 + tm * 5) * 0.5 + 0.5) * hh); ctx.fillStyle = rgb(i % 2 ? bot.col : top.col, 0.85); ctx.beginPath(); ctx.arc(dx, dy, 6, 0, 6.3); ctx.fill(); }
-      } else {
-        ctx.fillStyle = rgb(top.col, 0.6); ctx.fillRect(tx, y0, tw, hh * fTop);
-        ctx.fillStyle = rgb(bot.col, 0.75); ctx.fillRect(tx, y0 + hh * fTop, tw, hh * fBot);
-        if (shaken && res === "partiellement"){ ctx.fillStyle = "rgba(255,255,255,.25)"; ctx.fillRect(tx, y0 + hh * fTop - 8, tw, 16); }
+      var fb = vb.value / 100, fa = 1 - fb, heavyA = la.rho >= lb.rho, bot = heavyA ? la : lb, top = heavyA ? lb : la, fBot = heavyA ? fa : fb, fTop = 1 - fBot;
+      /* mélange m : 0 = couches, 1 = homogène / émulsion */
+      var t = shakeT, shaking = shaken && t < 1.6, m = 0, e = 0, mm = 0;
+      if (shaken){
+        if (res === "miscibles" || res === "même liquide"){ mm = Math.min(1, Math.max(0, (t - 0.2) / 2.6)); m = mm; }
+        else { e = t < 1.6 ? Math.min(1, t / 0.4) : Math.max(res === "partiellement" ? 0.45 : 0, 1 - (t - 1.6) / 6); m = e; }
+      }
+      var tw = 96, tx = 22, ty = 36, th = 300, sh = shaking ? Math.sin(tm * 40) * 4 : 0, y0 = ty + 22, hh = th - 70;
+      C5.bench(c, ty + th + 6);
+      ctx.save(); ctx.translate(sh, 0);
+      /* liquides */
+      ctx.save(); ctx.beginPath(); ctx.moveTo(tx + 2, ty); ctx.lineTo(tx + 2, ty + th - tw / 2); ctx.arc(tx + tw / 2, ty + th - tw / 2, tw / 2 - 2, Math.PI, 0, true); ctx.lineTo(tx + tw - 2, ty); ctx.clip();
+      var mixc = [la.col[0] * fa + lb.col[0] * fb, la.col[1] * fa + lb.col[1] * fb, la.col[2] * fa + lb.col[2] * fb], yb = y0 + hh * fTop, yEnd = ty + th;
+      var cTop = lerpc(top.col, mixc, mm), cBot = lerpc(bot.col, mixc, mm);
+      ctx.fillStyle = rgb(cTop, 0.55 + 0.1 * mm); ctx.fillRect(tx, y0, tw, yb - y0 + 1);
+      ctx.fillStyle = rgb(cBot, 0.72); ctx.fillRect(tx, yb, tw, yEnd - yb);
+      if (e > 0.02){   /* émulsion : gouttelettes des deux liquides, qui regagnent leur couche */
+        for (i = 0; i < N; i++){
+          var d = dots[i], isTop = d.u < fTop, ly = isTop ? y0 + 4 + d.v * (yb - y0 - 8) : yb + 4 + d.v * (yEnd - yb - 30);
+          var layered = isTop ? ly : ly, free = y0 + d.w * (yEnd - y0 - 30), py = layered + (free - layered) * e + Math.sin(tm * 3 + d.x * 9) * 3 * e, px = tx + 8 + d.y * (tw - 16) + Math.cos(tm * 2.6 + d.v * 9) * 4 * e;
+          ctx.fillStyle = rgb(isTop ? top.col : bot.col, 0.95); ctx.beginPath(); ctx.arc(px, py, d.r * (0.6 + 0.4 * e), 0, 6.3); ctx.fill();
+        }
+      }
+      ctx.fillStyle = "rgba(255,255,255,.28)"; ctx.fillRect(tx, y0, tw, 3);
+      if (m < 0.6 && !(res === "miscibles" && shaken && mm > 0.6)){ ctx.fillStyle = "rgba(255,255,255,.4)"; ctx.fillRect(tx, yb - 1, tw, 2); }
+      ctx.restore();
+      /* verre */
+      ctx.strokeStyle = "#51627a"; ctx.lineWidth = 2.6; ctx.lineCap = "round"; ctx.beginPath(); ctx.moveTo(tx, ty); ctx.lineTo(tx, ty + th - tw / 2); ctx.arc(tx + tw / 2, ty + th - tw / 2, tw / 2, Math.PI, 0, true); ctx.lineTo(tx + tw, ty); ctx.stroke();
+      ctx.strokeStyle = "rgba(255,255,255,.75)"; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(tx + 9, ty + 12); ctx.lineTo(tx + 9, ty + th - tw / 2 - 6); ctx.stroke();
+      ctx.restore();
+      var mixed = (res === "miscibles" || res === "même liquide") && shaken && mm > 0.95, layersVis = !mixed && !shaking && !(e > 0.4);
+      if (layersVis){
+        S.draw.text(c, top.n, tx + tw / 2, y0 + (yb - y0) / 2 - 7, {size: 12, color: "#0f1b2d"}); S.draw.text(c, "ρ = " + S.fmt(top.rho, 2), tx + tw / 2, y0 + (yb - y0) / 2 + 8, {size: 11, color: "#33415a", weight: 600});
+        S.draw.text(c, bot.n, tx + tw / 2, yb + (yEnd - 28 - yb) / 2 - 7, {size: 12, color: "#0f1b2d"}); S.draw.text(c, "ρ = " + S.fmt(bot.rho, 2), tx + tw / 2, yb + (yEnd - 28 - yb) / 2 + 8, {size: 11, color: "#33415a", weight: 600});
+      } else if (mixed) S.draw.label(c, "homogène", tx + tw / 2, y0 + hh / 2, {color: pal.green, size: 12});
+      else S.draw.label(c, shaking ? "on agite…" : "émulsion : ça se sépare", tx + tw / 2, y0 + hh / 2, {color: pal.amber, size: 11.5});
+      /* vue moléculaire (zoom) */
+      var zx = tx + tw + 34, zw = c.W - zx - 12, zy = 44, zh = 250;
+      S.draw.panel(c, zx, zy - 10, zw, zh + 20, {title: "Zoom moléculaire", shadow: false});
+      ctx.save(); ctx.beginPath(); ctx.rect(zx + 6, zy + 16, zw - 12, zh - 12); ctx.clip();
+      var mols = 26, fh = Math.max(0.12, 0.2 + 0.1 * 0);
+      for (i = 0; i < mols; i++){
+        var q = dots[i], isT = i / mols < fTop, ly2 = isT ? (zy + 24 + q.v * ((zh - 12) * fTop - 18)) : (zy + 20 + (zh - 12) * fTop + q.v * ((zh - 12) * fBot - 22)),
+            free2 = zy + 26 + q.w * (zh - 44), mz = Math.max(mm, e * 0.9), py2 = ly2 + (free2 - ly2) * mz + Math.sin(tm * 2 + q.x * 8) * 4, px2 = zx + 18 + q.y * (zw - 36) + Math.cos(tm * 1.7 + q.u * 8) * 5;
+        glyph(px2, py2, isT ? top : bot, Math.sin(tm * 1.3 + q.x * 9) * 0.7, 1);
       }
       ctx.restore();
-      ctx.strokeStyle = pal.ink; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.moveTo(tx, ty); ctx.lineTo(tx, ty + th - 14); ctx.arc(tx + tw / 2, ty + th - 14, tw / 2, Math.PI, 0, true); ctx.lineTo(tx + tw, ty); ctx.stroke();
-      var splitView = !(mixed || mixing);
-      if (splitView){
-        S.draw.text(c, top.n + " (" + S.fmt(top.rho, 2) + ")", tx + tw + 12, y0 + hh * fTop / 2, {size: 12, align: "left"});
-        S.draw.text(c, bot.n + " (" + S.fmt(bot.rho, 2) + ")", tx + tw + 12, y0 + hh * fTop + hh * fBot / 2, {size: 12, align: "left"});
-      } else if (mixed) S.draw.text(c, "mélange homogène", tx + tw + 12, c.H / 2, {size: 12, align: "left", color: pal.green});
-      S.draw.text(c, "ρ en g/cm³", 10, 12, {size: 12, align: "left", color: pal.grey});
+      S.draw.legend(c, [[rgb(la.col, 1), la.n + (la.pol ? " (polaire)" : " (apolaire)")], [rgb(lb.col, 1), lb.n + (lb.pol ? " (polaire)" : " (apolaire)")]], zx, zy + zh + 14);
+      S.draw.text(c, "V = polaire · chaîne = apolaire", zx, zy + zh + 64, {size: 11, color: pal.grey, align: "left"});
       ro.set(0, la.pol ? "polaire" : "apolaire"); ro.set(1, lb.pol ? "polaire" : "apolaire");
       var shown = shaken && shakeT >= 2.2 ? res : (shaken ? "en cours…" : "à tester (agite)");
-      ro.set(2, shown); ro.set(3, splitView || res === "non miscibles" ? top.n : "— (homogène)");
-      var msg = res === "même liquide" ? "Tu as choisi deux fois le même liquide." : res === "miscibles" ? "Même nature (" + (la.pol ? "polaire" : "apolaire") + ") : les molécules se mélangent." : res === "partiellement" ? "L'éthanol se dissout un peu dans les deux : mélange partiel, trouble (modèle simplifié)." : "Nature différente : les molécules polaires préfèrent rester entre elles. Le plus dense (" + bot.n + ") est au fond.";
+      ro.set(2, shown); ro.set(3, res === "miscibles" || res === "même liquide" ? (mixed ? "— (homogène)" : top.n + " (au repos)") : top.n);
+      var msg = res === "même liquide" ? "Tu as choisi deux fois le même liquide." : res === "miscibles" ? "Même nature (" + (la.pol ? "polaire" : "apolaire") + ") : les molécules se mélangent." : res === "partiellement" ? "L'éthanol se dissout un peu dans les deux : mélange partiel, trouble (modèle simplifié)." : "Nature différente : les molécules polaires préfèrent rester entre elles. Après l'agitation, les gouttelettes se regroupent et le plus dense (" + bot.n + ") retourne au fond.";
       nt.set(msg, res === "miscibles" ? "ok" : "");
     });
   }
@@ -211,39 +247,57 @@ SFA.sim({
   piege: "L'aiguille d'acier est 8 fois plus dense que l'eau : ce n'est PAS la poussée d'Archimède qui la porte mais la tension superficielle. Le modèle F = 2·γ·L est une borne idéale (angle de contact ignoré) ; une vraie aiguille coule un peu avant. La courbe γ(c) est un modèle simplifié.",
   build: function(k, S){
     var pal = S.draw.palette, G = 9.81, CMC = 8;
-    var c = k.canvas(220), g = k.canvas(170);
+    var c = k.canvas(330), g = k.canvas(170);
     var Ls = k.slider("Longueur de l'aiguille", 1, 6, 0.5, 3, "cm");
     var ms = k.slider("Masse de l'aiguille", 0.02, 0.6, 0.01, 0.3, "g");
     var cs = k.slider("Savon dissous", 0, 12, 0.5, 0, "mmol/L");
+    k.button("Déposer l'aiguille sur l'eau", function(){ nd.y = -90; nd.v = 0; nd.sunk = false; }, true);
     var ro = k.readouts(["Tension superficielle γ", "Force max 2·γ·L", "Poids de l'aiguille", "Verdict"]);
     var nt = k.note("", "");
     function gam(x){ var cc = Math.min(x, CMC); return 72.8 - 35 * (1 - Math.exp(-cc / 2)) / (1 - Math.exp(-CMC / 2)); }
-    var y = 0, v = 0, sunk = false;
-    var lp = k.loop(function(dt){
-      var gm = gam(cs.value) / 1000, Fm = 2 * gm * Ls.value / 100, Wt = ms.value / 1000 * G;
-      if (Wt > Fm){ sunk = true; }
-      else if (Wt < Fm * 0.7){ sunk = false; }
-      if (sunk){ v += 400 * dt; y = Math.min(110, y + v * dt * 0.25); if (y >= 110) v = 0; } else { y = Math.max(0, y - 200 * dt); v = 0; }
+    var nd = {y: 0, v: 0, sunk: false}, geo = {wl: 100, bot: 280}, T = 0;
+    function forces(){ var gm = gam(cs.value); return {gm: gm, Fm: 2 * gm / 1000 * Ls.value / 100, Wt: ms.value / 1000 * G}; }
+    k.loop(function(dt, t){
+      T = t; var f = forces(), floatsNow = f.Wt <= f.Fm;
+      if (nd.y < 0){ nd.v += 900 * dt; nd.y += nd.v * dt; if (nd.y >= 0){ if (floatsNow){ nd.y = 0; nd.v = nd.v * -0.12; } else { nd.sunk = true; } } }
+      else if (nd.sunk){ nd.v += 700 * dt; nd.v = Math.min(nd.v, 160); nd.y = Math.min(geo.bot - geo.wl - 12, nd.y + nd.v * dt); }
+      else { if (!floatsNow){ nd.sunk = true; nd.v = 20; } else { var a = (0 - nd.y) * 80 - nd.v * 7; nd.v += a * dt; nd.y += nd.v * dt; } }
       k.redraw();
-    });
-    lp.play();
+    }).play();
     k.draw(function(){
-      var gm = gam(cs.value), Fm = 2 * gm / 1000 * Ls.value / 100, Wt = ms.value / 1000 * G, floats = Wt <= Fm, ctx = c.ctx; c.clear(); g.clear();
-      var bx = 20, bw = c.W - 40, wl = 70;
-      ctx.fillStyle = "#cfe4f6"; ctx.fillRect(bx, wl, bw, 140); ctx.strokeStyle = pal.ink; ctx.lineWidth = 2.5; ctx.strokeRect(bx, 20, bw, 190);
-      var ncx = c.W / 2, nh = 6, dent = floats ? Math.min(14, 14 * Wt / Fm) : 0, ny = wl - 4 + (floats ? dent * 0.4 : y);
-      if (floats || y < 6){   /* creux de la surface */
-        ctx.strokeStyle = pal.acc; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(bx, wl);
-        ctx.quadraticCurveTo(ncx - 60, wl, ncx - 30, wl + dent); ctx.lineTo(ncx + 30, wl + dent); ctx.quadraticCurveTo(ncx + 60, wl, bx + bw, wl); ctx.stroke();
-      } else { S.draw.line(c, bx, wl, bx + bw, wl, pal.acc, 2); }
-      var nl = Math.min(150, 28 * Ls.value);
-      ctx.fillStyle = "#7a8594"; ctx.fillRect(ncx - nl / 2, ny, nl, nh); ctx.strokeStyle = pal.ink; ctx.lineWidth = 1; ctx.strokeRect(ncx - nl / 2, ny, nl, nh);
-      S.draw.text(c, floats ? "l'aiguille flotte" : "elle coule", ncx, 34, {size: 13, color: floats ? pal.green : pal.red});
+      var f = forces(), gm = f.gm, Fm = f.Fm, Wt = f.Wt, floats = !nd.sunk, ctx = c.ctx; c.clear(); g.clear();
+      var bw = Math.min(330, c.W - 30), bx = (c.W - bw) / 2, by = 34, bh = 270;
+      C5.bench(c, by + bh + 2);
+      var gl = C5.beaker(c, bx, by, bw, bh, "#bde0f6", 0.72, {taper: 0}); geo.wl = gl.top; geo.bot = by + bh;
+      var wl = gl.top, ncx = c.W / 2, nl = Math.min(c.W - 150, 30 * Ls.value + 10), nh = 7, dent = floats ? Math.min(16, 16 * Wt / Math.max(Fm, 1e-9)) : 0, ny = wl - nh + nd.y + (floats && nd.y >= -1 ? dent * 0.6 : 0);
+      /* surface : peau tendue creusée sous l'aiguille */
+      ctx.save(); ctx.strokeStyle = "#2f6fb5"; ctx.lineWidth = 2.4; ctx.beginPath(); ctx.moveTo(bx + 2, wl);
+      if (nd.y > -4 && floats && nd.y < 3){ ctx.quadraticCurveTo(ncx - nl / 2 - 40, wl, ncx - nl / 2, wl + dent); ctx.lineTo(ncx + nl / 2, wl + dent); ctx.quadraticCurveTo(ncx + nl / 2 + 40, wl, bx + bw - 2, wl); }
+      else ctx.lineTo(bx + bw - 2, wl);
+      ctx.stroke(); ctx.restore();
+      /* molécules de savon à la surface (têtard : tête dans l'eau, queue vers l'air) */
+      var nsoap = Math.round(cs.value * 2.5), rr = C5.rng(3);
+      for (var i = 0; i < nsoap; i++){ var sx = bx + 14 + rr() * (bw - 28); if (Math.abs(sx - ncx) < nl / 2 + 4 && nd.y > -4 && nd.y < 3){ continue; } var sy = wl + 4; S.draw.line(c, sx, sy, sx - 2, sy - 11, "#c26a0c", 1.8); S.draw.dot(c, sx, sy + 2, 3.4, pal.red); }
+      /* aiguille */
+      var gn = ctx.createLinearGradient(0, ny, 0, ny + nh); gn.addColorStop(0, "#d7dde6"); gn.addColorStop(1, "#6b7686");
+      ctx.fillStyle = gn; S.draw.rrect(c, ncx - nl / 2, ny, nl, nh, 3); ctx.fill(); ctx.strokeStyle = "#3a4558"; ctx.lineWidth = 1; ctx.stroke();
+      /* forces (diagramme des forces) */
+      var sc = 13, resting = floats && nd.y > -4 && nd.y < 3;
+      if (resting){
+        var up = Math.min(Fm, Fm) * sc * 1000 / 2;   /* mN → px */
+        var upL = Math.max(Fm * 1000 * sc / 2, 3), dnL = Math.max(Wt * 1000 * sc, 3);
+        S.draw.arrow(c, ncx - nl / 2, ny + dent * 0.4, ncx - nl / 2 - 6, ny + dent * 0.4 - upL, pal.green, 3.2); S.draw.arrow(c, ncx + nl / 2, ny + dent * 0.4, ncx + nl / 2 + 6, ny + dent * 0.4 - upL, pal.green, 3.2);
+        S.draw.arrow(c, ncx, ny + nh, ncx, ny + nh + dnL, pal.red, 3.2);
+        S.draw.label(c, "P = " + S.fmt(Wt * 1000, 1) + " mN", ncx + 10, ny + nh + dnL + 14, {color: pal.red, size: 12, align: "left"});
+        S.draw.label(c, "2·γ·L = " + S.fmt(Fm * 1000, 1) + " mN", Math.min(c.W - 70, ncx + nl / 2 + 12), ny - upL - 8, {color: pal.green, size: 12});
+      }
+      S.draw.label(c, floats ? (resting ? "l'aiguille flotte" : "elle tombe…") : "elle a coulé : dépose-la à nouveau", c.W / 2, 16, {color: floats ? pal.green : pal.red, size: 13});
       var ax = S.draw.axes(g, {x0: 0, x1: 12, y0: 0, y1: 80, xl: "savon (mmol/L)", yl: "γ (mN/m)", stepX: 2, stepY: 20, l: 50});
       S.draw.fn(g, ax, gam, pal.acc, 2.6); S.draw.line(g, ax.X(CMC), ax.T, ax.X(CMC), ax.B, pal.grey, 1, [4, 4]); S.draw.text(g, "CMC ≈ 8", ax.X(CMC) + 4, ax.T + 14, {size: 12, color: pal.grey, align: "left"});
       S.draw.dot(g, ax.X(cs.value), ax.Y(gm), 7, pal.red);
-      ro.set(0, S.fmt(gm, 1) + " mN/m"); ro.set(1, S.fmt(Fm * 1000, 2) + " mN"); ro.set(2, S.fmt(Wt * 1000, 2) + " mN"); ro.set(3, floats ? "flotte (marge " + S.fmt((Fm / Wt - 1) * 100, 0) + " %)" : "coule");
-      nt.set(floats ? "Il faut que le poids reste sous 2·γ·L. Ajoute du savon pour faire baisser γ." : "Le poids dépasse la force de tension superficielle maximale : l'aiguille perce la surface. Retire du savon pour qu'elle remonte (avec une aiguille plus légère).", floats ? "ok" : "warn");
+      var ok = Wt <= Fm;
+      ro.set(0, S.fmt(gm, 1) + " mN/m"); ro.set(1, S.fmt(Fm * 1000, 2) + " mN"); ro.set(2, S.fmt(Wt * 1000, 2) + " mN"); ro.set(3, ok ? "peut flotter (marge " + S.fmt((Fm / Wt - 1) * 100, 0) + " %)" : "ne peut pas flotter");
+      nt.set(ok ? "Il faut que le poids reste sous 2·γ·L. Ajoute du savon avec le curseur : γ baisse, l'aiguille finit par percer la surface." : "Le poids dépasse la force de tension superficielle maximale : l'aiguille perce la surface. Une fois coulée, elle ne remonte pas : dépose-la à nouveau après avoir allégé l'aiguille ou retiré du savon.", ok ? "ok" : "warn");
     });
   }
 });

@@ -40,3 +40,8 @@ Nouvelle structure (kit/) : chaque cours = une page `index.html` → chapitres �
 | 11:38 | V1 physique 3e inspecté : ch. 6-10 réécrits (20 sims). VAGUE 1 TERMINÉE. À la fin : vignettes avec kit/thumbs_fit.py (garde toute la scène). V2 lancée | fait |
 | 14:48 | V2 lancée à ~12:50 puis arrêtée (« par l'utilisateur ») ; retouches partielles dans 4 fichiers, 938 pages 0 échec. Reprise 14:45 reçue : EN ATTENTE de l'accord d'Enzo avant de relancer V2 | en attente |
 | 14:59 | Enzo demande de lancer à 19 h : agents V2 arrêtés, reprise programmée à 19 h 00 (celle de 19 h 45 supprimée) | en attente |
+| 19:01 | Reprise 19 h : V2 lancée (physique 5e, 6e, chimie 3e-6e) | en cours |
+| 19:12 | V2 chimie 4e : déjà au niveau (passes précédentes), 0 erreur, vignettes refaites ; 4 sims à ~3 notées (quiz, balance, souffle, flacons) | fait |
+| 19:15 | V2 physique 5e : 4 refaites (ascenseur, chariot, accélérateur, deux mailles), 0 erreur ; à reprendre : c01-cables, c01-somme, c02-nappe, c08-charge-essai, c09-rc | fait |
+| 19:28 | V2 chimie 3e : 14 refaites + 26 retouchées, 0 erreur. À CORRIGER (moteur) : à 390 px le bandeau fixe recouvre le haut du canvas sur certaines pages de simulation | fait |
+| 19:42 | Enzo : « fais le maximum jusqu'à 19 h 50 » → V3 + V4 lancées en même temps que la fin de V2 (11 inspecteurs). Sauvegarde + aperçu à 19 h 45 | en cours |

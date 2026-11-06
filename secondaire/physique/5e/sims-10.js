@@ -7,7 +7,7 @@ SFA.sim({
   aRetenir: "Nœud : I₃ = I₁ + I₂ (ce qui entre = ce qui sort). Mailles (sens de parcours choisi) : E₁ − R₁·I₁ − R₃·I₃ = 0 et E₂ − R₂·I₂ − R₃·I₃ = 0. Un courant trouvé négatif signifie simplement que son sens réel est opposé au sens choisi (le générateur est alors récepteur).",
   piege: "La pile n'impose pas toujours son courant : il dépend du reste du circuit. Et oublier les signes dans la loi des mailles est l'erreur la plus fréquente : un élément parcouru dans le sens du courant (R·I) ou contre la f.é.m. compte négativement.",
   build: function(k, S){
-    var c = k.canvas(260);
+    var c = k.canvas(290);
     var e1 = k.slider("f.é.m. E₁ (à gauche)", 0, 12, 0.5, 9, "V");
     var e2 = k.slider("f.é.m. E₂ (à droite)", 0, 12, 0.1, 6, "V");
     var r1 = k.slider("R₁", 1, 100, 1, 10, "Ω"), r2 = k.slider("R₂", 1, 100, 1, 20, "Ω"), r3 = k.slider("R₃ (au milieu)", 1, 100, 1, 30, "Ω");
@@ -18,19 +18,41 @@ SFA.sim({
       var I1 = (e1.value * (r2.value + r3.value) - r3.value * e2.value) / D, I2 = (e2.value * (r1.value + r3.value) - r3.value * e1.value) / D;
       return {I1: I1, I2: I2, I3: I1 + I2, D: D};
     }
+    var flow = 0, G = {};
+    var lp = k.loop(function(dt){ flow += dt; k.redraw(); }); lp.play();
+    /* manipulation directe : glisser verticalement une pile pour changer sa f.é.m. */
+    P5x.drag(c, k, function(){ if (!G.L) return null; return [
+      {x: G.L, y: G.by, r: 34, set: function(px, py){ e1.set(Math.round(P5.clamp((G.by + 60 - py) / 120 * 12, 0, 12) * 2) / 2); }},
+      {x: G.R, y: G.by, r: 34, set: function(px, py){ e2.set(Math.round(P5.clamp((G.by + 60 - py) / 120 * 12, 0, 12) * 10) / 10); }}]; });
     k.draw(function(){
       c.clear(); var pal = S.draw.palette, ctx = c.ctx, s = solve();
-      var L = 60, M = c.W / 2, Rr = c.W - 60, T = 40, B = c.H - 40;
-      ctx.strokeStyle = "#566176"; ctx.lineWidth = 2.5;
-      ctx.beginPath(); ctx.moveTo(L, T); ctx.lineTo(Rr, T); ctx.moveTo(L, B); ctx.lineTo(Rr, B); ctx.moveTo(L, T); ctx.lineTo(L, B); ctx.moveTo(M, T); ctx.lineTo(M, B); ctx.moveTo(Rr, T); ctx.lineTo(Rr, B); ctx.stroke();
-      function res(x, y, lab){ ctx.fillStyle = "#fff"; ctx.strokeStyle = "#566176"; ctx.lineWidth = 2.5; ctx.fillRect(x - 10, y - 20, 20, 40); ctx.strokeRect(x - 10, y - 20, 20, 40); S.draw.text(c, lab, x + (lab === "R₂" ? -26 : 26), y, {size: 13}); }
-      function bat(x, y, lab, v, left){ ctx.fillStyle = "#fff"; ctx.fillRect(x - 14, y - 8, 28, 16); S.draw.line(c, x - 14, y - 4, x + 14, y - 4, pal.red, 4); S.draw.line(c, x - 7, y + 5, x + 7, y + 5, pal.acc, 4); S.draw.text(c, lab + " = " + S.fmt(v, 1) + " V", left ? x - 22 : x + 22, y - 4, {size: 12, align: left ? "right" : "left"}); S.draw.text(c, "+", left ? x + 22 : x - 22, y - 6, {size: 13, color: pal.red}); }
-      bat(L, T + 55, "E₁", e1.value); res(L, B - 55, "R₁");
-      res(M, (T + B) / 2, "R₃");
-      bat(Rr, T + 55, "E₂", e2.value, true); res(Rr, B - 55, "R₂");
-      function cur(x, y, I, lab, up){ var d = (I >= 0 ? 1 : -1) * (up ? -1 : 1), L2 = 14 + Math.min(Math.abs(I) * 40, 30); P5.vec(c, x, y - d * L2 / 2, x, y + d * L2 / 2, pal.green, lab, {w: 2.6, dx: -14, dy: 0}); }
-      cur(L, (T + B) / 2, s.I1, "I₁", true); cur(Rr, (T + B) / 2, s.I2, "I₂", true); cur(M, T + 30, s.I3, "I₃", false);
-      S.draw.text(c, "sens positif : I₁ et I₂ montent, I₃ descend", c.W / 2, c.H - 10, {size: 12, color: pal.grey});
+      P5x.sky(c, "#f4f8fc", "#ffffff");
+      var L = 104, M = c.W / 2, Rr = c.W - 104, T = 46, B = c.H - 46, mid = (T + B) / 2;
+      G.L = L; G.R = Rr; G.by = T + 62;
+      /* un fil : de (x1,y1) à (x2,y2) ; I > 0 = sens du tracé ; points mobiles */
+      function wire(x1, y1, x2, y2, I){
+        var col = Math.abs(I) < 0.002 ? "#aab4c2" : pal.green; S.draw.line(c, x1, y1, x2, y2, col, 3);
+        if (Math.abs(I) < 0.002) return;
+        var len = Math.hypot(x2 - x1, y2 - y1), n = Math.max(1, Math.floor(len / 26)), sp = Math.min(40, 8 + Math.abs(I) * 90), d = I > 0 ? 1 : -1;
+        for (var q = 0; q < n; q++){ var t = (((q / n + d * flow * sp / len / 1) % 1) + 1) % 1; S.draw.dot(c, x1 + (x2 - x1) * t, y1 + (y2 - y1) * t, 3.2, "#fff"); S.draw.dot(c, x1 + (x2 - x1) * t, y1 + (y2 - y1) * t, 2, pal.green); }
+      }
+      /* branche gauche (I1 monte), droite (I2 monte), milieu (I3 descend) */
+      wire(L, B, L, T, s.I1); wire(Rr, B, Rr, T, s.I2); wire(M, T, M, B, s.I3);
+      /* fils du haut (de gauche à droite via M : I1 pousse vers M ; I2 vers M) */
+      wire(L, T, M, T, s.I1); wire(Rr, T, M, T, s.I2); wire(M, B, L, B, s.I1); wire(M, B, Rr, B, s.I2);
+      function res(x, y, lab, v){ ctx.fillStyle = "#fff"; ctx.fillRect(x - 12, y - 24, 24, 48); P5x.coil(c, x, y - 24, x, y + 24, 5, 9, "#6b4a2a", 3);
+        S.draw.label(c, (c.W < 440 ? "" : lab + " = ") + S.fmt(v, 0) + " Ω", x + (x > M + 5 ? 20 : x < M - 5 ? -20 : 20), y, {size: 12, color: "#6b4a2a", align: x < M - 5 ? "right" : "left"}); }
+      function bat(x, y, lab, v){ ctx.fillStyle = "#fff"; ctx.fillRect(x - 18, y - 10, 36, 20);
+        S.draw.line(c, x - 14, y - 4, x + 14, y - 4, pal.red, 5); S.draw.line(c, x - 7, y + 6, x + 7, y + 6, pal.acc, 5);
+        S.draw.text(c, "+", x + 24, y - 6, {size: 14, color: pal.red}); S.draw.text(c, "−", x + 24, y + 8, {size: 14, color: pal.acc});
+        P5x.handle(c, x, y, pal.red, 6, false);
+        S.draw.label(c, (c.W < 440 ? "" : lab + " = ") + S.fmt(v, 1) + " V", x + (x < M ? -30 : 30), y, {size: 12, color: pal.red, align: x < M ? "right" : "left"}); }
+      bat(L, G.by, "E₁", e1.value); res(L, B - 62, "R₁", r1.value);
+      res(M, mid, "R₃", r3.value);
+      bat(Rr, G.by, "E₂", e2.value); res(Rr, B - 62, "R₂", r2.value);
+      function cur(x, y, I, lab, dirUp){ var d = (I >= 0 ? 1 : -1) * (dirUp ? -1 : 1), L2 = 16 + Math.min(Math.abs(I) * 40, 30); P5.vec(c, x + 38 * (x > M + 5 ? -1 : 1) * 0 + (x < M - 5 ? 36 : x > M + 5 ? -36 : 36), y - d * L2 / 2, x + (x < M - 5 ? 36 : x > M + 5 ? -36 : 36), y + d * L2 / 2, pal.violet, lab, {w: 2.6, dx: 12, dy: 0}); }
+      cur(L, mid + 20, s.I1, "I₁", true); cur(Rr, mid + 20, s.I2, "I₂", true); cur(M, T + 40, s.I3, "I₃", false);
+      P5x.hint(c, "Glisse une pile (haut/bas) : change sa f.é.m.", {x: 12, y: 14});
       ro.set(0, S.fmt(s.I1, 3) + " A"); ro.set(1, S.fmt(s.I2, 3) + " A"); ro.set(2, S.fmt(s.I3, 3) + " A"); ro.set(3, S.fmt(r3.value * s.I3, 2) + " V");
       var m1 = e1.value - r1.value * s.I1 - r3.value * s.I3, m2 = e2.value - r2.value * s.I2 - r3.value * s.I3;
       eq.set("Nœud : " + S.fmt(s.I1, 3) + " + " + S.fmt(s.I2, 3) + " = " + S.fmt(s.I3, 3) + " A.<br>Maille 1 : " + S.fmt(e1.value, 1) + " − " + S.fmt(r1.value, 0) + " × " + S.fmt(s.I1, 3) + " − " + S.fmt(r3.value, 0) + " × " + S.fmt(s.I3, 3) + " = " + S.fmt(Math.abs(m1) < 1e-9 ? 0 : m1, 3) + " V ✓<br>Maille 2 : " + S.fmt(e2.value, 1) + " − " + S.fmt(r2.value, 0) + " × " + S.fmt(s.I2, 3) + " − " + S.fmt(r3.value, 0) + " × " + S.fmt(s.I3, 3) + " = " + S.fmt(Math.abs(m2) < 1e-9 ? 0 : m2, 3) + " V ✓", "");

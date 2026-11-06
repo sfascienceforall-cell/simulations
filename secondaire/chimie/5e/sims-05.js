@@ -33,7 +33,7 @@ SFA.sim({
         var d = Q.value * 1000 / (m.value * MAT[q].c), lim = MAT[q].lim - T0.value, over = d > lim, y = 30 + i * rowH + rowH / 2, w = Math.min(d, lim) / mx * W;
         S.draw.text(c, MAT[q].n.replace(" (liquide)", ""), 6, y, {size: 12, align: "left", color: q === mat.value ? pal.ink : pal.grey, weight: q === mat.value ? 800 : 600});
         c.ctx.fillStyle = over ? pal.red : (q === mat.value ? pal.acc : "#a9b8d8"); c.ctx.fillRect(x0, y - rowH * 0.3, Math.max(1, w), rowH * 0.6);
-        S.draw.text(c, over ? "limite (" + MAT[q].lim + " °C)" : S.fmt(d, 1), x0 + Math.max(1, w) + 4, y, {size: 12, align: "left", color: over ? pal.red : pal.ink});
+        if (over) S.draw.text(c, "limite (" + MAT[q].lim + " °C)", x0 + Math.max(1, w) - 5, y, {size: 11.5, align: "right", color: "#ffffff"}); else S.draw.text(c, S.fmt(d, 1), x0 + Math.max(1, w) + 4, y, {size: 12, align: "left", color: pal.ink});
       });
       var over2 = Tf > mt.lim;
       ro.set(0, S.fmt(mc, 1) + " J/K"); ro.set(1, S.fmt(dT, over2 ? 0 : 1) + " K" + (over2 ? " (non valide)" : "")); ro.set(2, over2 ? "> " + mt.lim + " °C" : S.fmt(Tf, 1) + " °C");

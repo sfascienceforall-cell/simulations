@@ -22,6 +22,16 @@ CH.glass = function(c,x,y,w,h,lvl,col,o){ o=o||{}; var g=c.ctx, tw=o.taper||0; g
   g.beginPath(); g.moveTo(x+5+tw,y+8); g.lineTo(x+5+tw,y+h*.7); g.strokeStyle="rgba(255,255,255,.7)"; g.lineWidth=3; g.stroke();
   if(o.ticks){ for(var i=1;i<=o.ticks;i++){ var ty=y+h-h*i/(o.ticks+1)*.92; D.line(c,x+w-(i%2?10:16),ty,x+w,ty,"#8a95a3",1.2); } }
   g.restore(); };
+/* erlenmeyer : x,y = coin haut-gauche de l'encombrement ; lvl = fraction de la hauteur totale remplie de liquide */
+CH.flask = function(c,x,y,w,h,lvl,col,o){ o=o||{}; var g=c.ctx, nw=w*.26, nx=x+(w-nw)/2, sy=y+h*.42;
+  function path(){ g.beginPath(); g.moveTo(nx-3,y); g.lineTo(nx,y+4); g.lineTo(nx,sy); g.lineTo(x+4,y+h-8); g.quadraticCurveTo(x,y+h,x+12,y+h); g.lineTo(x+w-12,y+h); g.quadraticCurveTo(x+w,y+h,x+w-4,y+h-8); g.lineTo(nx+nw,sy); g.lineTo(nx+nw,y+4); g.lineTo(nx+nw+3,y); }
+  g.save();
+  if(lvl>0){ g.save(); path(); g.closePath(); g.clip(); var ly=y+h*(1-lvl); var gr=g.createLinearGradient(0,ly,0,y+h); gr.addColorStop(0,col); gr.addColorStop(1,CH.lite(col,.4)); g.fillStyle=gr; g.fillRect(x-2,ly,w+4,h); g.fillStyle="rgba(255,255,255,.4)"; g.fillRect(x-2,ly,w+4,2); g.restore(); }
+  path(); g.strokeStyle="#6b7a90"; g.lineWidth=2.4; g.lineJoin="round"; g.lineCap="round"; g.stroke();
+  g.beginPath(); g.moveTo(x+w*.2,y+h*.7); g.lineTo(x+w*.3,y+h*.52); g.strokeStyle="rgba(255,255,255,.75)"; g.lineWidth=3; g.stroke(); g.restore(); };
+/* balance à plateau avec afficheur : x,y = coin haut-gauche ; renvoie la hauteur du plateau (y du dessus) */
+CH.scale = function(c,x,y,w,txt,col){ var g=c.ctx; CH.rr(c,x,y,w,38,"#d3dae4","#6b7a90",2,10); D.line(c,x+w*.08,y,x+w*.92,y,"#8a97a9",5);
+  CH.rr(c,x+w*.2,y+8,w*.6,22,"#16212f",null,0,5); D.text(c,txt,x+w/2,y+19.5,{size:14,color:col||"#7cf0a5",mono:true}); return y; };
 /* pastille texte avec titre de scène */
 CH.title = function(c,s,col){ D.label(c,s,10,14,{align:"left",color:col||P.mat,size:12}); };
 /* légende sous la scène */
@@ -304,7 +314,7 @@ SFA.sim({
       var ux=W*.3, uy=ny, dx=cx1-ux, dy=cy1-uy; g.save(); g.translate(ux,uy); g.rotate(Math.atan2(dy,dx)); var L=Math.hypot(dx,dy);
       CH.rr(c,0,-9,L,18,"rgba(120,190,240,.45)","#6b7a90",2,6); D.line(c,0,0,L,0,"#6b7a90",2.4);
       for(var w=0;w<6;w++){ var wx=((tt*40+w*L/6)%L); if(run) D.arrow(c,wx,5.5,wx+8,5.5,"rgba(255,255,255,.9)",1.4); }
-      g.restore(); D.text(c,"condenseur (eau froide)",(ux+cx1)/2-4,(uy+cy1)/2-22,{size:11,color:"#4b586a",weight:700});
+      g.restore(); D.label(c,"condenseur (eau froide)",(ux+cx1)/2+30,(uy+cy1)/2-34,{size:10.5,color:"#4b586a"});
       if(run){ for(var v=0;v<L*.9;v+=L*.2){ var pv=((tt*0.5+v/L)%1); } }
       // tubes à essai
       var tx0=W*.34, avail=W-tx0-8, tw=Math.min(40,avail/5-6), gap=(avail-5*tw)/4, tyy=H*.5, th2=H*.36, ti=Math.min(4,Math.floor(st.col/20));

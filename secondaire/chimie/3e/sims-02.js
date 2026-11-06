@@ -28,7 +28,7 @@ build:function(k,S){
     var N=48, ps=[], i, R=CH.rng(7), SP=18, RD=8;
     for(i=0;i<N;i++){ ps.push({x:0,y:0,vx:0,vy:0,ph:R()*6.28,gx:i%8,gy:Math.floor(i/8)}); }
     var topB=0, last="", TMIN=-250, TMAX=400, tpix=null;
-    function getBox(){ var w=Math.max(170,Math.min(c.W-96,320)); return {x:12,y:30,w:w,h:c.H-48}; }
+    function getBox(){ var w=Math.max(160,Math.min(c.W-136,320)); return {x:12,y:30,w:w,h:c.H-48}; }
     function state(){ var s=SUBS[sb.value], t=tp.value; return t<s.tm?"s":(t<s.tb?"l":"g"); }
     function reinit(box,mode){ ps.forEach(function(p){ if(mode==="s"){ p.x=box.x+box.w/2+(p.gx-3.5)*SP; p.y=box.y+box.h-16-(5-p.gy)*SP; } else { p.x=box.x+12+R()*(box.w-24); p.y=box.y+box.h*0.5+R()*box.h*0.45; } var a=R()*6.28; p.vx=Math.cos(a); p.vy=Math.sin(a); }); }
     var lp = k.loop(function(dt,tt){
@@ -55,14 +55,14 @@ build:function(k,S){
       ps.forEach(function(p){ CH.ball(c,p.x||box.x+30,p.y||box.y+30,RD,col,"",{lw:1}); });
       if(s==="g"){ var spd=Math.min(14,Math.sqrt(t+273.15)*0.55); for(var q=0;q<8;q++){ var p=ps[q*5]; D.arrow(c,p.x,p.y,p.x+p.vx*spd,p.y+p.vy*spd,"rgba(15,27,45,.5)",1.3); } }
       // thermomètre : zones d'état, curseur déplaçable
-      var tx=box.x+box.w+44; tpix=tx; var tw=16, y0=Ty(box,TMAX), y1=Ty(box,TMIN), ym=Ty(box,Math.max(TMIN,Math.min(TMAX,sub.tm))), yb=Ty(box,Math.max(TMIN,Math.min(TMAX,sub.tb)));
+      var tx=box.x+box.w+30; tpix=tx; var tw=16, y0=Ty(box,TMAX), y1=Ty(box,TMIN), ym=Ty(box,Math.max(TMIN,Math.min(TMAX,sub.tm))), yb=Ty(box,Math.max(TMIN,Math.min(TMAX,sub.tb)));
       CH.rr(c,tx-tw/2,y0,tw,y1-y0,"#eef2f7","#8996a8",1.6,8);
       g.save(); g.beginPath(); g.rect(tx-tw/2+2,y0+1,tw-4,y1-y0-2); g.clip();
       g.fillStyle=D.tint(P.red,.25); g.fillRect(tx-tw/2,y0,tw,yb-y0); g.fillStyle=D.tint(P.teal,.28); g.fillRect(tx-tw/2,yb,tw,ym-yb); g.fillStyle=D.tint(P.acc,.28); g.fillRect(tx-tw/2,ym,tw,y1-ym);
       g.fillStyle=P.red; g.fillRect(tx-2.5,Ty(box,t),5,y1-Ty(box,t)); g.restore();
       CH.circ(c,tx,Ty(box,t),8,"#fff",col,3);
-      [[sub.tm,"fusion"],[sub.tb,"ébullition"]].forEach(function(m){ if(m[0]>=TMIN&&m[0]<=TMAX){ var yy=Ty(box,m[0]); D.line(c,tx-tw/2-6,yy,tx+tw/2+6,yy,P.ink,1.4); D.text(c,m[1]+" "+m[0]+" °C",tx-tw/2-9,yy+(m[1]==="fusion"?9:-9),{size:10.5,color:"#4b586a",align:"right",weight:700}); } });
-      D.text(c,F(t,0)+" °C",tx,y0-10,{size:12.5,color:col});
+      [[sub.tm,"fusion"],[sub.tb,"ébullition"]].forEach(function(m){ if(m[0]>=TMIN&&m[0]<=TMAX){ var yy=Ty(box,m[0]); D.line(c,tx-tw/2-6,yy,tx+tw/2+6,yy,P.ink,1.4); D.label(c,m[1]+" "+m[0]+" °C",tx+tw/2+9,yy+(m[1]==="fusion"?8:-8),{size:10,color:"#4b586a",align:"left"}); } });
+      D.label(c,F(t,0)+" °C",tx,y0-12,{size:12,color:col});
       D.text(c,"glisse",tx,y1+9,{size:10.5,color:P.grey});
       var edge=(Math.abs(t-sub.tm)<0.5)?" (fusion)":(Math.abs(t-sub.tb)<0.5?" (ébullition)":"");
       ro.set(0,name+edge); ro.set(1,F(t+273.15,0)+" K"); ro.set(2,F(Math.sqrt((t+273.15)/293.15)*100,0)+" %"); ro.set(3,"du vide");
@@ -157,36 +157,61 @@ SFA.sim({
   id:"c3-c02-atome", ch:"c02", tag:"Classique",
   titre:"Constructeur d'atomes et d'ions",
   resume:"Ajoute des protons, des neutrons et des électrons : l'élément, la charge et la stabilité se mettent à jour.",
-  but:"Règle le nombre de protons, de neutrons et d'électrons. Regarde quel élément tu obtiens, sa charge, et réalise les défis.",
+  but:"Règle le nombre de protons, de neutrons et d'électrons (curseurs ou boutons sur le dessin). Regarde quel élément tu obtiens, sa charge, et réalise les défis.",
   aRetenir:"Le nombre de protons Z définit l'élément. Le nombre de masse est A = Z + N. Un atome est neutre quand e⁻ = Z. Si e⁻ ≠ Z, on a un ion : changer le nombre d'électrons ne change jamais l'élément.",
   piege:"Pour fabriquer un ion, on ajoute ou on retire des électrons, jamais des protons (ce serait un autre élément). Le « noyau stable connu » concerne les isotopes naturels des 20 premiers éléments.",
   build:function(k,S){
-    var c = k.canvas(340);
+    var c = k.canvas(400);
     var p = k.slider("Protons (Z)", 1, 20, 1, 6, "");
     var n = k.slider("Neutrons (N)", 0, 24, 1, 6, "");
     var e = k.slider("Électrons", 0, 20, 1, 6, "");
-    var ro = k.readouts(["Élément","Noyau","Particule","Charge","Nombre de masse A"]);
+    var ro = k.readouts(["Élément","Noyau","Charge","Nombre de masse A"]);
     var nt = k.note("","");
     var di = 0, dn = k.note("<b>Défi :</b> "+DEFIS[0].t,"warn");
     k.button("Défi suivant", function(){ di=(di+1)%DEFIS.length; }, true);
+    var chips = [], won = 0;
+    var lp = k.loop(function(){ k.redraw(); });
+    c.pointer(function(type,pt){ if(type!=="down") return; chips.forEach(function(h){ if(CH.hit(h,pt)){ var s=h.s; s.set(s.value+h.d); k.redraw(); } }); });
     k.draw(function(){
-      c.clear(); var W=c.W,H=c.H, cx=W/2, cy=H/2, R=Math.min(W,H)/2-8, Z=p.value, N=n.value, E=e.value;
+      c.clear(); var W=c.W,H=c.H,g=c.ctx, Z=p.value, N=n.value, E=e.value, small=W<420;
+      CH.bg(c);
+      var cx=W/2, cy=H/2-18, R=Math.min(W,H-96)/2-6, t=Date.now()/1000;
       var shells=[2,8,8,2], rem=E, ring=[];
       shells.forEach(function(cap){ var m=Math.min(cap,rem); ring.push(m); rem-=m; });
-      [0.28,0.5,0.72,0.93].forEach(function(f,i){ if(ring[i]>0||i===0) { c.ctx.save(); c.ctx.strokeStyle="#cfd6e0"; c.ctx.setLineDash([3,4]); c.ctx.beginPath(); c.ctx.arc(cx,cy,R*f,0,6.28); c.ctx.stroke(); c.ctx.restore(); } });
-      var tot=Z+N, ra=Math.max(2.6,Math.min(5,26/Math.sqrt(Math.max(tot,1))*1.05));
-      for(var i=0;i<tot;i++){ var r=ra*1.75*Math.sqrt(i+0.5), a=i*2.39996; circ(c,cx+r*Math.cos(a),cy+r*Math.sin(a),ra,i<Z?P.red:"#8e98a6","#fff",0.8); }
-      ring.forEach(function(m,j){ for(var q=0;q<m;q++){ var a=-1.57+q*6.2832/m+j*0.4; circ(c,cx+R*[0.28,0.5,0.72,0.93][j]*Math.cos(a),cy+R*[0.28,0.5,0.72,0.93][j]*Math.sin(a),5,P.acc,"#fff",1); } });
-      var el=EL[Z], A=Z+N, q=Z-E;
-      var stable=STAB[Z].indexOf(A)>=0;
-      var qs = q===0?"":("<sup>"+(Math.abs(q)===1?"":Math.abs(q))+(q>0?"+":"−")+"</sup>");
-      ro.set(0,el[1]+" ("+el[0]+")"); ro.set(1,"<sup>"+A+"</sup><sub>"+Z+"</sub>"+el[0]); ro.set(2,el[0]+qs+(q===0?" (atome)":q>0?" (cation)":" (anion)"));
-      ro.set(3,q===0?"0 (neutre)":(q>0?"+"+q:"−"+Math.abs(q))); ro.set(4,String(A));
-      var outer = ring[3]>0?ring[3]:(ring[2]>0?ring[2]:(ring[1]>0?ring[1]:ring[0]));
+      var rad=[0.3,0.52,0.74,0.95].map(function(f){ return R*f; });
+      ring.forEach(function(m,i){ if(m>0||i===0){ g.save(); g.setLineDash([3,5]); CH.circ(c,cx,cy,rad[i],null,"#b8c3d3",1.3); g.restore(); } });
+      var tot=Z+N, ra=Math.max(3,Math.min(6.4,34/Math.sqrt(Math.max(tot,1))));
+      D.glow(c,cx,cy,ra*7,P.red,.22);
+      for(var i=0;i<tot;i++){ var r=ra*1.9*Math.sqrt(i+0.5)*0.88, a=i*2.39996; var isP=((i*7)%tot)<Z; CH.ball(c,cx+r*Math.cos(a),cy+r*Math.sin(a),ra,isP?P.red:"#8e98a6","",{lw:.6}); }
+      ring.forEach(function(m,j){ for(var q=0;q<m;q++){ var a=-1.57+q*6.2832/m+j*0.5+t*(0.5-0.1*j); CH.ball(c,cx+rad[j]*Math.cos(a),cy+rad[j]*Math.sin(a),5.6,P.acc,"",{lw:1}); } });
+      var el=EL[Z], A=Z+N, q=Z-E, stable=STAB[Z].indexOf(A)>=0;
+      var qs=q===0?"":(Math.abs(q)===1?"":Math.abs(q))+(q>0?"+":"−");
+      /* carte d'identité */
+      var bx=8, by=8, bw=small?92:112, bh=small?72:84;
+      D.panel(c,bx,by,bw,bh,{shadow:false});
+      D.text(c,el[0],bx+bw/2+6,by+bh/2+4,{size:small?36:44,color:P.mat,math:true,weight:700});
+      D.text(c,A,bx+14,by+16,{size:13,color:P.grey}); D.text(c,Z,bx+14,by+bh-14,{size:13,color:P.red});
+      if(qs) D.text(c,qs,bx+bw-12,by+16,{size:13,color:q>0?P.red:P.acc});
+      D.text(c,el[1],bx+bw/2,by+bh+10,{size:12,color:"#4b586a"});
+      /* légende */
+      D.legend(c,[[P.red,"proton (+)"],[ "#8e98a6","neutron (0)"],[P.acc,"électron (−)"]],W-8,8,{align:"right"});
+      var conf=ring.filter(function(m){return m>0;}).join(" · ")||"0";
+      D.label(c,"couches : "+conf,W-8,small?86:84,{align:"right",size:11,color:P.mat});
+      var tag=q===0?"atome neutre":(q>0?"cation":"anion");
+      D.label(c,tag+(stable?" · noyau stable":" · noyau instable"),cx,H-74,{size:11.5,color:q===0?P.green:P.amber});
+      /* boutons sur le dessin */
+      chips=[]; var items=[["p",p,P.red],["n",n,"#6b7686"],["e⁻",e,P.acc]], cw=(W-24)/3;
+      items.forEach(function(it,i){ var x0=8+i*(cw+4)-0, w2=cw-2;
+        D.text(c,it[0]+" = "+it[1].value,x0+w2/2,H-52,{size:12,color:it[2]});
+        [-1,1].forEach(function(d,j){ var rx=x0+(j?w2/2+3:0), rw=w2/2-3; CH.rr(c,rx,H-40,rw,32,"#fff",it[2],1.6,10); D.text(c,d<0?"−":"+",rx+rw/2,H-24,{size:18,color:it[2]}); chips.push({x:rx,y:H-40,w:rw,h:32,s:it[1],d:d}); });
+      });
+      ro.set(0,el[1]+" ("+el[0]+")"); ro.set(1,"<sup>"+A+"</sup><sub>"+Z+"</sub>"+el[0]+(qs?"<sup>"+qs+"</sup>":"")); ro.set(2,q===0?"0 (neutre)":(q>0?"+"+q:"−"+Math.abs(q))); ro.set(3,String(A));
+      var outer=ring[3]>0?ring[3]:(ring[2]>0?ring[2]:(ring[1]>0?ring[1]:ring[0]));
       nt.set((stable?"Ce noyau existe naturellement et est <b>stable</b>. ":"Ce noyau est <b>instable (radioactif)</b> ou n'existe pas dans la nature. ")+"Couche externe : "+outer+" électron"+(outer>1?"s":"")+". "+(q!==0?"Ce n'est pas un atome neutre : c'est un ion (les protons n'ont pas bougé).":"Atome neutre : autant de charges + que de charges −."), stable?"ok":"warn");
       var ok=DEFIS[di].f(Z,N,E);
       dn.set("<b>Défi :</b> "+DEFIS[di].t+(ok?" ✓ Réussi ! Passe au défi suivant.":""), ok?"ok":"warn");
     });
+    lp.play();
   }
 });
 
@@ -202,27 +227,58 @@ SFA.sim({
   id:"c3-c02-modeles", ch:"c02", tag:"Histoire",
   titre:"Cinq modèles de l'atome, cinq expériences",
   resume:"Parcours Dalton, Thomson, Rutherford, Bohr et le nuage électronique, avec l'expérience qui motive chaque modèle.",
-  but:"Choisis un modèle, change le nombre d'électrons et lis quelle observation il explique… et laquelle il ne sait pas expliquer.",
+  but:"Choisis un modèle (frise du bas ou boutons), change le nombre d'électrons, tire des particules α sur Thomson et Rutherford, et lis quelle observation chaque modèle explique… et laquelle il ne sait pas expliquer.",
   aRetenir:"Un modèle n'est pas une photo de la réalité : c'est une représentation qui explique des observations. Quand une expérience le contredit (Rutherford contre Thomson), on le remplace. Le noyau est environ 100 000 fois plus petit que l'atome : si l'atome mesurait 100 m, le noyau ferait 1 mm.",
   piege:"Les modèles anciens ne sont pas « faux et inutiles » : celui de Dalton suffit pour comprendre la conservation de la masse. Chaque modèle est valable dans son domaine. Les échelles ne sont pas respectées dans les dessins.",
   build:function(k,S){
-    var c = k.canvas(320);
+    var c = k.canvas(400);
+    var KEYS=["dalton","thomson","ruth","bohr","nuage"], dots=[];
     var md = k.seg("Modèle", [["dalton","Dalton"],["thomson","Thomson"],["ruth","Rutherford"],["bohr","Bohr"],["nuage","Nuage"]], "ruth");
     var ne = k.slider("Électrons", 1, 11, 1, 3, "");
+    var shoot = k.toggle("Tirer des particules α (Thomson, Rutherford)", true);
     var nt = k.note("","");
-    var R=rng(3), pts=[];
-    for(var i=0;i<400;i++){ var u=R(), a=R()*6.28; pts.push([u,a]); }
-    var lp = k.loop(function(){ k.redraw(); });
+    var R=rng(3), pts=[], al=[], tal={n:0,big:0,last:0};
+    for(var i=0;i<400;i++){ pts.push([R(),R()*6.28]); }
+    c.pointer(function(type,pt){ if(type!=="down") return; dots.forEach(function(d){ if(Math.abs(pt.x-d.x)<d.w/2&&pt.y>d.y-18&&pt.y<d.y+18){ md.set(d.k); tal.n=0; tal.big=0; al=[]; k.redraw(); } }); });
+    var lp = k.loop(function(dt,t){
+      var m=md.value; if(tal.m!==m){ tal.m=m; tal.n=0; tal.big=0; al=[]; }
+      if(shoot.value&&(m==="thomson"||m==="ruth")&&t-tal.last>0.35){ tal.last=t; var b=(Math.random()*2-1)*1; al.push({b:b,u:0}); }
+      al.forEach(function(a){ a.u+=dt*0.55; }); al=al.filter(function(a){ return a.u<1.2; });
+      k.redraw();
+    });
     k.draw(function(){
-      c.clear(); var W=c.W,H=c.H,g=c.ctx,cx=W/2,cy=H/2-6,Ra=Math.min(W,H)*0.36, t=Date.now()/1000, E=ne.value, m=md.value;
-      if(m==="dalton"){ circ(c,cx,cy,Ra*0.8,"#9aa6b6","#6b7686",2); T(c,"sphère pleine, indivisible",cx,cy,{size:13,color:"#fff"}); }
-      else if(m==="thomson"){ circ(c,cx,cy,Ra,"rgba(214,87,70,0.22)","#c77",1.5); for(var i=0;i<E;i++){ var a=i*2.4, r=Ra*0.75*Math.sqrt((i+0.5)/E); T(c,"−",cx+r*Math.cos(a),cy+r*Math.sin(a),{size:20,color:P.acc}); } T(c,"charge + répartie",cx,cy+Ra+16,{size:12,color:P.grey}); }
-      else if(m==="ruth"){ circ(c,cx,cy,5,P.red); for(var j=0;j<E;j++){ var rj=Ra*(0.45+0.5*((j*7)%E)/E), aj=t*(1.5/ (0.5+rj/Ra))+j*2.1; g.save(); g.strokeStyle="#e1e6ee"; g.beginPath(); g.arc(cx,cy,rj,0,6.28); g.stroke(); g.restore(); circ(c,cx+rj*Math.cos(aj),cy+rj*Math.sin(aj),4.5,P.acc); } T(c,"noyau minuscule, beaucoup de vide",cx,cy+Ra+16,{size:12,color:P.grey}); }
-      else if(m==="bohr"){ var sh=[2,8,8,8], rem=E; circ(c,cx,cy,7,P.red); sh.forEach(function(cap,jj){ var q=Math.min(cap,rem); rem-=q; var rj=Ra*(0.3+0.23*jj); if(q>0||jj===0){ g.save(); g.strokeStyle="#cdd5e2"; g.beginPath(); g.arc(cx,cy,rj,0,6.28); g.stroke(); g.restore(); } for(var u=0;u<q;u++){ var aj=t*(0.9-0.15*jj)+u*6.2832/q; circ(c,cx+rj*Math.cos(aj),cy+rj*Math.sin(aj),4.5,P.acc); } }); T(c,"niveaux d'énergie (couches)",cx,cy+Ra+16,{size:12,color:P.grey}); }
-      else { var sh2=[2,8,8], rem2=E, cum=[]; sh2.forEach(function(cap,jj){ var q=Math.min(cap,rem2); rem2-=q; cum.push(q); });
-        pts.forEach(function(pt,ii){ var which=ii%Math.max(1,E); var shell=which<cum[0]?0:(which<cum[0]+cum[1]?1:2); var mu=Ra*(0.3+0.25*shell), r=Math.abs(mu+ (pt[0]-0.5)*Ra*0.28*(1+shell*0.3)); var a=pt[1]+t*0.3*(ii%3-1)*0.2; if(ii<60*E/ (E+0.001)+40){ g.fillStyle="rgba(30,63,143,0.35)"; g.fillRect(cx+r*Math.cos(a)-1.2,cy+r*Math.sin(a)-1.2,2.4,2.4); } });
-        circ(c,cx,cy,4,P.red); T(c,"nuage de probabilité (pas de trajectoire)",cx,cy+Ra+16,{size:12,color:P.grey}); }
-      T(c,MOD[m].n+" · "+MOD[m].y,10,14,{size:14,color:P.acc,align:"left"});
+      c.clear(); var W=c.W,H=c.H,g=c.ctx,cx=W/2,cy=H/2-6,Ra=Math.min(W*0.3,(H-130)*0.5), t=Date.now()/1000, E=ne.value, m=md.value;
+      CH.bg(c);
+      /* modèle */
+      if(m==="dalton"){ CH.ball(c,cx,cy,Ra*0.8,"#8d99ab",""); D.text(c,"sphère pleine,",cx,cy-6,{size:13,color:"#fff"}); D.text(c,"indivisible",cx,cy+10,{size:13,color:"#fff"}); }
+      else if(m==="thomson"){ D.glow(c,cx,cy,Ra*1.25,P.red,.3); CH.circ(c,cx,cy,Ra,"rgba(214,87,70,0.2)","#c98a80",2);
+        for(var i=0;i<E;i++){ var a=i*2.4, r=Ra*0.72*Math.sqrt((i+0.5)/E); CH.ball(c,cx+r*Math.cos(a),cy+r*Math.sin(a),6,P.acc,"−",{size:11}); }
+        D.label(c,"charge + répartie (pudding), électrons − (raisins)",cx,cy+Ra+18,{size:11,color:P.red}); }
+      else if(m==="ruth"){ D.glow(c,cx,cy,22,P.red,.55); CH.ball(c,cx,cy,5,P.red,"");
+        for(var j=0;j<E;j++){ var rj=Ra*(0.4+0.55*((j*7)%E)/E), aj=t*(1.5/(0.5+rj/Ra))+j*2.1; g.save(); g.setLineDash([2,4]); CH.circ(c,cx,cy,rj,null,"#cdd5e2",1); g.restore(); CH.ball(c,cx+rj*Math.cos(aj),cy+rj*Math.sin(aj),4.6,P.acc,""); }
+        D.label(c,"noyau minuscule et dense, beaucoup de vide",cx,cy+Ra+18,{size:11,color:P.red}); }
+      else if(m==="bohr"){ var sh=[2,8,8,8], rem=E; D.glow(c,cx,cy,18,P.red,.5); CH.ball(c,cx,cy,7,P.red,"");
+        sh.forEach(function(cap,jj){ var q=Math.min(cap,rem); rem-=q; var rj=Ra*(0.3+0.23*jj); if(q>0||jj===0){ g.save(); g.setLineDash([3,4]); CH.circ(c,cx,cy,rj,null,"#b8c3d3",1.3); g.restore(); D.text(c,"n="+(jj+1),cx+rj*0.71+10,cy-rj*0.71-4,{size:10,color:P.grey}); } for(var u=0;u<q;u++){ var aj=t*(0.9-0.15*jj)+u*6.2832/q; CH.ball(c,cx+rj*Math.cos(aj),cy+rj*Math.sin(aj),4.8,P.acc,""); } });
+        D.label(c,"niveaux d'énergie (couches) : 2, 8, 8…",cx,cy+Ra+18,{size:11,color:P.acc}); }
+      else { var sh2=[2,8,8], rem2=E, cum=[]; sh2.forEach(function(cap){ var q=Math.min(cap,rem2); rem2-=q; cum.push(q); });
+        for(var ii=0;ii<pts.length;ii++){ var pt=pts[ii]; var which=ii%Math.max(1,E); var shell=which<cum[0]?0:(which<cum[0]+cum[1]?1:2); var mu=Ra*(0.3+0.25*shell), r=Math.abs(mu+(pt[0]-0.5)*Ra*0.3*(1+shell*0.3)); var a=pt[1]+t*0.25*(ii%3-1); g.fillStyle="rgba(30,63,143,0.32)"; g.fillRect(cx+r*Math.cos(a)-1.3,cy+r*Math.sin(a)-1.3,2.6,2.6); }
+        D.glow(c,cx,cy,14,P.red,.5); CH.ball(c,cx,cy,4,P.red,""); D.label(c,"nuage de probabilité (pas de trajectoire)",cx,cy+Ra+18,{size:11,color:P.acc}); }
+      /* particules alpha */
+      if(m==="thomson"||m==="ruth"){
+        D.text(c,"α",14,cy,{size:14,color:P.amber});
+        al.forEach(function(a){ var x0=26, b=a.b*Ra*0.95, y0=cy+b, sgn=b>=0?1:-1;
+          var ang=m==="ruth"?2*Math.atan(Ra*0.045/Math.max(0.5,Math.abs(b)))*sgn:0.03*(1-Math.abs(a.b))*sgn, xin=m==="ruth"?cx-8:cx, L1=xin-x0, TOT=L1+W*0.6, u=a.u*TOT;
+          function pos(v){ return v<L1?[x0+v,y0]:[xin+(v-L1)*Math.cos(ang),y0+(v-L1)*Math.sin(ang)]; }
+          var big=Math.abs(ang)>1.5708, col=big?"#b42318":(Math.abs(ang)>0.09?"#b45309":"#2e6b55"), pp=pos(u), v0=Math.max(0,u-90), q0=pos(v0);
+          g.save(); g.strokeStyle=col; g.globalAlpha=.45; g.lineWidth=1.8; g.lineCap="round"; g.beginPath(); g.moveTo(q0[0],q0[1]); if(v0<L1&&u>L1) g.lineTo(xin,y0); g.lineTo(pp[0],pp[1]); g.stroke(); g.restore();
+          if(pp[0]>0&&pp[0]<W&&pp[1]>0&&pp[1]<H) CH.ball(c,pp[0],pp[1],3.8,col,"");
+          if(!a.done&&a.u>0.98){ a.done=1; tal.n++; if(big) tal.big++; } });
+        D.label(c,"α tirées : "+tal.n+" · rebond > 90° : "+tal.big,W-8,14,{align:"right",size:11,color:tal.big?P.red:P.green});
+      }
+      D.label(c,MOD[m].n+" · "+MOD[m].y,10,14,{align:"left",size:13,color:P.mat});
+      /* frise chronologique cliquable */
+      var y=H-26; dots=[]; D.line(c,24,y,W-24,y,"#b8c3d3",2);
+      KEYS.forEach(function(kk,i){ var x=24+(W-48)*i/4, on=kk===m; CH.circ(c,x,y,on?8:5.5,on?P.mat:"#fff",on?"#fff":"#8a95a3",2); D.text(c,MOD[kk].n.split(" ")[0]===("Modèle")?"Nuage":MOD[kk].n,x,y-18,{size:W<420?10:11,color:on?P.mat:"#6b7686"}); D.text(c,MOD[kk].y.split("-")[0].replace(" →",""),x,y+16,{size:10,color:"#8a95a3"}); dots.push({k:kk,x:x,y:y-4,w:(W-48)/4}); });
       nt.set("<b>Expérience / observation :</b> "+MOD[m].e+"<br><b>Ce que le modèle explique :</b> "+MOD[m].ok+"<br><b>Sa limite :</b> "+MOD[m].lim,"");
     });
     lp.play();

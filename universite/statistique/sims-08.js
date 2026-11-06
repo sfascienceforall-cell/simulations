@@ -88,7 +88,7 @@ SFA.sim({
       c.clear(); c2.clear(); lay.m2=s.m2;
       var ax=S.draw.axes(c,{x0:0,x1:2,y0:70,y1:190,yl:"pression systolique (mmHg)",stepX:100,l:54,hideZero:true,t:20,b:38}); lay.ax=ax;
       dots(c,S,ax,[{name:"Contrôle (n = "+n1.value+")",v:s.a,color:P.grey},{name:"Traité (n = "+n2.value+")",v:s.b,color:P.mat}],{y0:70,y1:190});
-      UI.hint(c,"glisse le trait du groupe traité",ax.X(1.5),ax.B-14,P.mat);
+      UI.hint(c,"glisse le trait du groupe traité",ax.X(1.5),ax.T+14,P.mat);
       /* IC de la différence */
       var L=40,R=c2.W-24, x0=-25,x1=35, X=function(v){ return L+(v-x0)/(x1-x0)*(R-L); };
       UI.haxis(c2,x0,x1,L,24,c2.H-36,10,"différence des moyennes, contrôle − traité (mmHg)");

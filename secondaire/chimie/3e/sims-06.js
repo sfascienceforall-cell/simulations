@@ -6,10 +6,7 @@ function circ(c,x,y,r,fill,stroke,lw){ var g=c.ctx; g.beginPath(); g.arc(x,y,r,0
 function rng(seed){ var a=seed>>>0; return function(){ a|=0; a=a+0x6D2B79F5|0; var t=Math.imul(a^a>>>15,1|a); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; }; }
 /* bécher : x,y,w,h ; liquide de hauteur fraction f ; couleur */
 function beaker(c,x,y,w,h,f,col,label){
-  var g=c.ctx; g.save();
-  g.fillStyle=col; g.fillRect(x+1.5,y+h*(1-f),w-3,h*f-1.5);
-  g.strokeStyle="#556"; g.lineWidth=3; g.beginPath(); g.moveTo(x,y); g.lineTo(x,y+h); g.lineTo(x+w,y+h); g.lineTo(x+w,y); g.stroke();
-  g.restore();
+  CH.glass(c,x,y,w,h,f,col,{round:9});
   if(label) T(c,label,x+w/2,y+h+14,{size:12,color:P.grey});
 }
 
@@ -34,21 +31,23 @@ SFA.sim({
     var ro = k.readouts(["Masse dissoute","Concentration ρ","Solubilité","Dépôt au fond","État"]);
     var nt = k.note("","");
     var R=rng(4), pts=[]; for(var i=0;i<260;i++) pts.push([R(),R()]);
+    var lp0 = k.loop(function(){ k.redraw(); });
     k.draw(function(){
-      c.clear(); var W=c.W,H=c.H,g=c.ctx, s=SOL[so.value], V=vs.value, m=ms.value, lim=s.s*V, diss=Math.min(m,lim), dep=Math.max(0,m-lim), rho=diss/V;
+      c.clear(); CH.bg(c); var tt=Date.now()/1000, W=c.W,H=c.H,g=c.ctx, s=SOL[so.value], V=vs.value, m=ms.value, lim=s.s*V, diss=Math.min(m,lim), dep=Math.max(0,m-lim), rho=diss/V;
       var bw=W*0.38, bx=W*0.08, by=24, bh=H-60, f=V/1.0*0.9, lvl=by+bh*(1-f);
       var tint=0.1+0.35*Math.min(1,rho/Math.max(s.s,1));
       beaker(c,bx,by,bw,bh,f,"rgba(120,170,220,"+tint.toFixed(2)+")","");
       for(var g2=0;g2<=10;g2++){ var yy=by+bh-bh*0.9*g2/10; if(g2%2===0){ D.line(c,bx+bw,yy,bx+bw+(g2%5===0?10:6),yy,"#8a95a3",1.2); } if(g2%5===0) T(c,String(g2/10).replace(".",",")+" L",bx+bw+14,yy,{size:12,color:P.grey,align:"left"}); }
       var n=Math.round(pts.length*Math.min(1,diss/400)*1.0);
-      for(i=0;i<n;i++){ var px=bx+6+pts[i][0]*(bw-12), py=lvl+6+pts[i][1]*(by+bh-lvl-12); circ(c,px,py,2.4,s.col); }
+      for(i=0;i<n;i++){ var px=bx+8+pts[i][0]*(bw-16)+Math.sin(tt*1.6+i)*2.2, py=lvl+8+pts[i][1]*(by+bh-lvl-16)+Math.cos(tt*1.3+i*1.7)*2.2; circ(c,px,py,2.6,s.col,"rgba(255,255,255,.7)",0.8); }
       if(dep>0){ var hh=Math.min(bh*0.35,6+dep*0.08); g.save(); g.fillStyle=s.col; g.beginPath(); g.moveTo(bx+3,by+bh-1); g.lineTo(bx+bw*0.2,by+bh-hh*0.9); g.lineTo(bx+bw*0.5,by+bh-hh); g.lineTo(bx+bw*0.8,by+bh-hh*0.9); g.lineTo(bx+bw-3,by+bh-1); g.closePath(); g.fill(); g.restore(); }
       // jauge
       var jx=W*0.66, jw=W*0.3, jy=40; T(c,"ρ / solubilité",jx+jw/2,jy-14,{size:12,color:P.grey});
       rr(c,jx,jy,jw,18,"#eef1f5","#b8c2d0",1.2,4); rr(c,jx,jy,jw*Math.min(1,rho/s.s),18,rho>=s.s-1e-9?P.amber:P.acc,null,0,4);
       T(c,F(rho,0)+" g/L",jx+jw/2,jy+34,{size:13,color:P.ink}); T(c,"limite "+s.s+" g/L",jx+jw/2,jy+52,{size:12,color:P.grey});
       T(c,F(m,0)+" g de soluté",jx+jw/2,jy+96,{size:12,color:P.ink}); T(c,"dans "+F(V*1000,0)+" mL d'eau",jx+jw/2,jy+114,{size:12,color:P.ink});
-      ro.set(0,F(diss,0)+" g"); ro.set(1,F(rho,0)+" g/L"); ro.set(2,F(lim,0)+" g max"); ro.set(3,F(dep,0)+" g"); ro.set(4,dep>0?"saturée":(Math.abs(diss-lim)<1e-9?"juste saturée":"non saturée"));
+      ro.set(0,F(diss,0)+" g"); ro.set(1,F(rho,0)+" g/L"); ro.set(2,F(lim,0)+" g max");
+      if(!lp0.running) lp0.play(); ro.set(3,F(dep,0)+" g"); ro.set(4,dep>0?"saturée":(Math.abs(diss-lim)<1e-9?"juste saturée":"non saturée"));
       nt.set(dep>0?"Solution saturée : seuls "+F(lim,0)+" g se dissolvent dans "+F(V*1000,0)+" mL ; les "+F(dep,0)+" g en trop restent au fond. ρ = "+F(lim,0)+" ÷ "+F(V,2)+" = "+F(rho,0)+" g/L.":"ρ = m ÷ V = "+F(diss,0)+" g ÷ "+F(V,2)+" L = <b>"+F(rho,1)+" g/L</b>.", dep>0?"warn":"ok");
     });
   }
@@ -78,7 +77,7 @@ SFA.sim({
     var R=rng(8);
     k.draw(function(){
       if(md.value==="defi") pick();
-      c.clear(); var W=c.W,H=c.H,g=c.ctx, a=r0.value, b=Math.min(v0.value,vf.value), vF=vf.value, m=a*b/1000, r1=b>0?m/vF*1000:0, fac=b>0?vF/b:Infinity;
+      c.clear(); CH.bg(c); var W=c.W,H=c.H,g=c.ctx, a=r0.value, b=Math.min(v0.value,vf.value), vF=vf.value, m=a*b/1000, r1=b>0?m/vF*1000:0, fac=b>0?vF/b:Infinity;
       var shade=function(rv){ return "rgba(40,110,210,"+(0.06+0.62*Math.min(1,rv/200)).toFixed(2)+")"; };
       // bécher mère
       var bw=Math.min(90,W*0.2), by=36, bh=H-96, x1=W*0.06, x2=W*0.42, x3=W*0.74;
@@ -159,7 +158,7 @@ SFA.sim({
     var lp = k.loop(function(dt){ var v=av.value+dt*25; if(v>=100){ v=100; lp.pause(); } av.set(v); k.redraw(); });
     k.button("Dissoudre", function(){ av.set(0); lp.play(); }, true);
     k.draw(function(){
-      c.clear(); var W=c.W,H=c.H,g=c.ctx, m=ms.value, we=me.value, e=ev.value, w=we-e, p=av.value/100;
+      c.clear(); CH.bg(c); var W=c.W,H=c.H,g=c.ctx, m=ms.value, we=me.value, e=ev.value, w=we-e, p=av.value/100;
       var evap = p>=0.999 ? e : 0, total=m+we-evap; w=we-evap;   /* l'évaporation n'intervient qu'une fois la dissolution terminée */
       var cap=2.04*w, dissMax=Math.min(m,cap), diss=dissMax*p, left=m-diss;
       var V=(w/0.998)+0.62*diss, rho=diss/V*1000;

@@ -220,13 +220,13 @@ SFA.sim({
       function arrow(from,to,w,col,dash){ var A=nodes[from],B=nodes[to],dx=B[0]-A[0],dy=B[1]-A[1],L=Math.hypot(dx,dy),ux=dx/L,uy=dy/L; var x1=A[0]+ux*34,y1=A[1]+uy*18,x2=B[0]-ux*34,y2=B[1]-uy*18;
         if(w<0.02){ S.draw.line(dg,x1,y1,x2,y2,S.draw.tint(P.grey,.6),1.4,[4,4]); return; } if(dash){ S.draw.line(dg,x1,y1,x2,y2,col,1+w*7,[6,4]); } S.draw.arrow(dg,x1,y1,x2,y2,col,1+w*7); S.draw.label(dg,S.fmt(w,2),(x1+x2)/2,(y1+y2)/2-(from==="X"?14:0),{color:col,size:11}); }
       arrow("Z","X",a.value,P.red); arrow("Z","Y",b.value,P.red); arrow("X","Y",d.value,P.green);
-      Object.keys(nodes).forEach(function(kk){ var nd=nodes[kk]; S.draw.panel(dg,nd[0]-44,nd[1]-14,88,28,{shadow:false,stroke:nd[3],radius:14}); S.draw.text(dg,nd[2],nd[0],nd[1],{size:nd[2].length>14?10:11.5,color:nd[3]}); });
+      Object.keys(nodes).forEach(function(kk){ var nd=nodes[kk]; S.draw.panel(dg,nd[0]-(nd[2].length>14?62:44),nd[1]-14,(nd[2].length>14?124:88),28,{shadow:false,stroke:nd[3],radius:14}); S.draw.text(dg,nd[2],nd[0],nd[1],{size:nd[2].length>14?10:11.5,color:nd[3]}); });
       c.clear(); var ax=S.draw.axes(c,{x0:-3.5,x1:3.5,y0:-4,y1:4,xl:"X : café (écarts réduits)",yl:"Y : risque cardiaque",stepX:1,stepY:1,t:20});
       for(i=0;i<N;i++){ var g=z[i]<q1?0:(z[i]<q2?1:2); S.draw.dot(c,ax.X(x[i]),ax.Y(y[i]),N>250?3:3.8,st.value?S.draw.tint(cols[g],.85):S.draw.tint(P.mat,.7)); }
       if(!st.value) S.draw.fn(c,ax,function(t){ return f.a*t+f.b; },P.ink,2.8);
       else [0,1,2].forEach(function(g){ var xg=[], yg=[]; for(i=0;i<N;i++){ if((z[i]<q1?0:(z[i]<q2?1:2))===g){ xg.push(x[i]); yg.push(y[i]); } } if(xg.length>3){ var fg=ols(xg,yg); S.draw.fn(c,ax,function(t){ return fg.a*t+fg.b; },cols[g],2.8); } });
       if(st.value) S.draw.legend(c,[[P.teal,"Z bas"],[P.amber,"Z moyen"],[P.red,"Z élevé"]],ax.R-4,ax.T+2,{align:"right"});
-      else S.draw.label(c,"droite brute : pente "+S.fmt(f.a,2),ax.R-6,ax.T+12,{color:P.ink,align:"right",size:11.5});
+      else S.draw.label(c,"droite brute : pente "+S.fmt(f.a,2),ax.R-6,ax.T+40,{color:P.ink,align:"right",size:11.5});
       ro.set(0,S.fmt(rxy,2)); ro.set(1,S.fmt(pr,2)); ro.set(2,S.fmt(f.a,2)); ro.set(3,S.fmt(adj,2));
       if(d.value===0&&Math.abs(rxy)>0.25) nt.set("X n'a aucun effet direct sur Y, pourtant r = "+S.fmt(rxy,2)+" : la corrélation vient entièrement de Z. Après ajustement, le lien disparaît.","warn");
       else if(d.value>0) nt.set("Il existe un vrai effet direct de X : la pente ajustée le retrouve, la pente brute le mélange avec l'effet de Z.","ok");
@@ -278,7 +278,7 @@ SFA.sim({
       S.draw.legend(c,[[P.mat,"modèle logistique"],[P.red,"complication (1)"],[S.draw.tint(P.grey,.9),"pas de complication (0)"]].concat(cmp.value?[[P.orange,"droite (hors [0 ; 1])",1]]:[]),ax.L+8,ax.T+4);
       UI.hint(c,"glisse le centre et la pente",ax.R-110,ax.B-14,P.mat);
       var L=ll(b0.value,b1.value);
-      S.draw.display(c,S.fmt(L,1),ax.R-62,ax.T+36,{w:112,h:48,caption:"log-vraisemblance (max "+S.fmt(llmax,1)+")",color:L>=llmax-0.6?P.green:P.ink,size:18});
+      S.draw.display(c,S.fmt(L,1),ax.R-82,ax.B-84,{w:150,h:48,caption:"log-vraisemblance (max "+S.fmt(llmax,1)+")",color:L>=llmax-0.6?P.green:P.ink,size:18});
       ro.set(0,S.fmt(100*p,1)+" %"); ro.set(1,p>0.9999?"> 10 000":S.fmt(p/(1-p),2)); ro.set(2,S.fmt(Math.exp(b1.value),2)); ro.set(3,b1.value===0?"—":S.fmt(-b0.value/b1.value,2)); ro.set(4,S.fmt(L,1));
       nt.set(L>=llmax-0.6?"Tu as trouvé l'ajustement du maximum de vraisemblance : la vraisemblance ne peut plus guère augmenter.":cmp.value?"La droite orange sort de [0 ; 1] aux extrémités : une « probabilité » négative ou supérieure à 1 n'a pas de sens. La sigmoïde reste dans [0 ; 1].":"Rapproche la log-vraisemblance de son maximum ("+S.fmt(llmax,1)+") en glissant le centre (50 %) et la pente (point violet = 90 %).",L>=llmax-0.6?"ok":"");
     });

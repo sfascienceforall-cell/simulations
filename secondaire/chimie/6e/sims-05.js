@@ -22,7 +22,7 @@ SFA.sim({
   aRetenir: "À l'équivalence, les réactifs ont été mélangés dans les proportions de l'équation : n(titrant versé) = n(titré) soit c_t·V_eq = c_a·V_a. Pour un acide faible titré par une base forte, le pH à la demi-équivalence est égal au pKa, et le pH à l'équivalence est supérieur à 7.",
   piege: "L'équivalence n'est pas toujours à pH 7 : acide faible + base forte → pH > 7 (la base conjuguée A⁻ est une base) ; base faible + acide fort → pH < 7. Elle n'est à 7 que pour un acide fort et une base forte.",
   build: function(k, S){
-    var c = k.canvas(340), P = S.draw.palette;
+    var c = k.canvas(480), P = S.draw.palette, H = window.C6;
     var sc = k.select("Titrage", T1.map(function(t, i){ return [i, t.nom]; }), 1);
     var ca = k.slider("Concentration du titré", 0.01, 0.5, 0.01, 0.1, "mol/L");
     var va = k.slider("Volume du titré", 10, 50, 1, 20, "mL");
@@ -33,9 +33,18 @@ SFA.sim({
     var ax0 = null;
     c.pointer(function(t, p){ if (t === "move" || t === "up" || !ax0) return; var Veq = ca.value * va.value / ct.value, v = ax0.ix(p.x); xv.set(Math.max(0, Math.min(2, Math.round(v / Veq * 100) / 100))); k.redraw(); });
     k.draw(function(){
-      c.clear();
-      var s = T1[sc.value], Veq = ca.value * va.value / ct.value, vt = xv.value * Veq;
-      var ax = S.draw.axes(c, {x0: 0, x1: 2 * Veq, y0: 0, y1: 14, stepY: 2, xl: "V titrant / mL", yl: "pH"}); ax0 = ax;
+      c.clear(); H.bg(c, {top: "#fbfcfd", bottom: "#eef2f7"});
+      var s = T1[sc.value], Veq = ca.value * va.value / ct.value, vt = xv.value * Veq, ctx0 = c.ctx;
+      /* scène : burette, erlenmeyer à l'indicateur universel, pH-mètre */
+      var ph0 = phTit(s.mode, s.pKa, ca.value, va.value, ct.value, vt), bx0 = 70, lev = Math.max(0, 1 - vt / (2.0 * Math.max(Veq, 1) * 1.0));
+      ctx0.save(); S.draw.rrect(c, bx0 - 7, 10, 14, 90, 4); ctx0.fillStyle = "rgba(255,255,255,.7)"; ctx0.fill(); ctx0.clip(); ctx0.fillStyle = "rgba(120,170,230,.55)"; ctx0.fillRect(bx0 - 7, 10 + 90 * (1 - lev), 14, 90 * lev); ctx0.restore();
+      ctx0.strokeStyle = "#5b6e86"; ctx0.lineWidth = 1.8; S.draw.rrect(c, bx0 - 7, 10, 14, 90, 4); ctx0.stroke(); S.draw.line(c, bx0, 100, bx0, 110, "#5b6e86", 3);
+      S.draw.text(c, "titrant " + S.fmt(ct.value, 2) + " mol/L", bx0 + 20, 20, {size: 10.5, color: P.grey, align: "left"}); S.draw.text(c, S.fmt(vt, 2) + " mL versés", bx0 + 20, 36, {size: 12.5, color: P.ink, align: "left", weight: 800});
+      H.glass(c, "flask", bx0 - 50, 112, 100, 84, {level: 0.55, color: (function(){ var m = H.phColor(Math.max(0, Math.min(14, ph0))).match(/\d+/g); return m.map(Number); })(), alpha: 0.9, shine: true});
+      S.draw.text(c, "indicateur universel", bx0, 208, {size: 10.5, color: P.grey});
+      S.draw.display(c, S.fmt(ph0, 2), c.W - 70, 62, {w: 112, h: 52, caption: "pH-mètre", size: 22});
+      S.draw.text(c, "V_eq = " + S.fmt(Veq, 2) + " mL", c.W - 70, 104, {size: 12, color: P.green, weight: 800});
+      var ax = S.draw.axes(c, {x0: 0, x1: 2 * Veq, y0: 0, y1: 14, stepY: 2, xl: "V titrant / mL", yl: "pH", t: 230, b: 34}); ax0 = ax;
       S.draw.fn(c, ax, function(x){ return phTit(s.mode, s.pKa, ca.value, va.value, ct.value, x); }, P.acc, 3);
       var phEq = phTit(s.mode, s.pKa, ca.value, va.value, ct.value, Veq), phHalf = phTit(s.mode, s.pKa, ca.value, va.value, ct.value, Veq / 2);
       S.draw.line(c, ax.X(Veq), ax.T, ax.X(Veq), ax.B, P.green, 1.4, [5, 4]);
@@ -66,37 +75,58 @@ var IND = [
 SFA.sim({
   id: "c6-c05-indicateur", ch: "c05", tag: "Défi",
   titre: "Quel indicateur coloré choisir ?",
-  resume: "Superpose la zone de virage d'un indicateur à la courbe de titrage : le virage tombe-t-il sur l'équivalence ?",
-  but: "Choisis le titrage puis l'indicateur. Vérifie l'erreur sur V_eq. Défi : trouve, pour chaque titrage, les indicateurs valides (erreur < 0,5 %).",
+  resume: "Verse le titrant dans l'erlenmeyer, regarde l'indicateur changer de couleur et compare son virage à l'équivalence.",
+  but: "Choisis le titrage puis l'indicateur. Fais glisser le point sur la courbe (ou le curseur) pour verser le titrant : la couleur de l'erlenmeyer suit le pH. Vérifie l'erreur sur V_eq. Défi : trouve, pour chaque titrage, les indicateurs valides (erreur < 0,5 %).",
   aRetenir: "Un bon indicateur a une zone de virage qui contient le pH à l'équivalence, dans le saut de pH. Le volume lu au virage (pH du milieu de la zone) est alors égal à V_eq à 0,5 % près. Titrage acide faible/base forte : phénolphtaléine ; base faible/acide fort : rouge de méthyle ou hélianthine ; fort/fort : presque tous conviennent.",
   piege: "Le virage n'est pas l'équivalence : l'indicateur change de couleur sur une zone de pH d'environ 2 unités. Si cette zone est loin du pH à l'équivalence, la couleur change trop tôt (ou ne change pas), et le dosage est faux. Un acide très faible (pKa ≈ 9 ou plus) ne donne aucun saut net : aucun indicateur n'est précis. Concentrations : 0,100 mol/L ; volume du titré : 20,0 mL.",
   build: function(k, S){
-    var c = k.canvas(330), P = S.draw.palette;
+    var c = k.canvas(500), P = S.draw.palette, H = window.C6;
     var sc = k.select("Titrage", T1.slice(0, 4).map(function(t, i){ return [i, t.nom]; }), 1);
     var ii = k.select("Indicateur", IND.map(function(t, i){ return [i, t.nom + " (" + t.lo + "–" + t.hi + ")"]; }), 4);
     var vt = k.slider("Volume de titrant versé", 0, 40, 0.05, 10, "mL");
     var ro = k.readouts(["pH", "Couleur de l'indicateur", "V au virage (milieu de zone)", "Erreur sur V_eq"]);
     var nt = k.note("", "ok");
+    var tdrop = -9;
     function f(s, v){ return phTit(s.mode, s.pKa, 0.1, 20, 0.1, v); }
     function color(I, ph){ var t = Math.max(0, Math.min(1, (ph - I.lo) / (I.hi - I.lo))); return [0, 1, 2].map(function(j){ return Math.round(I.c1[j] + (I.c2[j] - I.c1[j]) * t); }); }
-    function veqCross(s, pT){ /* volume où le pH vaut pT (courbe monotone) */
-      var a = 0, b = 40, up = s.mode === "a", m, i; if ((f(s, a) - pT) * (f(s, b) - pT) > 0) return null;
-      for (i = 0; i < 70; i++){ m = (a + b) / 2; var v = f(s, m) - pT; if ((v > 0) === up) b = m; else a = m; } return (a + b) / 2;
-    }
+    function veqCross(s, pT){ var a = 0, b = 40, up = s.mode === "a", m, i; if ((f(s, a) - pT) * (f(s, b) - pT) > 0) return null;
+      for (i = 0; i < 70; i++){ m = (a + b) / 2; var v = f(s, m) - pT; if ((v > 0) === up) b = m; else a = m; } return (a + b) / 2; }
+    var geo = {};
+    c.pointer(function(type, p){ if (type === "move" || type === "up" || !geo.ax) return; if (p.y < geo.ax.T - 14) return; vt.set(Math.round(Math.max(0, Math.min(40, geo.ax.ix(p.x))) * 20) / 20); k.redraw(); });
     k.draw(function(){
-      c.clear();
+      c.clear(); H.bg(c, {top: "#fbfcfd", bottom: "#eef2f7"});
       var s = T1[sc.value], I = IND[ii.value], ctx = c.ctx;
-      var ax = S.draw.axes(c, {x0: 0, x1: 40, y0: 0, y1: 14, stepX: 5, stepY: 2, xl: "V / mL", yl: "pH"});
-      ctx.save(); ctx.fillStyle = "rgba(" + color(I, (I.lo + I.hi) / 2).join(",") + ",.28)"; ctx.fillRect(ax.L, ax.Y(I.hi), ax.R - ax.L, ax.Y(I.lo) - ax.Y(I.hi)); ctx.restore();
-      S.draw.text(c, I.t1 + " → " + I.t2, ax.R - 6, ax.Y((I.lo + I.hi) / 2), {size: 12, color: P.ink, align: "right"});
+      var ph = f(s, vt.value), col = color(I, ph), acidCurve = s.mode === "a";
+      /* burette + erlenmeyer */
+      var bx = 106, level = 1 - vt.value / 40;
+      ctx.save(); S.draw.rrect(c, bx - 7, 12, 14, 84, 4); ctx.fillStyle = "rgba(255,255,255,.7)"; ctx.fill(); ctx.clip(); ctx.fillStyle = "rgba(120,170,230,.55)"; ctx.fillRect(bx - 7, 12 + 84 * (1 - level), 14, 84 * level); ctx.restore();
+      ctx.strokeStyle = "#5b6e86"; ctx.lineWidth = 1.8; S.draw.rrect(c, bx - 7, 12, 14, 84, 4); ctx.stroke(); S.draw.line(c, bx, 96, bx, 106, "#5b6e86", 3);
+      for (var q = 0; q <= 4; q++) S.draw.line(c, bx + 7, 12 + q * 21, bx + 12, 12 + q * 21, "#5b6e86", 1);
+      S.draw.text(c, "burette", bx - 38, 22, {size: 10.5, color: P.grey}); S.draw.text(c, S.fmt(vt.value, 1) + " mL", bx - 38, 36, {size: 11, color: P.ink, weight: 800});
+      var fw = 100, fh = 86, fx = bx - fw / 2 - 2, fy = 112;
+      H.glass(c, "flask", fx, fy, fw, fh, {level: 0.55, color: col, alpha: 0.9, shine: true, inside: function(top){ ctx.fillStyle = "rgba(255,255,255,.18)"; ctx.fillRect(fx, top, fw, 4); }});
+      S.draw.text(c, "titré + indicateur", fx + fw / 2, fy + fh + 14, {size: 10.5, color: P.grey});
+      /* nuancier de l'indicateur */
+      var gx0 = 196, gx1 = c.W - 18, gy = 126;
+      for (var i = 0; i < 60; i++){ ctx.fillStyle = "rgb(" + color(I, I.lo - 1.2 + (I.hi - I.lo + 2.4) * i / 59).join(",") + ")"; ctx.fillRect(gx0 + (gx1 - gx0) * i / 60, gy, (gx1 - gx0) / 60 + 1, 22); }
+      ctx.strokeStyle = "#5b6e86"; ctx.lineWidth = 1.5; S.draw.rrect(c, gx0, gy, gx1 - gx0, 22, 4); ctx.stroke();
+      var gp = function(v){ return gx0 + (gx1 - gx0) * (v - (I.lo - 1.2)) / (I.hi - I.lo + 2.4); };
+      S.draw.text(c, I.nom, gx0, gy - 14, {size: 12.5, color: P.ink, align: "left", weight: 800});
+      S.draw.text(c, "zone de virage " + I.lo + " – " + I.hi, gx0, gy + 40, {size: 11, color: P.grey, align: "left"});
+      var mx = Math.max(gx0, Math.min(gx1, gp(ph))); ctx.save(); ctx.fillStyle = P.ink; ctx.beginPath(); ctx.moveTo(mx, gy - 2); ctx.lineTo(mx - 6, gy - 11); ctx.lineTo(mx + 6, gy - 11); ctx.closePath(); ctx.fill(); ctx.restore();
+      S.draw.display(c, S.fmt(ph, 2), gx1 - 52, 66, {w: 104, h: 46, caption: "pH", size: 20});
+      /* courbe */
+      var ax = S.draw.axes(c, {x0: 0, x1: 40, y0: 0, y1: 14, stepX: 5, stepY: 2, xl: "V / mL", yl: "pH", t: 232, b: 34}); geo.ax = ax;
+      var zg = ctx.createLinearGradient(0, ax.Y(I.hi), 0, ax.Y(I.lo)); zg.addColorStop(0, "rgb(" + I.c2.join(",") + ")"); zg.addColorStop(1, "rgb(" + I.c1.join(",") + ")");
+      ctx.save(); ctx.globalAlpha = 0.38; ctx.fillStyle = zg; ctx.fillRect(ax.L, ax.Y(I.hi), ax.R - ax.L, ax.Y(I.lo) - ax.Y(I.hi)); ctx.restore();
+      S.draw.text(c, "zone de virage", ax.R - 6, ax.Y((I.lo + I.hi) / 2), {size: 11, color: P.ink, align: "right"});
       S.draw.fn(c, ax, function(x){ return f(s, x); }, P.acc, 3);
-      var ph = f(s, vt.value), col = color(I, ph);
-      S.draw.line(c, ax.X(20), ax.T, ax.X(20), ax.B, P.green, 1.4, [5, 4]);
-      S.draw.dot(c, ax.X(vt.value), ax.Y(ph), 6, P.red);
-      ctx.fillStyle = "rgb(" + col.join(",") + ")"; ctx.strokeStyle = P.ink; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(ax.L + 40, ax.T + 40, 22, 0, 7); ctx.fill(); ctx.stroke();
-      S.draw.text(c, "couleur", ax.L + 40, ax.T + 74, {size: 12, color: P.grey});
+      S.draw.line(c, ax.X(20), ax.T, ax.X(20), ax.B, P.green, 1.4, [5, 4]); S.draw.text(c, "V_eq = 20 mL", ax.X(20) + 4, ax.B - 10, {size: 11, color: P.green, align: "left"});
       var pT = (I.lo + I.hi) / 2, vv = veqCross(s, pT), err = vv === null ? null : (vv - 20) / 20 * 100;
+      if (vv !== null){ S.draw.line(c, ax.X(vv), ax.T, ax.X(vv), ax.B, P.red, 1.3, [2, 3]); S.draw.label(c, "virage " + S.fmt(vv, 1), ax.X(vv), ax.T + 8, {color: P.red, size: 10.5}); }
+      S.draw.dot(c, ax.X(vt.value), ax.Y(ph), 7.5, P.red);
       var cname = ph <= I.lo ? I.t1 : ph >= I.hi ? I.t2 : "teinte intermédiaire";
+      if (!acidCurve){ var tmp = cname; }
       ro.set(0, S.fmt(ph, 2)); ro.set(1, cname); ro.set(2, vv === null ? "ne vire jamais" : S.fmt(vv, 2) + " mL"); ro.set(3, err === null ? "—" : (err > 0 ? "+" : "") + S.fmt(err, 1) + " %");
       if (vv === null) nt.set("Le pH du milieu de la zone de virage (" + S.fmt(pT, 2) + ") n'est jamais traversé pendant ce titrage : l'indicateur garde la même couleur du début à la fin et ne signale rien.", "warn");
       else if (Math.abs(err) <= 0.5) nt.set("Indicateur adapté : le virage a lieu à " + S.fmt(vv, 2) + " mL, à " + S.fmt(Math.abs(err), 1) + " % de V_eq = 20,00 mL.", "ok");
@@ -120,7 +150,7 @@ SFA.sim({
   aRetenir: "Un tampon contient un acide faible et sa base conjuguée en quantités comparables : pH = pKa + log([base]/[acide]). L'ajout d'un peu d'acide ou de base ne change presque pas le pH : l'acide ajouté est consommé par la base du tampon, et inversement. Efficacité maximale pour pH ≈ pKa (rapport entre 0,1 et 10).",
   piege: "Un tampon n'empêche pas tout changement de pH : il l'atténue, tant qu'il reste de la base (pour absorber un acide) ou de l'acide (pour absorber une base). Une fois la réserve épuisée, le pH s'effondre comme dans l'eau.",
   build: function(k, S){
-    var c = k.canvas(330), P = S.draw.palette;
+    var c = k.canvas(470), P = S.draw.palette, H = window.C6;
     var sy = k.select("Couple du tampon", TAM.map(function(t, i){ return [i, t.nom + " (pKa " + t.pKa + ")"]; }), 0);
     var ct = k.slider("Concentration totale", 0.02, 0.5, 0.01, 0.1, "mol/L");
     var rt = k.slider("log([base]/[acide])", -1, 1, 0.1, 0, "");
@@ -133,9 +163,21 @@ SFA.sim({
       return -Math.log10(bis(function(h){ return nb + h - KW / h - C * Ka / (Ka + h); }, 1e-15, 20)); }
     function phW(delta){ var d = delta / 1000 / V; return -Math.log10(bis(function(h){ return d + h - KW / h; }, 1e-15, 20)); }
     k.draw(function(){
-      c.clear();
+      c.clear(); H.bg(c, {top: "#fbfcfd", bottom: "#eef2f7"});
       var s = TAM[sy.value], tot = ct.value * V * 1000, r = Math.pow(10, rt.value), nA = tot / (1 + r), nB = tot - nA, sg = ty.value === "h" ? -1 : 1;
-      var ax = S.draw.axes(c, {x0: 0, x1: 20, y0: 0, y1: 14, stepX: 2, stepY: 2, xl: "ajouté / mmol", yl: "pH"});
+      /* deux béchers : tampon et eau pure, à l'indicateur universel, avant/après ajout */
+      var pT0 = phT(s, nA, nB, 0), pT1 = phT(s, nA, nB, sg * ad.value), pW1 = phW(sg * ad.value), cc0 = c.ctx;
+      function rgbOf(p){ return H.phColor(Math.max(0, Math.min(14, p))).match(/\d+/g).map(Number); }
+      var half = c.W / 2;
+      [[half / 2, "Tampon", pT0, pT1, P.green], [half + half / 2, "Eau pure", 7, pW1, P.grey]].forEach(function(b2){
+        var bx2 = b2[0] - 40;
+        H.glass(c, "beaker", bx2, 52, 80, 84, {level: 0.7, color: rgbOf(b2[3]), alpha: 0.88, shine: true});
+        S.draw.text(c, b2[1], b2[0], 20, {size: 13, color: b2[4], weight: 800});
+        S.draw.display(c, S.fmt(b2[3], 2), b2[0], 168, {w: 96, h: 44, caption: "pH après ajout", size: 18});
+        S.draw.text(c, "avant : " + S.fmt(b2[2], 2), b2[0], 40, {size: 11, color: P.grey});
+      });
+      S.draw.text(c, "+ " + S.fmt(ad.value, 1) + " mmol " + (sg < 0 ? "HCl" : "NaOH"), c.W / 2, 90, {size: 12, color: P.red, weight: 800, bg: "rgba(255,255,255,.9)"});
+      var ax = S.draw.axes(c, {x0: 0, x1: 20, y0: 0, y1: 14, stepX: 2, stepY: 2, xl: "ajouté / mmol", yl: "pH", t: 220, b: 34});
       S.draw.fn(c, ax, function(x){ return phT(s, nA, nB, sg * x); }, P.green, 3);
       S.draw.fn(c, ax, function(x){ return phW(sg * x); }, P.grey, 2.2, [6, 4]);
       S.draw.text(c, "— tampon", ax.L + 56, ax.T + 10, {size: 12, color: P.green, align: "left"});
@@ -179,14 +221,19 @@ SFA.sim({
   aRetenir: "Un sel se dissocie en ions ; ceux qui sont acide ou base d'un couple faible réagissent avec l'eau. Anion d'un acide faible → solution basique ; cation d'une base faible (NH₄⁺) → solution acide ; ions d'acide et de base forts (Na⁺, Cl⁻) → neutre. Un ampholyte (HCO₃⁻, H₂PO₄⁻…) a un pH ≈ ½(pKa₁ + pKa₂), presque indépendant de c.",
   piege: "« Sel » ne veut pas dire « neutre » : seul un sel d'acide fort et de base forte l'est. Le bicarbonate de soude (NaHCO₃) est basique (pH ≈ 8,3), le carbonate de sodium plus encore. Calcul exact (modèle idéal, 25 °C), les pKa sont arrondis.",
   build: function(k, S){
-    var c = k.canvas(300), P = S.draw.palette;
+    var c = k.canvas(440), P = S.draw.palette, H = window.C6;
     var se = k.select("Sel", SELS.map(function(s, i){ return [i, s.nom]; }), 1);
     var pc = k.slider("pc (c = 10^−pc mol/L)", 0.5, 3, 0.1, 1, "");
     var ro = k.readouts(["Concentration", "pH", "Caractère"]);
     var nt = k.note("", "ok");
     k.draw(function(){
-      c.clear();
-      var s = SELS[se.value], ax = S.draw.axes(c, {x0: 0.5, x1: 3, y0: 0, y1: 14, stepX: 0.5, stepY: 2, xl: "pc = −log c", yl: "pH"});
+      c.clear(); H.bg(c, {top: "#fbfcfd", bottom: "#eef2f7"});
+      var s = SELS[se.value], ph1 = phSel(s, Math.pow(10, -pc.value));
+      H.glass(c, "beaker", 30, 24, 96, 100, {level: 0.7, color: H.phColor(Math.max(0, Math.min(14, ph1))).match(/\d+/g).map(Number), alpha: 0.88, shine: true});
+      S.draw.text(c, s.nom.split(" (")[0], 78, 144, {size: 12.5, color: P.ink, weight: 800});
+      S.draw.display(c, S.fmt(ph1, 2), c.W - 100, 54, {w: 120, h: 54, caption: "pH de la solution", size: 24});
+      S.draw.label(c, ph1 < 6.9 ? "acide" : ph1 > 7.1 ? "basique" : "neutre", c.W - 100, 100, {color: ph1 < 6.9 ? P.red : ph1 > 7.1 ? P.acc : P.green, size: 12});
+      var ax = S.draw.axes(c, {x0: 0.5, x1: 3, y0: 0, y1: 14, stepX: 0.5, stepY: 2, xl: "pc = −log c", yl: "pH", t: 170, b: 34});
       S.draw.line(c, ax.L, ax.Y(7), ax.R, ax.Y(7), P.light, 1.6, [5, 4]);
       S.draw.text(c, "neutre", ax.R - 4, ax.Y(7) - 9, {size: 12, color: P.grey, align: "right"});
       S.draw.fn(c, ax, function(x){ return phSel(s, Math.pow(10, -x)); }, P.green, 3);

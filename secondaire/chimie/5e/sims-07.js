@@ -89,35 +89,51 @@ SFA.sim({
   piege: "Couper en morceaux ne change pas la quantité de gaz produit au total : seulement le temps nécessaire. La règle « × 2 pour 10 K » est empirique (vraie pour beaucoup de réactions à température ordinaire, pas une loi exacte). Le temps de référence (60 s) est une valeur choisie pour la simulation.",
   build: function(k, S){
     var pal = S.draw.palette, T0 = 60;
-    var c = k.canvas(220), g = k.canvas(190);
-    var n = k.slider("Coupes par arête n (n³ morceaux)", 1, 10, 1, 1, "");
-    var T = k.slider("Température de l'eau", 5, 80, 1, 20, "°C");
+    var c = k.canvas(350), g = k.canvas(190);
+    var run = {p: 0, on: true};
+    var n = k.slider("Coupes par arête n (n³ morceaux)", 1, 10, 1, 1, "", function(){ run.p = 0; run.on = true; });
+    var T = k.slider("Température de l'eau", 5, 80, 1, 20, "°C", function(){ run.p = 0; run.on = true; });
+    k.button("Relancer l'expérience", function(){ run.p = 0; run.on = true; }, true);
     var ro = k.readouts(["Nombre de morceaux n³", "Surface totale", "Facteur de température", "Temps de disparition"]);
     var nt = k.note("", "");
-    var tm = 0, lp = k.loop(function(dt, t){ tm = t; k.redraw(); }); lp.play();
+    var tm = 0;
+    k.loop(function(dt, t){ tm = t; if (run.on){ run.p += dt / 6; if (run.p >= 1.15){ run.p = 1.15; run.on = false; } } k.redraw(); }).play();
     function tEnd(nn, TT){ return T0 / (nn * Math.pow(2, (TT - 20) / 10)); }
     k.draw(function(){
       c.clear(); g.clear();
-      var te = tEnd(n.value, T.value), fT = Math.pow(2, (T.value - 20) / 10), ctx = c.ctx;
-      var bx = 20, bw = c.W - 40;
-      ctx.fillStyle = "#e3f0fa"; ctx.fillRect(bx, 40, bw, 170); ctx.strokeStyle = pal.ink; ctx.lineWidth = 2.5; ctx.strokeRect(bx, 40, bw, 170);
-      /* progression en boucle de 6 s */
-      var p = (tm % 6) / 6, rem = Math.pow(Math.max(0, 1 - p), 3), side = 70 * Math.pow(rem, 1 / 3), nn = n.value, each = side / nn;
-      var ox = c.W / 2 - side / 2, oy = 150 - side / 2;
+      var te = tEnd(n.value, T.value), fT = Math.pow(2, (T.value - 20) / 10), ctx = c.ctx, nn = n.value;
+      var bw = Math.min(240, c.W - 120), bx = 16, by = 30, bh = 250, hot = (T.value - 5) / 75, p = Math.min(1, run.p);
+      C5.bench(c, by + bh + 2);
+      var wc = "rgb(" + Math.round(176 + 60 * hot) + "," + Math.round(216 - 20 * hot) + "," + Math.round(244 - 50 * hot) + ")";
+      var gl = C5.beaker(c, bx, by, bw, bh, wc, 0.8, {taper: 8});
+      var rem = Math.pow(Math.max(0, 1 - p), 3), side = Math.min(110, bw * 0.46) * Math.pow(rem, 1 / 3), each = side / nn, ox = bx + bw / 2 - side / 2, oy = by + bh - 8 - side;
+      /* morceaux (vue de face) : n×n carrés qui rétrécissent */
       for (var i = 0; i < nn; i++) for (var j = 0; j < nn; j++){
-        var gap = nn > 1 ? 2 : 0; ctx.fillStyle = "#f4f0e6"; ctx.strokeStyle = pal.amber; ctx.lineWidth = 1;
-        ctx.fillRect(ox + i * each + gap / 2, oy + j * each + gap / 2, Math.max(0, each - gap), Math.max(0, each - gap));
-        ctx.strokeRect(ox + i * each + gap / 2, oy + j * each + gap / 2, Math.max(0, each - gap), Math.max(0, each - gap)); }
-      var nb = Math.min(50, Math.round(6 * n.value * fT / 3));
-      for (var b = 0; b < nb; b++){ var ph = (tm * (0.8 + (b % 5) * 0.2) + b * 0.37) % 1, bxp = bx + 14 + ((b * 53) % 100) / 100 * (bw - 28), byp = 190 - ph * 140; if (rem > 0.02) S.draw.dot(c, bxp, byp, 2.5 + (b % 3), "rgba(80,120,200,.5)"); }
-      S.draw.text(c, "animation : 6 s ↔ disparition complète", c.W / 2, 18, {size: 12, color: pal.grey});
+        var gap = nn > 1 ? 1.5 : 0, qx = ox + i * each + gap / 2, qy = oy + j * each + gap / 2, qs = Math.max(0, each - gap);
+        if (qs < 0.5) continue;
+        var gr = ctx.createLinearGradient(qx, qy, qx + qs, qy + qs); gr.addColorStop(0, "#fffdf6"); gr.addColorStop(1, "#e9e0c8");
+        ctx.fillStyle = gr; S.draw.rrect(c, qx, qy, qs, qs, Math.min(4, qs / 4)); ctx.fill(); ctx.strokeStyle = "#c8a96a"; ctx.lineWidth = 0.9; ctx.stroke();
+      }
+      /* bulles de CO₂ : leur nombre suit la surface exposée × la vitesse */
+      var nb = rem > 0.01 ? Math.min(70, Math.round(7 + 3.2 * nn * fT)) : 0;
+      for (var b = 0; b < nb; b++){
+        var ph = (tm * (0.5 + (b % 5) * 0.16) * Math.min(2.2, 0.6 + fT * 0.4) + b * 0.37) % 1, bxp = bx + 12 + ((b * 0.618 + 0.13) % 1) * (bw - 24) * 0.9 + Math.sin(ph * 9 + b) * 3, byp = by + bh - 12 - ph * (bh * 0.8 - 14);
+        ctx.beginPath(); ctx.arc(bxp, byp, 1.8 + (b % 3) * 1.1, 0, 6.3); ctx.fillStyle = "rgba(255,255,255,.55)"; ctx.fill(); ctx.strokeStyle = "rgba(80,120,200,.6)"; ctx.lineWidth = 1; ctx.stroke();
+      }
+      if (rem > 0.01) for (var q = 0; q < Math.min(12, nn + 4); q++) S.draw.dot(c, gl.x + 14 + ((q * 53) % 100) / 100 * (bw - 28), gl.top - 1 + Math.sin(tm * 5 + q) * 1.5, 3.5, "rgba(255,255,255,.9)");
+      /* chrono + thermomètre */
+      var rx = bx + bw + 18;
+      C5.thermo(c, rx + 26, 60, 110, T.value, 0, 100, T.value + " °C");
+      S.draw.display(c, S.fmt(Math.min(p, 1) * te, 1) + " s", rx + 46, by + bh - 24, {w: 92, h: 46, caption: "chronomètre", size: 18});
+      S.draw.text(c, "temps réel simulé · 6 s d'animation = " + S.fmt(te, te < 10 ? 1 : 0) + " s", c.W / 2, 14, {size: 11.5, color: pal.grey});
       var xmax = 70, ax = S.draw.axes(g, {x0: 0, x1: xmax, y0: 0, y1: 1, xl: "t (s)", yl: "masse restante", stepX: 10, stepY: 0.25, l: 52});
       S.draw.fn(g, ax, function(t){ return Math.pow(Math.max(0, 1 - t / T0), 3); }, pal.grey, 1.8, [5, 4]);
       S.draw.fn(g, ax, function(t){ return Math.pow(Math.max(0, 1 - t / te), 3); }, pal.acc, 2.8);
       S.draw.text(g, "pointillés : n = 1, 20 °C (60 s)", ax.X(xmax) - 4, ax.Y(0.8), {size: 12, color: pal.grey, align: "right"});
       if (te <= xmax) S.draw.dot(g, ax.X(te), ax.Y(0), 6, pal.red); else S.draw.text(g, "disparition après " + xmax + " s (hors graphe)", ax.X(xmax) - 4, ax.Y(0.5), {size: 12, color: pal.red, align: "right"});
-      ro.set(0, Math.pow(n.value, 3)); ro.set(1, "× " + n.value); ro.set(2, "× " + S.fmt(fT, 2)); ro.set(3, S.fmt(te, te < 10 ? 2 : 1) + " s");
-      nt.set(te <= 5 ? "Défi réussi : moins de 5 s. Surface ×" + n.value + " et température ×" + S.fmt(fT, 1) + " se multiplient." : "Défi : fais descendre le temps sous 5 s (agis sur n ET sur T).", te <= 5 ? "ok" : "");
+      S.draw.dot(g, ax.X(Math.min(p * te, xmax)), ax.Y(rem), 5, pal.amber);
+      ro.set(0, Math.pow(nn, 3)); ro.set(1, "× " + nn); ro.set(2, "× " + S.fmt(fT, 2)); ro.set(3, S.fmt(te, te < 10 ? 2 : 1) + " s");
+      nt.set(te <= 5 ? "Défi réussi : moins de 5 s. Surface ×" + nn + " et température ×" + S.fmt(fT, 1) + " se multiplient." : "Défi : fais descendre le temps sous 5 s (agis sur n ET sur T).", te <= 5 ? "ok" : "");
     });
   }
 });
@@ -166,33 +182,53 @@ SFA.sim({
   piege: "L'instant du virage n'est pas la fin de la réaction : celle-ci a commencé dès le premier instant, mais elle était « cachée » par le thiosulfate. Le modèle suppose une vitesse constante pendant le délai et une règle « × 2 par 10 K » pour k (k(25 °C) = 5·10⁻³ L/(mol·s), valeur de la simulation).",
   build: function(k, S){
     var pal = S.draw.palette, K25 = 5e-3;
-    var c = k.canvas(180), g = k.canvas(190);
+    var c = k.canvas(320), g = k.canvas(190);
     var s2 = k.slider("[S₂O₈²⁻] dans le mélange", 0.02, 0.10, 0.01, 0.04, "mol/L");
     var iod = k.slider("[I⁻] dans le mélange", 0.02, 0.20, 0.01, 0.08, "mol/L");
     var thio = k.slider("[S₂O₃²⁻] (thiosulfate)", 0.001, 0.005, 0.001, 0.002, "mol/L");
     var T = k.slider("Température", 5, 50, 1, 25, "°C");
-    var clk = 0, running = false;
+    var clk = 0, running = false, defi = false, tm = 0;
     k.button("Lancer l'horloge", function(){ clk = 0; running = true; }, true);
-    k.button("Défi : virage à 30 s", function(){ s2.set(0.04); iod.set(0.08); thio.set(0.001); T.set(25); defi = true; });
-    var defi = false;
+    k.button("Défi : virage à 30 s", function(){ s2.set(0.04); iod.set(0.08); thio.set(0.001); T.set(25); defi = true; clk = 0; running = true; });
     var ro = k.readouts(["Vitesse de formation de I₂", "Délai avant virage", "Horloge"]);
     var nt = k.note("", "");
     function par(){ var kk = K25 * Math.pow(2, (T.value - 25) / 10), v = kk * s2.value * iod.value, td = thio.value / (2 * v); return {k: kk, v: v, td: td}; }
-    var lp = k.loop(function(dt){ if (running){ var P = par(); clk += dt * Math.max(1, P.td / 8); if (clk > P.td * 1.5){ running = false; clk = P.td * 1.5; } k.redraw(); } });
-    lp.play();
+    k.loop(function(dt, t){ tm = t; if (running){ var P = par(); clk += dt * Math.max(1, P.td / 8); if (clk > P.td * 1.5){ running = false; clk = P.td * 1.5; } } k.redraw(); }).play();
     k.draw(function(){
       var P = par(), td = P.td; c.clear(); g.clear();
-      var blue = clk >= td, ctx = c.ctx, bx = c.W / 2 - 70;
-      var inten = blue ? Math.min(1, (clk - td) / (td * 0.3) + 0.35) : 0;
-      ctx.fillStyle = blue ? "rgba(" + Math.round(40 - 30 * inten) + "," + Math.round(40 - 30 * inten) + "," + Math.round(120 - 60 * inten) + "," + (0.35 + 0.6 * inten) + ")" : "#eef6fb";
-      ctx.beginPath(); ctx.moveTo(bx, 20); ctx.lineTo(bx + 8, 160); ctx.lineTo(bx + 132, 160); ctx.lineTo(bx + 140, 20); ctx.closePath(); ctx.fill(); ctx.strokeStyle = pal.ink; ctx.lineWidth = 2.5; ctx.stroke();
-      S.draw.text(c, blue ? "bleu-noir !" : clk > 0 ? "incolore…" : "prêt", c.W / 2, 90, {size: 16, color: blue ? "#fff" : pal.grey});
-      S.draw.text(c, "t = " + S.fmt(clk, 0) + " s", c.W - 10, 14, {size: 13, align: "right"});
+      var blue = clk >= td, ctx = c.ctx, fx = c.W * 0.32, by = 250, inten = blue ? Math.min(1, (clk - td) / (td * 0.35) + 0.3) : 0;
+      C5.bench(c, by + 16);
+      /* plaque agitatrice + barreau aimanté qui tourne */
+      S.draw.rrect(c, fx - 78, by + 2, 156, 14, 5); ctx.fillStyle = "#3a4558"; ctx.fill();
+      /* erlenmeyer */
+      var neck = 17, top = 24, sh = 96, wid = 72;
+      ctx.save(); ctx.beginPath(); ctx.moveTo(fx - neck, top); ctx.lineTo(fx - neck, sh - 10); ctx.lineTo(fx - wid, by); ctx.lineTo(fx + wid, by); ctx.lineTo(fx + neck, sh - 10); ctx.lineTo(fx + neck, top);
+      ctx.fillStyle = "rgba(230,240,250,.4)"; ctx.fill(); ctx.clip();
+      var lvl = 130, gl = ctx.createLinearGradient(0, lvl, 0, by);
+      var cc = function(a){ return "rgba(" + Math.round(244 - 222 * inten) + "," + Math.round(238 - 208 * inten) + "," + Math.round(196 - 114 * inten) + "," + a + ")"; };
+      gl.addColorStop(0, cc(0.8)); gl.addColorStop(1, cc(0.95)); ctx.fillStyle = gl; ctx.fillRect(fx - wid, lvl, wid * 2, by - lvl);
+      if (running || blue){ ctx.strokeStyle = "rgba(255,255,255," + (0.25 + 0.2 * (1 - inten)) + ")"; ctx.lineWidth = 2; for (var s = 0; s < 3; s++){ ctx.beginPath(); ctx.arc(fx, by - 28, 14 + s * 14, tm * 2 + s, tm * 2 + s + 3); ctx.stroke(); } }
+      ctx.fillStyle = "rgba(255,255,255,.45)"; ctx.fillRect(fx - wid, lvl, wid * 2, 2.5);
+      ctx.restore();
+      ctx.save(); ctx.strokeStyle = "#51627a"; ctx.lineWidth = 2.6; ctx.lineJoin = "round"; ctx.beginPath(); ctx.moveTo(fx - neck - 4, top); ctx.lineTo(fx - neck, top); ctx.lineTo(fx - neck, sh - 10); ctx.lineTo(fx - wid, by); ctx.lineTo(fx + wid, by); ctx.lineTo(fx + neck, sh - 10); ctx.lineTo(fx + neck, top); ctx.lineTo(fx + neck + 4, top); ctx.stroke();
+      ctx.restore();
+      var ba = (running ? tm * 10 : 0), bxl = Math.cos(ba) * 22; ctx.strokeStyle = "#f4f6fa"; ctx.lineWidth = 5; ctx.lineCap = "round"; ctx.beginPath(); ctx.moveTo(fx - bxl, by - 6); ctx.lineTo(fx + bxl, by - 6); ctx.stroke();
+      S.draw.label(c, blue ? "bleu-noir !" : clk > 0 ? "incolore…" : "prêt", fx, 12, {color: blue ? pal.acc : pal.grey, size: 13});
+      /* panneau : chrono et réserve de thiosulfate */
+      var px = c.W * 0.32 + wid + 14, pw = c.W - px - 10, tleft = Math.max(0, Math.min(1, 1 - 2 * P.v * clk / thio.value));
+      S.draw.panel(c, px, 20, pw, 214, {title: "Dans le flacon", shadow: false});
+      S.draw.display(c, S.fmt(clk, 0) + " s", px + pw / 2, 74, {w: Math.min(110, pw - 16), h: 46, caption: "chronomètre", size: 20});
+      var gx = px + 14, gy = 112, gh = 104, gw = (pw - 36) / 2 - 4;
+      ctx.fillStyle = "#e3e7ed"; ctx.fillRect(gx, gy, gw, gh); ctx.fillStyle = "#4f7be0"; ctx.fillRect(gx, gy + gh * (1 - tleft), gw, gh * tleft);
+      var I2 = Math.max(0, P.v * clk - thio.value / 2), I2max = Math.max(1e-9, P.v * P.td * 1.5 - thio.value / 2), fI = Math.min(1, I2 / I2max);
+      ctx.fillStyle = "#e3e7ed"; ctx.fillRect(gx + gw + 8, gy, gw, gh); ctx.fillStyle = "#1c1c4a"; ctx.fillRect(gx + gw + 8, gy + gh * (1 - fI), gw, gh * fI);
+      S.draw.text(c, "S₂O₃²⁻", gx + gw / 2, gy + gh + 12, {size: 11, color: pal.grey}); S.draw.text(c, "I₂ libre", gx + gw * 1.5 + 8, gy + gh + 12, {size: 11, color: pal.grey});
       var xmax = td * 1.6, ax = S.draw.axes(g, {x0: 0, x1: xmax, y0: 0, y1: P.v * td * 1.6 * 1000 + 1e-9, xl: "t (s)", l: 50});
       S.draw.text(g, "[I₂] en mmol/L", 54, 10, {size: 12, align: "left", color: pal.grey});
       S.draw.fn(g, ax, function(t){ return P.v * t * 1000; }, pal.grey, 1.8, [5, 4]);
       S.draw.fn(g, ax, function(t){ return Math.max(0, P.v * t - thio.value / 2) * 1000; }, pal.acc, 3);
       S.draw.line(g, ax.X(td), ax.T, ax.X(td), ax.B, pal.red, 1.5, [4, 4]); S.draw.text(g, "virage", ax.X(td) + 4, ax.B - 12, {size: 12, color: pal.red, align: "left"});
+      if (clk > 0) S.draw.dot(g, ax.X(Math.min(clk, xmax)), ax.Y(P.v * Math.min(clk, xmax) * 1000), 5, pal.amber);
       S.draw.text(g, "I₂ formé (total)", ax.X(xmax) - 4, ax.Y(P.v * xmax * 1000) + 12, {size: 12, color: pal.grey, align: "right"}); S.draw.text(g, "I₂ libre", ax.X(xmax) - 4, ax.Y(Math.max(0, P.v * xmax - thio.value / 2) * 1000) + 24, {size: 12, color: pal.acc, align: "right"});
       ro.set(0, S.sci(P.v) + " mol/(L·s)"); ro.set(1, S.fmt(td, td < 10 ? 1 : 0) + " s"); ro.set(2, running ? "en cours (accéléré)" : blue ? "terminé" : "non lancée");
       var okd = Math.abs(td - 30) <= 3;

@@ -172,29 +172,56 @@ SFA.sim({
   build: function(k, S){
     var pal = S.draw.palette, CW = 4.18;
     var A = {
-      cac: ["Cacahuète", 24], noix: ["Noix", 27], choc: ["Chocolat noir", 23], sucre: ["Sucre", 17], pain: ["Pain", 11], huile: ["Huile", 38]
+      cac: ["Cacahuète", 24, "#c9a06a"], noix: ["Noix", 27, "#a97d52"], choc: ["Chocolat noir", 23, "#5a3a2a"], sucre: ["Sucre", 17, "#f2efe6"], pain: ["Pain", 11, "#d9b57a"], huile: ["Huile", 38, "#e8c840"]
     };
-    var c = k.canvas(230), g = k.canvas(190);
-    var al = k.select("Aliment", Object.keys(A).map(function(x){ return [x, A[x][0] + " (≈ " + A[x][1] + " kJ/g)"]; }), "cac");
-    var dm = k.slider("Masse d'aliment brûlée", 0.2, 2, 0.1, 0.8, "g");
+    var c = k.canvas(352), g = k.canvas(190);
+    var al = k.select("Aliment", Object.keys(A).map(function(x){ return [x, A[x][0] + " (≈ " + A[x][1] + " kJ/g)"]; }), "cac", function(){ rerun(); });
+    var dm = k.slider("Masse d'aliment brûlée", 0.2, 2, 0.1, 0.8, "g", function(){ rerun(); });
     var mw = k.slider("Eau dans la canette", 100, 300, 10, 200, "g");
     var eta = k.slider("Rendement du montage η", 10, 70, 5, 30, "%");
+    var burn = {p: 0, on: true};
+    function rerun(){ burn.p = 0; burn.on = true; }
+    k.button("Allumer l'aliment (relancer)", rerun, true);
     var ro = k.readouts(["Énergie libérée (réelle)", "Énergie reçue par l'eau", "ΔT de l'eau", "Valeur mesurée", "Valeur réelle"]);
     var nt = k.note("", "");
-    var tm = 0, lp = k.loop(function(dt, t){ tm = t; k.redraw(); }); lp.play();
+    var tm = 0;
+    k.loop(function(dt, t){ tm = t; if (burn.on){ burn.p += dt / 6; if (burn.p >= 1){ burn.p = 1; burn.on = false; } } k.redraw(); }).play();
     k.draw(function(){
-      var e = A[al.value][1], Qr = e * dm.value, Qe = Qr * eta.value / 100, dT = Qe * 1000 / (mw.value * CW), emes = Qe / dm.value;
+      var e = A[al.value][1], Qr = e * dm.value, Qe = Qr * eta.value / 100, dT = Qe * 1000 / (mw.value * CW), emes = Qe / dm.value, p = burn.p, ctx = c.ctx;
       c.clear(); g.clear();
-      var ctx = c.ctx, cx = c.W / 2, by = 190;
-      ctx.fillStyle = "#cfe4f6"; ctx.strokeStyle = pal.ink; ctx.lineWidth = 2.5; ctx.fillRect(cx - 50, 40, 100, 80); ctx.strokeRect(cx - 50, 40, 100, 80);
-      S.draw.text(c, "canette : " + mw.value + " g d'eau", cx, 30, {size: 12});
-      ctx.fillStyle = "#c9a77c"; ctx.fillRect(cx - 14, by - 20, 28, 20);
-      var fl = 20 + dm.value * 10;
-      for (var i = 0; i < 5; i++){ var h = fl * (1 - i * 0.15), w = 12 - i; ctx.beginPath(); ctx.ellipse(cx + Math.sin(tm * 6 + i) * 2, by - 20 - h / 2, w, h / 2, 0, 0, 6.3); ctx.fillStyle = i < 2 ? "rgba(255,180,50,.55)" : "rgba(255,110,40,.4)"; ctx.fill(); }
-      S.draw.text(c, A[al.value][0], cx, by + 14, {size: 12, color: pal.grey});
-      /* flèches d'énergie */
-      S.draw.arrow(c, cx + 14, by - 40, cx + 14, 126, pal.green, 3); S.draw.text(c, S.fmt(Qe, 1) + " kJ", cx + 24, 150, {size: 12, color: pal.green, align: "left"});
-      S.draw.arrow(c, cx + 36, by - 50, cx + 78, by - 100, pal.red, 2.5); S.draw.text(c, "perdu : " + S.fmt(Qr - Qe, 1) + " kJ", cx + 54, by - 108, {size: 12, color: pal.red, align: "left"});
+      var cx = c.W / 2 + 14, base = 276, Tnow = 20 + dT * p;
+      C5.bench(c, base);
+      /* potence */
+      ctx.fillStyle = "#5b6678"; ctx.fillRect(cx - 120, 20, 7, base - 20); S.draw.rrect(c, cx - 138, base - 8, 44, 10, 4); ctx.fill(); ctx.fillRect(cx - 120, 22, 86, 6);
+      /* canette (coupe) : eau qui se réchauffe */
+      var hot = Math.min(1, Math.max(0, (Tnow - 20) / 60)), wc = "rgb(" + Math.round(190 + 50 * hot) + "," + Math.round(224 - 30 * hot) + "," + Math.round(246 - 70 * hot) + ")";
+      C5.beaker(c, cx - 62, 30, 124, 138, wc, 0.84, {taper: 0});
+      S.draw.text(c, "canette : " + mw.value + " g d'eau", cx, 18, {size: 12, color: pal.grey});
+      C5.thermo(c, cx + 36, 44, 96, Tnow, 15, 100, S.fmt(Tnow, 1) + " °C");
+      /* aliment + flamme */
+      var left = Math.max(0, 1 - p), fl = (burn.on || p < 1) ? (30 + 28 * dm.value) * (0.55 + 0.45 * left) : 0;
+      ctx.fillStyle = "#6b7686"; ctx.fillRect(cx - 2, base - 22, 4, 22); ctx.beginPath(); ctx.moveTo(cx - 16, base); ctx.lineTo(cx + 16, base); ctx.lineTo(cx, base - 8); ctx.closePath(); ctx.fillStyle = "#4a5568"; ctx.fill();
+      ctx.beginPath(); ctx.ellipse(cx, base - 30, 13 * (0.4 + 0.6 * left), 8 * (0.4 + 0.6 * left), 0, 0, 6.3); ctx.fillStyle = left > 0.02 ? A[al.value][2] : "#33302c"; ctx.fill(); ctx.strokeStyle = "rgba(15,27,45,.4)"; ctx.stroke();
+      if (fl > 2){
+        var wob = Math.sin(tm * 9) * 2.5;
+        S.draw.glow(c, cx, base - 30 - fl / 2, 46 + fl * 0.4, "#ffb23a", 0.35);
+        ctx.fillStyle = "rgba(255,120,30,.8)"; C5.flame(ctx, cx, base - 34, fl, 12 + fl * 0.08, wob); ctx.fill();
+        ctx.fillStyle = "rgba(255,210,70,.9)"; C5.flame(ctx, cx, base - 34, fl * 0.7, 7 + fl * 0.04, wob * 0.7); ctx.fill();
+        ctx.fillStyle = "rgba(80,110,255,.8)"; C5.flame(ctx, cx, base - 34, fl * 0.25, 4, 0); ctx.fill();
+      }
+      S.draw.text(c, A[al.value][0], cx, base + 16, {size: 12, color: pal.grey});
+      /* flux d'énergie : utile (vert) et perdue (rouge) */
+      var fu = 10 + 60 * eta.value / 100, fp = 10 + 60 * (1 - eta.value / 100);
+      S.draw.arrow(c, cx + 2, base - 34 - fl - 4, cx + 2, 176, pal.green, 3.4);
+      S.draw.label(c, S.fmt(Qe, 1) + " kJ utiles", cx + 12, 186, {color: pal.green, align: "left", size: 12});
+      S.draw.arrow(c, cx - 22, base - 70, cx - 22 - fp * 0.8, base - 100, pal.red, 3); S.draw.arrow(c, cx + 24, base - 70, cx + 24 + fp * 0.8, base - 100, pal.red, 3);
+      S.draw.label(c, "perdu : " + S.fmt(Qr - Qe, 1) + " kJ", cx - 32, base - 78, {color: pal.red, align: "right", size: 12});
+      /* balance */
+      S.draw.display(c, S.fmt(dm.value + 0.6 - dm.value * p, 2) + " g", 62, base - 30, {w: 98, h: 46, caption: "balance (aliment)", size: 18});
+      /* bilan : part utile / perdue */
+      var bw = c.W - 40, yb = base + 36;
+      ctx.fillStyle = pal.red; ctx.fillRect(20, yb, bw, 12); ctx.fillStyle = pal.green; ctx.fillRect(20, yb, bw * eta.value / 100, 12);
+      S.draw.text(c, "η = " + eta.value + " % reçus par l'eau", 24, yb + 22, {size: 11.5, color: pal.green, align: "left"}); S.draw.text(c, (100 - eta.value) + " % perdus", c.W - 24, yb + 22, {size: 11.5, color: pal.red, align: "right"});
       var ax = S.draw.axes(g, {x0: 0, x1: 2, y0: 0, y1: 120, xl: "masse brûlée (g)", yl: "ΔT (K)", stepX: 0.5, stepY: 20, l: 50});
       S.draw.fn(g, ax, function(x){ return e * x * eta.value / 100 * 1000 / (mw.value * CW); }, pal.acc, 2.6);
       S.draw.line(g, ax.X(0), ax.Y(80), ax.X(2), ax.Y(80), pal.red, 1, [3, 4]); S.draw.dot(g, ax.X(dm.value), ax.Y(Math.min(dT, 120)), 6, pal.red);
