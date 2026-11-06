@@ -105,17 +105,24 @@ SFA.sim({
   id:"b3-c09-bocal", ch:"c09", tag:"Défi",
   titre:"Un écosystème en bocal : équilibre ou effondrement ?",
   resume:"Plantes, animaux, lumière : peut-on fermer un bocal et le laisser vivre un mois ?",
-  but:"Règle la masse de plantes, le nombre d'animaux et l'éclairage. Défi : garde les animaux en vie pendant 30 jours.",
+  but:"Règle la masse de plantes, le nombre d'escargots et l'éclairage, puis fais défiler les jours (ou lance le film). Défi : garde tous les animaux en vie pendant 30 jours.",
   aRetenir:"Un bocal fermé échange de l'énergie (lumière) mais pas de matière : pour durer, la photosynthèse des plantes doit produire autant de O₂ que la respiration de tous les êtres vivants en consomme. Trop d'animaux, trop peu de plantes ou trop peu de lumière : le dioxygène s'épuise et les animaux meurent.",
   piege:"Les plantes respirent aussi, jour et nuit. Et l'équilibre n'est pas figé : un léger déséquilibre s'accumule jour après jour. (Modèle très simplifié : CO₂ supposé non limitant, nourriture non modélisée, plantes toujours vivantes.)",
   build:function(k,S){
-    var c1 = k.canvas(210), c2 = k.canvas(130);
+    var cj = k.canvas(0,{ratio:.74}), c1 = k.canvas(190), c2 = k.canvas(110);
     var pl = k.slider("Plantes (masse)", 5, 60, 1, 24, "g");
     var an = k.slider("Animaux (escargots)", 0, 20, 1, 5, "");
     var li = k.slider("Intensité lumineuse", 10, 100, 5, 70, "%");
     var ph = k.slider("Heures d'éclairage par jour", 0, 24, 1, 12, "h");
+    var dy = k.slider("Jour affiché", 0, 30, 1, 0, "j");
     var ro = k.readouts(["O₂ produit par jour (brut)","O₂ consommé par jour","Bilan par jour","Issue après 30 jours"]);
     var nt = k.note("","");
+    var bub=[], seed=9, play=false;
+    function rnd(){ seed=(seed*16807)%2147483647; return seed/2147483647; }
+    k.button("Lancer le film (30 jours)", function(){ if (dy.value>=30) dy.set(0); play=!play; lp.play(); }, true);
+    var lp = k.loop(function(dt){ if (play){ var nd=dy.value+dt*2.2; if (nd>=30){ nd=30; play=false; } dy.set(nd); }
+      var on = (li.value>0 && ph.value>0); if (on && rnd()<dt*pl.value*.25) bub.push({x:.28+rnd()*.44,y:.58,a:0});
+      bub.forEach(function(b){ b.a+=dt; b.y-=dt*.12; b.x+=Math.sin(b.a*4+b.x*10)*.0007; }); bub=bub.filter(function(b){ return b.y>.2 && b.a<5; }); k.redraw(); }); lp.play();
     var VG = 2000, TOT = .2094*VG;
     function f(l){ return 1.3*l/(l+30); }
     function run(){
@@ -127,8 +134,40 @@ SFA.sim({
       }
       return out;
     }
+    function scene(o2d,nd){
+      var g=cj.ctx, W=cj.W, H=cj.H, tt=Date.now()/1000; cj.clear();
+      var bgc=g.createLinearGradient(0,0,0,H); bgc.addColorStop(0,"#eef3f8"); bgc.addColorStop(1,"#dfe8f0"); g.fillStyle=bgc; g.fillRect(0,0,W,H);
+      g.fillStyle="#b9a182"; g.fillRect(0,H*.92,W,H*.08);
+      var jx=W*.24, jw=W*.52, jy=H*.2, jh=H*.7, k1=Math.max(0,Math.min(1,(o2d-8)/13));
+      /* lampe */
+      var Lv=li.value/100*(ph.value>0?1:0); g.fillStyle="#6b7686"; g.fillRect(W*.43,H*.02,W*.14,6); g.fillStyle="#6b7686"; g.beginPath(); g.moveTo(W*.4,H*.02+6); g.lineTo(W*.6,H*.02+6); g.lineTo(W*.56,H*.1); g.lineTo(W*.44,H*.1); g.closePath(); g.fill();
+      if (Lv>0){ var bm=g.createLinearGradient(0,H*.1,0,H*.7); bm.addColorStop(0,"rgba(255,235,140,"+(.55*Lv)+")"); bm.addColorStop(1,"rgba(255,235,140,0)"); g.fillStyle=bm; g.beginPath(); g.moveTo(W*.44,H*.1); g.lineTo(W*.56,H*.1); g.lineTo(jx+jw,H*.8); g.lineTo(jx,H*.8); g.closePath(); g.fill(); }
+      D.glow(cj,W*.5,H*.1,40,"#f4c542",.15+.55*Lv);
+      D.label(cj,Lv>0?"lumière "+li.value+" % · "+ph.value+" h/jour":"lampe éteinte",W*.5,H*.015+0,{size:10.5,color:P.ink,base:"top"});
+      /* air du bocal */
+      g.save(); D.rrect(cj,jx,jy,jw,jh,18); g.clip(); g.fillStyle="rgba(190,225,245,"+(.3+.2*k1)+")"; g.fillRect(jx,jy,jw,jh); if (k1<.55){ g.fillStyle="rgba(110,95,70,"+(.45*(1-k1/.55))+")"; g.fillRect(jx,jy,jw,jh); }
+      g.fillStyle="#8a6a45"; g.fillRect(jx,jy+jh*.82,jw,jh*.18); g.fillStyle="#6f5434"; for (var i=0;i<14;i++){ g.beginPath(); g.arc(jx+((i*.071+.05)%1)*jw,jy+jh*(.86+(i%3)*.05),2.5,0,6.3); g.fill(); }
+      /* plantes */
+      var np=Math.max(1,Math.round(pl.value/8));
+      for (i=0;i<np;i++){ var px=jx+jw*(.12+.76*(i+.5)/np), ph2=jh*(.28+.3*((i*37)%5)/5); g.strokeStyle="#3f8f4a"; g.lineWidth=3; g.beginPath(); g.moveTo(px,jy+jh*.82); g.quadraticCurveTo(px+Math.sin(tt+i)*3,jy+jh*.82-ph2*.6,px,jy+jh*.82-ph2); g.stroke();
+        for (var q=0;q<4;q++){ var yy=jy+jh*.82-ph2*(q+1)/4.6, sd=q%2?1:-1; g.fillStyle=q%2?"#4ea65b":"#3a8f4f"; g.beginPath(); g.ellipse(px+sd*11,yy,12,5,sd*-.5,0,6.3); g.fill(); } }
+      /* escargots */
+      for (i=0;i<an.value;i++){ var alive=i<nd, sx=jx+jw*.1+((i*0.137+.05)%.8)*jw+(alive?Math.sin(tt*.4+i)*6:0), sy=jy+jh*.82+4; g.globalAlpha=alive?1:.35;
+        g.fillStyle=alive?"#d9b383":"#999"; g.beginPath(); g.ellipse(sx,sy,9,3.2,0,0,6.3); g.fill(); g.fillStyle=alive?"#b9783d":"#888"; g.beginPath(); g.arc(sx-2,sy-5,6,0,6.3); g.fill(); g.strokeStyle="#6b3f17"; g.lineWidth=1; g.beginPath(); g.arc(sx-2,sy-5,3.2,0,5); g.stroke(); g.globalAlpha=1; }
+      bub.forEach(function(b){ g.globalAlpha=.8; g.beginPath(); g.arc(jx+(b.x-.24)/.52*jw*.0+b.x*W*1-jx*0,jy+(b.y-.2)/.7*jh*0+b.y*H,2.6,0,6.3); g.strokeStyle=P.acc; g.lineWidth=1.3; g.stroke(); g.globalAlpha=1; });
+      g.restore();
+      D.rrect(cj,jx,jy,jw,jh,18); g.strokeStyle="#7fa3bd"; g.lineWidth=3; g.stroke(); g.fillStyle="#8b5a2b"; D.rrect(cj,jx+jw*.2,jy-12,jw*.6,16,5); g.fill();
+      /* jauge O2 */
+      var gx=W-34, gt=H*.2, gh=H*.62; D.rrect(cj,gx,gt,14,gh,7); g.fillStyle="#fff"; g.fill(); g.strokeStyle="#aab4c1"; g.lineWidth=1.5; g.stroke();
+      var fh=gh*Math.min(1,o2d/30); g.save(); D.rrect(cj,gx,gt,14,gh,7); g.clip(); g.fillStyle=o2d<12?P.red:P.acc; g.fillRect(gx,gt+gh-fh,14,fh); g.restore();
+      g.strokeStyle=P.red; g.lineWidth=2; g.beginPath(); g.moveTo(gx-6,gt+gh*(1-12/30)); g.lineTo(gx+20,gt+gh*(1-12/30)); g.stroke();
+      D.text(cj,"O₂",gx+7,gt-10,{size:11,color:P.ink}); D.text(cj,S.fmt(o2d,1)+" %",gx+7,gt+gh+12,{size:11,color:o2d<12?P.red:P.ink}); D.text(cj,"12 %",gx-12,gt+gh*(1-12/30),{size:10.5,color:P.red,align:"right"});
+      D.label(cj,"jour "+Math.round(dy.value)+" · "+nd+" / "+an.value+" escargots vivants",10,H-12,{size:11.5,color:nd<an.value?P.red:P.green,align:"left"});
+    }
     k.draw(function(){
       var o = run(), g1 = pl.value*.9*f(li.value)*ph.value, rp = pl.value*.1*24, ra = an.value*1.5*24, last = o[o.length-1];
+      var di = Math.max(0,Math.min(29,Math.floor(dy.value))), o2d = o[di][1]+(o[Math.min(30,di+1)][1]-o[di][1])*(dy.value-di), nd = Math.round(o[Math.min(30,Math.round(dy.value))][2]);
+      scene(o2d,nd);
       c1.clear(); var ax = D.axes(c1,{x0:0,x1:30,y0:0,y1:35,xl:"jour",yl:"O₂ dans l'air (%)",stepX:5,stepY:10,l:50});
       c1.ctx.fillStyle = "rgba(180,35,24,.09)"; c1.ctx.fillRect(ax.L,ax.Y(12),ax.R-ax.L,ax.Y(0)-ax.Y(12)); T(c1,"zone mortelle (< 12 %)",ax.R-4,ax.Y(6),{size:12,align:"right",color:P.red});
       D.fn(c1,ax,function(x){ var j = Math.min(29,Math.floor(x)), f = x-j; return o[j][1]+(o[j+1][1]-o[j][1])*f; },P.acc,3);

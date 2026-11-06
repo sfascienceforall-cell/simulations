@@ -96,14 +96,14 @@ SFA.sim({
 
 /* ===== 3 · Circuit du nutriment ===== */
 SFA.sim({
-  id:"b3-c04-circuit", ch:"c04", tag:"Animation",
+  id:"b3-c04-circuit", ch:"c04", tag:"Animation · corps humain",
   titre:"Suivre un nutriment de l'intestin aux organes",
   resume:"Glucose ou graisse : deux routes différentes au départ de l'intestin. Qui passe par le foie en premier ?",
-  but:"Choisis un nutriment, lance le trajet ou avance étape par étape. Lis la concentration relative à chaque étape.",
+  but:"Choisis un nutriment, lance le trajet ou avance étape par étape. Touche un organe sur le schéma pour sauter à cette étape. Lis la concentration relative à chaque étape.",
   aRetenir:"Glucose et acides aminés traversent la paroi dans les capillaires sanguins, rejoignent la veine porte et passent par le foie avant le cœur : le foie filtre, stocke et régule. Les graisses (acides gras, glycérol) sont reconstituées dans la cellule et empruntent les vaisseaux chylifères puis la lymphe, et rejoignent le sang près du cœur, sans passer d'abord par le foie.",
   piege:"Le sang quittant l'intestin ne va pas directement au cœur : il passe d'abord par le foie (veine porte). Lymphe et sang sont deux liquides circulants différents. (Concentrations relatives indicatives.)",
   build:function(k,S){
-    var c = k.canvas(360);
+    var c = k.canvas(0,{ratio:1.15});
     var nu = k.seg("Nutriment", [["g","Glucose"],["a","Acides aminés"],["l","Lipides (graisses)"]], "g", function(){ st.set(0); lp.pause(); t = 0; });
     var st = k.slider("Étape du trajet", 0, 8, 1, 0, "", function(){ t = st.value; });
     var t = 0;
@@ -111,7 +111,10 @@ SFA.sim({
     k.button("▶ Lire le trajet", function(){ if (lp.running) lp.pause(); else { if (t>=8) t = 0; lp.play(); } }, true);
     var ro = k.readouts(["Où est le nutriment ?","Concentration relative"]);
     var nt = k.note("","");
-    var POS = []; for (var pi=0; pi<9; pi++) POS.push([.5,(pi*38+24)/360]);
+    var PTS = {
+      sang:[[.5,.82],[.4,.71],[.28,.6],[.36,.49],[.44,.4],[.73,.24],[.56,.41],[.5,.25],[.5,.07]],
+      lymphe:[[.5,.82],[.62,.73],[.65,.58],[.63,.3],[.44,.4],[.73,.24],[.56,.41],[.5,.25],[.5,.07]]
+    };
     var R = {
       sang:{lab:["Villosité (capillaire)","Veine porte","Foie","Veine cave inférieure","Cœur (droit)","Poumons","Cœur (gauche)","Aorte","Organes"],
         txt:["Le nutriment traverse la paroi intestinale et entre dans un capillaire sanguin de la villosité.","Les veines de l'intestin se réunissent en la veine porte, qui mène directement au foie.","Le foie capte, stocke (glycogène, réserves) et transforme : premier filtre.","Le sang sorti du foie repart par la veine cave inférieure.","Il arrive dans le cœur droit.","Le cœur droit l'envoie aux poumons, où il se recharge en dioxygène.","Retour au cœur gauche.","Le cœur gauche propulse le sang dans l'aorte, vers tout le corps.","Les cellules des organes reçoivent le nutriment et l'utilisent."]},
@@ -119,18 +122,38 @@ SFA.sim({
         txt:["Les graisses reconstituées sont absorbées dans le chylifère central de la villosité.","Elles gagnent les vaisseaux lymphatiques de l'intestin.","La lymphe laiteuse circule dans les vaisseaux lymphatiques et le canal thoracique.","La lymphe se déverse dans une veine près du cœur (veine sous-clavière).","Le mélange entre dans le cœur droit : pas de passage direct par le foie.","Les poumons.","Cœur gauche.","L'aorte distribue vers tout le corps (le foie reçoit alors sa part par l'artère hépatique).","Les cellules et le tissu adipeux utilisent ou stockent les graisses."]}
     };
     var CONC = {g:[100,100,66,66,66,66,66,66,66], a:[100,100,60,60,60,60,60,60,60], l:[100,100,100,100,100,100,100,100,100]};
+    var cur = function(){ return nu.value==="l" ? "lymphe" : "sang"; };
+    c.pointer(function(type,p){ if (type!=="down") return; var pts = PTS[cur()], best=-1, bd=30; pts.forEach(function(q,i){ var d=Math.hypot(p.x-q[0]*c.W,p.y-q[1]*c.H); if (d<bd){ bd=d; best=i; } }); if (best>=0){ lp.pause(); t=best; st.set(best); k.redraw(); } });
+    function blob(g,pts,fill,stroke){ g.beginPath(); g.moveTo(pts[0][0],pts[0][1]); for (var i=1;i<=pts.length;i++){ var a=pts[i-1], b=pts[i%pts.length]; g.quadraticCurveTo(a[0],a[1],(a[0]+b[0])/2,(a[1]+b[1])/2); } g.closePath(); g.fillStyle=fill; g.fill(); if (stroke){ g.strokeStyle=stroke; g.lineWidth=1.4; g.stroke(); } }
     k.draw(function(){
-      c.clear(); var g = c.ctx, key = nu.value==="l" ? "lymphe" : "sang", r = R[key], s = Math.round(st.value), col = key==="sang" ? P.red : P.amber, i;
-      var bw = Math.min(240, c.W-70), bx = function(j){ return c.W/2+14; }, by = function(j){ return POS[j][1]*c.H; };
-      g.save(); g.strokeStyle = col; g.lineWidth = 5; g.lineJoin="round"; g.globalAlpha = .35; g.beginPath(); for (i=0;i<9;i++){ if (i) g.lineTo(bx(i),by(i)); else g.moveTo(bx(i),by(i)); } g.stroke(); g.restore();
-      for (i=0;i<9;i++){
-        var act = i===s;
-        rect(c,bx(i)-bw/2,by(i)-14,bw,28,act?"#efe3ff":"#fff",act?P.violet:(i<s?col:P.grey),act?3:1.5,8);
-        T(c,r.lab[i],bx(i),by(i),{size:12,color:i<=s?P.ink:P.grey});
-      }
-      var a = Math.min(8,Math.floor(t)), b = Math.min(8,a+1), u = t-a, dx, dy;
-      if (lp.running){ dx = bx(a)+(bx(b)-bx(a))*u; dy = by(a)+(by(b)-by(a))*u; } else { dx = bx(s)-bw/2-12; dy = by(s); if (dx<10) dx = bx(s)+bw/2+12; }
-      circ(c,dx,dy,8,"#fff",P.ink,2.5); circ(c,dx,dy,3.5,col);
+      c.clear(); var g = c.ctx, W=c.W, H=c.H, key = cur(), r = R[key], pts = PTS[key].map(function(q){ return [q[0]*W,q[1]*H]; }), s = Math.round(st.value), col = key==="sang" ? "#c0321d" : "#d99a1c", i;
+      var bgc=g.createLinearGradient(0,0,0,H); bgc.addColorStop(0,"#eef4fb"); bgc.addColorStop(1,"#e6eef8"); g.fillStyle=bgc; g.fillRect(0,0,W,H);
+      /* silhouette */
+      g.fillStyle="#fbe9dc"; g.strokeStyle="#e3c8b4"; g.lineWidth=2;
+      g.beginPath(); g.arc(W*.5,H*.075,W*.085,0,6.3); g.fill(); g.stroke();
+      g.beginPath(); g.moveTo(W*.3,H*.17); g.quadraticCurveTo(W*.5,H*.13,W*.7,H*.17); g.quadraticCurveTo(W*.82,H*.4,W*.7,H*.92); g.lineTo(W*.3,H*.92); g.quadraticCurveTo(W*.18,H*.4,W*.3,H*.17); g.closePath(); g.fill(); g.stroke();
+      /* organes */
+      var u=W/380;
+      blob(g,[[W*.3,H*.2],[W*.4,H*.17],[W*.43,H*.3],[W*.38,H*.4],[W*.3,H*.38],[W*.27,H*.28]],"#f3b6b6","#d98787");
+      blob(g,[[W*.58,H*.17],[W*.7,H*.2],[W*.74,H*.3],[W*.68,H*.4],[W*.6,H*.38],[W*.57,H*.28]],"#f3b6b6","#d98787");
+      var onLiver = key==="sang";
+      blob(g,[[W*.18,H*.55],[W*.3,H*.5],[W*.4,H*.56],[W*.36,H*.64],[W*.24,H*.66]],onLiver?"#b9674a":"#cfa591","#7a3d27");
+      g.strokeStyle="#e5a0a0"; g.lineWidth=11*u; g.lineCap="round"; g.lineJoin="round"; g.beginPath();
+      g.moveTo(W*.37,H*.76); g.bezierCurveTo(W*.37,H*.7,W*.63,H*.7,W*.63,H*.76); g.bezierCurveTo(W*.65,H*.83,W*.52,H*.78,W*.5,H*.84); g.bezierCurveTo(W*.46,H*.89,W*.35,H*.84,W*.37,H*.76); g.stroke();
+      g.strokeStyle="#f3c4c4"; g.lineWidth=6*u; g.stroke();
+      g.fillStyle="#d4455b"; g.strokeStyle="#8f2338"; g.lineWidth=1.5; g.beginPath(); g.moveTo(W*.5,H*.46); g.bezierCurveTo(W*.38,H*.36,W*.44,H*.31,W*.5,H*.37); g.bezierCurveTo(W*.58,H*.31,W*.64,H*.36,W*.5,H*.46); g.fill(); g.stroke();
+      D.text(c,"foie",W*.2,H*.64,{size:11,color:"#6e3523"}); D.text(c,"poumon",W*.34,H*.2,{size:10.5,color:"#a35050"}); D.text(c,"poumon",W*.64,H*.2,{size:10.5,color:"#a35050"});
+      D.text(c,"cœur",W*.5,H*.44,{size:10.5,color:"#fff"}); D.text(c,"intestin grêle",W*.5,H*.9,{size:10.5,color:"#a35050"});
+      /* route */
+      g.save(); g.strokeStyle=col; g.lineWidth=5; g.lineJoin="round"; g.lineCap="round"; g.globalAlpha=.3; g.beginPath(); pts.forEach(function(q,j){ j?g.lineTo(q[0],q[1]):g.moveTo(q[0],q[1]); }); g.stroke(); g.restore();
+      g.save(); g.strokeStyle=col; g.lineWidth=5; g.lineJoin="round"; g.lineCap="round"; g.beginPath(); for (i=0;i<=Math.min(8,Math.floor(t));i++){ i?g.lineTo(pts[i][0],pts[i][1]):g.moveTo(pts[i][0],pts[i][1]); } if (t<8 && t>Math.floor(t)){ var a0=Math.floor(t),uu=t-a0; g.lineTo(pts[a0][0]+(pts[a0+1][0]-pts[a0][0])*uu,pts[a0][1]+(pts[a0+1][1]-pts[a0][1])*uu); } g.stroke(); g.restore();
+      for (i=0;i<9;i++){ var act=i===s; g.beginPath(); g.arc(pts[i][0],pts[i][1],act?9:6,0,6.3); g.fillStyle=act?"#fff":(i<s?col:"#fff"); g.fill(); g.lineWidth=act?3:2; g.strokeStyle=act?P.violet:(i<=s?col:P.grey); g.stroke(); }
+      var a = Math.min(8,Math.floor(t)), b = Math.min(8,a+1), uu2 = t-a, dx = pts[a][0]+(pts[b][0]-pts[a][0])*uu2, dy = pts[a][1]+(pts[b][1]-pts[a][1])*uu2;
+      D.glow(c,dx,dy,22,col,.5); g.beginPath(); g.arc(dx,dy,7,0,6.3); g.fillStyle=col; g.fill(); g.lineWidth=2.5; g.strokeStyle="#fff"; g.stroke();
+      /* bulle d'étape */
+      var lab = (s+1)+". "+r.lab[s]; var bx = Math.min(W-12, Math.max(12, pts[s][0])); var left = pts[s][0] > W*.5;
+      D.label(c,lab,left?pts[s][0]-14:pts[s][0]+14,pts[s][1]-(s===8?-18:0),{size:11.5,color:P.violet,align:left?"right":"left"});
+      D.label(c,key==="sang"?"route du sang":"route de la lymphe",8,H*.97,{size:11.5,color:col,align:"left"});
       ro.set(0,r.lab[s]); ro.set(1,CONC[nu.value][s]+" %");
       nt.set(r.txt[s], "ok");
     });

@@ -96,35 +96,50 @@ SFA.sim({
   aRetenir:"La loi de vitesse est celle de l’étape LENTE (plus haute barrière). Un intermédiaire n’apparaît ni dans le bilan ni dans la loi finale : on l’élimine par un pré-équilibre rapide. Les ordres du mécanisme doivent concorder avec l’expérience.",
   piege:"Lire les ordres dans les coefficients du bilan (2 NO + O₂ → ordre 3 ?) : un bilan n’est pas une étape élémentaire. Un mécanisme n’est jamais « prouvé », seulement compatible avec la loi de vitesse mesurée.",
   build:function(k,S){
-    var c = k.canvas(260);
+    var c = k.canvas(0, {ratio:1.2});
     var m = k.seg("Mécanisme",[["no","NO + O₂"],["o3","Ozone"],["sn","SN1 (bromure de tert-butyle)"]],"no");
     var sl = k.seg("Étape lente",[["1","Étape 1"],["2","Étape 2"]],"2");
     var fa = k.slider("Facteur sur la 1<sup>re</sup> concentration",0.5,4,0.5,2,"×");
     var fb = k.slider("Facteur sur la 2<sup>e</sup> concentration",0.5,4,0.5,1,"×");
     var ro = k.readouts(["v / v₀"]);
     var nt = k.note("","");
+    k.button("Rejouer", function(){ tm = 0; lp.play(); });
+    var tm = 0, key = "";
+    var lp = k.loop(function(dt){ tm += dt * 1.6; if (tm > 14) tm = 14; k.redraw(); }); lp.play();
     k.draw(function(){
-      var d=MECA[m.value]; c.clear();
-      var slow=sl.value, W=c.W, ctx=c.ctx;
-      /* profil : réactifs 0, I niveau 25, produits -20 ; barrières selon l'étape lente */
+      var d=MECA[m.value], slow=sl.value, W=c.W, H=c.H, ctx=c.ctx, Pl=P(), sh=Math.round(H*0.5);
+      if (key !== m.value + slow){ key = m.value + slow; tm = 0; lp.play(); }
+      UC.bg(c, "#f8fafd", "#ffffff");
+      /* populations : R → I (k1) → P (k2) */
+      var k1 = slow==="1" ? 0.3 : 3, k2 = slow==="2" ? 0.3 : 3, T = Math.min(tm, 10);
+      function pops(t){ var R_ = Math.exp(-k1 * t), I_ = k1 / (k2 - k1) * (Math.exp(-k1 * t) - Math.exp(-k2 * t)); return [R_, I_, Math.max(0, 1 - R_ - I_)]; }
+      var pp = pops(T);
       var e1 = slow==="1"?90:45, e2 = slow==="2"?95:40;
-      var pts=[[0,0],[1,e1],[2,25],[3,25+e2],[4,-20]];
-      var X=function(t){ return 50+t/4*(W-80); }, Y=function(e){ return c.H-40-(e+25)/150*(c.H-70); };
-      ctx.save(); ctx.strokeStyle="#8a95a3"; ctx.lineWidth=1.2; ctx.beginPath(); ctx.moveTo(40,10); ctx.lineTo(40,c.H-30); ctx.lineTo(W-14,c.H-30); ctx.stroke(); ctx.restore();
-      S.draw.text(c,"énergie",42,12,{size:11,align:"left",color:P().grey}); S.draw.text(c,"coordonnée de réaction",W-14,c.H-12,{size:11,align:"right",color:P().grey});
-      /* tracé propre par segments (2 collines) */
-      ctx.save(); ctx.strokeStyle=P().acc; ctx.lineWidth=2.8; ctx.beginPath();
+      var X=function(t){ return 40+t/4*(W-70); }, Y=function(e){ return sh-30-(e+25)/150*(sh-52); };
+      ctx.save(); ctx.strokeStyle="#8a95a3"; ctx.lineWidth=1.2; ctx.beginPath(); ctx.moveTo(32,8); ctx.lineTo(32,sh-18); ctx.lineTo(W-10,sh-18); ctx.stroke(); ctx.restore();
+      S.draw.text(c,"énergie",36,10,{size:10.5,align:"left",color:Pl.grey}); S.draw.text(c,"coordonnée de réaction",W-10,sh-6,{size:10,align:"right",color:Pl.grey});
+      ctx.save(); ctx.strokeStyle=Pl.acc; ctx.lineWidth=2.8; ctx.beginPath();
       function hill(xa,ya,xb,yb,top){ for (var i=0;i<=40;i++){ var u=i/40, x=xa+(xb-xa)*u, y=ya+(yb-ya)*(3*u*u-2*u*u*u)+(top-(ya+yb)/2)*Math.sin(Math.PI*u); var px=X(x), py=Y(y); if (i===0&&xa===0) ctx.moveTo(px,py); else ctx.lineTo(px,py); } }
-      hill(0,0,2,25,e1); hill(2,25,4,-20,25+e2);
-      ctx.stroke(); ctx.restore();
-      S.draw.text(c,"réactifs",X(0)+16,Y(0)+14,{size:11,color:P().ink,weight:700}); S.draw.text(c,"intermédiaire "+d.i,X(2),Y(25)+16,{size:11,color:P().ink,weight:700}); S.draw.text(c,"produits",X(4)-18,Y(-20)+14,{size:11,color:P().ink,weight:700});
-      S.draw.label(c,slow==="1"?"TS₁ : étape LENTE":"TS₁",X(1),Y(e1)-14,{size:11,color:slow==="1"?P().red:P().grey});
-      S.draw.label(c,slow==="2"?"TS₂ : étape LENTE":"TS₂",X(3),Y(25+e2)-14,{size:11,color:slow==="2"?P().red:P().grey});
+      hill(0,0,2,25,e1); hill(2,25,4,-20,25+e2); ctx.stroke(); ctx.restore();
+      var st3 = [[0,0,"#c0321d"],[2,25,"#c26a0c"],[4,-20,"#24775a"]];
+      st3.forEach(function(s3, i){ var r = 3 + 16 * Math.sqrt(pp[i]); if (pp[i] > 0.005){ S.draw.glow(c, X(s3[0]), Y(s3[1]) - r, r * 1.8, s3[2], 0.25); UC.ball(ctx, X(s3[0]), Y(s3[1]) - r, r, s3[2]); } });
+      S.draw.text(c,"réactifs",X(0)+22,Y(0)+10,{size:10.5,color:Pl.ink,weight:700}); S.draw.text(c,d.i,X(2),Y(25)+12,{size:10.5,color:Pl.ink,weight:700,math:true}); S.draw.text(c,"produits",X(4)-20,Y(-20)+10,{size:10.5,color:Pl.ink,weight:700});
+      S.draw.label(c,slow==="1"?"TS₁ : LENTE":"TS₁",X(1),Y(e1)-14,{size:10.5,color:slow==="1"?Pl.red:Pl.grey});
+      S.draw.label(c,slow==="2"?"TS₂ : LENTE":"TS₂",X(3),Y(25+e2)-14,{size:10.5,color:slow==="2"?Pl.red:Pl.grey});
+      /* cinétique : fractions de R, I, P au cours du temps */
+      var c2 = {ctx:ctx, W:W, H:H - sh, clear:function(){}};
+      ctx.save(); ctx.translate(0, sh);
+      var ax = S.draw.axes(c2, {x0:0,x1:10,y0:0,y1:1,xl:"temps",yl:"fraction",stepX:2,stepY:0.25,l:40,r:14,t:16,b:30});
+      [[0,"#c0321d","réactif"],[1,"#c26a0c","intermédiaire"],[2,"#24775a","produit"]].forEach(function(sp){ S.draw.fn(c2, ax, function(t){ return pops(t)[sp[0]]; }, sp[1], 2.4); });
+      S.draw.line(c2, ax.X(T), ax.T, ax.X(T), ax.B, Pl.grey, 1.2, [3,3]);
+      [0,1,2].forEach(function(i2){ S.draw.dot(c2, ax.X(T), ax.Y(pp[i2]), 4.5, st3[i2][2]); });
+      S.draw.legend(c2, [["#c0321d","réactif"],["#c26a0c","intermédiaire"],["#24775a","produit"]], ax.R - 4, ax.T + 4, {align:"right"});
+      ctx.restore();
       var a = m.value==="o3" ? {O3:fa.value,O2:fb.value} : m.value==="sn" ? {RBr:fa.value,OH:fb.value,Br:1} : {NO:fa.value,O2:fb.value};
       var ratio = slow==="1" ? d.f1(a) : d.f2(a);
       ro.set(0,"× "+S.fmt(ratio,2));
       var first=m.value==="no"?"[NO]":m.value==="o3"?"[O₃]":"[RBr]", second=m.value==="no"?"[O₂]":m.value==="o3"?"[O₂]":"[OH⁻]";
-      nt.set("<b>Bilan :</b> "+d.bilan+"<br><b>Étape 1 :</b> "+d.s1+"<br><b>Étape 2 :</b> "+d.s2+"<br><b>Somme :</b> les étapes s’additionnent et l’intermédiaire "+d.i+" disparaît.<br><b>Loi :</b> "+(slow==="1"?d.l1:d.l2)+"<br>Tu as multiplié "+first+" par "+S.fmt(fa.value,1)+" et "+second+" par "+S.fmt(fb.value,1)+".","");
+      nt.set("<b>Bilan :</b> "+d.bilan+"<br><b>Étape 1 :</b> "+d.s1+"<br><b>Étape 2 :</b> "+d.s2+"<br><b>Somme :</b> les étapes s’additionnent et l’intermédiaire "+d.i+" disparaît.<br><b>Loi :</b> "+(slow==="1"?d.l1:d.l2)+"<br>Tu as multiplié "+first+" par "+S.fmt(fa.value,1)+" et "+second+" par "+S.fmt(fb.value,1)+"."+(slow==="2"?" <i>Étape 2 lente : l’intermédiaire s’accumule (courbe orange) avant de se transformer.</i>":" <i>Étape 1 lente : l’intermédiaire est consommé dès qu’il se forme (il reste rare).</i>"),"");
     });
   }
 });

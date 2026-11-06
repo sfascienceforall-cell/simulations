@@ -59,31 +59,66 @@ SFA.sim({
 
 /* ===== 2 · Échanges alvéolaires ===== */
 SFA.sim({
-  id:"b3-c05-air-inspire-expire", ch:"c05", tag:"Comparaison",
+  id:"b3-c05-air-inspire-expire", ch:"c05", tag:"Comparaison · animation",
   titre:"Air inspiré, air expiré : ce que les poumons changent",
   resume:"Compare la composition de l'air entré et sorti, au repos et à l'effort : combien de dioxygène est prélevé ?",
-  but:"Règle l'intensité de l'effort. Lis les pourcentages de O₂ et de CO₂ dans l'air expiré et les volumes échangés par minute.",
+  but:"Règle l'intensité de l'effort. Les poumons respirent à la bonne cadence : les molécules d'air qui entrent et sortent n'ont pas la même composition. Lis les pourcentages et les volumes échangés par minute.",
   aRetenir:"L'air inspiré contient environ 21 % de O₂ et 0,04 % de CO₂ ; l'air expiré environ 16 à 17 % de O₂ et 3,5 à 5 % de CO₂ (et de la vapeur d'eau). On n'expire donc pas que du CO₂ : on n'a utilisé qu'une petite partie du dioxygène inspiré. À l'effort, on ventile plus et on prélève plus de O₂.",
   piege:"L'air expiré contient encore beaucoup de dioxygène (environ 16 %) : c'est pourquoi le bouche-à-bouche fonctionne. Et le diazote (≈ 78 %) n'est pas utilisé par le corps. (Composition en air sec, valeurs moyennes simplifiées.)",
   build:function(k,S){
-    var c = k.canvas(280);
+    var c = k.canvas(0,{ratio:1.3});
     var ef = k.slider("Intensité de l'effort", 0, 100, 5, 0, "%");
     var ro = k.readouts(["Ventilation","O₂ consommé","CO₂ produit","Quotient CO₂ / O₂"]);
     var nt = k.note("","");
+    var parts = [], tph = 0, seed = 7;
+    function rnd(){ seed = (seed*16807)%2147483647; return seed/2147483647; }
+    function comp(E){ var o2e = 17.0 - 1.1*E, co2e = 3.5 + 1.6*E; return {in:[79.03,20.93,.04], out:[100-o2e-co2e,o2e,co2e], o2e:o2e, co2e:co2e}; }
+    var lp = k.loop(function(dt){
+      var E = ef.value/100, fr = 14 + 26*E, per = 60/fr*2.2; tph += dt/per; var ph = tph%1, inh = ph<.5, cm = comp(E);
+      var nSp = (6+24*E)*dt*(inh?1:1)*2.2;
+      if (rnd() < nSp){ var src = inh ? cm.in : cm.out, r = rnd()*100, ty = r<src[2] ? 2 : r<src[2]+src[1] ? 1 : 0; if (ty===2 && inh && rnd()<.85) ty=0; parts.push({ty:ty, s:inh?0:1, dir:inh?1:-1, off:(rnd()-.5)*2, sp:.35+rnd()*.25}); }
+      parts.forEach(function(p){ p.s += p.dir*dt*p.sp*(1+E*1.6); });
+      parts = parts.filter(function(p){ return p.s>-.02 && p.s<1.02; });
+      k.redraw();
+    });
+    lp.play();
     k.draw(function(){
-      c.clear(); var E = ef.value/100, o2e = 17.0 - 1.1*E, co2e = 3.5 + 1.6*E, vent = 6 + 54*E;
-      var vo2 = vent*(20.93-o2e)/100, vco2 = vent*(co2e-.04)/100;
-      function bars(y,title,vin,vout,vmax,col,unit){
-        T(c,title,16,y,{size:13,align:"left",color:P.ink});
-        var x0 = 16, w = c.W-32, h = 22;
-        [["Inspiré",vin,y+16],["Expiré",vout,y+16+h+6]].forEach(function(q,i){
-          rect(c,x0,q[2],w,h,"#eef1f5",P.light); rect(c,x0,q[2],Math.max(2,w*q[1]/vmax),h,col,null);
-          T(c,q[0]+" : "+S.fmt(q[1],q[1]<1?2:1)+" "+unit,x0+8,q[2]+h/2,{size:12,align:"left",color:P.ink,bg:"rgba(255,255,255,.75)"});
-        });
-        var xr = x0 + w*vout/vmax; 
-      }
-      bars(18,"Dioxygène (O₂)",20.93,o2e,25,P.acc,"%");
-      bars(140,"Dioxyde de carbone (CO₂)",.04,co2e,6,P.amber,"%");
+      c.clear(); var g=c.ctx, W=c.W, H=c.H, E = ef.value/100, o2e = 17.0 - 1.1*E, co2e = 3.5 + 1.6*E, vent = 6 + 54*E;
+      var vo2 = vent*(20.93-o2e)/100, vco2 = vent*(co2e-.04)/100, cm = comp(E);
+      var bgc=g.createLinearGradient(0,0,0,H); bgc.addColorStop(0,"#f4f8fc"); bgc.addColorStop(1,"#e9f0f8"); g.fillStyle=bgc; g.fillRect(0,0,W,H);
+      /* barres 100 % */
+      var bx=Math.max(70,W*.2), bw=W-bx-12, bh=24;
+      D.text(c,"Composition de l'air sec (100 %)",10,13,{size:11.5,color:P.grey,align:"left"});
+      [["Inspiré",cm.in,38],["Expiré",cm.out,74]].forEach(function(q){
+        D.text(c,q[0],bx-8,q[2]+bh/2,{size:12,align:"right",color:P.ink});
+        var x=bx, cols=["#cfd6df",P.acc,P.orange], nm=["N₂","O₂","CO₂"];
+        D.rrect(c,bx,q[2],bw,bh,6); g.save(); g.clip();
+        q[1].forEach(function(v,i){ var w=bw*v/100; g.fillStyle=cols[i]; g.fillRect(x,q[2],Math.max(v>0?1.5:0,w),bh); x+=w; });
+        g.restore(); D.rrect(c,bx,q[2],bw,bh,6); g.strokeStyle="#b7c1ce"; g.lineWidth=1; g.stroke();
+        D.text(c,"N₂ "+S.fmt(q[1][0],1)+" %",bx+8,q[2]+bh/2,{size:11,align:"left",color:"#41506a"});
+      });
+      /* étiquettes O2 et CO2 hors barres */
+      D.label(c,"O₂ "+S.fmt(cm.in[1],1)+" % → "+S.fmt(o2e,1)+" %",bx+bw,114,{size:11.5,color:P.acc,align:"right"});
+      D.label(c,"CO₂ "+S.fmt(cm.in[2],2)+" % → "+S.fmt(co2e,1)+" %",bx+bw,133,{size:11.5,color:"#b4560c",align:"right"});
+      /* poumons */
+      var cx=W/2, top=H*.47, bot=H*.95, ph=tph%1, s2 = 1 + .1*Math.sin(Math.PI*ph);
+      g.save(); g.translate(cx,(top+bot)/2+20); g.scale(s2,s2); g.translate(-cx,-(top+bot)/2-20);
+      var lh=(bot-top)*.78, lw=Math.min(W*.3,110);
+      [-1,1].forEach(function(sd){ var lx=cx+sd*(lw*.62+6);
+        g.beginPath(); g.moveTo(cx+sd*6,top+lh*.28); g.bezierCurveTo(cx+sd*(lw*.2),top+lh*.1,lx+sd*lw*.6,top+lh*.18,lx+sd*lw*.55,top+lh*.55); g.bezierCurveTo(lx+sd*lw*.5,top+lh*.95,lx-sd*lw*.2,top+lh*1.02,cx+sd*8,top+lh*.9); g.closePath();
+        var gr=g.createLinearGradient(0,top,0,top+lh); gr.addColorStop(0,"#f6c0c0"); gr.addColorStop(1,"#e89a9f"); g.fillStyle=gr; g.fill(); g.strokeStyle="#c97078"; g.lineWidth=1.6; g.stroke();
+        g.strokeStyle="rgba(201,112,120,.55)"; g.lineWidth=2; for (var j=0;j<3;j++){ g.beginPath(); g.moveTo(cx+sd*8,top+lh*.3); g.lineTo(lx+sd*lw*(.05+.12*j),top+lh*(.45+.15*j)); g.stroke(); } });
+      g.restore();
+      /* trachée */
+      g.fillStyle="#f3ece0"; g.strokeStyle="#bfa98a"; g.lineWidth=1.4; D.rrect(c,cx-9,H*.35,18,top+lh*.32-H*.35+8,6); g.fill(); g.stroke();
+      D.label(c,"trachée",cx+14,H*.4,{size:11,color:P.grey,align:"left"}); D.label(c,"poumons",cx+lw*1.2,top+lh*.82,{size:11,color:"#8e3d46"});
+      /* particules */
+      parts.forEach(function(p){ var y=H*.35+p.s*(top+lh*.7-H*.35), x=cx+p.off*(p.s<.5?5:5+(p.s-.5)*lw*.9*1.2)*(p.s>.5?1:1);
+        var col = p.ty===1 ? P.acc : p.ty===2 ? P.orange : "#b9c2ce", r = p.ty===0?2.6:3.8; g.beginPath(); g.arc(x,y,r,0,6.3); g.fillStyle=col; g.fill(); if (p.ty>0){ g.strokeStyle="#fff"; g.lineWidth=1; g.stroke(); } });
+      g.fillStyle="#fff"; g.fillRect(0,0,0,0);
+      D.arrow(c,cx-W*.2,H*.38,cx-W*.2,H*.5,P.acc,3); D.text(c,"inspiré",cx-W*.2,H*.35,{size:11.5,color:P.acc});
+      D.arrow(c,cx+W*.22,H*.5,cx+W*.22,H*.38,"#b4560c",3); D.text(c,"expiré",cx+W*.22,H*.35,{size:11.5,color:"#b4560c"});
+      D.text(c,(ph<.5?"inspiration":"expiration")+" · "+S.fmt(14+26*E,0)+" resp./min (film accéléré)",W/2,H*.985,{size:11,color:P.grey});
       ro.set(0,S.fmt(vent,0)+" L/min"); ro.set(1,S.fmt(vo2,2)+" L/min"); ro.set(2,S.fmt(vco2,2)+" L/min"); ro.set(3,S.fmt(vco2/vo2,2));
       nt.set(E===0 ? "Au repos : on inspire environ 6 L d'air par minute et on prélève environ un quart de litre de O₂." : "À l'effort : "+S.fmt(vent/6,1)+" fois plus d'air brassé, et "+S.fmt(vo2/(6*(20.93-17)/100),1)+" fois plus de O₂ prélevé qu'au repos.","ok");
     });
@@ -99,12 +134,13 @@ SFA.sim({
   aRetenir:"À l'effort, les muscles consomment plus de dioxygène et produisent plus de CO₂ : la fréquence cardiaque, la fréquence respiratoire et le volume d'air inspiré augmentent ensemble. Poumons et cœur forment un système : l'air n'apporte du O₂ qu'à condition que le sang le transporte jusqu'aux muscles.",
   piege:"La fréquence cardiaque maximale diminue avec l'âge (environ 220 − âge, valeur moyenne approximative). Le cœur bat plus vite, mais chaque battement envoie aussi plus de sang (volume d'éjection plus grand). (Valeurs moyennes simplifiées.)",
   build:function(k,S){
-    var c = k.canvas(330);
+    var cs = k.canvas(0,{ratio:.5});
+    var c = k.canvas(300);
     var it = k.slider("Intensité de l'effort", 0, 100, 5, 20, "%");
     var ag = k.slider("Âge", 12, 60, 1, 15, "ans");
     var ro = k.readouts(["Fréquence cardiaque","Fréquence respiratoire","Air brassé","Débit cardiaque","O₂ consommé"]);
     var nt = k.note("","");
-    var cur = null;
+    var cur = {fc:70,fr:14,vt:.5,vent:7,q:4.9,vo2:.245};
     function target(){
       var I = it.value/100, fcmax = 220 - ag.value, fc = 70 + (fcmax-70)*I, fr = 14 + 26*I, vt = .5 + 1.5*I, q = fc*(70+50*I)/1000, vo2 = q*(50+100*I)/1000;
       return {fc:fc, fr:fr, vt:vt, vent:fr*vt, q:q, vo2:vo2, fcmax:fcmax};
@@ -113,15 +149,44 @@ SFA.sim({
       var tg = target(); if (!cur) cur = {fc:70,fr:14,vt:.5,vent:7,q:4.9,vo2:.245};
       var a = 1-Math.exp(-dt*8/20);   /* temps accéléré ×8, constante ≈ 20 s */
       ["fc","fr","vt","vent","q","vo2"].forEach(function(n){ cur[n] += (tg[n]-cur[n])*a; });
-      k.redraw();
+      var I=it.value/100; ph.run += dt*(I>0.02? 2.2+I*7 : 0); ph.hb += dt*cur.fc/60*.9; ph.br += dt*cur.fr/60*.9; k.redraw();
     });
+    var ph = {run:0,hb:0,br:0};
     lp.play();
+    function scene(tg){
+      var g=cs.ctx, W=cs.W, H=cs.H, I=it.value/100; cs.clear(); var bgc=g.createLinearGradient(0,0,0,H); bgc.addColorStop(0,"#eaf3fb"); bgc.addColorStop(1,"#f4f8f1"); g.fillStyle=bgc; g.fillRect(0,0,W,H);
+      g.fillStyle="#b8d9a0"; g.fillRect(0,H*.86,W,H*.14);
+      /* coureur */
+      var rx=W*.2, ry=H*.52, u=H*.0085, sw=Math.sin(ph.run), lean=.05+I*.25;
+      g.save(); g.translate(rx,ry+Math.abs(Math.sin(ph.run*2))*-3*I); g.lineCap="round"; g.lineJoin="round";
+      g.strokeStyle="#334155"; g.lineWidth=5; var hip=[0,0], sh=[Math.sin(lean)*30*u/ (H*.0085) *.0+lean*28,-32];
+      function limb(x0,y0,a1,l1,a2,l2){ var kx=x0+Math.sin(a1)*l1, ky=y0+Math.cos(a1)*l1, ex=kx+Math.sin(a2)*l2, ey=ky+Math.cos(a2)*l2; g.beginPath(); g.moveTo(x0,y0); g.lineTo(kx,ky); g.lineTo(ex,ey); g.stroke(); }
+      var amp=.15+I*.9; limb(0,0,sw*amp,22,sw*amp-.35-I*.5*Math.max(0,Math.cos(ph.run)),22); limb(0,0,-sw*amp,22,-sw*amp-.35-I*.5*Math.max(0,-Math.cos(ph.run)),22);
+      g.strokeStyle="#4a7fc1"; g.lineWidth=9; g.beginPath(); g.moveTo(0,0); g.lineTo(sh[0],sh[1]); g.stroke();
+      g.strokeStyle="#f2c9a0"; g.lineWidth=4.5; var sa=-sw*(.2+I*.9); g.beginPath(); g.moveTo(sh[0],sh[1]+4); g.lineTo(sh[0]+Math.sin(sa)*14,sh[1]+4+Math.cos(sa)*14); g.lineTo(sh[0]+Math.sin(sa)*14+Math.sin(sa-1+I*.4)*13,sh[1]+4+Math.cos(sa)*14+Math.cos(sa-1+I*.4)*13); g.stroke();
+      g.fillStyle="#f2c9a0"; g.strokeStyle="#2a3340"; g.lineWidth=1.2; g.beginPath(); g.arc(sh[0]+4,sh[1]-10,8,0,6.3); g.fill(); g.stroke();
+      g.restore();
+      /* sueur */
+      if (I>.5){ g.fillStyle="rgba(90,170,230,.8)"; for (var i=0;i<Math.round((I-.4)*8);i++){ var q=((ph.run*.4+i*.37)%1); g.beginPath(); g.arc(rx+16+i*3,ry-52+q*20,1.8,0,6.3); g.fill(); } }
+      /* coeur */
+      var hx=W*.5, hy=H*.45, pul=Math.pow(Math.max(0,Math.sin(ph.hb*2*Math.PI)),6), hs=H*.3*(1+.16*pul);
+      g.save(); g.translate(hx,hy); g.scale(hs/60,hs/60); g.fillStyle="#d4455b"; g.strokeStyle="#8f2338"; g.lineWidth=2; g.beginPath(); g.moveTo(0,28); g.bezierCurveTo(-42,0,-26,-34,0,-14); g.bezierCurveTo(26,-34,42,0,0,28); g.fill(); g.stroke(); g.restore();
+      D.glow(cs,hx,hy,hs*.9,"#ff5a73",.25*pul);
+      D.label(cs,S.fmt(cur.fc,0)+" bpm",hx,H*.88,{size:12,color:P.red});
+      /* poumons */
+      var lx=W*.8, ly=H*.45, bs=1+.18*Math.sin(ph.br*2*Math.PI)*(.4+I*.9);
+      g.save(); g.translate(lx,ly); g.scale(bs,bs); [-1,1].forEach(function(sd){ g.fillStyle="#f1a9ad"; g.strokeStyle="#c97078"; g.lineWidth=1.6; g.beginPath(); g.moveTo(sd*4,-H*.12); g.bezierCurveTo(sd*H*.2,-H*.12,sd*H*.22,H*.1,sd*H*.12,H*.18); g.bezierCurveTo(sd*H*.04,H*.2,sd*3,H*.1,sd*4,-H*.12); g.fill(); g.stroke(); }); g.restore();
+      D.label(cs,S.fmt(cur.fr,0)+" resp./min",lx,H*.88,{size:12,color:P.acc});
+      D.label(cs,I<.02?"au repos":"effort "+it.value+" %",rx,H*.88,{size:12,color:P.ink});
+      D.label(cs,"film ralenti",W-8,12,{size:10.5,color:P.grey,align:"right"});
+    }
     k.draw(function(){
+      scene(target());
       c.clear(); var tg = target(); if (!cur) cur = {fc:70,fr:14,vt:.5,vent:7,q:4.9,vo2:.245};
       var items = [["Fréq. cardiaque (bpm)",cur.fc,tg.fcmax,P.red,0],["Fréq. respiratoire (/min)",cur.fr,45,P.acc,0],["Air brassé (L/min)",cur.vent,90,P.teal,1],["Débit cardiaque (L/min)",cur.q,28,P.violet,1],["O₂ consommé (L/min)",cur.vo2,4,P.green,2]];
-      var y = 18, h = 24, x0 = 16, w = c.W-32;
+      var y = 16, h = 22, x0 = 16, w = c.W-32;
       items.forEach(function(q,i){
-        var yy = y + i*54; T(c,q[0],x0,yy,{size:12,align:"left",color:P.ink});
+        var yy = y + i*50; T(c,q[0],x0,yy,{size:12,align:"left",color:P.ink});
         rect(c,x0,yy+10,w,h,"#eef1f5",P.light); rect(c,x0,yy+10,Math.max(2,w*Math.min(1,q[1]/q[2])),h,q[3],null);
         T(c,S.fmt(q[1],q[4]),x0+8,yy+10+h/2,{size:13,align:"left",color:"#fff",bg:"rgba(0,0,0,.35)"});
       });

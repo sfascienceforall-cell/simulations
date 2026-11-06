@@ -66,7 +66,7 @@ SFA.sim({
     var tl = {};   /* frise cliquable */
     k.draw(function(){
       c.clear(); var ctx = c.ctx, W = c.W, H = c.H, u = ph.value, p = Math.min(6, Math.floor(u)), f = u - p;
-      var hc = H * 0.70, cx = W / 2, cy = hc * 0.5 + 6, R = Math.min(W * 0.34, hc * 0.40);
+      var hc = H * 0.68, cx = W / 2, cy = hc * 0.5 + 6, R = Math.min(W * 0.33, hc * 0.37);
       /* fond : milieu de culture subtil */
       var bg = ctx.createRadialGradient(cx, cy, R * 0.3, cx, cy, Math.max(W, hc) * 0.7); bg.addColorStop(0, "#fbf7fb"); bg.addColorStop(1, "#f3eef6");
       ctx.fillStyle = bg; ctx.fillRect(0, 0, W, hc + 6);
@@ -94,43 +94,43 @@ SFA.sim({
         [-1, 1].forEach(function(sg){ if (p === 6) return; var px = cx + sg * pole; ctx.save(); ctx.globalAlpha = p === 3 ? 0.4 + 0.6 * ease(f) : 1; S.draw.glow(c, px, cy, 14, P.amber, 0.45); S.draw.dot(c, px, cy, 4.8, P.amber); ctx.restore(); });
       }
       /* chromosomes */
-      var plateSp = R * 0.285;
+      var plateSp = R * 0.31;
       for (var i = 0; i < 6; i++){
-        var col = i % 2 ? PAT : MAT, L1 = LF[i] * R * 0.62, bx = cx + BASE[i][0] * R * 1.3, by = cy + BASE[i][1] * R * 1.3, py = cy + (i - 2.5) * plateSp;
+        var col = i % 2 ? PAT : MAT, L1 = LF[i] * R * 0.36, bx = cx + BASE[i][0] * R * 0.95, by = cy + BASE[i][1] * R * 0.95, py = cy + (i - 2.5) * plateSp;
         if (p <= 2){
           var dup = p === 0 ? 0 : p === 1 ? f : 1;
-          chromo(bx, by, ANG[i], L1 * 0.95, col, 0, dup, i * 1.7);
+          chromo(bx, by, ANG[i], L1, col, 0, dup, i * 1.7);
         } else if (p === 3){
           var m = ease(f), x = lerp(bx, cx + BASE[i][0] * R * 0.7, m * 0.6), y = lerp(by, lerp(by, py, 0.5), m * 0.6);
-          chromo(x, y, lerp(ANG[i], Math.PI / 2, m * 0.5), L1 * lerp(0.95, 0.5, m), col, m, 1, i * 1.7);
+          chromo(x, y, lerp(ANG[i], Math.PI / 2, m * 0.5), L1 * lerp(1, 0.82, m), col, m, 1, i * 1.7);
           if (f > 0.35){ S.draw.line(c, cx - pole, cy, x, y, "rgba(95,107,122," + (0.35 * ease((f - 0.35) * 1.5)) + ")", 1); S.draw.line(c, cx + pole, cy, x, y, "rgba(95,107,122," + (0.35 * ease((f - 0.35) * 1.5)) + ")", 1); }
         } else if (p === 4){
           var m2 = ease(f * 1.3), jit = Math.sin(i * 2.3 + u * 6) * (1 - m2) * 4;
-          var x4 = lerp(cx + BASE[i][0] * R * 0.7, cx + jit, m2), y4 = lerp(lerp(by, py, 0.5), py, m2);
+          var x4 = lerp(cx + BASE[i][0] * R * 0.7, cx + jit + (i % 2 ? 1 : -1) * R * 0.05, m2), y4 = lerp(lerp(by, py, 0.5), py, m2);
           S.draw.line(c, cx - pole, cy, x4, y4, "rgba(95,107,122,.38)", 1); S.draw.line(c, cx + pole, cy, x4, y4, "rgba(95,107,122,.38)", 1);
-          chromo(x4, y4, lerp(lerp(ANG[i], Math.PI / 2, 0.5), Math.PI / 2, m2), L1 * 0.52, col, 1, 1, i * 1.7);
+          chromo(x4, y4, lerp(lerp(ANG[i], Math.PI / 2, 0.5), Math.PI / 2, m2), L1 * 0.82, col, 1, 1, i * 1.7);
         } else if (p === 5){
           var e5 = ease(f); [-1, 1].forEach(function(sg){
             var xc = cx + sg * lerp(2, rx * 0.66, e5), yy5 = py * 1 + (cy - py) * (e5 * 0.45) * 0 + (py - cy) * (1 - e5 * 0.3) - (py - cy);
-            var ypos = cy + (py - cy) * lerp(1, 0.78, e5);
+            var ypos = cy + (py - cy) * lerp(1, 0.86, e5);
             S.draw.line(c, cx + sg * pole, cy, xc, ypos, "rgba(95,107,122,.4)", 1);
-            if (f < 0.04) chromo(xc, ypos, Math.PI / 2, L1 * 0.52, col, 1, 1, i * 1.7); else vchrom(xc, ypos, sg, L1 * 0.52 * lerp(1, 0.85, e5), col, 1, i);
+            if (f < 0.04) chromo(xc, ypos, Math.PI / 2, L1 * 0.82, col, 1, 1, i * 1.7); else vchrom(xc, ypos, sg, L1 * 0.82 * lerp(1, 0.9, e5), col, 1, i);
           });
         } else {
           var e6 = ease(f * 1.2); [-1, 1].forEach(function(sg){
-            var xn = cx + sg * rx * 0.5, xp = cx + sg * rx * 0.66, ypos2 = cy + (py - cy) * lerp(0.78, 0.5, e6);
-            chromo(lerp(xp, xn + BASE[i][0] * R * 0.55, e6), lerp(ypos2, cy + BASE[i][1] * R * 0.6, e6), lerp(Math.PI / 2, ANG[i], e6), L1 * lerp(0.5, 0.65, e6), col, 1 - e6, 0, i * 1.7);
+            var xn = cx + sg * rx * 0.5, xp = cx + sg * rx * 0.66, ypos2 = cy + (py - cy) * lerp(0.86, 0.5, e6);
+            chromo(lerp(xp, xn + BASE[i][0] * R * 0.55, e6), lerp(ypos2, cy + BASE[i][1] * R * 0.6, e6), lerp(Math.PI / 2, ANG[i], e6), L1 * lerp(0.82, 1.2, e6), col, 1 - e6, 0, i * 1.7);
           });
         }
       }
       /* plan équatorial */
       if (p === 4 && f > 0.4){ ctx.save(); ctx.globalAlpha = Math.min(0.7, (f - 0.4)); S.draw.line(c, cx, cy - R * 0.95, cx, cy + R * 0.95, P.amber, 1.5, [4, 4]); ctx.restore(); S.draw.label(c, "plan équatorial", cx, cy - R - 8, {color:P.amber, size:11}); }
-      if (p === 1) S.draw.label(c, "réplication de l'ADN", cx, cy + R * 0.9, {color:P.red});
-      if (p === 5 && f > 0.15) S.draw.label(c, "6 chromosomes vers chaque pôle", cx, cy + ry + 14, {color:P.acc});
-      if (p === 6 && f > 0.5) S.draw.label(c, "2 cellules filles : 6 chromosomes, 2C", cx, cy + ry + 14, {color:P.green});
+      if (p === 1) S.draw.label(c, "réplication de l'ADN", cx, hc - 28, {color:P.red});
+      if (p === 5 && f > 0.15) S.draw.label(c, "6 chromosomes vers chaque pôle", cx, hc - 28, {color:P.acc});
+      if (p === 6 && f > 0.5) S.draw.label(c, "2 cellules filles : 6 chromosomes, 2C", cx, hc - 28, {color:P.green});
       S.draw.label(c, NAMES[p], 10, 16, {color:P.mat, align:"left", size:13});
       /* légende */
-      S.draw.legend(c, [[MAT, "chromosome d'origine maternelle"], [PAT, "chromosome d'origine paternelle"]], W - 8, 8, {align:"right"});
+      S.draw.line(c, 12, hc - 10, 28, hc - 10, MAT, 3.5); S.draw.text(c, "maternel", 33, hc - 10, {size:11, color:"#5f6b7a", align:"left"}); S.draw.line(c, W - 78, hc - 10, W - 62, hc - 10, PAT, 3.5); S.draw.text(c, "paternel", W - 57, hc - 10, {size:11, color:"#5f6b7a", align:"left"});
       /* frise du cycle + courbe d'ADN */
       var fx0 = 34, fx1 = W - 14, fy0 = hc + 22, fy1 = H - 26, bw = (fx1 - fx0) / 7;
       tl = {x0:fx0, x1:fx1, y0:fy0 - 14, y1:H};
@@ -140,12 +140,12 @@ SFA.sim({
         S.draw.text(c, SHORT[i], fx0 + (i + 0.5) * bw, fy1 + 11, {size:11, color:i === p ? P.ink : "#5f6b7a", weight:i === p ? 800 : 700});
       }
       S.draw.text(c, "interphase", fx0 + 1.5 * bw, fy0 - 7, {size:10, color:"#5f6b7a"}); S.draw.text(c, "mitose", fx0 + 5 * bw, fy0 - 7, {size:10, color:"#5f6b7a"});
-      function Y(v){ return fy1 - (v / 4.4) * (fy1 - fy0); }
+      function Y(v){ return fy1 - (v / 5.4) * (fy1 - fy0); }
       S.draw.text(c, "4C", fx0 - 9, Y(4), {size:10, color:"#5f6b7a"}); S.draw.text(c, "2C", fx0 - 9, Y(2), {size:10, color:"#5f6b7a"});
       ctx.save(); ctx.strokeStyle = P.green; ctx.lineWidth = 2.6; ctx.lineJoin = "round"; ctx.beginPath();
       var pts = [[0, 2], [1, 2], [2, 4], [6, 4], [6.55, 4], [6.99, 2]];
       pts.forEach(function(q, j){ var xq = fx0 + q[0] * bw, yq = Y(q[1]); j ? ctx.lineTo(xq, yq) : ctx.moveTo(xq, yq); }); ctx.stroke(); ctx.restore();
-      S.draw.text(c, "ADN par noyau", fx1 - 2, fy0 + 9, {size:10, color:P.green, align:"right"});
+      S.draw.text(c, "ADN par noyau", fx1 - 2, fy1 - 8, {size:10, color:P.green, align:"right"});
       var ux = fx0 + u * bw; S.draw.line(c, ux, fy0 - 3, ux, fy1 + 2, P.red, 2); S.draw.dot(c, ux, fy0 - 3, 5.5, P.red);
       /* compteurs */
       var chr = p < 5 ? 6 : 12, chm = p === 0 ? 6 : p === 1 ? 6 + Math.round(6 * f) : 12, dna = p === 0 ? "2C" : p === 1 ? S.fmt(2 + 2 * f, 1) + "C" : p < 6 ? "4C" : (f < 0.55 ? "4C" : "2C par cellule fille");
@@ -212,60 +212,118 @@ SFA.sim({
 });
 
 SFA.sim({
-  id:"b4-c10-cancer", ch:"c10", tag:"Contrôle du cycle · modèle",
+  id:"b4-c10-cancer", ch:"c10", tag:"Tissu vivant · modèle",
   titre:"Perdre le contrôle du cycle : naissance d'une tumeur",
-  resume:"Compare un tissu normal en équilibre et une population où un gène est altéré : division accrue ou mort cellulaire réduite.",
-  but:"Règle la durée du cycle, la part de cellules qui se divisent et la mort cellulaire. Essaie les 4 scénarios et regarde le temps pour atteindre 10⁹ cellules (≈ 1 cm³).",
+  resume:"Un tissu en équilibre accueille quelques cellules altérées : regarde-les se multiplier (ou disparaître) selon les divisions et la mort cellulaire.",
+  but:"Règle la durée du cycle, la part de cellules qui se divisent et l'apoptose, ou choisis un scénario. Le tissu vit en direct (le hasard joue) ; clique sur une cellule saine pour la remplacer par une cellule altérée.",
   aRetenir:"Dans un tissu normal, divisions et mort cellulaire (apoptose) s'équilibrent. Un oncogène activé pousse davantage de cellules à se diviser ; un gène suppresseur de tumeur muté (comme p53) supprime les freins : les cellules anormales ne s'arrêtent plus ni ne meurent. Quand les divisions dépassent la mort, la population croît exponentiellement, d'abord sans symptôme.",
   piege:"Une cellule cancéreuse ne se divise pas forcément plus vite : souvent c'est la proportion de cellules qui continuent à se diviser, ou qui échappent à la mort, qui change. Modèle simplifié : croissance exponentielle sans limite ni évolution. Une tumeur demande des années pour devenir détectable.",
   build:function(k, S){
-    var c = k.canvas(0, {ratio:.8});
+    var P = S.draw.palette, c = k.canvas(0, {ratio:1.12});
     var T = k.slider("Durée du cycle", 12, 96, 6, 48, "h");
     var g = k.slider("Cellules qui se divisent", 0, 100, 1, 10, "%");
     var d = k.slider("Mort cellulaire (apoptose)", 0, 30, 0.5, 3.5, "% par jour");
-    var ro = k.readouts(["Naissances", "Morts", "Croissance nette", "Temps pour 10⁹ cellules"]);
+    var ro = k.readouts(["Croissance nette des cellules altérées", "Doublement tous les", "Temps pour 10⁹ cellules", "Cellules altérées dans le tissu"]);
     var nt = k.note("", "");
-    k.button("Tissu normal", function(){ T.set(48); g.set(10); d.set(3.5); }, true);
-    k.button("Oncogène activé", function(){ T.set(48); g.set(30); d.set(3.5); });
-    k.button("Suppresseur de tumeur muté", function(){ T.set(48); g.set(10); d.set(1); });
-    k.button("Les deux altérations", function(){ T.set(48); g.set(30); d.set(1); });
+    var COLS = 18, ROWS = 10, slots = [], nb = [], ghosts = [], hist = [], tm = 0, rnd = B4.rng(7), sd = 7, running = true, geo = {};
+    function reset(){
+      sd += 11; rnd = B4.rng(sd); slots = []; ghosts = []; hist = []; tm = 0;
+      for (var i = 0; i < COLS * ROWS; i++) slots.push(rnd() < 0.72 ? {t:0, b:-9} : null);
+      for (var q = 0; q < COLS * ROWS; q++){ var r = Math.floor(q / COLS), cc = q % COLS, a = [];
+        [[-1, 0], [1, 0], [r % 2 ? 0 : -1, -1], [r % 2 ? 1 : 0, -1], [r % 2 ? 0 : -1, 1], [r % 2 ? 1 : 0, 1]].forEach(function(o){ var x = cc + o[0], y = r + o[1]; if (x >= 0 && x < COLS && y >= 0 && y < ROWS) a.push(y * COLS + x); }); nb[q] = a; }
+      var mid = Math.floor(ROWS / 2) * COLS + Math.floor(COLS / 2);
+      [mid, mid + 1, mid - 1].forEach(function(s){ slots[s] = {t:1, b:0}; });
+    }
+    reset();
+    function rates(){ return {b:g.value / 100 * Math.LN2 * 24 / T.value, dd:d.value / 100}; }
+    function step(dt){
+      var R = rates(), bn = 0.1 * Math.LN2 * 24 / 48, dn = 0.0347, order = [], i;
+      for (i = 0; i < slots.length; i++) if (slots[i]) order.push(i);
+      order.forEach(function(i){
+        var s = slots[i]; if (!s) return; var pb = (s.t ? R.b : bn) * dt, pd = (s.t ? R.dd : dn) * dt;
+        if (rnd() < pd){ ghosts.push({i:i, t:s.t, a:1}); slots[i] = null; return; }
+        if (rnd() < pb){
+          var free = nb[i].filter(function(j){ return !slots[j]; }), tgt = -1;
+          if (free.length) tgt = free[Math.floor(rnd() * free.length)];
+          else if (s.t){ var nn = nb[i].filter(function(j){ return slots[j] && !slots[j].t; }); if (nn.length){ tgt = nn[Math.floor(rnd() * nn.length)]; ghosts.push({i:tgt, t:0, a:1}); } }
+          if (tgt >= 0) slots[tgt] = {t:s.t, b:tm};
+        }
+      });
+      tm += dt;
+    }
+    function counts(){ var a = 0, n = 0; slots.forEach(function(s){ if (s){ if (s.t) a++; else n++; } }); return [a, n]; }
+    var lp = k.loop(function(dt){
+      var days = dt * 9, n = Math.ceil(days / 0.25); for (var q = 0; q < n; q++) step(days / n);
+      ghosts.forEach(function(gh){ gh.a -= dt * 2.2; }); ghosts = ghosts.filter(function(gh){ return gh.a > 0; });
+      var ct = counts(); if (!hist.length || tm - hist[hist.length - 1][0] >= 2) hist.push([tm, ct[0], ct[1]]);
+      if (tm > 700 || ct[0] === 0 || ct[1] === 0) lp.pause();
+      k.redraw();
+    });
+    lp.play();
+    function sc(a, b, c2){ T.set(a); g.set(b); d.set(c2); reset(); lp.play(); }
+    k.button("Tissu normal", function(){ sc(48, 10, 3.5); }, true);
+    k.button("Oncogène activé", function(){ sc(48, 30, 3.5); });
+    k.button("Suppresseur de tumeur muté", function(){ sc(48, 10, 1); });
+    k.button("Les deux altérations", function(){ sc(48, 30, 1); });
+    k.button("▶ / ❚❚", function(){ if (lp.running) lp.pause(); else lp.play(); });
+    k.button("↺ Nouveau tissu", function(){ reset(); lp.play(); });
     k.draw(function(){
-      var b = g.value / 100 * Math.LN2 * 24 / T.value, dd = d.value / 100, r = b - dd;
-      c.clear(); var ax = S.draw.axes(c, {x0:0, x1:1000, y0:0, y1:12, xl:"jours", yl:"log₁₀ (nombre de cellules)", stepX:200, stepY:3, l:50});
-      S.draw.line(c, ax.L, ax.Y(9), ax.R, ax.Y(9), B4.pal.red, 1.5, [5, 4]); B4.txt(c, "10⁹ cellules : tumeur détectable", ax.R - 4, ax.Y(9) - 9, B4.pal.red, 12, "right");
-      S.draw.line(c, ax.L, ax.Y(0), ax.R, ax.Y(0), "#b8c0cc", 2, [4, 4]);
-      S.draw.fn(c, ax, function(t){ return Math.min(12, r * t / Math.LN10); }, B4.pal.red, 3);
-      B4.txt(c, "départ : 1 cellule modifiée", ax.L + 8, ax.Y(0) - 10, "#5f6b7a", 12, "left");
-      var tt = r > 0 ? 9 * Math.LN10 / r : Infinity;
-      ro.set(0, S.fmt(b * 100, 1) + " % / jour"); ro.set(1, S.fmt(dd * 100, 1) + " % / jour"); ro.set(2, (r >= 0 ? "+" : "") + S.fmt(r * 100, 1) + " % / jour");
-      ro.set(3, r <= 0.0005 ? "jamais" : S.fmt(tt, 0) + " jours (≈ " + S.fmt(tt / 365, 1) + " an)");
-      if (isFinite(tt) && tt < 1000) S.draw.dot(c, ax.X(tt), ax.Y(9), 7, "#13233a");
-      nt.set(r > 0.0005 ? "Naissances (" + S.fmt(b * 100, 1) + " %/jour) > morts (" + S.fmt(dd * 100, 1) + " %/jour) : la population double tous les " + S.fmt(Math.LN2 / r, 0) + " jours. Une cellule modifiée atteint 10⁹ cellules en ≈ " + S.fmt(tt, 0) + " jours, sans symptôme tout ce temps." : r >= -0.0005 ? "Naissances ≈ morts : le tissu reste en équilibre (c'est le cas d'un tissu normal)." : "Les morts dépassent les naissances : la population diminue.", r > 0.0005 ? "warn" : "ok");
+      c.clear(); var ctx = c.ctx, W = c.W, H = c.H, th = H * 0.60, sp = Math.min((W - 16) / (COLS + 0.5), (th - 20) / (ROWS * 0.87 + 0.4)), r0 = sp * 0.43;
+      var ox = (W - (COLS + 0.5) * sp) / 2 + sp * 0.5, oy = 12 + sp * 0.5;
+      geo = {sp:sp, ox:ox, oy:oy};
+      ctx.save(); S.draw.rrect(c, 4, 4, W - 8, th, 14); ctx.fillStyle = "#fbf3f1"; ctx.fill(); ctx.strokeStyle = "#e8d3cf"; ctx.lineWidth = 1.5; ctx.stroke(); ctx.restore();
+      function pos(i){ var r = Math.floor(i / COLS), cc = i % COLS; return [ox + cc * sp + (r % 2 ? sp / 2 : 0), oy + r * sp * 0.87]; }
+      slots.forEach(function(s, i){
+        if (!s) return; var q = pos(i), young = Math.max(0, 1 - (tm - s.b) / 3);
+        if (s.t){ S.draw.glow(c, q[0], q[1], r0 * 2.1, P.red, 0.25 + 0.25 * young); }
+        ctx.beginPath(); ctx.arc(q[0], q[1], r0 * (1 + 0.25 * young), 0, 6.2832); ctx.fillStyle = s.t ? "#f4a79d" : "#c7d8f4"; ctx.fill(); ctx.lineWidth = 1.6; ctx.strokeStyle = s.t ? P.red : P.acc; ctx.stroke();
+        ctx.beginPath(); ctx.arc(q[0] + (s.t ? 1 : 0), q[1], r0 * (s.t ? 0.5 : 0.36), 0, 6.2832); ctx.fillStyle = s.t ? "#7f1d12" : "#1f4b9e"; ctx.fill();
+      });
+      ghosts.forEach(function(gh){ var q = pos(gh.i); ctx.save(); ctx.globalAlpha = gh.a * 0.6; ctx.beginPath(); ctx.arc(q[0], q[1], r0 * (1.4 - 0.4 * gh.a), 0, 6.2832); ctx.strokeStyle = "#5f6b7a"; ctx.lineWidth = 1.6; ctx.setLineDash([3, 3]); ctx.stroke(); ctx.restore(); });
+      var ct = counts(), tot = COLS * ROWS;
+      S.draw.label(c, "● saine", 12, th + 4 - 14, {color:P.acc, align:"left", size:11}); S.draw.label(c, "● altérée", 66, th + 4 - 14, {color:P.red, align:"left", size:11});
+      S.draw.label(c, "jour " + S.fmt(tm, 0), W - 12, th + 4 - 14, {color:P.ink, align:"right", size:11});
+      /* graphe */
+      var gy0 = th + 20, gh = H - gy0 - 22, gx0 = 38, gx1 = W - 12, tmax = Math.max(120, Math.ceil(tm / 60) * 60 + 60);
+      function X(t){ return gx0 + t / tmax * (gx1 - gx0); } function Y(v){ return gy0 + gh - v / tot * gh; }
+      ctx.strokeStyle = "#e3e7ed"; ctx.lineWidth = 1; [0, 0.5, 1].forEach(function(f){ ctx.beginPath(); ctx.moveTo(gx0, Y(f * tot)); ctx.lineTo(gx1, Y(f * tot)); ctx.stroke(); S.draw.text(c, Math.round(f * 100) + " %", gx0 - 5, Y(f * tot), {size:10, color:"#5f6b7a", align:"right"}); });
+      S.draw.text(c, "jours", gx1, gy0 + gh + 12, {size:10, color:"#5f6b7a", align:"right"}); S.draw.text(c, "part du tissu", gx0 + 2, gy0 - 8, {size:10, color:"#5f6b7a", align:"left"});
+      [[1, P.red], [2, P.acc]].forEach(function(sr){ ctx.beginPath(); hist.forEach(function(h, j){ var x = X(h[0]), y = Y(h[sr[0]]); j ? ctx.lineTo(x, y) : ctx.moveTo(x, y); }); ctx.strokeStyle = sr[1]; ctx.lineWidth = 2.4; ctx.stroke(); });
+      var Rr = rates(), rn = Rr.b - Rr.dd, tt = rn > 0.0005 ? 9 * Math.LN10 / rn : Infinity;
+      ro.set(0, (rn >= 0 ? "+" : "") + S.fmt(rn * 100, 1) + " % / jour"); ro.set(1, rn > 0.0005 ? S.fmt(Math.LN2 / rn, 0) + " jours" : "jamais");
+      ro.set(2, isFinite(tt) ? S.fmt(tt / 365, 1) + " an (" + S.fmt(tt, 0) + " j)" : "jamais"); ro.set(3, ct[0] + " / " + tot);
+      nt.set(rn > 0.0005 ? "Naissances (" + S.fmt(Rr.b * 100, 1) + " %/jour) > morts (" + S.fmt(Rr.dd * 100, 1) + " %/jour) : la population altérée double tous les " + S.fmt(Math.LN2 / rn, 0) + " jours et chasse peu à peu les cellules saines. Sans freins, une seule cellule atteindrait 10⁹ cellules en ≈ " + S.fmt(tt / 365, 1) + " an, sans symptôme." : rn >= -0.0005 ? "Naissances ≈ morts : le tissu reste en équilibre ; les cellules altérées ne gagnent pas du terrain (le hasard les fait pourtant parfois disparaître ou dériver)." : "Les morts dépassent les naissances : les cellules altérées s'éteignent.", rn > 0.0005 ? "warn" : "ok");
+    });
+    c.pointer(function(type, e){
+      if (type !== "down" || !geo.sp) return; var best = -1, bd = 1e9;
+      slots.forEach(function(s, i){ var r = Math.floor(i / COLS), cc = i % COLS, x = geo.ox + cc * geo.sp + (r % 2 ? geo.sp / 2 : 0), y = geo.oy + r * geo.sp * 0.87, dd2 = Math.pow(x - e.x, 2) + Math.pow(y - e.y, 2); if (dd2 < bd){ bd = dd2; best = i; } });
+      if (best >= 0 && bd < Math.pow(geo.sp * 0.6, 2)){ slots[best] = {t:1, b:tm}; k.redraw(); if (!lp.running) lp.play(); }
     });
   }
 });
 
 SFA.sim({
-  id:"b4-c10-chimio", ch:"c10", tag:"Médecine · modèle",
+  id:"b4-c10-chimio", ch:"c10", tag:"Médecine · défi",
   titre:"Chimiothérapie : cibler les cellules qui se divisent",
-  resume:"Un médicament antimitotique frappe les cellules en division : tumeur, mais aussi moelle, intestin, poils.",
-  but:"Règle la dose, l'intervalle entre deux cures et le nombre de cures. Compare l'effet sur la tumeur et sur les tissus sains qui se renouvellent.",
+  resume:"Un médicament antimitotique frappe les cellules en division : tumeur, mais aussi moelle, intestin, poils. Trouve le bon réglage.",
+  but:"Règle la dose, l'intervalle et le nombre de cures, puis glisse le curseur rouge sur le graphique pour lire l'état de chaque tissu à un jour donné. Défi : tumeur sous 5 % sans que la moelle descende sous 40 %.",
   aRetenir:"Un médicament antimitotique atteint surtout les cellules qui se divisent : cellules cancéreuses, mais aussi cellules saines à renouvellement rapide (moelle osseuse, muqueuse intestinale, follicules pileux), d'où fatigue, nausées, perte de cheveux. Les cellules qui ne se divisent pas (neurones) sont peu touchées. On espace les cures pour laisser les tissus sains se régénérer.",
   piege:"Modèle illustratif en échelles relatives : les valeurs numériques ne sont pas celles d'un traitement réel. Aucune conclusion médicale à en tirer.",
   build:function(k, S){
-    var c = k.canvas(0, {ratio:.9});
+    var P = S.draw.palette, c = k.canvas(0, {ratio:1.1});
     var dose = k.slider("Dose du médicament", 10, 100, 5, 70, "%");
     var dt = k.slider("Intervalle entre deux cures", 7, 28, 7, 21, "jours");
     var n = k.slider("Nombre de cures", 1, 8, 1, 4, "");
     var ro = k.readouts(["Tumeur à la fin", "Moelle osseuse (minimum)", "Intestin (minimum)", "Follicules pileux (minimum)"]);
-    var nt = k.note("", "");
+    var ntD = k.note("", ""); var nt = k.note("", "");
     var TIS = [
-      {n:"Tumeur", g:0.8, col:"#b42318", tumor:true},
-      {n:"Moelle osseuse", g:0.5, h:0.15, col:"#5B21B6"},
-      {n:"Muqueuse intestinale", g:0.4, h:0.12, col:"#B45309"},
-      {n:"Follicules pileux", g:0.5, h:0.06, col:"#0e7490"},
-      {n:"Neurones", g:0, h:0.1, col:"#8a95a3"}
+      {n:"Tumeur", g:0.8, col:P.red, tumor:true, ic:"●"},
+      {n:"Moelle osseuse", g:0.5, h:0.15, col:P.violet},
+      {n:"Intestin", g:0.4, h:0.12, col:P.amber},
+      {n:"Follicules pileux", g:0.5, h:0.06, col:P.teal},
+      {n:"Neurones", g:0, h:0.1, col:P.grey}
     ];
+    var cur = 60;
     function sim(ti, TM){
       var E = dose.value / (dose.value + 10), a = 1, out = [[0, 1]], tm = 1, next = 0, cnt = 0, h = 0.25;
       for (var t = 0; t <= TM + 1e-9; t += h){
@@ -275,18 +333,45 @@ SFA.sim({
       }
       return {pts:out, min:tm, end:a};
     }
+    function at(r, t){ var i = Math.min(r.pts.length - 1, Math.max(0, Math.round(t / 2))); return r.pts[i][1]; }
+    var gx = {};
     k.draw(function(){
-      c.clear(); var ctx = c.ctx, TM = Math.max(140, Math.ceil(((n.value - 1) * dt.value + 70) / 10) * 10), ax = S.draw.axes(c, {x0:0, x1:TM, y0:-2, y1:0.4, xl:"jours", yl:"log₁₀ (taille relative)", stepX:TM > 200 ? 50 : 20, stepY:0.5, l:50});
-      S.draw.line(c, ax.L, ax.Y(0), ax.R, ax.Y(0), "#b8c0cc", 1.5, [4, 4]);
-      for (var q = 0; q < n.value; q++){ var xt = ax.X(q * dt.value); if (q * dt.value <= TM){ S.draw.line(c, xt, ax.B, xt, ax.B - 12, B4.pal.ink, 3); } }
-      var res = TIS.map(function(ti){ var r = sim(ti, TM); ctx.save(); ctx.beginPath(); ctx.rect(ax.L, ax.T, ax.R - ax.L, ax.B - ax.T); ctx.clip(); ctx.strokeStyle = ti.col; ctx.lineWidth = ti.tumor ? 3.2 : 2.2; ctx.beginPath(); r.pts.forEach(function(p, i){ var x = ax.X(p[0]), y = ax.Y(Math.log10(Math.max(1e-4, p[1]))); if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y); }); ctx.stroke(); ctx.restore(); return r; });
-      TIS.forEach(function(ti, i){ B4.txt(c, ti.n, ax.R - 4, ax.B - 10 - (4 - i) * 14, ti.col, 12, "right"); });
-      B4.txt(c, "traits noirs : cures", ax.L + 6, ax.B - 22, "#5f6b7a", 11, "left");
+      c.clear(); var ctx = c.ctx, W = c.W, H = c.H, TM = Math.max(140, Math.ceil(((n.value - 1) * dt.value + 70) / 10) * 10), gh = H * 0.56;
+      cur = Math.min(cur, TM);
+      var L = 46, Rr = W - 12, T0 = 24, B0 = gh;
+      function X(t){ return L + t / TM * (Rr - L); } function Y(v){ return B0 - (Math.log10(Math.max(1e-3, v)) + 2.2) / 2.8 * (B0 - T0); }
+      gx = {X:X, L:L, R:Rr, TM:TM, top:T0, bot:B0};
+      ctx.fillStyle = "#fbfcfe"; ctx.fillRect(0, 0, W, gh + 22);
+      /* zone de danger moelle (< 40 %) */
+      ctx.fillStyle = "rgba(192,50,29,.07)"; ctx.fillRect(L, Y(0.4), Rr - L, B0 - Y(0.4)); S.draw.line(c, L, Y(0.4), Rr, Y(0.4), "rgba(192,50,29,.55)", 1.2, [5, 4]); S.draw.text(c, "seuil moelle 40 %", Rr - 4, Y(0.4) - 8, {size:10, color:P.red, align:"right"});
+      [1, 0.1, 0.01].forEach(function(v){ S.draw.line(c, L, Y(v), Rr, Y(v), "#e3e7ed", 1); S.draw.text(c, v >= 1 ? "100 %" : (v * 100) + " %", L - 5, Y(v), {size:10, color:"#5f6b7a", align:"right"}); });
+      for (var q = 0; q * 20 <= TM; q++){ var xx = X(q * 20); S.draw.text(c, q * 20, xx, B0 + 11, {size:10, color:"#5f6b7a"}); }
+      S.draw.text(c, "taille relative (échelle logarithmique) · temps en jours", L + 2, 11, {size:10, color:"#5f6b7a", align:"left"});
+      for (q = 0; q < n.value; q++){ var xt = X(q * dt.value); if (q * dt.value <= TM){ ctx.fillStyle = P.ink; ctx.beginPath(); ctx.moveTo(xt, B0 - 12); ctx.lineTo(xt - 4, B0); ctx.lineTo(xt + 4, B0); ctx.fill(); } }
+      var res = TIS.map(function(ti){ var r = sim(ti, TM); ctx.save(); ctx.beginPath(); ctx.rect(L, T0 - 4, Rr - L, B0 - T0 + 8); ctx.clip(); ctx.strokeStyle = ti.col; ctx.lineWidth = ti.tumor ? 3.2 : 2.2; ctx.lineJoin = "round"; ctx.beginPath(); r.pts.forEach(function(p, i){ var x = X(p[0]), y = Y(p[1]); i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); }); ctx.stroke(); ctx.restore(); return r; });
+      /* curseur */
+      var cx = X(cur); S.draw.line(c, cx, T0, cx, B0, P.ink, 1.4, [3, 3]); S.draw.dot(c, cx, T0, 6, P.ink);
+      TIS.forEach(function(ti, i){ S.draw.dot(c, cx, Y(at(res[i], cur)), 4, ti.col); });
+      /* barres des tissus au jour du curseur */
+      var by0 = gh + 36, bh = (H - by0 - 8) / TIS.length, bl = 118, bw = W - bl - 56;
+      S.draw.text(c, "État des tissus au jour " + S.fmt(cur, 0), 8, gh + 24, {size:11, color:P.ink, align:"left"});
+      TIS.forEach(function(ti, i){
+        var y = by0 + i * bh + bh / 2, v = at(res[i], cur), w = Math.min(1.15, v) / 1.15 * bw;
+        S.draw.text(c, ti.n, 8, y, {size:11, color:"#2c3a4e", align:"left"});
+        S.draw.rrect(c, bl, y - 5.5, bw, 11, 5.5); ctx.fillStyle = "#eef1f5"; ctx.fill();
+        S.draw.rrect(c, bl, y - 5.5, Math.max(6, w), 11, 5.5); ctx.fillStyle = ti.col; ctx.fill();
+        if (i === 1){ var tx = bl + 0.4 / 1.15 * bw; S.draw.line(c, tx, y - 8, tx, y + 8, P.red, 1.6); }
+        S.draw.text(c, S.fmt(v * 100, 0) + " %", bl + bw + 6, y, {size:11, color:ti.col, align:"left"});
+      });
       ro.set(0, S.fmt(res[0].end * 100, 0) + " % du départ"); ro.set(1, S.fmt(res[1].min * 100, 0) + " %"); ro.set(2, S.fmt(res[2].min * 100, 0) + " %"); ro.set(3, S.fmt(res[3].min * 100, 0) + " %");
+      var win = res[0].end < 0.05 && res[1].min >= 0.4;
+      ntD.set("<b>Défi.</b> Tumeur à moins de 5 % de sa taille de départ, moelle jamais sous 40 %. " + (win ? "<b>Réussi !</b>" : res[0].end < 0.05 ? "Tumeur vaincue, mais la moelle est trop atteinte : espace les cures ou baisse la dose." : "Tumeur encore à " + S.fmt(res[0].end * 100, 0) + " %."), win ? "ok" : "warn");
       var msg = "La tumeur (80 % de cellules en cycle) subit l'effet le plus fort ; les neurones, qui ne se divisent pas, ne sont pas touchés. ";
       if (res[1].min < 0.45) msg += "Moelle osseuse très atteinte (" + S.fmt(res[1].min * 100, 0) + " %) : moins de globules blancs, risque d'infection. ";
       if (res[0].end < 0.05) msg += "La tumeur est fortement réduite."; else if (res[0].end > 1) msg += "La tumeur est repartie au-delà de sa taille de départ : traitement insuffisant."; else msg += "La tumeur régresse mais subsiste.";
       nt.set(msg, res[1].min < 0.45 ? "warn" : "");
     });
+    c.pointer(function(type, e){ if (type === "down" || type === "drag"){ if (type === "down" && e.y > c.H * 0.62) return; cur = Math.max(0, Math.min(gx.TM, (e.x - gx.L) / (gx.R - gx.L) * gx.TM)); k.redraw(); } });
+    c.cv.style.touchAction = "pan-y";
   }
 });

@@ -139,7 +139,7 @@ SFA.sim({
     k.draw(function(){
       var arr = HYD[se.value], ctx = c.ctx, W = c.W, H = c.H, Pl = S.draw.palette, ph = W < 420, n = arr.length;
       UC.bg(c, "#f6f9fc", "#ffffff");
-      var top = 42, base = H - 74, vals = arr.map(function(a){ return a[1]; }), lo = Math.min.apply(null, vals), isConj = se.value === "conj";
+      var top = 42, base = H - 88, vals = arr.map(function(a){ return a[1]; }), lo = Math.min.apply(null, vals), isConj = se.value === "conj";
       var maxA = isConj ? 260 : -lo + 8, lowCut = isConj ? 0 : Math.floor((-Math.max.apply(null, vals) - 14) / 10) * 10;
       function Y(v){ return base - ((-v) - lowCut) / (maxA - lowCut) * (base - top); }       /* hauteur = |ΔH| au-dessus de l'alcane */
       var lw = 52, rw = W - 14, slot = (rw - lw) / n, bw = Math.min(76, slot - 14);
@@ -160,8 +160,8 @@ SFA.sim({
         S.draw.arrow(c, x + bw / 2, y + 2, x + bw / 2, base - 3, col, sel ? 3.6 : 2.4);
         ctx.save(); ctx.strokeStyle = col; ctx.lineWidth = sel ? 6 : 4.5; ctx.lineCap = "round"; ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + bw, y); ctx.stroke(); ctx.restore();
         S.draw.label(c, "ΔH = " + String(a[1]).replace("-", "−"), x + bw / 2, y - 14, {color:col, size:ph ? 10.5 : 11.5});
-        wrap(a[0], ph ? 10 : 14).forEach(function(line, j){ S.draw.text(c, line, x + bw / 2, base + 30 + j * 12, {size:ph ? 9 : 10.5, color:sel ? Pl.ink : "#334155", weight:sel ? 800 : 700}); });
-        S.draw.text(c, a[2], x + bw / 2, H - 10, {size:9.5, color:Pl.grey, weight:600});
+        wrap(a[0], ph ? 10 : 14).forEach(function(line, j){ S.draw.text(c, line, x + bw / 2, base + 28 + j * 11, {size:ph ? 9 : 10.5, color:sel ? Pl.ink : "#334155", weight:sel ? 800 : 700}); });
+        wrap(a[2], ph ? 11 : 15).forEach(function(l2, j2){ S.draw.text(c, l2, x + bw / 2, H - 22 + j2 * 10, {size:9, color:Pl.grey, weight:600}); });
         hit.push({i:i, x:x - 6, y:Math.min(y, base - 30) - 20, w:bw + 12, h:base - y + 40});
         if (sel){ ctx.save(); ctx.strokeStyle = col; ctx.lineWidth = 1.5; ctx.setLineDash([4, 3]); S.draw.rrect(c, x - 6, y - 26, bw + 12, base - y + 70, 8); ctx.stroke(); ctx.restore(); }
       });
@@ -204,6 +204,7 @@ SFA.sim({
       var cisLike = al.value !== "trans", anti = mo.value === "anti", racemic = (cisLike === anti), top = Math.random() < p.value / 100;
       var kind = racemic ? (top ? "a" : "b") : "m"; cnt[kind]++; last = {top:top, kind:kind}; anim = 0;
     }
+    for (var i0 = 0; i0 < 24; i0++) shoot(); anim = 1; last = null;
     k.button("Lancer 1 molécule", function(){ shoot(); }, true);
     k.button("Lancer 100 molécules", function(){ for (var i = 0; i < 100; i++) shoot(); });
     k.button("Remettre à zéro", function(){ cnt = {a:0, b:0, m:0}; last = null; });

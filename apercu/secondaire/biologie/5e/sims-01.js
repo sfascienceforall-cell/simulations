@@ -108,47 +108,69 @@ SFA.sim({
   id: "b5-c01-myeline", ch: "c01", tag: "Course",
   titre: "Course d'influx : fibre myélinisée ou non",
   resume: "Diamètre, longueur, myéline → vitesse et temps de trajet de l'influx.",
-  but: "Deux fibres de même diamètre et de même longueur : l'une est nue, l'autre myélinisée. Envoie l'influx (au ralenti) et compare les temps réels. Modifie le diamètre et la longueur.",
+  but: "Deux fibres de même diamètre et de même longueur : l'une est nue, l'autre myélinisée. Lance la course (au ralenti) : l'influx de la fibre myélinisée saute de nœud en nœud. Compare les temps réels, puis modifie le diamètre et la longueur.",
   aRetenir: "La myéline isole l'axone : le potentiel d'action « saute » de nœud de Ranvier en nœud de Ranvier (conduction saltatoire). Pour un même diamètre, c'est bien plus rapide : v ≈ 6 m/s par µm de diamètre (fibre myélinisée) contre v ≈ 1,1·√d (fibre nue). Une fibre plus grosse conduit plus vite.",
   piege: "L'influx n'est pas un courant électrique dans un fil (qui irait à plus de 10⁸ m/s) : c'est une onde de potentiel d'action qui se régénère le long de la membrane. Valeurs : ordres de grandeur d'un modèle simplifié.",
   build: function(k, S){
-    var c = k.canvas(250), pal = S.draw.palette;
+    var c = k.canvas(400), pal = S.draw.palette, D = S.draw;
     var d = k.slider("Diamètre de la fibre", 1, 20, 0.5, 10, "µm");
     var L = k.slider("Longueur du trajet", 0.1, 1.5, 0.1, 1, "m");
     var ro = k.readouts(["v fibre nue", "v fibre myélinisée", "Temps (nue)", "Temps (myélinisée)"]);
     var nt = k.note("", "");
-    var tt = 0, run = false, slow = 1;
+    var tt = 0, run = false, slow = 1, NODES = 12;
     function tims(){ return {a: L.value / vUnmy(d.value), b: L.value / vMy(d.value)}; }
-    var lp = k.loop(function(dt){ tt += dt; var T = tims(); if (tt > Math.max(T.a, T.b) * slow + 0.5){ lp.pause(); run = false; } k.redraw(); });
-    k.button("Envoyer l'influx (au ralenti)", function(){ var T = tims(); slow = 4 / Math.max(T.a, T.b); tt = 0; run = true; lp.play(); }, true);
+    function fmtT(s){ return s >= 1 ? S.fmt(s, 2) + " s" : (s * 1000 < 10 ? S.fmt(s * 1000, 1) : S.fmt(s * 1000, 0)) + " ms"; }
+    var lp = k.loop(function(dt){ tt += dt; var T = tims(); if (tt > Math.max(T.a, T.b) * slow + 1.2){ lp.pause(); run = false; } k.redraw(); });
+    k.button("Lancer la course (au ralenti)", function(){ var T = tims(); slow = 5 / Math.max(T.a, T.b); tt = 0; run = true; lp.play(); }, true);
+    k.button("Remettre à zéro", function(){ lp.pause(); run = false; tt = 0; });
     k.draw(function(){
-      c.clear();
-      var T = tims(), x0 = 40, x1 = c.W - 20, W = x1 - x0, ctx = c.ctx;
-      function fibre(y, my){
-        var th = my ? 14 : 8;
-        ctx.fillStyle = "#c9b8ea"; ctx.fillRect(x0, y - 3, W, 6);
+      c.clear(); var ctx = c.ctx, W = c.W, T = tims();
+      var x0 = 78, x1 = W - 52, Wd = x1 - x0, th = Math.max(5, Math.min(13, d.value * 0.8));   /* épaisseur selon le diamètre */
+      var ta = Math.min(tt / slow, T.a), tb = Math.min(tt / slow, T.b), started = run || tt > 0;
+      function lane(y, my, tcur, ttot, col, name){
+        D.panel(c, 8, y - 62, W - 16, 124, {shadow: false, fill: "#fbfcfe"});
+        D.text(c, name, 20, y - 46, {align: "left", size: 12.5, color: pal.ink, weight: 800});
+        /* corps cellulaire */
+        D.glow(c, 46, y + 6, 30, "#c9b8ea", .5); B5.circ(c, 46, y + 6, 20, "#d9ccf3", "#8d77cf", 2); B5.circ(c, 46, y + 6, 7, "#8d77cf");
+        /* axone */
+        ctx.fillStyle = "#b9a5e6"; ctx.fillRect(x0 - 8, y + 6 - th / 2, Wd + 8, th);
+        var frac = ttot > 0 ? tcur / ttot : 0, px;
         if (my){
-          var n = 12; for (var i = 0; i < n; i++){ var a = x0 + W * i / n + 3, w = W / n - 8; ctx.fillStyle = "#f4c542"; ctx.fillRect(a, y - th / 2, w, th); ctx.strokeStyle = "#B45309"; ctx.strokeRect(a, y - th / 2, w, th); }
+          var seg = Wd / NODES;
+          for (var i = 0; i < NODES; i++){
+            var a = x0 + i * seg + 5, w = seg - 10, hh = th + 12;
+            var gr = ctx.createLinearGradient(0, y + 6 - hh / 2, 0, y + 6 + hh / 2); gr.addColorStop(0, "#fbe7a0"); gr.addColorStop(.5, "#f4c542"); gr.addColorStop(1, "#d9a21b");
+            D.rrect(c, a, y + 6 - hh / 2, w, hh, hh / 2.6); ctx.fillStyle = gr; ctx.fill(); ctx.strokeStyle = "#b8860b"; ctx.lineWidth = 1; ctx.stroke();
+          }
+          var ib = Math.min(NODES, Math.floor(frac * NODES + 1e-9)), fr = frac * NODES - ib; px = x0 + ib * seg;
+          if (started && frac < 1){
+            D.glow(c, px, y + 6, 32, pal.red, .7); D.dot(c, px, y + 6, 8, pal.red);
+            if (ib < NODES){ ctx.strokeStyle = "rgba(192,50,29,.5)"; ctx.lineWidth = 2; ctx.setLineDash([4, 3]); ctx.beginPath(); ctx.moveTo(px, y + 6 - 8); ctx.quadraticCurveTo(px + seg / 2, y + 6 - 38, px + seg, y + 6 - 8); ctx.stroke(); ctx.setLineDash([]); }
+          }
+          D.label(c, "nœud de Ranvier", x0 + seg * 3, y + 54, {size: 10.5, color: pal.amber, weight: 700});
+          D.line(c, x0 + seg * 3, y + 42, x0 + seg * 3, y + 24, pal.amber, 1.2);
+          D.label(c, "myéline", x0 + seg * 6.5, y + 54, {size: 10.5, color: "#8a6508", weight: 700});
+        } else {
+          px = x0 + Wd * frac;
+          if (started && frac < 1){ D.glow(c, px, y + 6, 32, pal.red, .7); D.dot(c, px, y + 6, 8, pal.red); }
+          ctx.strokeStyle = "rgba(192,50,29,.35)"; ctx.lineWidth = th;
+          if (started){ ctx.beginPath(); ctx.moveTo(x0, y + 6); ctx.lineTo(Math.min(px, x1), y + 6); ctx.stroke(); }
         }
+        /* cible (muscle) */
+        D.rrect(c, x1 + 8, y - 14, 30, 40, 8); ctx.fillStyle = frac >= 1 ? "#f5b3a6" : "#efe3e0"; ctx.fill(); ctx.strokeStyle = pal.red; ctx.lineWidth = 1.5; ctx.stroke();
+        D.text(c, "muscle", x1 + 23, y + 34, {size: 10, color: pal.red, weight: 700});
+        if (frac >= 1) { D.glow(c, x1 + 23, y + 6, 30, pal.red, .6); D.label(c, fmtT(ttot), x1 - 6, y - 24, {color: pal.green, align: "right", size: 12}); }
       }
-      S.draw.text(c, "Fibre nue (sans myéline)", x0, 28, {align: "left", size: 13, color: pal.ink});
-      fibre(62, false);
-      S.draw.text(c, "Fibre myélinisée (nœuds de Ranvier entre les manchons)", x0, 128, {align: "left", size: 13, color: pal.ink});
-      fibre(162, true);
-      var ta = Math.min(tt / slow, T.a), tb = Math.min(tt / slow, T.b);
-      if (run || tt > 0){
-        var pa = x0 + W * ta / T.a, pb = x0 + W * tb / T.b;
-        B5.circ(c, pa, 62, 11, "rgba(180,35,24,.85)");
-        var nodes = 12, ib = Math.min(nodes, Math.floor((pb - x0) / (W / nodes) + 1e-9)), nb = x0 + W * ib / nodes;
-        B5.circ(c, Math.min(nb + 1, x1), 162, 11, "rgba(180,35,24,.85)");
-        if (tb >= T.b) S.draw.text(c, "arrivée", x1 - 4, 190, {align: "right", color: pal.green, size: 12});
-        if (ta >= T.a) S.draw.text(c, "arrivée", x1 - 4, 90, {align: "right", color: pal.green, size: 12});
-      }
-      S.draw.text(c, "départ", x0, 226, {align: "left", size: 12, color: pal.grey}); S.draw.text(c, "arrivée (" + S.fmt(L.value, 1) + " m)", x1, 226, {align: "right", size: 12, color: pal.grey});
+      lane(78, false, ta, T.a, pal.red, "Fibre nue (sans myéline)");
+      lane(222, true, tb, T.b, pal.red, "Fibre myélinisée : conduction saltatoire");
+      /* chronomètre */
+      var tm = Math.min(tt / slow, Math.max(T.a, T.b));
+      D.display(c, started ? fmtT(tm) : "0 ms", c.W / 2, 346, {w: 130, h: 44, caption: "temps réel écoulé"});
+      D.text(c, "départ : corps cellulaire", 12, 388, {align: "left", size: 10.5, color: pal.grey});
+      D.text(c, "arrivée à " + S.fmt(L.value, 1) + " m", c.W - 12, 388, {align: "right", size: 10.5, color: pal.grey});
       ro.set(0, S.fmt(vUnmy(d.value), 1) + " m/s"); ro.set(1, S.fmt(vMy(d.value), 0) + " m/s");
-      ro.set(2, T.a >= 1 ? S.fmt(T.a, 2) + " s" : S.fmt(T.a * 1000, 0) + " ms");
-      ro.set(3, T.b * 1000 < 10 ? S.fmt(T.b * 1000, 1) + " ms" : S.fmt(T.b * 1000, 0) + " ms");
-      nt.set("Rapport des vitesses : fibre myélinisée ≈ " + S.fmt(vMy(d.value) / vUnmy(d.value), 0) + " × plus rapide. Animation ralentie ×" + S.fmt(slow, 0) + " (temps réels dans les cases).", "ok");
+      ro.set(2, fmtT(T.a)); ro.set(3, fmtT(T.b));
+      nt.set("Fibre myélinisée ≈ " + S.fmt(vMy(d.value) / vUnmy(d.value), 0) + " × plus rapide. Animation ralentie ×" + S.fmt(slow, 0) + " (les temps réels sont dans les cases).", "ok");
     });
   }
 });

@@ -113,35 +113,75 @@ SFA.sim({
   id: "b5-c07-brassage", ch: "c07", tag: "Probabilités",
   titre: "Brassage interchromosomique : 2ⁿ gamètes",
   resume: "Nombre de paires de chromosomes → nombre de gamètes possibles et tirage de 1 000 gamètes.",
-  but: "Chaque paire d'homologues s'oriente au hasard à la méiose I. Fais varier le nombre n de paires (jusqu'à 23, comme l'espèce humaine), lis le nombre de gamètes différents possibles, puis produis 1 000 gamètes et compare la répartition observée à la théorie.",
+  but: "Chaque paire d'homologues s'oriente au hasard à la méiose I. Touche une paire de la cellule pour retourner son orientation et vois le gamète obtenu changer. Fais varier le nombre n de paires (jusqu'à 23, comme l'espèce humaine), lis le nombre de gamètes différents possibles, puis produis 1 000 gamètes et compare la répartition observée à la théorie.",
   aRetenir: "Avec n paires de chromosomes, une personne peut produire 2ⁿ gamètes différents (sans compter le crossing-over) : 2²³ = 8 388 608 pour l'espèce humaine. Deux parents donnent (2ⁿ)² = 4ⁿ combinaisons : plus de 70 000 milliards. Le brassage explique que des frères et sœurs, sauf jumeaux, soient tous différents.",
   piege: "2ⁿ est un nombre de combinaisons possibles, pas un nombre de gamètes produits par une méiose : une méiose ne donne que 4 cellules, au plus 2 types différents (sans crossing-over). Et le crossing-over s'ajoute encore à ce brassage.",
   build: function(k, S){
-    var c = k.canvas(250), pal = S.draw.palette;
+    var c = k.canvas(540), pal = S.draw.palette, D = S.draw, MAT = "#c0321d", PAT = "#1f4b9e";
     var n = k.slider("Nombre de paires de chromosomes", 1, 23, 1, 3, "");
     var ro = k.readouts(["Gamètes différents (2ⁿ)", "Zygotes possibles (4ⁿ)", "Chance d'un gamète précis", "Gamètes 100 % d'une origine"]);
     var nt = k.note("", "");
-    var counts = null, total = 0;
+    var counts = null, total = 0, ori = [], i, geo = {};
+    for (i = 0; i < 23; i++) ori.push(Math.random() < .5 ? 0 : 1);       /* 0 : maternel à gauche */
+    k.button("Orientation au hasard", function(){ for (var q = 0; q < 23; q++) ori[q] = Math.random() < .5 ? 0 : 1; }, true);
     k.button("Produire 1 000 gamètes", function(){
-      var nn = n.value, i, j; counts = []; for (i = 0; i <= nn; i++) counts.push(0);
-      for (i = 0; i < 1000; i++){ var m = 0; for (j = 0; j < nn; j++) if (Math.random() < 0.5) m++; counts[m]++; }
+      var nn = n.value, q, j; counts = []; for (q = 0; q <= nn; q++) counts.push(0);
+      for (q = 0; q < 1000; q++){ var m = 0; for (j = 0; j < nn; j++) if (Math.random() < 0.5) m++; counts[m]++; }
       total = 1000;
-    }, true);
+    });
     k.button("Effacer", function(){ counts = null; });
+    c.cv.style.touchAction = "none";
+    c.pointer(function(t, p){ if (t !== "down" || !geo.rows) return; var best = -1, bd = 1e9; geo.rows.forEach(function(r, q){ var d = Math.abs(p.y - r); if (d < bd && p.x > geo.cx0 && p.x < geo.cx1){ bd = d; best = q; } }); if (best >= 0 && bd < geo.rh) { ori[best] = 1 - ori[best]; k.redraw(); } });
     var lastN = null;
     k.draw(function(){
       var nn = n.value; if (lastN !== null && lastN !== nn){ counts = null; } lastN = nn;
-      c.clear();
-      var ax;
-      var th = [], mxp = 0, i; for (i = 0; i <= nn; i++){ var p = binom(nn, i) / Math.pow(2, nn); th.push(p); if (p > mxp) mxp = p; }
-      var ymax = Math.min(1, Math.max(0.2, Math.ceil(mxp * 1.3 * 10) / 10)); if (counts){ counts.forEach(function(q){ ymax = Math.max(ymax, Math.ceil(q / total * 1.2 * 10) / 10); }); }
-      ax = S.draw.axes(c, {x0: -0.5, x1: nn + 0.5, y0: 0, y1: ymax, xl: "chromosomes d'origine maternelle", yl: "fréquence", stepX: nn > 12 ? 2 : 1, stepY: ymax <= 0.5 ? 0.1 : 0.2});
-      var bw = (ax.X(1) - ax.X(0)) * 0.7;
-      for (i = 0; i <= nn; i++){
-        if (counts){ var v = counts[i] / total; c.ctx.fillStyle = "rgba(91,33,182,.55)"; c.ctx.fillRect(ax.X(i) - bw / 2, ax.Y(v), bw, ax.Y(0) - ax.Y(v)); }
-        S.draw.dot(c, ax.X(i), ax.Y(th[i]), 4.5, pal.red);
+      c.clear(); var ctx = c.ctx, W = c.W, H = c.H, sh = 292;
+      D.rrect(c, 8, 8, W - 16, sh, 12); ctx.fillStyle = "#f6f4fc"; ctx.fill();
+      /* cellule en métaphase I */
+      var cw = Math.min(250, W * 0.52), cx0 = 20, cy0 = 58, ch = sh - 66;
+      D.rrect(c, cx0, cy0, cw, ch, 30); var cg = ctx.createLinearGradient(cx0, cy0, cx0 + cw, cy0 + ch); cg.addColorStop(0, "#fdf9ff"); cg.addColorStop(1, "#e9def9"); ctx.fillStyle = cg; ctx.fill(); ctx.strokeStyle = "#8d77cf"; ctx.lineWidth = 2.5; ctx.stroke();
+      D.text(c, "Métaphase I : " + nn + (nn > 1 ? " paires" : " paire") + " (touche une paire)", cx0 + cw / 2, cy0 + 14, {size: 11.5, color: "#4b3a8a", weight: 800});
+      var mid = cx0 + cw / 2, rh = Math.min(30, (ch - 56) / nn), bw = Math.min(54, cw * .27), bh = Math.max(3.5, Math.min(13, rh * .62));
+      D.line(c, mid, cy0 + 6, mid, cy0 + ch - 6, "#9a8ac8", 1.5, [4, 4]); D.text(c, "plaque équatoriale", mid, cy0 + ch + 10, {size: 10, color: pal.grey, weight: 700});
+      geo.rows = []; geo.cx0 = cx0; geo.cx1 = cx0 + cw; geo.rh = Math.max(rh, 10);
+      var y0 = cy0 + ch / 2 + 6 - (nn - 1) * rh / 2, mL = 0;
+      for (i = 0; i < nn; i++){
+        var y = y0 + i * rh; geo.rows.push(y);
+        var leftMat = ori[i] === 0; if (leftMat) mL++;
+        [[mid - bw - 6, leftMat ? MAT : PAT], [mid + 6, leftMat ? PAT : MAT]].forEach(function(b){ D.rrect(c, b[0], y - bh / 2, bw, bh, bh / 2.4); ctx.fillStyle = b[1]; ctx.fill(); if (bh > 6){ ctx.fillStyle = "#fff"; ctx.fillRect(b[0] + bw / 2 - 2, y - bh / 2, 4, bh); } });
       }
-      B5.leg(c, [["théorie (binomiale)", pal.red], ["1 000 gamètes tirés", pal.violet]], ax.L + 8, ax.T + 34);
+      D.text(c, "pôle 1", cx0 + 28, cy0 + ch - 8, {size: 10, color: pal.grey, weight: 700}); D.text(c, "pôle 2", cx0 + cw - 28, cy0 + ch - 8, {size: 10, color: pal.grey, weight: 700});
+      /* gamètes */
+      var gx = cx0 + cw + 24, gwid = W - gx - 16;
+      function gam(cy, side, name){
+        var r = Math.min(58, gwid / 2 - 4, (sh - 80) / 4); var gc = gx + gwid / 2;
+        B5.circ(c, gc, cy, r, "#fff", "#8d77cf", 2.5);
+        var cols = Math.ceil(Math.sqrt(nn * 1.6)), cell = Math.min(r * 1.5 / cols, 15), mm = 0;
+        for (var q = 0; q < nn; q++){
+          var mat = (ori[q] === 0) === (side === 0), col = q % cols, row = Math.floor(q / cols), rows = Math.ceil(nn / cols);
+          var bx = gc - cols * cell / 2 + col * cell + cell * .15, by = cy - rows * cell * .5 + row * cell * .9 + cell * .1;
+          D.rrect(c, bx, by, cell * .7, Math.max(3, cell * .55), 2); ctx.fillStyle = mat ? MAT : PAT; ctx.fill(); if (mat) mm++;
+        }
+        D.text(c, name, gc, cy - r - 11, {size: 11, color: pal.ink, weight: 800});
+        D.text(c, mm + " mat. + " + (nn - mm) + " pat.", gc, cy + r + 12, {size: 10.5, color: pal.grey, weight: 700});
+        return mm;
+      }
+      var gy1 = 74, gy2 = sh - 62, mm1 = gam(gy1 + 8, 0, "Gamète 1 (n = " + nn + ")"); gam(gy2 + 2, 1, "Gamète 2");
+      D.arrow(c, cx0 + cw + 2, cy0 + ch * .3, gx + 2, gy1 + 8, "#8d77cf", 2); D.arrow(c, cx0 + cw + 2, cy0 + ch * .7, gx + 2, gy2 + 2, "#8d77cf", 2);
+      D.legend(c, [[MAT, "chromosome maternel"], [PAT, "chromosome paternel"]], 16, 10, {box: false});
+      /* distribution */
+      var gy = sh + 22, th = [], mxp = 0; D.panel(c, 8, gy - 4, W - 16, H - gy - 4, {shadow: false, fill: "#fbfcfe"});
+      for (i = 0; i <= nn; i++){ var pp = binom(nn, i) / Math.pow(2, nn); th.push(pp); if (pp > mxp) mxp = pp; }
+      var ymax = Math.min(1, Math.max(0.2, Math.ceil(mxp * 1.3 * 10) / 10)); if (counts){ counts.forEach(function(q){ ymax = Math.max(ymax, Math.ceil(q / total * 1.2 * 10) / 10); }); }
+      var ax = D.axes(c, {x0: -0.5, x1: nn + 0.5, y0: 0, y1: ymax, xl: "chromosomes d'origine maternelle dans le gamète", stepX: nn > 12 ? 2 : 1, stepY: ymax <= 0.5 ? 0.1 : 0.2, t: gy + 8, b: 36, l: 40, r: 18});
+      D.text(c, "fréquence", 14, gy + 4, {size: 11, color: pal.grey, align: "left"});
+      var bwd = (ax.X(1) - ax.X(0)) * 0.7;
+      for (i = 0; i <= nn; i++){
+        if (counts){ var v = counts[i] / total; ctx.fillStyle = "rgba(98,54,196,.55)"; ctx.fillRect(ax.X(i) - bwd / 2, ax.Y(v), bwd, ax.Y(0) - ax.Y(v)); }
+        D.dot(c, ax.X(i), ax.Y(th[i]), 4.5, pal.red);
+      }
+      D.glow(c, ax.X(mm1), ax.Y(th[mm1]), 18, pal.amber, .8); B5.circ(c, ax.X(mm1), ax.Y(th[mm1]), 8, null, pal.amber, 2.5);
+      D.legend(c, [[pal.red, "théorie (binomiale)"], [pal.violet, "1 000 gamètes tirés"], [pal.amber, "ton gamète 1"]], ax.R - 4, ax.T, {align: "right"});
       ro.set(0, S.sci(Math.pow(2, nn), 3)); ro.set(1, S.sci(Math.pow(4, nn), 3)); ro.set(2, "1 sur " + S.sci(Math.pow(2, nn), 3)); ro.set(3, nn <= 10 ? S.fmt(200 / Math.pow(2, nn), 2) + " % des gamètes" : "1 sur " + S.sci(Math.pow(2, nn - 1), 3) + " (2 gamètes sur " + S.sci(Math.pow(2, nn), 3) + ")");
       nt.set(nn >= 23 ? "n = 23 : environ 8,4 millions de gamètes possibles par personne et 7,0·10¹³ zygotes possibles, avant même le crossing-over." : "Avec " + nn + " paires : " + Math.pow(2, nn) + " gamètes possibles (le tirage montre que les cas « équilibrés » sont les plus fréquents).", "ok");
     });

@@ -200,11 +200,13 @@ SFA.sim({
   aRetenir: "Solution = transitoire (qui meurt, e^(−ζω₀t)) + régime permanent x_p = A cos(ωt − φ) avec A = 1/√((ω₀² − ω²)² + (2ζω₀ω)²). Pic de résonance en ω_r = ω₀√(1 − 2ζ²) (si ζ < 1/√2) ; plus ζ est petit, plus le pic est haut (A ≈ 1/(2ζω₀²)). Sans frottement, A → ∞ : l'énergie s'accumule à chaque cycle.",
   piege: "La fréquence de résonance n'est pas exactement ω₀ dès qu'il y a du frottement (ω_r < ω₀), et au démarrage la réponse oscille de façon irrégulière (battements) avant de se stabiliser.",
   build: function(k, S){
-    var c = k.canvas(190), c2 = k.canvas(190), c3 = k.canvas(300), c0 = k.canvas(80), st = {t: 0, az: 0.7, el: 0.45, drag: false, lx: 0, ly: 0};
+    var c0 = k.canvas(96), c = k.canvas(220), c2 = k.canvas(190), c3 = k.canvas(320), st = {t: 0, az: 0.7, el: 0.45, drag: false, lx: 0, ly: 0};
     var w0 = 2, wv = k.slider("Fréquence de la force ω", 0.2, 5, 0.01, 1.6, "rad/s"), zt = k.slider("Amortissement ζ", 0.03, 0.9, 0.01, 0.12, "");
     var ro = k.readouts(["Amplitude permanente A(ω)", "Amplification A(ω)/A(0)", "Déphasage φ", "Fréquence de résonance ω_r"]), nt = k.note("", "");
     var TT = 40, lp = k.loop(function(dt){ st.t += dt * 2; if (st.t > TT) st.t = 0; k.redraw(); }); lp.play();
     k.button("Relancer depuis le repos", function(){ st.t = 0; }, true);
+    c.cv.style.touchAction = "none"; c.cv.style.cursor = "ew-resize";
+    c.pointer(function(t, p){ if (t === "down" || t === "drag"){ var X0 = 46, X1 = c.W - 16; wv.set(Math.round(cl(0.2 + (p.x - X0) / (X1 - X0) * 4.8, 0.2, 5) * 100) / 100); k.redraw(); } });
     c3.pointer(function(t, p){ if (t === "down"){ st.drag = true; st.lx = p.x; st.ly = p.y; } else if (t === "drag"){ st.az += (p.x - st.lx) * 0.012; st.el = cl(st.el + (p.y - st.ly) * 0.01, -1.3, 1.3); st.lx = p.x; st.ly = p.y; } else if (t === "up") st.drag = false; });
     function sol(w, z){
       var A = 1 / Math.sqrt(Math.pow(w0 * w0 - w * w, 2) + Math.pow(2 * z * w0 * w, 2)), ph = Math.atan2(2 * z * w0 * w, w0 * w0 - w * w), wd = w0 * Math.sqrt(1 - z * z), a = z * w0;
@@ -215,7 +217,7 @@ SFA.sim({
     k.draw(function(){
       c.clear(); c2.clear(); c3.clear(); c0.clear(); var Z = zt.value, Wv = wv.value, s = sol(Wv, Z), t = Math.min(st.t, TT), i;
       var Am = function(w){ return 1 / Math.sqrt(Math.pow(w0 * w0 - w * w, 2) + Math.pow(2 * Z * w0 * w, 2)); }, Ar = 0.25; for (i = 0; i <= 500; i++) Ar = Math.max(Ar, Am(0.2 + 4.8 * i / 500));
-      var ax = D.axes(c, {x0: 0, x1: 5, y0: 0, y1: Ar * 1.12, xl: "ω (rad/s)", yl: "A(ω)"}); D.fn(c, ax, Am, P.violet, 3.2); vl(c, ax, w0, "#9aa5b4", [4, 4], 1.2); lab(c, "ω₀", ax.X(w0), ax.B + 14, "#6b7380", 12);
+      var ax = D.axes(c, {x0: 0, x1: 5, y0: 0, y1: Ar * 1.12, xl: "ω (rad/s)", yl: "A(ω)"}); D.fn(c, ax, Am, P.violet, 3.2); vl(c, ax, w0, "#9aa5b4", [4, 4], 1.2); lab(c, "ω₀", ax.X(w0), ax.B + 14, "#6b7380", 12); D.label(c, "glisse le point rouge", ax.R - 6, ax.T + 4, {color:P.red, align:"right", base:"top", size:10.5});
       pt(c, ax, Wv, s.A, P.red, 6.5); var wr = Z < Math.SQRT1_2 ? w0 * Math.sqrt(1 - 2 * Z * Z) : 0; if (wr > 0) { pt(c, ax, wr, Am(wr), P.amber, 4.5); }
       var Rt = 0.2; for (i = 0; i <= 400; i++){ var tq = TT * i / 400; Rt = Math.max(Rt, Math.abs(s.x(tq)), Math.abs(s.v(tq)) / w0); } Rt *= 1.1; var ax2 = D.axes(c2, {x0: 0, x1: TT, y0: -Rt, y1: Rt, xl: "t (s)", yl: "x(t)"}), N = 700, pts = [], f1 = [];
       for (i = 0; i <= N; i++){ var tt = TT * i / N; pts.push([tt, s.x(tt)]); } poly(c2, ax2, pts, P.acc, 2.4);
@@ -223,6 +225,7 @@ SFA.sim({
       pt(c2, ax2, t, s.x(t), P.red, 6); vl(c2, ax2, t, "#b6bfcc", [3, 4], 1.2); lab(c2, "force (orange)", ax2.R - 6, ax2.T + 12, P.amber, 11, "right");
       // masse-ressort
       var W0 = c0.W, Y0 = c0.H / 2, sc = (W0 - 140) / 2 / Rt, xm = W0 / 2 + 30 + s.x(t) * sc, c0x = c0.ctx; c0x.fillStyle = "#6b7380"; c0x.fillRect(14, Y0 - 24, 8, 48); springDraw(c0, 22, xm - 18, Y0, 9, P.teal); c0x.fillStyle = P.acc; c0x.fillRect(xm - 18, Y0 - 18, 36, 36); D.line(c0, W0 / 2 + 30, Y0 - 26, W0 / 2 + 30, Y0 + 26, "#9aa5b4", 1.2, [3, 3]);
+      var fq = Math.cos(Wv * t) * 46; if (Math.abs(fq) > 4) D.arrow(c0, xm + (fq > 0 ? 22 : -22), Y0 - 30, xm + (fq > 0 ? 22 : -22) + fq, Y0 - 30, P.amber, 3); D.label(c0, "force excitatrice", W0 - 10, 8, {color:P.amber, align:"right", base:"top", size:10.5});
       // 3D
       var cx3 = c3.W / 2, cy3 = c3.H / 2 + 8, vs = w0, R = Rt, sc3 = Math.min(c3.W * 0.3, c3.H * 0.34) / R, zh = c3.H * 0.30 / 1, ctx3 = c3.ctx;
       function P3(x, y, tz){ return pj(x, y, (tz / TT - 0.5) * 2.2 * R, cx3, cy3, sc3); }
@@ -237,7 +240,7 @@ SFA.sim({
       ctx.restore(); if (last) pt(c3, {X: function(v){ return v; }, Y: function(v){ return v; }}, last[0], last[1], P.red, 5.5);
       lab(c3, "Projection au sol : portrait de phase (x, v/ω₀)", 10, 14, "#6b7380", 11, "left");
       ro.set(0, F(s.A, 3)); ro.set(1, F(s.A / Am(0), 2) + " ×"); ro.set(2, F(s.ph * 180 / PI, 1) + "°"); ro.set(3, wr > 0 ? F(wr, 3) + " rad/s" : "pas de pic");
-      nt.set(Z < 0.06 && Math.abs(Wv - w0) < 0.15 ? "Quasi-résonance (amortissement très faible) : l'amplitude permanente atteint " + F(s.A, 2) + " — mais il faut beaucoup de temps pour y arriver à partir du repos." : "Régime permanent : amplitude " + F(s.A, 3) + ", déphasage " + F(s.ph * 180 / PI, 0) + "° (0° bien sous ω₀, 90° à ω₀, 180° bien au-dessus). Le transitoire décroît en e^(−" + F(Z * w0, 2) + "·t).", "");
+      nt.set(Z < 0.06 && Math.abs(Wv - w0) < 0.15 ? "Quasi-résonance (amortissement très faible) : l'amplitude permanente atteint " + F(s.A, 2) + " — mais il faut beaucoup de temps pour y arriver à partir du repos." : "Régime permanent : amplitude " + F(s.A, 3) + " (amplification maximale possible ≈ " + F(1 / (2 * Z * Math.sqrt(Math.max(1e-6, 1 - Z * Z))), 1) + " ×), déphasage " + F(s.ph * 180 / PI, 0) + "° (0° bien sous ω₀, 90° à ω₀, 180° bien au-dessus). Le transitoire décroît en e^(−" + F(Z * w0, 2) + "·t).", "");
     });
   }
 });

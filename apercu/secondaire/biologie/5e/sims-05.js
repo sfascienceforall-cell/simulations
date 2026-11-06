@@ -23,31 +23,68 @@ SFA.sim({
   id: "b5-c05-infection", ch: "c05", tag: "Classique",
   titre: "Une infection : innée d'abord, adaptative ensuite",
   resume: "Dose, vitesse de multiplication, efficacité innée → charge en pathogènes et anticorps.",
-  but: "Règle la dose de départ, la vitesse de multiplication du pathogène et l'efficacité de la défense innée. Observe quand l'immunité adaptative démarre, jusqu'où monte le pathogène, et ce qui se passe sans immunité adaptative (immunodéficience).",
+  but: "Regarde l'infection se dérouler dans le tissu (lecture automatique, ou glisse le repère de temps sur le graphique). Règle la dose de départ, la vitesse de multiplication du pathogène et l'efficacité de la défense innée. Observe quand l'immunité adaptative démarre, jusqu'où monte le pathogène, et ce qui se passe sans immunité adaptative (immunodéficience).",
   aRetenir: "La réponse innée (barrières, phagocytes, inflammation) est immédiate mais non spécifique : elle ralentit le pathogène sans l'éliminer. La réponse adaptative est lente (≈ 1 semaine) car il faut sélectionner et multiplier les lymphocytes B et T spécifiques de l'antigène ; elle élimine le pathogène et laisse des cellules mémoire.",
   piege: "Les antibiotiques n'agissent pas sur les virus. Et la fièvre n'est pas « la maladie » : c'est une réponse de défense. Modèle simplifié : charge en log10 (unités arbitraires).",
   build: function(k, S){
-    var c1 = k.canvas(220), c2 = k.canvas(150), pal = S.draw.palette;
+    var c = k.canvas(520), pal = S.draw.palette, D = S.draw;
     var lp = k.slider("Dose de départ (log10)", 1, 6, 0.5, 3, "");
     var r = k.slider("Vitesse de multiplication du pathogène (log10 par jour)", 0.3, 1.2, 0.1, 0.8, "");
     var eps = k.slider("Efficacité de la défense innée", 0, 80, 10, 40, "%");
     var ad = k.toggle("Immunité adaptative fonctionnelle", true);
     var ro = k.readouts(["Pic de charge (log10)", "Début adaptative", "Élimination", "Jours symptomatiques"]);
     var nt = k.note("", "");
+    var tm = 0, play = true, geo = {}, drag = false, rnd = B5.rng(3), PP = [], PH = [], AB = [], i;
+    for (i = 0; i < 80; i++) PP.push({x: rnd(), y: rnd(), ph: rnd() * 6.3, s: .5 + rnd()});
+    for (i = 0; i < 9; i++) PH.push({x: rnd(), y: rnd(), ph: rnd() * 6.3});
+    for (i = 0; i < 80; i++) AB.push({a: rnd() * 6.3, ph: rnd() * 6.3});
+    var lpp = k.loop(function(dt){ if (play){ tm += dt * 2.6; if (tm > 44) tm = 0; } k.redraw(); }); lpp.play();
+    k.button("Lecture / pause", function(){ play = !play; }, true);
+    k.button("Revenir au jour 0", function(){ tm = 0; });
+    c.cv.style.touchAction = "none";
+    c.pointer(function(t, p){ if (t === "down") drag = p.y > geo.gy; if (drag && (t === "down" || t === "drag") && geo.ax){ tm = Math.max(0, Math.min(40, geo.ax.ix(p.x))); play = false; k.redraw(); } if (t === "up") drag = false; });
+    function Y(ctx, x, y, s, col, a){ ctx.save(); ctx.translate(x, y); ctx.rotate(a); ctx.strokeStyle = col; ctx.lineWidth = 1.8; ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0, -s); ctx.lineTo(-s * .55, -s * 1.6); ctx.moveTo(0, -s); ctx.lineTo(s * .55, -s * 1.6); ctx.stroke(); ctx.restore(); }
     k.draw(function(){
       var m = infection({lp0: lp.value, r: r.value, eps: eps.value / 100, ad: ad.value});
-      var pk = 0, tp = 0, sym = 0, i;
-      m.load.forEach(function(p){ if (p[1] > pk){ pk = p[1]; tp = p[0]; } if (p[1] >= 4) sym += 0.05; });
-      c1.clear();
-      var ax = S.draw.axes(c1, {x0: 0, x1: 40, y0: 0, y1: 9, xl: "jours", yl: "pathogènes (log10)", stepX: 5, stepY: 3});
-      c1.ctx.fillStyle = "rgba(180,35,24,.08)"; c1.ctx.fillRect(ax.X(0), ax.Y(9), ax.X(40) - ax.X(0), ax.Y(4) - ax.Y(9));
-      S.draw.text(c1, "symptômes (≥ 4)", ax.R - 6, ax.Y(8.2), {align: "right", size: 12, color: pal.red});
-      if (ad.value){ S.draw.line(c1, ax.X(m.ta), ax.T, ax.X(m.ta), ax.B, pal.green, 1.6, [5, 4]); S.draw.text(c1, "adaptative", ax.X(m.ta) + 4, ax.B - 10, {align: "left", size: 12, color: pal.green}); }
-      B5.poly(c1, ax, m.load, pal.red, 2.8);
-      c2.clear();
-      var ax2 = S.draw.axes(c2, {x0: 0, x1: 40, y0: 0, y1: 3, xl: "jours", yl: "anticorps (log10)", stepX: 5, stepY: 1});
-      B5.poly(c2, ax2, m.ab, pal.violet, 2.8);
-      var amax = Math.max.apply(null, m.ab.map(function(p){ return p[1]; }));
+      var pk = 0, sym = 0;
+      m.load.forEach(function(p){ if (p[1] > pk) pk = p[1]; if (p[1] >= 4) sym += 0.05; });
+      c.clear(); var ctx = c.ctx, W = c.W, H = c.H, sh = 238;
+      var ii = Math.min(m.load.length - 1, Math.round(Math.min(tm, 40) / (40 / (m.load.length - 1)))), ld = m.load[ii][1], abv = m.ab[Math.min(m.ab.length - 1, ii)][1];
+      /* ---------- tissu ---------- */
+      D.rrect(c, 8, 8, W - 16, sh, 12); var bg = ctx.createLinearGradient(0, 0, 0, sh); bg.addColorStop(0, "#fdeef0"); bg.addColorStop(1, "#f9dfe2"); ctx.fillStyle = bg; ctx.fill();
+      ctx.save(); D.rrect(c, 8, 8, W - 16, sh, 12); ctx.clip();
+      /* cellules du tissu */
+      for (i = 0; i < 28; i++){ var cx = 8 + ((i * 97) % 100) / 100 * (W - 16), cy = 40 + ((i * 53) % 100) / 100 * (sh - 74); B5.circ(c, cx, cy, 15 + (i % 4) * 3, "rgba(255,255,255,.35)", "rgba(190,120,130,.35)", 1); }
+      /* vaisseau sanguin */
+      ctx.fillStyle = "#f2a7a0"; ctx.fillRect(8, sh - 22, W - 16, 30); D.text(c, "vaisseau sanguin", 22, sh - 2, {size: 10.5, color: "#8a2a1a", weight: 800, align: "left"});
+      for (i = 0; i < 12; i++){ var rx = 8 + ((i * 61 + tm * 22) % (W - 16)); ctx.fillStyle = "#c0321d"; ctx.beginPath(); ctx.ellipse(rx, sh - 8 + (i % 3) * 2, 6, 3.5, 0, 0, 7); ctx.fill(); }
+      var nP = Math.min(80, Math.round(ld * 9)), nPh = ld > 0.8 ? Math.round(1 + eps.value / 100 * 8) : 0, nAb = ad.value && abv > 0.05 ? Math.min(80, Math.round(abv * 26)) : 0;
+      var t = tm;
+      /* phagocytes */
+      for (i = 0; i < nPh && i < 9; i++){ var q = PH[i], px = 8 + 30 + (q.x * (W - 76)) + Math.sin(t * .6 + q.ph) * 16, py = 50 + q.y * (sh - 110) + Math.cos(t * .5 + q.ph) * 12;
+        ctx.fillStyle = "rgba(110,140,200,.75)"; ctx.strokeStyle = "#3f5fa8"; ctx.lineWidth = 2; ctx.beginPath(); for (var a = 0; a < 7; a++){ var an = a / 7 * 6.28, rr = 16 + (a % 2 ? 6 : 0) + Math.sin(t * 2 + a + q.ph) * 2; ctx.lineTo(px + Math.cos(an) * rr, py + Math.sin(an) * rr); } ctx.closePath(); ctx.fill(); ctx.stroke();
+        B5.circ(c, px, py, 5.5, "#2f4f98"); B5.circ(c, px + 7, py - 5, 3, "#c0321d"); }
+      /* pathogènes */
+      for (i = 0; i < nP; i++){ var p = PP[i], x = 8 + 14 + p.x * (W - 44) + Math.sin(t * 1.5 + p.ph) * 4, y = 34 + p.y * (sh - 84) + Math.cos(t * 1.3 + p.ph) * 4;
+        B5.circ(c, x, y, 4 * p.s + 1.5, "#4a8a1c", "#2a5a0c", 1.2);
+        if (i < nAb){ var ax2 = AB[i]; Y(ctx, x + Math.cos(ax2.a) * 7, y + Math.sin(ax2.a) * 7, 5, pal.violet, ax2.a + 1.57); } }
+      /* anticorps libres */
+      if (nAb > 14){ for (i = 0; i < Math.min(24, nAb - 14); i++){ var b = AB[i]; Y(ctx, 40 + ((i * 83 + b.ph * 40) % (W - 80)), sh - 40 + Math.sin(t + b.ph) * 6, 5, pal.violet, b.a); } }
+      ctx.restore();
+      D.legend(c, [["#4a8a1c", "pathogène"], ["#3f5fa8", "phagocyte (inné)"], [pal.violet, "anticorps (adaptatif)"]], W - 16, 14, {align: "right"});
+      D.display(c, "J" + S.fmt(Math.min(tm, 40), 0), 56, 38, {w: 76, h: 40, size: 18, caption: ld >= 4 ? "symptômes" : "jour"});
+      /* ---------- courbes ---------- */
+      var gy = sh + 22; geo.gy = gy - 6;
+      D.panel(c, 8, gy - 4, W - 16, H - gy - 4, {shadow: false, fill: "#fbfcfe"});
+      var ax = D.axes(c, {x0: 0, x1: 40, y0: 0, y1: 9, xl: "jours  ·  glisse le repère", stepX: 5, stepY: 3, t: gy + 12, b: 36, l: 40, r: 38});
+      geo.ax = ax; D.text(c, "pathogènes (log10)", 14, gy + 4, {size: 11, color: pal.red, align: "left"}); D.text(c, "anticorps", W - 14, gy + 4, {size: 11, color: pal.violet, align: "right"});
+      ctx.fillStyle = "rgba(192,50,29,.08)"; ctx.fillRect(ax.X(0), ax.Y(9), ax.X(40) - ax.X(0), ax.Y(4) - ax.Y(9));
+      D.text(c, "symptômes (≥ 4)", ax.L + 8, ax.Y(8.2), {align: "left", size: 11, color: pal.red});
+      for (var q2 = 0; q2 <= 3; q2++) D.text(c, q2, ax.R + 12, ax.Y(q2 * 3), {size: 10.5, color: pal.violet, weight: 800});
+      if (ad.value){ D.line(c, ax.X(m.ta), ax.T, ax.X(m.ta), ax.B, pal.green, 1.5, [5, 4]); D.label(c, "adaptative", ax.X(m.ta) + 4, ax.B - 12, {align: "left", size: 10.5, color: pal.green}); }
+      B5.poly(c, ax, m.ab.map(function(p){ return [p[0], p[1] * 3]; }), pal.violet, 2.6);
+      B5.poly(c, ax, m.load, pal.red, 3);
+      D.line(c, ax.X(Math.min(tm, 40)), ax.T, ax.X(Math.min(tm, 40)), ax.B, pal.ink, 1.3, [4, 3]); D.dot(c, ax.X(Math.min(tm, 40)), ax.Y(ld), 5.5, pal.red);
       ro.set(0, S.fmt(pk, 1)); ro.set(1, ad.value ? "jour " + S.fmt(m.ta, 0) : "jamais"); ro.set(2, m.cleared >= 0 ? "jour " + S.fmt(m.cleared, 0) : "pas éliminé");
       ro.set(3, S.fmt(sym, 0) + " j");
       var last = m.load[m.load.length - 1][1];

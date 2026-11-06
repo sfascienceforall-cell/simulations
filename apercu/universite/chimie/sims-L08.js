@@ -137,8 +137,8 @@ SFA.sim({
       }
       S.draw.text(c, "gauche", (xl0 + xl1) / 2, top - 18, {size:11.5, color:P.grey});
       S.draw.text(c, "droite", (xr0 + xr1) / 2, top - 18, {size:11.5, color:P.grey});
-      S.draw.text(c, "échelle de h : 80 px ≈ " + S.fmt(hs, hs < 1 ? 2 : 0) + " m", 8, H - 8, {size:10, color:P.grey, align:"left", weight:600});
-      if (cc.dP > 1e-9) S.draw.text(c, cc.net > 0 ? "l'eau va vers la solution la plus concentrée" : cc.net < 0 ? "osmose inverse : l'eau est chassée vers le côté dilué" : "pression appliquée = ΔΠ : plus de flux net", W - 8, H - 8, {size:10, color:cc.net < 0 ? P.red : P.acc, align:"right"});
+      S.draw.text(c, "échelle de h : 80 px ≈ " + S.fmt(hs, hs < 1 ? 2 : 0) + " m", 8, H - 8, {size:9.5, color:P.grey, align:"left", weight:600});
+      if (cc.dP > 1e-9) S.draw.text(c, cc.net > 0 ? "l'eau va vers la solution la plus concentrée" : cc.net < 0 ? "osmose inverse : l'eau est chassée vers le côté dilué" : "pression appliquée = ΔΠ : plus de flux net", W / 2, H - 26, {size:10.5, color:cc.net < 0 ? P.red : P.acc, align:"center", weight:800});
       /* lectures */
       function atm(p){ return S.fmt(p / 101.325, 1) + " atm"; }
       ro.set(0, S.fmt(cc.oa, 3) + " osmol/L"); ro.set(1, S.fmt(cc.ob, 3) + " osmol/L");
@@ -267,9 +267,9 @@ SFA.sim({
       c2x.fillStyle = P.red; c2x.fillRect(tx - 5, ty1 - (ty1 - ty0) * fr, 10, (ty1 - ty0) * fr);
       S.draw.text(c2, S.fmt(Tcur, 1) + " °C", tx + 12, ty1 - (ty1 - ty0) * fr, {size:12, color:P.red, align:"left"});
       S.draw.text(c2, "glace formée : " + S.fmt(xcur * 100, 0) + " % de la masse", cx0 + bw / 2, c2.H - 8, {size:10.5, color:P.grey});
-      S.draw.text(c2, "t = " + S.fmt(tcur / 60, 1) + " min", tx + 90, 28, {size:11.5, color:P.ink, align:"left"});
+      S.draw.text(c2, "t = " + S.fmt(tcur / 60, 1) + " min", c2.W - 10, 28, {size:11.5, color:P.ink, align:"right"});
       var phase = xcur <= 0.0001 ? (Tcur > sv.Tf - dTf + 0.01 ? "liquide qui refroidit" : "début de congélation") : xcur < 0.84 ? "congélation en cours" : "presque tout est solide";
-      S.draw.text(c2, phase, tx + 90, 50, {size:10.5, color:P.grey, align:"left"});
+      S.draw.text(c2, phase, c2.W - 10, 48, {size:10.5, color:P.grey, align:"right"});
       /* lectures */
       var m2 = b * sx.M;   /* g de soluté par kg de solvant */
       ro.set(0, S.fmt(dTf, 2) + " K");

@@ -41,25 +41,35 @@ function dragPts(k, c, getP, pts, on, snap){
 }
 /* vue 3D orthographique tournable à la souris (z vers le haut, repère direct) */
 function View3(k, c, o){
-  o = o || {}; var v = {az:o.az != null ? o.az : 0.75, el:o.el != null ? o.el : 0.5, s:40, ox:o.ox || 0, oy:o.oy || 0, oz:o.oz || 0, range:o.range || 5, yoff:o.yoff || 0, xoff:o.xoff || 0, bx:0, bw:0};
-  v.fit = function(){ v.s = Math.min(c.W * 0.5, c.H * 0.5) / v.range; };
+  o = o || {}; var v = {az:o.az != null ? o.az : 0.75, el:o.el != null ? o.el : 0.5, s:40, ox:o.ox || 0, oy:o.oy || 0, oz:o.oz || 0, range:o.range || 5, yoff:o.yoff || 0, xoff:o.xoff || 0, bx:0, bw:0, handles:[]};
+  /* téléphone : le dessin 3D est carré, pour rester lisible */
+  var base = c.ratio || 0.72, r0 = c.resize;
+  c.resize = function(){ c.ratio = (c.cv.parentNode && c.cv.parentNode.clientWidth < 560) ? 1 : base; r0(); }; c.resize();
+  v.fit = function(){ v.s = Math.min(c.W * 0.5, c.H * 0.6) / v.range; };
   v.p = function(x, y, z){ x -= v.ox; y -= v.oy; z -= v.oz; var ca = Math.cos(v.az), sa = Math.sin(v.az), ce = Math.cos(v.el), se = Math.sin(v.el), X = x * ca - y * sa, Y = x * sa + y * ca; return {x:c.W / 2 + v.xoff + X * v.s, y:c.H / 2 + v.yoff - (z * ce + Y * se) * v.s, d:Y * ce - z * se}; };
+  /* écran → point de l'espace à la hauteur z (pour glisser un point dans un plan horizontal) */
+  v.inv = function(px, py, z){ var ca = Math.cos(v.az), sa = Math.sin(v.az), ce = Math.cos(v.el), se = Math.max(0.2, Math.sin(v.el)), X = (px - c.W / 2 - v.xoff) / v.s, Y = ((c.H / 2 + v.yoff - py) / v.s - (z - v.oz) * ce) / se; return [X * ca + Y * sa + v.ox, -X * sa + Y * ca + v.oy]; };
+  /* poignées : v.handles.push({get:function(){return [x,y,z];}, set:function(x, y){…}, col:"#…"}) ; v.hand() les dessine */
+  v.hand = function(){ v.handles.forEach(function(h){ var q = h.get(), A = v.p(q[0], q[1], q[2]), ctx = c.ctx; ctx.save(); ctx.strokeStyle = h.col || "#0f1b2d"; ctx.globalAlpha = 0.55; ctx.lineWidth = 1.6; ctx.setLineDash([3, 3]); ctx.beginPath(); ctx.arc(A.x, A.y, 11, 0, 7); ctx.stroke(); ctx.restore(); }); };
+  function nearH(pp){ var best = null, bd = 20; v.handles.forEach(function(h){ var q = h.get(), A = v.p(q[0], q[1], q[2]), d = Math.hypot(A.x - pp.x, A.y - pp.y); if (d < bd){ bd = d; best = h; } }); return best; }
   v.attach = function(hook){
-    var last = null, own = false; c.cv.style.touchAction = "none"; c.cv.style.cursor = "grab";
+    var last = null, own = false, hd = null; c.cv.style.touchAction = "none"; c.cv.style.cursor = "grab";
     c.pointer(function(t, pp){
-      if (t === "down"){ own = !!(hook && hook("down", pp)); last = pp; }
-      else if (t === "drag"){ if (own){ hook("drag", pp); k.redraw(); return; } if (last){ v.az += (pp.x - last.x) * 0.01; v.el = Math.max(0.03, Math.min(1.5, v.el + (pp.y - last.y) * 0.01)); last = pp; k.redraw(); } }
-      else if (t === "up"){ if (own && hook) hook("up", pp); own = false; last = null; }
-      else if (t === "move" && hook) hook("move", pp);
+      if (t === "down"){ hd = nearH(pp); if (hd){ c.cv.style.cursor = "grabbing"; last = pp; return; } own = !!(hook && hook("down", pp)); last = pp; }
+      else if (t === "drag"){ if (hd){ var q = hd.get(), xy = v.inv(pp.x, pp.y, q[2]); hd.set(xy[0], xy[1]); k.redraw(); return; } if (own){ hook("drag", pp); k.redraw(); return; } if (last){ v.az += (pp.x - last.x) * 0.01; v.el = Math.max(0.03, Math.min(1.5, v.el + (pp.y - last.y) * 0.01)); last = pp; k.redraw(); } }
+      else if (t === "up"){ if (own && hook) hook("up", pp); own = false; last = null; hd = null; c.cv.style.cursor = "grab"; }
+      else if (t === "move"){ c.cv.style.cursor = nearH(pp) ? "pointer" : "grab"; if (hook) hook("move", pp); }
     });
   };
+  var HL = "rgba(255,255,255,.9)";
   v.line = function(a, b, col, w, dash){ var A = v.p(a[0], a[1], a[2]), B = v.p(b[0], b[1], b[2]); D.line(c, A.x, A.y, B.x, B.y, col, w || 1.6, dash); };
-  v.arrow = function(a, b, col, w, lab){ var A = v.p(a[0], a[1], a[2]), B = v.p(b[0], b[1], b[2]); if (Math.hypot(B.x - A.x, B.y - A.y) < 3) return; D.arrow(c, A.x, A.y, B.x, B.y, col, w || 2.6); if (lab){ var L = Math.hypot(B.x - A.x, B.y - A.y) || 1; D.text(c, lab, B.x + (B.x - A.x) / L * 13, B.y + (B.y - A.y) / L * 13, {size:13, color:col}); } };
-  v.dot = function(q, r, col, lab, dx, dy){ var A = v.p(q[0], q[1], q[2]); D.dot(c, A.x, A.y, r || 4.5, col); if (lab) D.text(c, lab, A.x + (dx == null ? 11 : dx), A.y + (dy == null ? -11 : dy), {size:13, color:col}); return A; };
-  v.text = function(q, s, col, size){ var A = v.p(q[0], q[1], q[2]); D.text(c, s, A.x, A.y, {size:size || 12, color:col || C.ink}); };
+  v.arrow = function(a, b, col, w, lab){ var A = v.p(a[0], a[1], a[2]), B = v.p(b[0], b[1], b[2]); if (Math.hypot(B.x - A.x, B.y - A.y) < 3) return; D.arrow(c, A.x, A.y, B.x, B.y, col, w || 2.6); if (lab){ var L = Math.hypot(B.x - A.x, B.y - A.y) || 1; D.text(c, lab, B.x + (B.x - A.x) / L * 14, B.y + (B.y - A.y) / L * 14, {size:14, color:col, halo:HL, math:true, weight:700}); } };
+  v.dot = function(q, r, col, lab, dx, dy){ var A = v.p(q[0], q[1], q[2]); D.dot(c, A.x, A.y, r || 4.5, col); if (lab) D.text(c, lab, A.x + (dx == null ? 11 : dx), A.y + (dy == null ? -11 : dy), {size:13, color:col, halo:HL, math:true}); return A; };
+  v.text = function(q, s, col, size){ var A = v.p(q[0], q[1], q[2]); D.text(c, s, A.x, A.y, {size:size || 13, color:col || C.ink, halo:HL, math:true}); };
   v.poly = function(pts, fill, stroke, w){ var ctx = c.ctx; ctx.beginPath(); pts.forEach(function(q, i){ var A = v.p(q[0], q[1], q[2]); if (i) ctx.lineTo(A.x, A.y); else ctx.moveTo(A.x, A.y); }); ctx.closePath(); if (fill){ ctx.fillStyle = fill; ctx.fill(); } if (stroke){ ctx.strokeStyle = stroke; ctx.lineWidth = w || 1.2; ctx.stroke(); } };
   v.axes = function(L, names, o2){ o2 = o2 || {}; var nm = names || ["x", "y", "z"]; var Lx = o2.Lx || L, Ly = o2.Ly || L, Lz = o2.Lz || L;
-    if (o2.floor !== false){ var st = o2.step || 1; for (var g = -Math.floor(Lx / st) * st; g <= Lx + 1e-9; g += st) v.line([g, -Ly, 0], [g, Ly, 0], "#e9edf2", 1); for (g = -Math.floor(Ly / st) * st; g <= Ly + 1e-9; g += st) v.line([-Lx, g, 0], [Lx, g, 0], "#e9edf2", 1); }
+    if (o2.floor !== false){ var st = o2.step || 1; v.poly([[-Lx, -Ly, 0], [Lx, -Ly, 0], [Lx, Ly, 0], [-Lx, Ly, 0]], "rgba(31,75,158,.035)", null);
+      for (var g = -Math.floor(Lx / st) * st; g <= Lx + 1e-9; g += st) v.line([g, -Ly, 0], [g, Ly, 0], "#e4e9f0", 1); for (g = -Math.floor(Ly / st) * st; g <= Ly + 1e-9; g += st) v.line([-Lx, g, 0], [Lx, g, 0], "#e4e9f0", 1); }
     v.arrow([-Lx, 0, 0], [Lx, 0, 0], "#5f6b7a", 1.4, nm[0]); v.arrow([0, -Ly, 0], [0, Ly, 0], "#5f6b7a", 1.4, nm[1]); v.arrow([0, 0, -Lz], [0, 0, Lz], "#5f6b7a", 1.4, nm[2]); };
   return v;
 }
@@ -71,7 +81,8 @@ function sub3(a, b){ return [a[0] - b[0], a[1] - b[1], a[2] - b[2]]; }
 function mul3(a, s){ return [a[0] * s, a[1] * s, a[2] * s]; }
 function v3s(a, d){ return "(" + fx(a[0], d) + " ; " + fx(a[1], d) + " ; " + fx(a[2], d) + ")"; }
 function rng(seed){ var s = seed >>> 0; return function(){ s = (s + 0x6D2B79F5) >>> 0; var t = s; t = Math.imul(t ^ t >>> 15, t | 1); t ^= t + Math.imul(t ^ t >>> 7, t | 61); return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
-var UM = {C:C, fx:fx, rgba:rgba, cstr:cstr, Pane:Pane, vec:vec, pt:pt, seg:seg, arc:arc, circ:circ, dragPts:dragPts, View3:View3, dot3:dot3, cross3:cross3, norm3:norm3, add3:add3, sub3:sub3, mul3:mul3, v3s:v3s, rng:rng};
+function autoRatio(c, wide, tall){ var r0 = c.resize; c.resize = function(){ c.ratio = (c.cv.parentNode && c.cv.parentNode.clientWidth < 560) ? tall : wide; r0(); }; c.resize(); }
+var UM = {autoRatio:autoRatio, C:C, fx:fx, rgba:rgba, cstr:cstr, Pane:Pane, vec:vec, pt:pt, seg:seg, arc:arc, circ:circ, dragPts:dragPts, View3:View3, dot3:dot3, cross3:cross3, norm3:norm3, add3:add3, sub3:sub3, mul3:mul3, v3s:v3s, rng:rng};
 window.UMB = UM;
 })();
 
@@ -203,6 +214,7 @@ SFA.sim({
     var c = k.canvas(0, {ratio:1.1}), P2 = null, ma = k.slider("a", -4, 4, 0.1, 2, ""), mb = k.slider("b", -4, 4, 0.1, 1, ""), mc = k.slider("c", -9, 9, 0.1, -1, ""), md = k.slider("d", -6, 6, 0.1, 3, "");
     k.select("Exemple", [["", "— choisir —"], ["sym", "Symétrique : valeurs propres 1 et 3"], ["rot", "Rotation : valeurs propres complexes"], ["tri", "Triangulaire : λ lues sur la diagonale"], ["dbl", "Valeur propre double (Δ = 0)"], ["selle", "D < 0 : une positive, une négative"]], "", function(v){ var m = {sym:[2, 1, 1, 2], rot:[0.7, -0.7, 0.7, 0.7], tri:[3, 2, 0, -1], dbl:[2, 1, -1, 4], selle:[1, 2, 3, 0]}[v]; if (m){ ma.set(m[0]); mb.set(m[1]); mc.set(m[2]); md.set(m[3]); } });
     var ro = k.readouts(["T = trace", "D = déterminant", "Δ = T² − 4D", "Valeurs propres", "Somme et produit"]); var nt = k.note("", "ok");
+    var gd = k.toggle("Défi : fabrique une matrice de valeurs propres 1 et 4 (T = 5, D = 4)", false); U.autoRatio(c, 1.1, 1.3);
     c.cv.style.touchAction = "none";
     c.pointer(function(t, p){ if (!P2) return; if (t === "down" || t === "drag"){ if (p.y < P2.by) return; var T = Math.max(-6, Math.min(6, P2.ix(p.x))), Dt = Math.max(-9, Math.min(9, P2.iy(p.y))); T = Math.round(T * 10) / 10; Dt = Math.round(Dt * 10) / 10; ma.set(0); mb.set(1); mc.set(-Dt); md.set(T); k.redraw(); } });
     k.draw(function(){
@@ -218,9 +230,11 @@ SFA.sim({
       D.text(c, "plan (T ; D) : glisse le point", 10, Q.by + 14, {size:12, color:C.violet, align:"left", bg:"rgba(255,255,255,.85)"}); D.text(c, "D", Q.X(0) + 10, Q.by + 12, {size:12, color:C.grey});
       D.text(c, "Δ < 0 : complexes", Q.X(-2.2), Q.Y(6.6), {size:11, color:C.red}); D.text(c, "Δ > 0 : réelles", Q.X(2.8), Q.Y(-6.5), {size:11, color:C.green}); D.text(c, "Δ = 0", Q.X(4.6), Q.Y(6.4), {size:11, color:C.violet});
       var cx2 = Math.max(-6, Math.min(6, T)), cy2 = Math.max(-9, Math.min(9, Dt)); D.dot(c, Q.X(cx2), Q.Y(cy2), 8, E.real ? C.green : C.red); if (cx2 !== T || cy2 !== Dt) D.text(c, "(hors cadre)", Q.X(cx2), Q.Y(cy2) + (cy2 > 0 ? 18 : -14), {size:10, color:C.grey});
+      if (gd.value){ var okg = Math.abs(T - 5) < 0.06 && Math.abs(Dt - 4) < 0.06; D.dot(c, Q.X(5), Q.Y(4), 10, "rgba(244,197,66,.0)"); ctx.save(); ctx.strokeStyle = okg ? C.green : C.amber; ctx.lineWidth = 2.4; ctx.beginPath(); ctx.arc(Q.X(5), Q.Y(4), 13, 0, 7); ctx.stroke(); ctx.restore(); }
       ro.set(0, fx(T, 2)); ro.set(1, fx(Dt, 2)); ro.set(2, fx(E.dis, 2));
-      if (E.real){ ro.set(3, Math.abs(E.vals[0] - E.vals[1]) < 1e-9 ? fx(E.vals[0], 3) + " (double)" : fx(E.vals[0], 3) + " ; " + fx(E.vals[1], 3)); ro.set(4, fx(E.vals[0] + E.vals[1], 2) + " = T ; " + fx(E.vals[0] * E.vals[1], 2) + " = D"); nt.set(Math.abs(E.dis) < 1e-9 ? "Δ = 0 : valeur propre double." : Dt < 0 ? "D < 0 : les deux valeurs propres sont de signes opposés (une dilatation et un retournement de direction)." : "Δ > 0 : deux valeurs propres réelles distinctes.", "ok"); }
-      else { ro.set(3, fx(T / 2, 2) + " ± " + fx(Math.sqrt(-E.dis) / 2, 2) + " i"); ro.set(4, "2·Re = " + fx(T, 2) + " ; |λ|² = " + fx(Dt, 2)); nt.set("Δ < 0 : valeurs propres complexes conjuguées ; la matrice tourne (module √D = " + fx(Math.sqrt(Math.max(Dt, 0)), 2) + ").", "warn"); }
+      if (gd.value){ var okg2 = Math.abs(T - 5) < 0.06 && Math.abs(Dt - 4) < 0.06; nt.set(okg2 ? "Réussi : λ² − 5λ + 4 = (λ − 1)(λ − 4). Somme 5 = T, produit 4 = D." : "Cible ◎ : T = 5, D = 4. Il te manque " + fx(5 - T, 1) + " sur T et " + fx(4 - Dt, 1) + " sur D. Glisse le point du plan (T ; D).", okg2 ? "ok" : "warn"); }
+      if (E.real){ ro.set(3, Math.abs(E.vals[0] - E.vals[1]) < 1e-9 ? fx(E.vals[0], 3) + " (double)" : fx(E.vals[0], 3) + " ; " + fx(E.vals[1], 3)); ro.set(4, fx(E.vals[0] + E.vals[1], 2) + " = T ; " + fx(E.vals[0] * E.vals[1], 2) + " = D"); if (!gd.value) nt.set(Math.abs(E.dis) < 1e-9 ? "Δ = 0 : valeur propre double." : Dt < 0 ? "D < 0 : les deux valeurs propres sont de signes opposés (une dilatation et un retournement de direction)." : "Δ > 0 : deux valeurs propres réelles distinctes.", "ok"); }
+      else { ro.set(3, fx(T / 2, 2) + " ± " + fx(Math.sqrt(-E.dis) / 2, 2) + " i"); ro.set(4, "2·Re = " + fx(T, 2) + " ; |λ|² = " + fx(Dt, 2)); if (!gd.value) nt.set("Δ < 0 : valeurs propres complexes conjuguées ; la matrice tourne (module √D = " + fx(Math.sqrt(Math.max(Dt, 0)), 2) + ").", "warn"); }
     });
   }
 });
@@ -270,34 +284,53 @@ SFA.sim({
   aRetenir:"Nₙ₊₁ = L·Nₙ avec L = [[0 ; f₂ ; f₃] ; [s₁ ; 0 ; 0] ; [0 ; s₂ ; 0]]. À long terme, Nₙ ≈ c·λⁿ·v où λ est la valeur propre dominante et v le vecteur propre associé (répartition stable). λ > 1 : croissance ; λ < 1 : extinction ; λ = 1 : équilibre.",
   piege:"Une fécondité élevée ne garantit pas la croissance : c'est la survie jusqu'à l'âge adulte (s₁, s₂) qui compte autant. Le taux de croissance est λ − 1, pas le nombre moyen de petits par femelle.",
   build:function(k, S){
-    var c = k.canvas(0, {ratio:1.0}), f2 = k.slider("Fécondité des adultes f₂", 0, 5, 0.1, 3, "jeunes/adulte"), f3 = k.slider("Fécondité des âgés f₃", 0, 5, 0.1, 2, "jeunes/âgé"), s1 = k.slider("Survie jeune → adulte s₁", 0, 1, 0.05, 0.5, ""), s2 = k.slider("Survie adulte → âgé s₂", 0, 1, 0.05, 0.4, "");
-    var n0a = k.slider("Départ : jeunes", 0, 200, 5, 100, ""), n0b = k.slider("Départ : adultes", 0, 200, 5, 40, ""), n0c = k.slider("Départ : âgés", 0, 200, 5, 10, "");
-    var gen = 0, hist = [], acc = 0;
-    function reset(){ gen = 0; hist = [[n0a.value, n0b.value, n0c.value]]; }
-    function step(){ var h = hist[hist.length - 1]; hist.push([f2.value * h[1] + f3.value * h[2], s1.value * h[0], s2.value * h[1]]); gen++; if (hist.length > 61){ hist.shift(); } }
-    reset(); [f2, f3, s1, s2, n0a, n0b, n0c].forEach(function(s){ s.el.addEventListener("input", reset); });
-    var lp = k.loop(function(dt){ acc += dt; if (acc > 0.45){ acc = 0; step(); k.redraw(); } });
-    k.button("▶ Lancer / pause", function(){ if (lp.running) lp.pause(); else lp.play(); }, true); k.button("Génération suivante", function(){ step(); }); k.button("↺ Recommencer", function(){ reset(); lp.pause(); });
-    k.select("Scénario", [["", "— choisir —"], ["a", "Population en croissance"], ["b", "Population en déclin"], ["c", "Équilibre (λ = 1)"], ["d", "Survie des jeunes faible"]], "", function(v){ var m = {a:[3, 2, 0.5, 0.4], b:[1.5, 1, 0.4, 0.3], c:[1.2, 1.6, 0.5, 0.5], d:[4, 3, 0.1, 0.5]}[v]; if (m){ f2.set(m[0]); f3.set(m[1]); s1.set(m[2]); s2.set(m[3]); reset(); } });
+    var c = k.canvas(0, {ratio:0.98}), GM = 40, P = D.palette;
+    U.autoRatio(c, 0.98, 1.75);
+    var f2 = k.slider("Fécondité des adultes f₂", 0, 5, 0.1, 3, "jeunes/adulte"), f3 = k.slider("Fécondité des âgés f₃", 0, 5, 0.1, 2, "jeunes/âgé"), s1 = k.slider("Survie jeune → adulte s₁", 0, 1, 0.05, 0.5, ""), s2 = k.slider("Survie adulte → âgé s₂", 0, 1, 0.05, 0.4, "");
+    var n0a = k.slider("Départ : jeunes", 0, 200, 5, 20, ""), n0b = k.slider("Départ : adultes", 0, 200, 5, 20, ""), n0c = k.slider("Départ : âgés", 0, 200, 5, 160, "");
+    var gs = k.slider("Génération affichée n", 0, GM, 1, 0, ""), acc = 0;
+    var lp = k.loop(function(dt){ acc += dt; if (acc > 0.4){ acc = 0; var v = gs.value + 1; if (v > GM) v = 0; gs.set(v); k.redraw(); } });
+    k.button("▶ Lancer / pause", function(){ if (lp.running) lp.pause(); else lp.play(); }, true); k.button("↺ Revenir à n = 0", function(){ gs.set(0); lp.pause(); });
+    k.select("Scénario", [["", "— choisir —"], ["a", "Population en croissance"], ["b", "Population en déclin"], ["c", "Équilibre (λ = 1)"], ["d", "Survie des jeunes faible"]], "", function(v){ var m = {a:[3, 2, 0.5, 0.4], b:[1.5, 1, 0.4, 0.3], c:[1.2, 1.6, 0.5, 0.5], d:[4, 3, 0.1, 0.5]}[v]; if (m){ f2.set(m[0]); f3.set(m[1]); s1.set(m[2]); s2.set(m[3]); gs.set(0); } });
     var ro = k.readouts(["Génération n", "Population totale", "λ dominante", "Croissance par génération", "Répartition stable", "Répartition actuelle"]); var nt = k.note("", "ok");
     function lam(){ var a = f2.value * s1.value, b = f3.value * s1.value * s2.value, lo = 0, hi = 1 + Math.max(a, b) + 1, i; for (i = 0; i < 80; i++){ var m = (lo + hi) / 2; if (m * m * m - a * m - b < 0) lo = m; else hi = m; } return (lo + hi) / 2; }
+    function orbit(){ var h = [[n0a.value, n0b.value, n0c.value]]; for (var i = 1; i <= GM; i++){ var q = h[i - 1]; h.push([f2.value * q[1] + f3.value * q[2], s1.value * q[0], s2.value * q[1]]); } return h; }
+    function carrow(ctx, x0, y0, cx, cy, x1, y1, col, w){ ctx.save(); ctx.strokeStyle = col; ctx.fillStyle = col; ctx.lineWidth = w; ctx.lineCap = "round"; ctx.beginPath(); ctx.moveTo(x0, y0); ctx.quadraticCurveTo(cx, cy, x1, y1); ctx.stroke(); var a = Math.atan2(y1 - cy, x1 - cx), h = 8 + w; ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x1 - h * Math.cos(a - 0.4), y1 - h * Math.sin(a - 0.4)); ctx.lineTo(x1 - h * Math.cos(a + 0.4), y1 - h * Math.sin(a + 0.4)); ctx.closePath(); ctx.fill(); ctx.restore(); }
+    c.cv.style.touchAction = "none";
+    c.pointer(function(t, p){ if ((t === "down" || t === "drag") && p.y > c.H * 0.36){ var gx = 44, gw = c.W - gx - 14; gs.set(Math.max(0, Math.min(GM, Math.round((p.x - gx) / gw * GM)))); k.redraw(); } });
     k.draw(function(){
-      c.clear(); var ctx = c.ctx, W = c.W, H = c.H, cur = hist[hist.length - 1], tot = cur[0] + cur[1] + cur[2], L = lam(), v1 = 1, v2 = s1.value / L, v3 = s1.value * s2.value / (L * L), sv = v1 + v2 + v3, cols = [C.green, C.blue, C.violet], nm = ["jeunes", "adultes", "âgés"];
-      var w1 = W, ht = H * 0.4, bh = ht * 0.66, by = ht * 0.86, mxv = Math.max(60, cur[0], cur[1], cur[2]) * 1.1, i;
-      ctx.strokeStyle = C.grey; ctx.lineWidth = 1.4; ctx.beginPath(); ctx.moveTo(20, by); ctx.lineTo(w1 - 20, by); ctx.stroke();
-      for (i = 0; i < 3; i++){ var bw = (w1 - 60) / 3 - 30, x = 40 + i * ((w1 - 60) / 3), h = cur[i] / mxv * bh; ctx.fillStyle = rgba(cols[i], .8); ctx.fillRect(x, by - h, bw, h); D.text(c, nm[i], x + bw / 2, by + 16, {size:11, color:cols[i]}); D.text(c, F(cur[i], 0), x + bw / 2, by - h - 9, {size:12, color:C.ink}); }
-      D.text(c, "Effectifs à la génération " + gen, w1 / 2, ht * 0.08, {size:13, color:C.ink});
-      /* évolution (échelle logarithmique du total) */
-      var gx = 46, gw = W - gx - 16, gy = ht + 34, gh = H - ht - 34 - 62, n = hist.length, tots = hist.map(function(h){ return h[0] + h[1] + h[2]; }), lmax = Math.log10(Math.max.apply(null, tots.concat([100]))) + 0.1, lmin = Math.log10(Math.max(1, Math.min.apply(null, tots.concat([100])))) - 0.1;
-      ctx.strokeStyle = C.light; ctx.lineWidth = 1; ctx.strokeRect(gx, gy, gw, gh); D.text(c, "Total (échelle logarithmique)", gx + gw / 2, gy - 8, {size:12, color:C.ink});
-      var xn = Math.max(10, n - 1); var Ym = function(t){ return gy + gh - (Math.log10(Math.max(t, 1)) - lmin) / (lmax - lmin) * gh; };
-      ctx.save(); ctx.setLineDash([5, 4]); ctx.strokeStyle = rgba(C.grey, .9); ctx.lineWidth = 1.6; ctx.beginPath(); for (i = 0; i < n; i++){ var gxx = gx + i / xn * gw, gyy = Ym(tots[n - 1] * Math.pow(L, i - (n - 1))); if (i) ctx.lineTo(gxx, Math.max(gy, Math.min(gy + gh, gyy))); else ctx.moveTo(gxx, Math.max(gy, Math.min(gy + gh, gyy))); } ctx.stroke(); ctx.restore();
-      ctx.strokeStyle = C.red; ctx.lineWidth = 2.4; ctx.beginPath(); tots.forEach(function(t, j){ var X = gx + j / xn * gw, Y = gy + gh - (Math.log10(Math.max(t, 1)) - lmin) / (lmax - lmin) * gh; if (j) ctx.lineTo(X, Y); else ctx.moveTo(X, Y); }); ctx.stroke();
-      D.text(c, "rouge : population réelle ; pointillés : croissance régulière λⁿ", gx + gw / 2, gy + gh + 14, {size:10, color:C.grey}); D.dot(c, gx + (n - 1) / xn * gw, Ym(tots[n - 1]), 4.5, C.red); D.text(c, F(Math.pow(10, lmax), 0), gx - 6, gy + 6, {size:10, color:C.grey, align:"right"}); D.text(c, F(Math.pow(10, lmin), 0), gx - 6, gy + gh, {size:10, color:C.grey, align:"right"});
-      /* barre de proportions actuelles vs stables */
-      var py = H - 22; ctx.fillStyle = C.light; ctx.fillRect(gx, py - 8, gw, 8); var xx = gx; for (i = 0; i < 3; i++){ var wdt = (tot > 0 ? cur[i] / tot : 0) * gw; ctx.fillStyle = rgba(cols[i], .85); ctx.fillRect(xx, py - 8, wdt, 8); xx += wdt; } xx = gx; for (i = 0; i < 3; i++){ var w3 = [v1, v2, v3][i] / sv * gw; ctx.fillStyle = rgba(cols[i], .45); ctx.fillRect(xx, py + 2, w3, 8); xx += w3; } D.text(c, "actuelle", gx - 6, py - 3, {size:10, color:C.grey, align:"right"}); D.text(c, "stable", gx - 6, py + 7, {size:10, color:C.grey, align:"right"});
-      ro.set(0, String(gen)); ro.set(1, F(tot, 0)); ro.set(2, fx(L, 3)); ro.set(3, (L >= 1 ? "+" : "−") + fx(Math.abs(L - 1) * 100, 1) + " %"); ro.set(4, fx(v1 / sv * 100, 0) + " / " + fx(v2 / sv * 100, 0) + " / " + fx(v3 / sv * 100, 0) + " %"); ro.set(5, tot > 0 ? fx(cur[0] / tot * 100, 0) + " / " + fx(cur[1] / tot * 100, 0) + " / " + fx(cur[2] / tot * 100, 0) + " %" : "—");
-      if (L > 1.005) nt.set("λ = " + fx(L, 3) + " > 1 : la population finit par croître d'environ " + fx((L - 1) * 100, 1) + " % par génération.", "ok"); else if (L < 0.995) nt.set("λ = " + fx(L, 3) + " < 1 : la population décroît et finit par s'éteindre.", "warn"); else nt.set("λ ≈ 1 : la population est (presque) stationnaire.", "ok");
+      c.clear(); var ctx = c.ctx, W = c.W, H = c.H, hist = orbit(), g = Math.round(gs.value), cur = hist[g], tot = cur[0] + cur[1] + cur[2], L = lam(), v1 = 1, v2 = s1.value / L, v3 = s1.value * s2.value / (L * L), sv = v1 + v2 + v3, cols = [P.green, P.blue, P.violet], nm = ["Jeunes", "Adultes", "Âgés"], i, j;
+      var ht = H * 0.38, cy = ht * 0.7, R0 = Math.min(W * 0.115, ht * 0.21), mx = Math.max(60, cur[0], cur[1], cur[2]), xs = [W * 0.2, W * 0.5, W * 0.8], rr = cur.map(function(n){ return Math.max(R0 * 0.35, R0 * Math.sqrt(n / mx)); });
+      /* cycle de vie : cercles (surface ∝ effectif), flèches de survie et de fécondité */
+      var fs = [f2.value, f3.value];
+      carrow(ctx, xs[1] - rr[1] * 0.5, cy - rr[1] * 0.85, (xs[1] + xs[0]) / 2, cy - R0 * 3.0, xs[0] + rr[0] * 0.5, cy - rr[0] * 0.85, D.tint(P.blue, 0.75), 1 + fs[0] * 1.2);
+      carrow(ctx, xs[2] - rr[2] * 0.4, cy - rr[2] * 0.9, xs[1], cy - R0 * 4.7, xs[0] - rr[0] * 0.1, cy - rr[0] * 1.02, D.tint(P.violet, 0.75), 1 + fs[1] * 1.2);
+      D.label(c, "f₂ = " + fx(f2.value, 1), (xs[0] + xs[1]) / 2, cy - R0 * 1.75, {color:P.blue, size:10.5}); D.label(c, "f₃ = " + fx(f3.value, 1), xs[1], cy - R0 * 2.5, {color:P.violet, size:10.5});
+      carrow(ctx, xs[0] + rr[0] + 4, cy, (xs[0] + xs[1]) / 2, cy, xs[1] - rr[1] - 6, cy, D.tint(P.grey, 0.8), 1 + s1.value * 6); carrow(ctx, xs[1] + rr[1] + 4, cy, (xs[1] + xs[2]) / 2, cy, xs[2] - rr[2] - 6, cy, D.tint(P.grey, 0.8), 1 + s2.value * 6);
+      D.label(c, "s₁ = " + fx(s1.value, 2), (xs[0] + xs[1]) / 2, cy + R0 + 12, {color:P.grey, size:10.5}); D.label(c, "s₂ = " + fx(s2.value, 2), (xs[1] + xs[2]) / 2, cy + R0 + 12, {color:P.grey, size:10.5});
+      for (i = 0; i < 3; i++){ D.glow(c, xs[i], cy, rr[i] * 1.35, cols[i], 0.2); ctx.beginPath(); ctx.arc(xs[i], cy, rr[i], 0, 7); ctx.fillStyle = D.tint(cols[i], 0.88); ctx.fill(); ctx.lineWidth = 2; ctx.strokeStyle = "#fff"; ctx.stroke(); D.text(c, F(cur[i], 0), xs[i], cy, {size:Math.min(15, 9 + rr[i] / 3.5), color:"#fff"}); D.text(c, nm[i], xs[i], cy + R0 + 34, {size:12, color:cols[i]}); }
+      D.label(c, "n = " + g, 10, 10, {color:P.mat, align:"left", base:"top", size:12});
+      /* proportions : aire empilée à 100 % */
+      var gx = 44, gw = W - gx - 14, y1 = ht + 30, h1 = (H - ht - 118) * 0.5, y2 = y1 + h1 + 44, h2 = h1;
+      D.text(c, "Répartition par âge (100 %)", gx, y1 - 14, {size:11.5, color:P.ink, align:"left"});
+      ctx.save(); ctx.beginPath(); ctx.rect(gx, y1, gw, h1); ctx.clip();
+      for (i = 0; i < 3; i++){ ctx.beginPath(); for (j = 0; j <= GM; j++){ var t = hist[j][0] + hist[j][1] + hist[j][2] || 1, lo = 0; for (var q = 0; q < i; q++) lo += hist[j][q] / t; var X = gx + j / GM * gw, Y = y1 + h1 - (lo + hist[j][i] / t) * h1; if (j) ctx.lineTo(X, Y); else ctx.moveTo(X, Y); }
+        for (j = GM; j >= 0; j--){ var t2 = hist[j][0] + hist[j][1] + hist[j][2] || 1, lo2 = 0; for (q = 0; q < i; q++) lo2 += hist[j][q] / t2; ctx.lineTo(gx + j / GM * gw, y1 + h1 - lo2 * h1); } ctx.closePath(); ctx.fillStyle = D.tint(cols[i], 0.62); ctx.fill(); }
+      ctx.restore(); ctx.strokeStyle = "#fff"; ctx.setLineDash([4, 3]); ctx.lineWidth = 1.4; var cum = 0; for (i = 0; i < 2; i++){ cum += [v1, v2, v3][i] / sv; ctx.beginPath(); ctx.moveTo(gx, y1 + h1 - cum * h1); ctx.lineTo(gx + gw, y1 + h1 - cum * h1); ctx.stroke(); } ctx.setLineDash([]);
+      D.text(c, "- - - répartition stable", gx + gw - 4, y1 + 10, {size:10, color:"#fff", align:"right"});
+      /* total (échelle log) */
+      var tots = hist.map(function(h){ return Math.max(1e-9, h[0] + h[1] + h[2]); }), lmax = Math.log10(Math.max.apply(null, tots)) + 0.15, lmin = Math.log10(Math.max(1e-9, Math.min.apply(null, tots))) - 0.15; if (lmax - lmin < 0.6){ lmax += 0.3; lmin -= 0.3; }
+      D.text(c, "Population totale (échelle log)", gx, y2 - 14, {size:11.5, color:P.ink, align:"left"});
+      ctx.strokeStyle = P.light; ctx.lineWidth = 1; ctx.strokeRect(gx + .5, y2 + .5, gw, h2);
+      var Yl = function(v){ return y2 + h2 - (Math.log10(Math.max(v, 1e-9)) - lmin) / (lmax - lmin) * h2; };
+      ctx.save(); ctx.beginPath(); ctx.rect(gx, y2, gw, h2); ctx.clip(); ctx.setLineDash([5, 4]); ctx.strokeStyle = P.grey; ctx.lineWidth = 1.6; ctx.beginPath(); for (j = 0; j <= GM; j++){ var yv = Yl(tots[GM] * Math.pow(L, j - GM)); if (j) ctx.lineTo(gx + j / GM * gw, yv); else ctx.moveTo(gx + j / GM * gw, yv); } ctx.stroke(); ctx.setLineDash([]);
+      ctx.strokeStyle = P.red; ctx.lineWidth = 2.6; ctx.beginPath(); tots.forEach(function(tv, jj){ var X = gx + jj / GM * gw; if (jj) ctx.lineTo(X, Yl(tv)); else ctx.moveTo(X, Yl(tv)); }); ctx.stroke(); ctx.restore();
+      D.text(c, "rouge : réel ; gris : λⁿ", gx + gw - 4, y2 + h2 - 10, {size:10, color:P.grey, align:"right"});
+      [[y1, h1], [y2, h2]].forEach(function(r){ ctx.strokeStyle = D.tint(P.ink, 0.5); ctx.lineWidth = 1.4; ctx.beginPath(); ctx.moveTo(gx + g / GM * gw, r[0]); ctx.lineTo(gx + g / GM * gw, r[0] + r[1]); ctx.stroke(); });
+      D.dot(c, gx + g / GM * gw, Yl(tots[g]), 5, P.red);
+      for (j = 0; j <= GM; j += 10) D.text(c, String(j), gx + j / GM * gw, y2 + h2 + 11, {size:10, color:P.grey}); D.text(c, "génération n (glisse pour parcourir)", gx + gw / 2, y2 + h2 + 26, {size:10.5, color:P.grey});
+      ro.set(0, String(g)); ro.set(1, F(tot, 0)); ro.set(2, fx(L, 3)); ro.set(3, (L >= 1 ? "+" : "−") + fx(Math.abs(L - 1) * 100, 1) + " %"); ro.set(4, fx(v1 / sv * 100, 0) + " / " + fx(v2 / sv * 100, 0) + " / " + fx(v3 / sv * 100, 0) + " %"); ro.set(5, tot > 1e-9 ? fx(cur[0] / tot * 100, 0) + " / " + fx(cur[1] / tot * 100, 0) + " / " + fx(cur[2] / tot * 100, 0) + " %" : "—");
+      if (L > 1.005) nt.set("λ = " + fx(L, 3) + " > 1 : la population finit par croître d'environ " + fx((L - 1) * 100, 1) + " % par génération. Regarde les couleurs se figer : la répartition stable.", "ok"); else if (L < 0.995) nt.set("λ = " + fx(L, 3) + " < 1 : la population décroît (" + fx((1 - L) * 100, 1) + " % de moins par génération) et finit par s'éteindre.", "warn"); else nt.set("λ ≈ 1 : la population est (presque) stationnaire.", "ok");
     });
   }
 });

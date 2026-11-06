@@ -8,29 +8,59 @@ SFA.sim({
   aRetenir:"Loi de Fick : J = P·ΔC avec P = D·K/ε. Une molécule liposoluble (K élevé : O₂, CO₂, éthanol) traverse vite ; un ion ou un sucre (K très faible) traverse très lentement sans transporteur. Temps caractéristique d'une cellule sphérique : τ = r/(3P) : il croît avec r (S/V = 3/r). Pont : chimie, diffusion et concentrations.",
   piege:"J est un flux par unité de surface (mol·m⁻²·s⁻¹) ; le flux total vaut J × surface. La diffusion simple ne se sature jamais et va toujours du plus concentré vers le moins concentré.",
   build:function(k,S){
-    var P=S.draw.palette, c=k.canvas(320);
+    var P=S.draw.palette, c=k.canvas(430);
     var Dm=k.slider("D dans la membrane",0.1,10,0.1,1,"·10⁻¹² m²/s");
     var lk=k.slider("log₁₀ du coefficient de partage K",-6,1,0.5,0,"");
     var ep=k.slider("Épaisseur ε de la membrane",2,100,1,5,"nm");
     var r=k.slider("Rayon de la cellule",1,30,1,10,"µm");
     var dc=k.slider("ΔC (extérieur − intérieur)",0.1,20,0.1,5,"mmol/L");
     var ro=k.readouts(["K","P (cm/s)","Flux J (mol·m⁻²·s⁻¹)","Flux total entrant","τ = r / 3P"]);
-    var nt=k.note("","");
-    k.draw(function(){
-      c.clear();
-      var K=Math.pow(10,lk.value), p=Dm.value*1e-12*K/(ep.value*1e-9);   /* m/s */
-      var tau=(r.value*1e-6)/(3*p), J=p*dc.value;   /* mol/m2/s car mmol/L = mol/m3 */
-      var A=4*Math.PI*Math.pow(r.value*1e-6,2), Phi=J*A;
-      var ax=S.draw.axes(c,{x0:0,x1:5,y0:0,y1:1.05,stepX:1,stepY:0.25,xl:"temps (en unités de τ)",yl:"Ci / Ce"});
-      S.draw.fn(c,ax,function(x){return 1-Math.exp(-x);},P.acc,2.6);
-      S.draw.line(c,ax.X(1),ax.Y(0),ax.X(1),ax.Y(1-Math.exp(-1)),P.red,1.5,[4,4]);
-      S.draw.dot(c,ax.X(1),ax.Y(1-Math.exp(-1)),5,P.red);
-      S.draw.text(c,"à t = τ : 63 %",ax.X(1)+8,ax.Y(0.52),{size:11,color:P.red,align:"left"});
-      S.draw.text(c,"à t = 3τ : 95 %",ax.X(3),ax.Y(0.95)-14,{size:11,color:P.grey});
-      ro.set(0,S.sci(K,2)); ro.set(1,S.sci(p*100,2)); ro.set(2,S.sci(J,2)); ro.set(3,S.sci(Phi*1e15,2)+" fmol/s");
-      ro.set(4,tau<1?(tau<1e-3?S.sci(tau*1000,2)+" ms":S.fmt(tau*1000,2)+" ms"):(tau<3600?S.fmt(tau,1)+" s":S.fmt(tau/3600,1)+" h"));
-      nt.set("Courbe : Ci(t) = Ce·(1 − e<sup>−t/τ</sup>) si la cellule démarre à 0 (Ce fixe). Ordre de grandeur : "+(tau<0.1?"équilibre quasi instantané (gaz, éthanol).":tau<60?"équilibre en secondes à minutes.":"très lent : un transporteur ou un canal est indispensable."),tau<60?"ok":"warn");
-    });
+    var nt=k.note("",""), B=S.bio, tt=0, ins=[], outs=[], cross=[], rr=Math.random;
+    for(var q=0;q<44;q++) outs.push({x:rr(),y:rr(),vx:rr()-.5,vy:rr()-.5});
+    function model(){ var K=Math.pow(10,lk.value), p=Dm.value*1e-12*K/(ep.value*1e-9), tau=(r.value*1e-6)/(3*p), J=p*dc.value, A=4*Math.PI*Math.pow(r.value*1e-6,2); return {K:K,p:p,tau:tau,J:J,Phi:J*A}; }
+    var N=40;
+    function frame(dt){
+      var ctx=c.ctx, W=c.W, H=c.H, m=model(); c.clear(); B.bg(c,"#fbfdff","#eef3f9");
+      var T=5, speed=T/7; tt+=dt*speed; if(tt>T+1){ tt=0; ins=[]; cross=[]; }
+      var f=1-Math.exp(-Math.min(tt,T)), want=Math.round(f*N);
+      var zh=H*.52, mx=W/2, mt=Math.max(10,Math.min(40,ep.value*.5+8));
+      /* compartiments */
+      ctx.fillStyle="rgba(168,210,240,.28)"; ctx.fillRect(10,10,mx-mt/2-10,zh-10); ctx.fillStyle="rgba(190,230,205,.35)"; ctx.fillRect(mx+mt/2,10,W-10-mx-mt/2,zh-10);
+      S.draw.text(c,"extérieur · Ce",10+(mx-mt/2-10)/2,24,{size:11.5,color:P.acc}); S.draw.text(c,"intérieur · Ci",mx+mt/2+(W-10-mx-mt/2)/2,24,{size:11.5,color:P.green});
+      /* membrane (lipides) */
+      ctx.fillStyle="#f2e3b8"; ctx.fillRect(mx-mt/2,10,mt,zh-10); for(var yy=18;yy<zh;yy+=13){ B.ball(c,mx-mt/2+1,yy,4.4,"#e8b94a"); B.ball(c,mx+mt/2-1,yy,4.4,"#e8b94a"); }
+      S.draw.text(c,"membrane "+S.fmt(ep.value,0)+" nm",mx,zh+10,{size:10,color:P.grey});
+      /* particules dehors */
+      outs.forEach(function(p){ p.x+=p.vx*dt*.25; p.y+=p.vy*dt*.25; if(p.x<0||p.x>1) p.vx*=-1; if(p.y<0||p.y>1) p.vy*=-1; p.x=Math.max(0,Math.min(1,p.x)); p.y=Math.max(0,Math.min(1,p.y)); p.vx+=(rr()-.5)*dt*3; p.vy+=(rr()-.5)*dt*3; });
+      var vis=Math.max(6,Math.round(Math.min(1,dc.value/20*.9+.1)*N));
+      for(var i=0;i<vis;i++){ var p=outs[i]; B.ball(c,16+p.x*(mx-mt/2-30),30+p.y*(zh-50),4.6,P.acc); }
+      /* entrée */
+      while(ins.length+cross.length<want){ cross.push({t:0,y:.1+rr()*.8,x:rr(),vx:rr()-.5,vy:rr()-.5}); }
+      cross.forEach(function(q){ q.t+=dt*2.2; var u=Math.min(1,q.t), x=mx-mt/2-14+u*(mt+28), y=30+q.y*(zh-50); B.ball(c,x,y,4.6,P.acc); });
+      cross.filter(function(q){ return q.t>=1; }).forEach(function(q){ ins.push({x:0.05,y:q.y,vx:rr()-.2,vy:rr()-.5}); });
+      cross=cross.filter(function(q){ return q.t<1; });
+      ins.forEach(function(p){ p.x+=p.vx*dt*.25; p.y+=p.vy*dt*.25; if(p.x<0||p.x>1) p.vx*=-1; if(p.y<0||p.y>1) p.vy*=-1; p.x=Math.max(0,Math.min(1,p.x)); p.y=Math.max(0,Math.min(1,p.y)); p.vx+=(rr()-.5)*dt*3; p.vy+=(rr()-.5)*dt*3; B.ball(c,mx+mt/2+10+p.x*(W/2-mt/2-30),30+p.y*(zh-50),4.6,P.acc); });
+      /* courbe */
+      var gx0=44, gy0=zh+34, gw=W-gx0-18, gh=H-gy0-34; S.draw.panel(c,gx0-30,gy0-12,gw+44,gh+52,{shadow:false});
+      function X(x){ return gx0+x/5*gw; } function Y(y){ return gy0+gh-y*gh; }
+      ctx.strokeStyle="#eef1f5"; ctx.lineWidth=1; ctx.beginPath(); for(var gx=0;gx<=5;gx++){ ctx.moveTo(X(gx),gy0); ctx.lineTo(X(gx),gy0+gh);} for(var gy=0;gy<=1;gy+=.25){ ctx.moveTo(gx0,Y(gy)); ctx.lineTo(gx0+gw,Y(gy)); } ctx.stroke();
+      ctx.strokeStyle="#a3adba"; ctx.lineWidth=1.3; ctx.beginPath(); ctx.moveTo(gx0,gy0); ctx.lineTo(gx0,gy0+gh); ctx.lineTo(gx0+gw,gy0+gh); ctx.stroke();
+      for(gx=0;gx<=5;gx++) S.draw.text(c,gx,X(gx),gy0+gh+11,{size:10,color:P.grey}); [0,.5,1].forEach(function(v){ S.draw.text(c,S.fmt(v,1),gx0-9,Y(v),{size:10,color:P.grey}); });
+      S.draw.text(c,"temps (en unités de τ)",gx0+gw/2,gy0+gh+25,{size:10.5,color:P.ink}); S.draw.text(c,"Ci / Ce",gx0+2,gy0-2,{size:10.5,color:P.ink,align:"left"});
+      ctx.strokeStyle=P.acc; ctx.lineWidth=2.6; ctx.beginPath(); for(var x=0;x<=Math.min(tt,T);x+=.05){ var y=1-Math.exp(-x); x===0?ctx.moveTo(X(x),Y(y)):ctx.lineTo(X(x),Y(y)); } ctx.stroke();
+      ctx.save(); ctx.setLineDash([4,4]); ctx.strokeStyle="#c8d1de"; ctx.beginPath(); ctx.moveTo(X(1),Y(0)); ctx.lineTo(X(1),Y(.632)); ctx.moveTo(gx0,Y(.632)); ctx.lineTo(X(1),Y(.632)); ctx.stroke(); ctx.restore();
+      S.draw.label(c,"t = τ : 63 %",X(1)+8,Y(.45),{color:P.red,align:"left",size:10.5});
+      S.draw.dot(c,X(Math.min(tt,T)),Y(f),5.5,P.red);
+      ro.set(0,S.sci(m.K,2)); ro.set(1,S.sci(m.p*100,2)); ro.set(2,S.sci(m.J,2)); ro.set(3,S.sci(m.Phi*1e15,2)+" fmol/s");
+      var tau=m.tau; ro.set(4,tau<1?(tau<1e-3?S.sci(tau*1000,2)+" ms":S.fmt(tau*1000,2)+" ms"):(tau<3600?S.fmt(tau,1)+" s":S.fmt(tau/3600,1)+" h"));
+      nt.set("Courbe : Ci(t) = Ce·(1 − e<sup>−t/τ</sup>) si la cellule démarre à 0 (Ce fixe) ; l'animation rejoue 5τ. Ordre de grandeur : "+(tau<0.1?"équilibre quasi instantané (gaz, éthanol).":tau<60?"équilibre en secondes à minutes.":"très lent : un transporteur ou un canal est indispensable."),tau<60?"ok":"warn");
+    }
+    k.button("O₂ / éthanol",function(){ lk.set(0.5); },true);
+    k.button("Glucose",function(){ lk.set(-4.5); });
+    k.button("Ion Na⁺",function(){ lk.set(-6); });
+    k.button("↺ Rejouer",function(){ tt=0; ins=[]; cross=[]; });
+    k.draw(function(){ frame(0); });
+    var lp=k.loop(function(dt){ frame(dt); }); lp.play();
     k.note("Modèle simplifié : membrane homogène, D constant, pas de couche d'eau non agitée, concentration extérieure maintenue constante.","warn");
   }
 });
@@ -43,37 +73,51 @@ SFA.sim({
   aRetenir:"L'eau suit l'osmolarité des solutés NON pénétrants : la tonicité efficace = 2·[NaCl] + [glucose] (solutés qui ne traversent pas). Un soluté qui traverse (urée) compte dans l'osmolarité totale, pas dans la tonicité. Volume à l'équilibre : V/V₀ = 300 / tonicité (mOsm/L). Pont : chimie, propriétés colligatives (Π = i·c·R·T).",
   piege:"Une solution d'urée à 300 mmol/L est isoosmotique mais HYPOtonique : l'urée entre, l'eau la suit, la cellule gonfle et éclate. Isoosmotique ≠ isotonique.",
   build:function(k,S){
-    var P=S.draw.palette, c=k.canvas(300);
+    var P=S.draw.palette, c=k.canvas(450);
     var na=k.slider("NaCl",0,300,1,154,"mmol/L");
     var gl=k.slider("Glucose (supposé non pénétrant ici)",0,400,1,0,"mmol/L");
     var ur=k.slider("Urée (traverse librement)",0,400,1,0,"mmol/L");
     var tm=k.seg("Moment",[["imm","Juste après l'immersion"],["eq","À l'équilibre"]],"eq");
     var ro=k.readouts(["Osmolarité extérieure (mOsm/L)","Tonicité efficace (mOsm/L)","V / V₀","Verdict"]);
-    var nt=k.note("","");
-    function cell(cx,cy,V){
-      var ctx=c.ctx, r=52*Math.pow(Math.min(V,1.6),1/3);
-      if(V>1.5){ ctx.save(); ctx.setLineDash([5,5]); ctx.strokeStyle=P.grey; ctx.lineWidth=2; ctx.beginPath(); ctx.arc(cx,cy,r,0,7); ctx.stroke(); ctx.restore(); for(var i=0;i<14;i++){ var a=i*2.4, rr=10+((i*37)%40); S.draw.dot(c,cx+rr*Math.cos(a),cy+rr*Math.sin(a),3,"#e07a7a"); } S.draw.text(c,"hémolyse",cx,cy+r+14,{size:11,color:P.red}); return; }
-      ctx.fillStyle="#e07a7a"; ctx.strokeStyle="#b42318"; ctx.lineWidth=2; ctx.beginPath();
-      if(V<0.8){ for(var j=0;j<=32;j++){ var ang=j/32*2*Math.PI, rad=r*(j%2?1.18:0.96); var x=cx+rad*Math.cos(ang), y=cy+rad*Math.sin(ang); if(j===0)ctx.moveTo(x,y); else ctx.lineTo(x,y);} ctx.closePath(); }
-      else ctx.arc(cx,cy,r,0,7);
-      ctx.fill(); ctx.stroke();
-      if(V>0.8&&V<1.1){ ctx.fillStyle="#f3b9b9"; ctx.beginPath(); ctx.arc(cx,cy,r*0.45,0,7); ctx.fill(); }
-      S.draw.text(c,V<0.8?"crénelé (rétractation)":V>1.1?"gonflé":"disque biconcave",cx,cy+r+16,{size:11,color:P.ink});
-    }
-    k.draw(function(){
-      c.clear();
-      var osm=2*na.value+gl.value+ur.value, ton=2*na.value+gl.value;
-      var V = tm.value==="imm" ? (osm>0?300/osm:Infinity) : (ton>0?300/ton:Infinity);
-      var Vs = isFinite(V)?V:9; cell(c.W/2-80,130,Vs);
-      /* barres osmolarité */
-      var x0=c.W/2+30, bw=Math.min(70,(c.W-x0-40)/2), sc=0.3;
-      S.draw.line(c,x0-20,250,x0+2*bw+20,250,"#8a95a3",1);
-      [["Osmolarité",osm,P.acc],["Tonicité",ton,P.green]].forEach(function(b,i){ var h=Math.min(b[1],600)*sc; c.ctx.fillStyle=b[2]; c.ctx.fillRect(x0+i*bw,250-h,bw-14,h); S.draw.text(c,S.fmt(b[1],0),x0+i*bw+(bw-14)/2,250-h-8,{size:11,color:P.ink}); S.draw.text(c,b[0],x0+i*bw+(bw-14)/2,266,{size:10,color:P.grey}); });
-      var y300=250-300*sc; S.draw.line(c,x0-20,y300,x0+2*bw+20,y300,P.red,1.5,[5,4]); S.draw.text(c,"300",x0+2*bw+24,y300,{size:10,color:P.red,align:"left"});
-      var ver = !isFinite(V)||V>1.5 ? "lyse" : V<0.8 ? "rétraction (hypertonique)" : V>1.1 ? "gonflement (hypotonique)" : "isotonique";
-      ro.set(0,S.fmt(osm,0)); ro.set(1,S.fmt(ton,0)); ro.set(2,isFinite(V)?S.fmt(V,2):"∞"); ro.set(3,ver);
+    var nt=k.note("",""), B=S.bio, Vc=1, parts=[], rnd=(function(){var s=7;return function(){s=(s*16807)%2147483647;return s/2147483647;};})(), swirl=0;
+    for(var q=0;q<90;q++) parts.push({x:rnd(),y:rnd(),ph:rnd()*6.28,k:rnd()});
+    function model(){ var osm=2*na.value+gl.value+ur.value, ton=2*na.value+gl.value; var V=tm.value==="imm"?(osm>0?300/osm:9):(ton>0?300/ton:9); return {osm:osm,ton:ton,V:Math.min(V,9)}; }
+    function frame(dt){
+      var ctx=c.ctx, W=c.W, H=c.H, m=model(), ver=m.V>1.5?"lyse":m.V<0.8?"rétraction (hypertonique)":m.V>1.1?"gonflement (hypotonique)":"isotonique";
+      Vc+=(Math.min(m.V,1.7)-Vc)*Math.min(1,dt*2.2); swirl+=dt;
+      c.clear(); B.bg(c,"#fbfdff","#eef3f9");
+      var tx=10, ty=10, tw=W-20, th=H*.6;
+      var dens=Math.min(1,(na.value+gl.value+ur.value)/500);
+      ctx.save(); S.draw.rrect(c,tx,ty,tw,th,16); var g=ctx.createLinearGradient(0,ty,0,ty+th); g.addColorStop(0,"rgba(168,210,240,"+(.25+.2*dens)+")"); g.addColorStop(1,"rgba(96,160,214,"+(.35+.25*dens)+")"); ctx.fillStyle=g; ctx.fill(); ctx.strokeStyle="#9ab8d6"; ctx.lineWidth=2; ctx.stroke(); ctx.clip();
+      /* solutés */
+      var nNa=Math.round(na.value/300*34), nGl=Math.round(gl.value/400*22), nUr=Math.round(ur.value/400*22), idx=0;
+      function put(n,col,rad,txt){ for(var i=0;i<n;i++,idx++){ var p=parts[idx%parts.length], x=tx+14+((p.x+.04*Math.sin(swirl*.8+p.ph))%1)*(tw-28), y=ty+14+((p.y+.04*Math.cos(swirl*.7+p.ph*1.3))%1)*(th-28); if(Math.hypot(x-W/2,(y-ty-th/2)*1.1)<62) continue; B.ball(c,x,y,rad,col,{text:txt,size:8}); } }
+      put(nNa,P.acc,5.5,"Na"); put(nGl,P.amber,6,""); put(nUr,P.violet,4.5,"");
+      /* globule */
+      var cx=W/2, cy=ty+th/2, r=42*Math.pow(Math.max(.3,Vc),1/3);
+      var mode=Vc>1.45?"lyse":Vc<.82?"crenele":Vc>1.12?"turgescent":"disque";
+      var dir=Vc-1;
+      if(mode!=="lyse"){ var na2=Math.min(8,Math.round(Math.abs(dir)*14)+(Math.abs(dir)>.04?2:0)); for(var j=0;j<na2;j++){ var a=j*6.2832/na2+swirl*.4, ph=((swirl*.9+j/na2)%1), rr=dir>0?r+34-ph*30:r+4+ph*30; var wx=cx+rr*Math.cos(a), wy=cy+rr*Math.sin(a); ctx.save(); ctx.globalAlpha=1-Math.abs(ph-.5)*1.2; B.ball(c,wx,wy,3.6,"#5ab4ea"); ctx.restore(); } }
+      B.rbc(c,cx,cy,r,{mode:mode});
+      if(mode==="lyse"){ for(var h=0;h<16;h++){ var aa=h*2.4+swirl*.3, rd=14+((h*37)%44); B.ball(c,cx+rd*Math.cos(aa),cy+rd*Math.sin(aa),3,"#e07a7a"); } }
+      ctx.restore();
+      S.draw.label(c,mode==="lyse"?"hémolyse : la membrane éclate":mode==="crenele"?"crénelé : l'eau sort (V = "+S.fmt(Vc,2)+" V₀)":mode==="turgescent"?"gonflé : l'eau entre (V = "+S.fmt(Vc,2)+" V₀)":"disque biconcave (V = "+S.fmt(Vc,2)+" V₀)",cx,ty+th-14,{color:mode==="disque"?P.green:P.red,size:11.5});
+      (function(){ var it=[[P.acc,"Na⁺ / Cl⁻"],[P.amber,"glucose"],[P.violet,"urée"],["#5ab4ea","eau"]], x=tx+14; it.forEach(function(q){ B.ball(c,x,ty+16,4.5,q[0]); S.draw.text(c,q[1],x+8,ty+16,{size:10.5,color:P.ink,align:"left"}); x+=q[1].length*6.2+30; }); })();
+      /* barres horizontales */
+      var by=ty+th+22, bx=96, bw=W-bx-40, sc=bw/600;
+      [["Osmolarité",m.osm,P.acc],["Tonicité",m.ton,P.green]].forEach(function(b,i){ var yy=by+i*38; S.draw.text(c,b[0],bx-8,yy+11,{size:11,color:P.ink,align:"right"});
+        ctx.fillStyle="#e9eef4"; ctx.fillRect(bx,yy,bw,22); ctx.fillStyle=b[2]; ctx.fillRect(bx,yy,Math.min(b[1],600)*sc,22); S.draw.text(c,S.fmt(b[1],0),bx+Math.min(b[1],600)*sc+(b[1]>520?-6:6),yy+11,{size:11,color:b[1]>520?"#fff":P.ink,align:b[1]>520?"right":"left"}); });
+      S.draw.line(c,bx+300*sc,by-8,bx+300*sc,by+72,P.red,1.6,[5,4]); S.draw.text(c,"300 : intérieur",bx+300*sc,by+84,{size:10,color:P.red});
+      ro.set(0,S.fmt(m.osm,0)); ro.set(1,S.fmt(m.ton,0)); ro.set(2,m.V>=9?"∞":S.fmt(m.V,2)); ro.set(3,ver);
       nt.set(ur.value>0&&tm.value==="imm"?"Juste après l'immersion l'urée n'est pas encore entrée : l'eau suit l'osmolarité TOTALE. Passe à « À l'équilibre » pour voir l'effet de l'entrée d'urée.":"Ligne rouge : intérieur du globule rouge, ≈ 300 mOsm/L de solutés non pénétrants (modèle de l'osmomètre idéal : V = 300/tonicité ; lyse indicative à V > 1,5 V₀).",ver==="isotonique"?"ok":"warn");
-    });
+    }
+    function preset(a,b,d){ na.set(a); gl.set(b); ur.set(d); }
+    k.button("Sérum physiologique",function(){ preset(154,0,0); },true);
+    k.button("Eau pure",function(){ preset(0,0,0); });
+    k.button("NaCl concentré",function(){ preset(300,0,0); });
+    k.button("Urée 300 (piège)",function(){ preset(0,0,300); });
+    k.draw(function(){ frame(0); });
+    var lp=k.loop(function(dt){ frame(dt); }); lp.play();
     k.note("Modèle d'osmomètre idéal : NaCl dissocié (i = 2), pas de coefficient osmotique, pas de volume non osmotique. Le glucose est supposé non pénétrant par simplification (il est en réalité transporté par GLUT1 puis métabolisé).","warn");
   }
 });

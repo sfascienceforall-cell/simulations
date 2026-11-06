@@ -41,25 +41,35 @@ function dragPts(k, c, getP, pts, on, snap){
 }
 /* vue 3D orthographique tournable à la souris (z vers le haut, repère direct) */
 function View3(k, c, o){
-  o = o || {}; var v = {az:o.az != null ? o.az : 0.75, el:o.el != null ? o.el : 0.5, s:40, ox:o.ox || 0, oy:o.oy || 0, oz:o.oz || 0, range:o.range || 5, yoff:o.yoff || 0, xoff:o.xoff || 0, bx:0, bw:0};
-  v.fit = function(){ v.s = Math.min(c.W * 0.5, c.H * 0.5) / v.range; };
+  o = o || {}; var v = {az:o.az != null ? o.az : 0.75, el:o.el != null ? o.el : 0.5, s:40, ox:o.ox || 0, oy:o.oy || 0, oz:o.oz || 0, range:o.range || 5, yoff:o.yoff || 0, xoff:o.xoff || 0, bx:0, bw:0, handles:[]};
+  /* téléphone : le dessin 3D est carré, pour rester lisible */
+  var base = c.ratio || 0.72, r0 = c.resize;
+  c.resize = function(){ c.ratio = (c.cv.parentNode && c.cv.parentNode.clientWidth < 560) ? 1 : base; r0(); }; c.resize();
+  v.fit = function(){ v.s = Math.min(c.W * 0.5, c.H * 0.6) / v.range; };
   v.p = function(x, y, z){ x -= v.ox; y -= v.oy; z -= v.oz; var ca = Math.cos(v.az), sa = Math.sin(v.az), ce = Math.cos(v.el), se = Math.sin(v.el), X = x * ca - y * sa, Y = x * sa + y * ca; return {x:c.W / 2 + v.xoff + X * v.s, y:c.H / 2 + v.yoff - (z * ce + Y * se) * v.s, d:Y * ce - z * se}; };
+  /* écran → point de l'espace à la hauteur z (pour glisser un point dans un plan horizontal) */
+  v.inv = function(px, py, z){ var ca = Math.cos(v.az), sa = Math.sin(v.az), ce = Math.cos(v.el), se = Math.max(0.2, Math.sin(v.el)), X = (px - c.W / 2 - v.xoff) / v.s, Y = ((c.H / 2 + v.yoff - py) / v.s - (z - v.oz) * ce) / se; return [X * ca + Y * sa + v.ox, -X * sa + Y * ca + v.oy]; };
+  /* poignées : v.handles.push({get:function(){return [x,y,z];}, set:function(x, y){…}, col:"#…"}) ; v.hand() les dessine */
+  v.hand = function(){ v.handles.forEach(function(h){ var q = h.get(), A = v.p(q[0], q[1], q[2]), ctx = c.ctx; ctx.save(); ctx.strokeStyle = h.col || "#0f1b2d"; ctx.globalAlpha = 0.55; ctx.lineWidth = 1.6; ctx.setLineDash([3, 3]); ctx.beginPath(); ctx.arc(A.x, A.y, 11, 0, 7); ctx.stroke(); ctx.restore(); }); };
+  function nearH(pp){ var best = null, bd = 20; v.handles.forEach(function(h){ var q = h.get(), A = v.p(q[0], q[1], q[2]), d = Math.hypot(A.x - pp.x, A.y - pp.y); if (d < bd){ bd = d; best = h; } }); return best; }
   v.attach = function(hook){
-    var last = null, own = false; c.cv.style.touchAction = "none"; c.cv.style.cursor = "grab";
+    var last = null, own = false, hd = null; c.cv.style.touchAction = "none"; c.cv.style.cursor = "grab";
     c.pointer(function(t, pp){
-      if (t === "down"){ own = !!(hook && hook("down", pp)); last = pp; }
-      else if (t === "drag"){ if (own){ hook("drag", pp); k.redraw(); return; } if (last){ v.az += (pp.x - last.x) * 0.01; v.el = Math.max(0.03, Math.min(1.5, v.el + (pp.y - last.y) * 0.01)); last = pp; k.redraw(); } }
-      else if (t === "up"){ if (own && hook) hook("up", pp); own = false; last = null; }
-      else if (t === "move" && hook) hook("move", pp);
+      if (t === "down"){ hd = nearH(pp); if (hd){ c.cv.style.cursor = "grabbing"; last = pp; return; } own = !!(hook && hook("down", pp)); last = pp; }
+      else if (t === "drag"){ if (hd){ var q = hd.get(), xy = v.inv(pp.x, pp.y, q[2]); hd.set(xy[0], xy[1]); k.redraw(); return; } if (own){ hook("drag", pp); k.redraw(); return; } if (last){ v.az += (pp.x - last.x) * 0.01; v.el = Math.max(0.03, Math.min(1.5, v.el + (pp.y - last.y) * 0.01)); last = pp; k.redraw(); } }
+      else if (t === "up"){ if (own && hook) hook("up", pp); own = false; last = null; hd = null; c.cv.style.cursor = "grab"; }
+      else if (t === "move"){ c.cv.style.cursor = nearH(pp) ? "pointer" : "grab"; if (hook) hook("move", pp); }
     });
   };
+  var HL = "rgba(255,255,255,.9)";
   v.line = function(a, b, col, w, dash){ var A = v.p(a[0], a[1], a[2]), B = v.p(b[0], b[1], b[2]); D.line(c, A.x, A.y, B.x, B.y, col, w || 1.6, dash); };
-  v.arrow = function(a, b, col, w, lab){ var A = v.p(a[0], a[1], a[2]), B = v.p(b[0], b[1], b[2]); if (Math.hypot(B.x - A.x, B.y - A.y) < 3) return; D.arrow(c, A.x, A.y, B.x, B.y, col, w || 2.6); if (lab){ var L = Math.hypot(B.x - A.x, B.y - A.y) || 1; D.text(c, lab, B.x + (B.x - A.x) / L * 13, B.y + (B.y - A.y) / L * 13, {size:13, color:col}); } };
-  v.dot = function(q, r, col, lab, dx, dy){ var A = v.p(q[0], q[1], q[2]); D.dot(c, A.x, A.y, r || 4.5, col); if (lab) D.text(c, lab, A.x + (dx == null ? 11 : dx), A.y + (dy == null ? -11 : dy), {size:13, color:col}); return A; };
-  v.text = function(q, s, col, size){ var A = v.p(q[0], q[1], q[2]); D.text(c, s, A.x, A.y, {size:size || 12, color:col || C.ink}); };
+  v.arrow = function(a, b, col, w, lab){ var A = v.p(a[0], a[1], a[2]), B = v.p(b[0], b[1], b[2]); if (Math.hypot(B.x - A.x, B.y - A.y) < 3) return; D.arrow(c, A.x, A.y, B.x, B.y, col, w || 2.6); if (lab){ var L = Math.hypot(B.x - A.x, B.y - A.y) || 1; D.text(c, lab, B.x + (B.x - A.x) / L * 14, B.y + (B.y - A.y) / L * 14, {size:14, color:col, halo:HL, math:true, weight:700}); } };
+  v.dot = function(q, r, col, lab, dx, dy){ var A = v.p(q[0], q[1], q[2]); D.dot(c, A.x, A.y, r || 4.5, col); if (lab) D.text(c, lab, A.x + (dx == null ? 11 : dx), A.y + (dy == null ? -11 : dy), {size:13, color:col, halo:HL, math:true}); return A; };
+  v.text = function(q, s, col, size){ var A = v.p(q[0], q[1], q[2]); D.text(c, s, A.x, A.y, {size:size || 13, color:col || C.ink, halo:HL, math:true}); };
   v.poly = function(pts, fill, stroke, w){ var ctx = c.ctx; ctx.beginPath(); pts.forEach(function(q, i){ var A = v.p(q[0], q[1], q[2]); if (i) ctx.lineTo(A.x, A.y); else ctx.moveTo(A.x, A.y); }); ctx.closePath(); if (fill){ ctx.fillStyle = fill; ctx.fill(); } if (stroke){ ctx.strokeStyle = stroke; ctx.lineWidth = w || 1.2; ctx.stroke(); } };
   v.axes = function(L, names, o2){ o2 = o2 || {}; var nm = names || ["x", "y", "z"]; var Lx = o2.Lx || L, Ly = o2.Ly || L, Lz = o2.Lz || L;
-    if (o2.floor !== false){ var st = o2.step || 1; for (var g = -Math.floor(Lx / st) * st; g <= Lx + 1e-9; g += st) v.line([g, -Ly, 0], [g, Ly, 0], "#e9edf2", 1); for (g = -Math.floor(Ly / st) * st; g <= Ly + 1e-9; g += st) v.line([-Lx, g, 0], [Lx, g, 0], "#e9edf2", 1); }
+    if (o2.floor !== false){ var st = o2.step || 1; v.poly([[-Lx, -Ly, 0], [Lx, -Ly, 0], [Lx, Ly, 0], [-Lx, Ly, 0]], "rgba(31,75,158,.035)", null);
+      for (var g = -Math.floor(Lx / st) * st; g <= Lx + 1e-9; g += st) v.line([g, -Ly, 0], [g, Ly, 0], "#e4e9f0", 1); for (g = -Math.floor(Ly / st) * st; g <= Ly + 1e-9; g += st) v.line([-Lx, g, 0], [Lx, g, 0], "#e4e9f0", 1); }
     v.arrow([-Lx, 0, 0], [Lx, 0, 0], "#5f6b7a", 1.4, nm[0]); v.arrow([0, -Ly, 0], [0, Ly, 0], "#5f6b7a", 1.4, nm[1]); v.arrow([0, 0, -Lz], [0, 0, Lz], "#5f6b7a", 1.4, nm[2]); };
   return v;
 }
@@ -71,7 +81,8 @@ function sub3(a, b){ return [a[0] - b[0], a[1] - b[1], a[2] - b[2]]; }
 function mul3(a, s){ return [a[0] * s, a[1] * s, a[2] * s]; }
 function v3s(a, d){ return "(" + fx(a[0], d) + " ; " + fx(a[1], d) + " ; " + fx(a[2], d) + ")"; }
 function rng(seed){ var s = seed >>> 0; return function(){ s = (s + 0x6D2B79F5) >>> 0; var t = s; t = Math.imul(t ^ t >>> 15, t | 1); t ^= t + Math.imul(t ^ t >>> 7, t | 61); return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
-var UM = {C:C, fx:fx, rgba:rgba, cstr:cstr, Pane:Pane, vec:vec, pt:pt, seg:seg, arc:arc, circ:circ, dragPts:dragPts, View3:View3, dot3:dot3, cross3:cross3, norm3:norm3, add3:add3, sub3:sub3, mul3:mul3, v3s:v3s, rng:rng};
+function autoRatio(c, wide, tall){ var r0 = c.resize; c.resize = function(){ c.ratio = (c.cv.parentNode && c.cv.parentNode.clientWidth < 560) ? tall : wide; r0(); }; c.resize(); }
+var UM = {autoRatio:autoRatio, C:C, fx:fx, rgba:rgba, cstr:cstr, Pane:Pane, vec:vec, pt:pt, seg:seg, arc:arc, circ:circ, dragPts:dragPts, View3:View3, dot3:dot3, cross3:cross3, norm3:norm3, add3:add3, sub3:sub3, mul3:mul3, v3s:v3s, rng:rng};
 window.UMB = UM;
 })();
 
@@ -265,25 +276,42 @@ SFA.sim({
   aRetenir:"Δ = b² − 4ac. Si Δ ≥ 0 : z = (−b ± √Δ)/2a. Si Δ < 0 : z = (−b ± i√(−Δ))/2a. Somme des racines −b/a, produit c/a.",
   piege:"Pour Δ < 0, √Δ n'existe pas dans ℝ : on écrit √Δ = i√(−Δ). Ne pas oublier le « ± ».",
   build:function(k, S){
-    var U = UMB, C = U.C, fx = U.fx, c = k.canvas(0, {ratio:0.62});
+    var U = UMB, C = U.C, fx = U.fx, c = k.canvas(0, {ratio:0.62}), D = S.draw, PA, PR, grab = 0;
+    U.autoRatio(c, 0.6, 1.5);
     var sa = k.slider("a", -3, 3, 0.1, 1, ""), sb = k.slider("b", -8, 8, 0.1, -4, ""), sc = k.slider("c", -8, 12, 0.1, 13, "");
+    var gd = k.toggle("Défi : obtiens les racines 2 + 3i et 2 − 3i (avec a = 1)", false);
+    k.button("a = 1", function(){ sa.set(1); });
     var ro = k.readouts(["Discriminant Δ", "Racine z₁", "Racine z₂", "Somme (−b/a)", "Produit (c/a)"]); var nt = k.note("", "ok");
+    function rt(){ var a = sa.value, b = sb.value, cc = sc.value, dl = b * b - 4 * a * cc; if (Math.abs(a) < 0.05) return null; return dl >= 0 ? {dl:dl, r:[[(-b + Math.sqrt(dl)) / (2 * a), 0], [(-b - Math.sqrt(dl)) / (2 * a), 0]]} : {dl:dl, r:[[-b / (2 * a), Math.sqrt(-dl) / (2 * Math.abs(a))], [-b / (2 * a), -Math.sqrt(-dl) / (2 * Math.abs(a))]]}; }
+    function setRoots(p, q, p2){ var a = sa.value; if (q > 0){ sb.set(Math.round(-2 * a * p * 10) / 10); sc.set(Math.round(a * (p * p + q * q) * 10) / 10); } else { sb.set(Math.round(-a * (p + p2) * 10) / 10); sc.set(Math.round(a * p * p2 * 10) / 10); } }
+    c.cv.style.touchAction = "none";
+    c.pointer(function(t, p){
+      if (!PA) return;
+      if (t === "down"){ grab = 0; var a = sa.value, vx = -sb.value / (2 * a), vy = a * vx * vx + sb.value * vx + sc.value; if (Math.hypot(PA.X(vx) - p.x, PA.Y(vy) - p.y) < 24) grab = 1; var R = rt(); if (R && Math.hypot(PR.X(R.r[0][0]) - p.x, PR.Y(R.r[0][1]) - p.y) < 24) grab = 2; }
+      else if (t === "drag" && grab){
+        var a2 = sa.value;
+        if (grab === 1){ var h = Math.round(cl(PA.ix(p.x), -6, 6) * 10) / 10, kk = Math.round(cl(PA.iy(p.y), -8, 12) * 10) / 10; sb.set(Math.round(-2 * a2 * h * 10) / 10); sc.set(Math.round((a2 * h * h + kk) * 10) / 10); }
+        else { var R2 = rt(), px = cl(PR.ix(p.x), -6, 6), py = cl(PR.iy(p.y), -6, 6); if (R2){ if (Math.abs(py) > 0.25) setRoots(px, Math.abs(py)); else { var other = R2.dl >= 0 ? R2.r[1][0] : px; setRoots(px, 0, other); } } }
+        k.redraw(); }
+      else if (t === "up") grab = 0;
+    });
+    function cl(x, a, b){ return Math.max(a, Math.min(b, x)); }
     k.draw(function(){
-      c.clear(); var W = c.W, H = c.H, a = sa.value, b = sb.value, cc = sc.value, ctx = c.ctx, half = W / 2 - 4;
-      if (Math.abs(a) < 0.05){ nt.set("a ≈ 0 : ce n'est plus une équation du second degré. Choisis |a| ≥ 0,1.", "bad"); ro.set(0, "—"); ro.set(1, "—"); ro.set(2, "—"); ro.set(3, "—"); ro.set(4, "—"); return; }
-      var dl = b * b - 4 * a * cc, vx = -b / (2 * a), vy = a * vx * vx + b * vx + cc;
-      var ax = S.draw.axes({ctx:ctx, W:half, H:H, clear:c.clear}, {x0:-6, x1:6, y0:-12, y1:20, xl:"x", yl:"y", l:34, b:22, t:30, r:8});
-      ctx.save(); ctx.beginPath(); ctx.rect(0, 0, half, H); ctx.clip(); ctx.strokeStyle = C.blue; ctx.lineWidth = 2.6; ctx.beginPath(); for (var i = 0; i <= 160; i++){ var x = -6 + 12 * i / 160, y = a * x * x + b * x + cc; if (i) ctx.lineTo(ax.X(x), ax.Y(y)); else ctx.moveTo(ax.X(x), ax.Y(y)); } ctx.stroke(); ctx.restore();
-      var re = -b / (2 * a), im = dl < 0 ? Math.sqrt(-dl) / (2 * Math.abs(a)) : 0, r1, r2;
-      if (dl >= 0){ r1 = [(-b + Math.sqrt(dl)) / (2 * a), 0]; r2 = [(-b - Math.sqrt(dl)) / (2 * a), 0]; S.draw.dot(c, ax.X(r1[0]), ax.Y(0), 6, C.red); S.draw.dot(c, ax.X(r2[0]), ax.Y(0), 6, C.red); }
-      else { r1 = [re, im]; r2 = [re, -im]; }
-      S.draw.dot(c, ax.X(vx), ax.Y(vy), 4, C.amber);
-      var R = Math.max(2.5, Math.abs(r1[0]) * 1.3, Math.abs(r2[0]) * 1.3, im * 1.5), PR = U.Pane(c, W / 2 + 4, 26, half, H - 26, R, R * (H - 26) / half, {xl:"Re", yl:"Im", step:R > 8 ? 5 : R > 4 ? 2 : 1});
-      U.seg(c, PR, r1[0], r1[1], r2[0], r2[1], "rgba(180,35,24,.35)", 1.2, [4, 3]);
-      U.pt(c, PR, r1[0], r1[1], C.red, "z₁", 7, 14, -12); if (dl !== 0 || true) U.pt(c, PR, r2[0], r2[1], C.red, dl === 0 ? "" : "z₂", 7, 14, 14);
-      S.draw.text(c, "parabole y = ax² + bx + c", half / 2, 14, {size:12, color:C.blue}); S.draw.text(c, "solutions dans le plan complexe", W / 2 + 4 + half / 2, 14, {size:12, color:C.red});
+      c.clear(); var W = c.W, H = c.H, a = sa.value, b = sb.value, cc = sc.value, ctx = c.ctx, st = W < 560, gap = 8, bw = st ? W : (W - gap) / 2, bh = st ? (H - gap) / 2 : H;
+      PA = U.Pane(c, 0, 0, bw, bh, 8, 10, {dy:4, step:2, xl:"x", yl:"y"}); PR = U.Pane(c, st ? 0 : bw + gap, st ? bh + gap : 0, bw, bh, 6, 6, {xl:"Re", yl:"Im", step:2});
+      D.label(c, "Parabole y = ax² + bx + c", PA.bx + 8, PA.by + 8, {color:C.blue, align:"left", base:"top"}); D.label(c, "Racines dans le plan complexe", PR.bx + 8, PR.by + 8, {color:C.red, align:"left", base:"top"});
+      if (Math.abs(a) < 0.05){ nt.set("a ≈ 0 : ce n'est plus une équation du second degré. Choisis |a| ≥ 0,1.", "bad"); for (var q = 0; q < 5; q++) ro.set(q, "—"); return; }
+      var R = rt(), dl = R.dl, vx = -b / (2 * a), vy = a * vx * vx + b * vx + cc, r1 = R.r[0], r2 = R.r[1], i;
+      PA.clip(); ctx.strokeStyle = C.blue; ctx.lineWidth = 3; ctx.beginPath(); for (i = 0; i <= 200; i++){ var x = -8 + 16 * i / 200, y = a * x * x + b * x + cc; if (i) ctx.lineTo(PA.X(x), PA.Y(y)); else ctx.moveTo(PA.X(x), PA.Y(y)); } ctx.stroke();
+      ctx.setLineDash([5, 4]); ctx.strokeStyle = D.tint(C.amber, 0.7); ctx.lineWidth = 1.4; ctx.beginPath(); ctx.moveTo(PA.X(vx), PA.by); ctx.lineTo(PA.X(vx), PA.by + PA.bh); ctx.stroke(); ctx.setLineDash([]); PA.unclip();
+      if (dl >= 0){ U.pt(c, PA, r1[0], 0, C.red, "", 6); U.pt(c, PA, r2[0], 0, C.red, "", 6); }
+      U.pt(c, PA, vx, vy, C.amber, "sommet", 8, 12, -14);
+      var goal = gd.value ? [2, 3] : null; PR.clip(); if (goal){ ctx.strokeStyle = C.amber; ctx.lineWidth = 2; ctx.setLineDash([4, 3]); [[2, 3], [2, -3]].forEach(function(g){ ctx.beginPath(); ctx.arc(PR.X(g[0]), PR.Y(g[1]), 12, 0, 7); ctx.stroke(); }); ctx.setLineDash([]); }
+      U.seg(c, PR, r1[0], r1[1], r2[0], r2[1], "rgba(192,50,29,.4)", 1.2, [4, 3]); PR.unclip();
+      U.pt(c, PR, r1[0], r1[1], C.red, "z₁", 8, 14, -14); if (dl !== 0) U.pt(c, PR, r2[0], r2[1], C.red, "z₂", 7, 14, 14);
       ro.set(0, fx(dl, 2)); ro.set(1, U.cstr(r1[0], r1[1], 3)); ro.set(2, U.cstr(r2[0], r2[1], 3)); ro.set(3, fx(-b / a, 3)); ro.set(4, fx(cc / a, 3));
-      nt.set(dl > 1e-9 ? "Δ &gt; 0 : deux racines réelles distinctes (la parabole coupe l'axe des x deux fois)." : Math.abs(dl) <= 1e-9 ? "Δ = 0 : une racine double réelle (la parabole est tangente à l'axe)." : "Δ &lt; 0 : deux racines complexes conjuguées " + U.cstr(r1[0], r1[1], 2) + " et " + U.cstr(r2[0], r2[1], 2) + " (la parabole ne coupe pas l'axe).", dl < -1e-9 ? "warn" : "ok");
+      if (goal){ var ok = dl < 0 && Math.abs(r1[0] - 2) < 0.15 && Math.abs(r1[1] - 3) < 0.15; nt.set(ok ? "Réussi : (z − (2 + 3i))(z − (2 − 3i)) = z² − 4z + 13. Les racines conjuguées donnent des coefficients réels." : "Cible : racines 2 ± 3i. Glisse z₁ vers le cercle pointillé (le conjugué suit) ; observe b = −4 et c = 13.", ok ? "ok" : "warn"); }
+      else nt.set(dl > 1e-9 ? "Δ &gt; 0 : deux racines réelles distinctes (la parabole coupe l'axe des x deux fois)." : Math.abs(dl) <= 1e-9 ? "Δ = 0 : une racine double réelle (la parabole est tangente à l'axe)." : "Δ &lt; 0 : deux racines complexes conjuguées " + U.cstr(r1[0], r1[1], 2) + " et " + U.cstr(r2[0], r2[1], 2) + " (la parabole ne coupe pas l'axe). Glisse z₁ ou le sommet.", dl < -1e-9 ? "warn" : "ok");
     });
   }
 });

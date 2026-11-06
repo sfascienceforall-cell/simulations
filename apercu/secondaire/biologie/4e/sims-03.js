@@ -188,57 +188,82 @@ SFA.sim({
 });
 
 SFA.sim({
-  id:"b4-c03-pompe", ch:"c03", tag:"Transport actif · original",
+  id:"b4-c03-pompe", ch:"c03", tag:"Transport actif · animation",
   titre:"Pompe Na⁺/K⁺ : l'ATP maintient le gradient",
-  resume:"Coupe l'ATP d'une cellule et regarde le sodium envahir l'intérieur, puis rends-lui l'énergie.",
-  but:"Règle l'ATP disponible et la fuite passive, puis lance : suis [Na⁺] et [K⁺] à l'intérieur de la cellule au cours du temps.",
+  resume:"Coupe l'ATP d'une cellule et regarde le sodium envahir l'intérieur par les canaux, puis rends-lui l'énergie.",
+  but:"Règle l'ATP disponible et la fuite passive, puis lance : observe chaque ion traverser (canal = diffusion, pompe = transport actif) et suis [Na⁺] et [K⁺] à l'intérieur.",
   aRetenir:"Les ions fuient en permanence par diffusion, selon leurs gradients. La pompe Na⁺/K⁺ utilise l'ATP pour renvoyer 3 Na⁺ vers l'extérieur et faire entrer 2 K⁺ : c'est un transport actif, contre le gradient. Sans ATP (cyanure, manque d'oxygène) le gradient s'effondre.",
   piege:"Modèle très simplifié (concentrations en mmol/L, temps en minutes, cinétique de saturation). Ne retiens pas les valeurs exactes, mais le principe : fuite passive vs pompage actif.",
   build:function(k, S){
-    var c = k.canvas(0, {ratio:.95});
+    var P = S.draw.palette, c = k.canvas(0, {ratio:1.12});
     var atp = k.slider("ATP disponible", 0, 100, 5, 100, "%");
     var leak = k.slider("Fuite passive (canaux)", 0.5, 3, 0.1, 1, "×");
     var ro = k.readouts(["[Na⁺] intérieur", "[K⁺] intérieur", "Na⁺ pompés", "Équilibre visé [Na⁺]"]);
     var nt = k.note("", "");
-    var NAO = 145, KO = 5, LK = 0.1, LKK = 0.0659, KM = 15, PM = 30;
-    var st = {na:12, k:140, t:0, h:[[0, 12, 140]], acc:0};
+    var NAO = 145, KO = 5, LK = 0.1, LKK = 0.0659, KM = 15, PM = 30, UNIT = 6;
+    var st = {na:12, k:140, t:0, h:[[0, 12, 140]], acc:0, tt:0, ev:[], fl:0, car:{na:0, k:0, pn:0, pk:0}}, rr = B4.rng(11), seeds = [];
+    for (var i = 0; i < 90; i++) seeds.push([rr(), rr(), rr() * 6.28, 0.6 + rr()]);
     function pumpRate(na){ return PM * atp.value / 100 * na / (na + KM); }
     function steady(){
       var lo = 0, hi = NAO, f = function(n){ return LK * leak.value * (NAO - n) - pumpRate(n); };
       for (var i = 0; i < 60; i++){ var m = (lo + hi) / 2; if (f(m) > 0) lo = m; else hi = m; } return (lo + hi) / 2;
     }
     var lp = k.loop(function(dt){
-      var min = dt * 2;                    /* 1 s de simulation = 2 min */
+      var min = dt * 2;
       for (var s = 0; s < 10; s++){
         var h = min / 10, p = pumpRate(st.na);
         st.na += (LK * leak.value * (NAO - st.na) - p) * h;
         st.k += (p * 2 / 3 - LKK * leak.value * (st.k - KO)) * h;
         st.na = Math.max(0, Math.min(NAO, st.na)); st.k = Math.max(KO, st.k);
       }
+      /* événements visibles : flux (mmol/L/min) × 2 min/s ÷ UNIT = ions par seconde réelle */
+      var pr = pumpRate(st.na), fl = [LK * leak.value * (NAO - st.na), LKK * leak.value * (st.k - KO), pr, pr * 2 / 3], keys = ["na", "k", "pn", "pk"];
+      keys.forEach(function(kk, q){ st.car[kk] += fl[q] * 2 / UNIT * dt; while (st.car[kk] >= 1){ st.car[kk] -= 1; st.ev.push({k:kk, t:0, dur:kk[0] === "p" ? 1.4 : 1.1, x:rr()}); if (kk === "pn") st.fl = 1; } });
+      st.ev.forEach(function(e){ e.t += dt; }); st.ev = st.ev.filter(function(e){ return e.t < e.dur; }); st.fl = Math.max(0, st.fl - dt * 2.5); st.tt += dt;
       st.t += min; st.acc += min; if (st.acc >= 1){ st.acc = 0; st.h.push([st.t, st.na, st.k]); if (st.h.length > 400) st.h.shift(); }
       if (st.t >= 120) lp.pause(); k.redraw();
     });
-    k.button("▶ Lancer", function(){ if (st.t >= 120){ st.na = 12; st.k = 140; st.t = 0; st.h = [[0, 12, 140]]; } lp.play(); }, true);
+    k.button("▶ Lancer", function(){ if (st.t >= 120){ st.na = 12; st.k = 140; st.t = 0; st.h = [[0, 12, 140]]; st.ev = []; } lp.play(); }, true);
     k.button("❚❚ Pause", function(){ lp.pause(); });
-    k.button("↺ Cellule saine", function(){ lp.pause(); st.na = 12; st.k = 140; st.t = 0; st.h = [[0, 12, 140]]; });
+    k.button("↺ Cellule saine", function(){ lp.pause(); st.na = 12; st.k = 140; st.t = 0; st.h = [[0, 12, 140]]; st.ev = []; });
+    function ion(x, y, col, txt, r){ var ctx = c.ctx; ctx.beginPath(); ctx.arc(x, y, r, 0, 6.2832); var g = ctx.createRadialGradient(x - r * .3, y - r * .35, 1, x, y, r); g.addColorStop(0, "#fff"); g.addColorStop(0.35, col); g.addColorStop(1, col); ctx.fillStyle = g; ctx.fill(); ctx.lineWidth = 1; ctx.strokeStyle = "rgba(15,27,45,.35)"; ctx.stroke(); if (txt) S.draw.text(c, txt, x, y, {size:r * 0.95, color:"#fff", weight:800}); }
     k.draw(function(){
-      c.clear(); var ctx = c.ctx, W = c.W, H = c.H, mh = H * 0.44, my = mh * 0.5 + 6;
-      var p = pumpRate(st.na);
-      ctx.fillStyle = "rgba(254,243,199,.6)"; ctx.fillRect(6, 6, W - 12, mh * 0.34); ctx.fillStyle = "rgba(220,252,231,.7)"; ctx.fillRect(6, 6 + mh * 0.66, W - 12, mh * 0.34);
-      ctx.fillStyle = "#cbd5e1"; ctx.fillRect(6, 6 + mh * 0.34, W - 12, mh * 0.32);
-      B4.txt(c, "Extérieur : Na⁺ 145 · K⁺ 5", 12, 18, B4.pal.ink, 12, "left");
-      B4.txt(c, "Intérieur : Na⁺ " + S.fmt(st.na, 0) + " · K⁺ " + S.fmt(st.k, 0), 12, 6 + mh - 10, B4.pal.ink, 12, "left");
-      B4.txt(c, "membrane", 12, 6 + mh * 0.5, "#475569", 12, "left");
-      var xp = W * 0.78; B4.rr(c, xp - 20, 6 + mh * 0.3, 40, mh * 0.4, 8, "#5B21B6", null, 0); B4.txt(c, "pompe", xp, 6 + mh * 0.5, "#fff", 11);
-      var wp = 2 + 8 * p / PM;
-      S.draw.arrow(c, xp - 8, 6 + mh * 0.3, xp - 8, 6 + mh * 0.2, B4.pal.amber, wp); B4.txt(c, "3 Na⁺", xp - 36, 6 + mh * 0.2, B4.pal.amber, 12);
-      S.draw.arrow(c, xp + 8, 6 + mh * 0.7, xp + 8, 6 + mh * 0.8, B4.pal.green, wp * 0.66); B4.txt(c, "2 K⁺", xp + 32, 6 + mh * 0.8, B4.pal.green, 12);
-      var wl = 1 + 5 * Math.min(1, LK * leak.value * (NAO - st.na) / 15);
-      S.draw.arrow(c, W * 0.5, 6 + mh * 0.2, W * 0.5, 6 + mh * 0.8, B4.pal.red, wl); B4.txt(c, "fuite Na⁺", W * 0.5 + 38, 6 + mh * 0.3, B4.pal.red, 12);
-      var ax = S.draw.axes(c, {x0:0, x1:120, y0:0, y1:160, xl:"t (min)", yl:"mmol/L (intérieur)", stepX:20, stepY:40, t:mh + 20, l:40});
-      var series = [[1, B4.pal.amber, "[Na⁺]"], [2, B4.pal.green, "[K⁺]"]];
+      c.clear(); var ctx = c.ctx, W = c.W, H = c.H, hs = H * 0.5, my0 = hs * 0.4, my1 = hs * 0.6, p = pumpRate(st.na), t = st.tt;
+      ctx.fillStyle = "#fdf3d8"; ctx.fillRect(0, 0, W, my0); ctx.fillStyle = "#dff3e6"; ctx.fillRect(0, my1, W, hs - my1);
+      var xc = W * 0.28, xp = W * 0.7;
+      /* membrane : bicouche */
+      for (var x = 4; x < W; x += 11){ var gap = Math.abs(x - xc) < 15 || Math.abs(x - xp) < 24; if (gap) continue;
+        for (var side = 0; side < 2; side++){ var yh = side ? my1 - 5 : my0 + 5, yt = side ? my1 - 18 : my0 + 18; ctx.strokeStyle = "#c9a45c"; ctx.lineWidth = 1.6; ctx.beginPath(); ctx.moveTo(x - 2, yh); ctx.lineTo(x - 2, (yh + yt) / 2 + (side ? 2 : -2)); ctx.moveTo(x + 2, yh); ctx.lineTo(x + 2, (yh + yt) / 2 + (side ? 2 : -2)); ctx.stroke(); S.draw.dot(c, x, yh + (side ? 1 : -1), 4, "#e8b04a"); } }
+      /* canal */
+      S.draw.rrect(c, xc - 14, my0, 9, my1 - my0, 3); ctx.fillStyle = "#b8c3d8"; ctx.fill(); S.draw.rrect(c, xc + 5, my0, 9, my1 - my0, 3); ctx.fill(); S.draw.text(c, "canal", xc, my0 - 8, {size:10, color:"#5f6b7a"});
+      /* pompe */
+      var open = Math.sin(t * Math.max(0.5, p * 0.5)) > 0 && p > 0.05; ctx.save(); var pg = ctx.createLinearGradient(xp - 24, 0, xp + 24, 0); pg.addColorStop(0, "#8d62d9"); pg.addColorStop(1, "#5b2fb3");
+      ctx.beginPath(); ctx.moveTo(xp - 24, my0 - 4); ctx.lineTo(xp + 24, my0 - 4); ctx.lineTo(xp + (open ? 18 : 6), (my0 + my1) / 2); ctx.lineTo(xp + 24, my1 + 4); ctx.lineTo(xp - 24, my1 + 4); ctx.lineTo(xp - (open ? 6 : 18), (my0 + my1) / 2); ctx.closePath(); ctx.fillStyle = pg; ctx.fill(); ctx.strokeStyle = "#3f1f87"; ctx.lineWidth = 2; ctx.stroke(); ctx.restore();
+      S.draw.text(c, "pompe", xp, (my0 + my1) / 2, {size:10, color:"#fff"});
+      if (st.fl > 0){ S.draw.glow(c, xp, my1 + 14, 22, P.yellow, 0.9 * st.fl); S.draw.text(c, "ATP → ADP + Pi", xp, hs + 4, {size:10, color:P.amber, weight:800}); }
+      /* ions en solution (agitation) */
+      function bro(sd, y0, y1){ return [sd[0] * (W - 20) + 10 + Math.sin(t * sd[3] + sd[2]) * 6, y0 + sd[1] * (y1 - y0) + Math.cos(t * sd[3] * 0.8 + sd[2]) * 4]; }
+      var nOutNa = Math.round(NAO / UNIT), nInNa = Math.round(st.na / UNIT), nInK = Math.round(st.k / UNIT), nOutK = Math.max(1, Math.round(KO / UNIT)), q, pp;
+      for (q = 0; q < nOutNa; q++){ pp = bro(seeds[q], 6, my0 - 16); ion(pp[0], pp[1], "#e8a317", "", 5.2); }
+      for (q = 0; q < nInNa; q++){ pp = bro(seeds[q + 30], my1 + 14, hs - 14); ion(pp[0], pp[1], "#e8a317", "", 5.2); }
+      for (q = 0; q < nInK; q++){ pp = bro(seeds[q + 50 > 89 ? q : q + 50], my1 + 14, hs - 14); ion(pp[0], pp[1], "#2fa36b", "", 5.2); }
+      for (q = 0; q < nOutK; q++){ pp = bro(seeds[80 + q % 9], 6, my0 - 16); ion(pp[0], pp[1], "#2fa36b", "", 5.2); }
+      /* ions en transit */
+      st.ev.forEach(function(e){
+        var u = e.t / e.dur, ease = u * u * (3 - 2 * u), xx, y0 = 10, y1 = hs - 12, col = e.k === "na" || e.k === "pn" ? "#e8a317" : "#2fa36b";
+        var inn = e.k === "na" || e.k === "pk";   /* vers l'intérieur : de haut en bas */
+        var xs = e.k[0] === "p" ? xp - 10 + e.x * 20 : xc - 2 + (e.x - 0.5) * 6; var yy = inn ? y0 + (y1 - y0) * ease : y1 - (y1 - y0) * ease;
+        if (e.k[0] !== "p") xx = xc + (e.x - .5) * 6; else xx = xp + (e.x - 0.5) * 18;
+        ion(xx, yy, col, "", 5.8);
+      });
+      S.draw.label(c, "Extérieur : Na⁺ 145 · K⁺ 5 mmol/L", 8, 12, {color:"#8a5a05", align:"left", size:10.5}); S.draw.label(c, "Intérieur : Na⁺ " + S.fmt(st.na, 0) + " · K⁺ " + S.fmt(st.k, 0), 8, hs - 12, {color:"#1f6b43", align:"left", size:10.5});
+      ion(W - 80, hs - 12, "#e8a317", "", 4.5); S.draw.text(c, "Na⁺", W - 72, hs - 12, {size:10, color:"#5f6b7a", align:"left"}); ion(W - 40, hs - 12, "#2fa36b", "", 4.5); S.draw.text(c, "K⁺", W - 32, hs - 12, {size:10, color:"#5f6b7a", align:"left"});
+      S.draw.text(c, "1 ion dessiné ≈ " + UNIT + " mmol/L", W - 8, 12, {size:9, color:"#5f6b7a", align:"right"});
+      /* graphe */
+      var ax = S.draw.axes(c, {x0:0, x1:120, y0:0, y1:160, xl:"t (min)", yl:"mmol/L (intérieur)", stepX:20, stepY:40, t:hs + 22, l:40});
+      var series = [[1, P.amber, "[Na⁺]"], [2, P.green, "[K⁺]"]];
       series.forEach(function(s){ ctx.save(); ctx.beginPath(); ctx.rect(ax.L, ax.T, ax.R - ax.L, ax.B - ax.T); ctx.clip(); ctx.strokeStyle = s[1]; ctx.lineWidth = 2.6; ctx.beginPath(); st.h.forEach(function(h, i){ var x = ax.X(h[0]), y = ax.Y(h[s[0]]); if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y); }); ctx.stroke(); ctx.restore(); });
-      B4.txt(c, "[Na⁺]", ax.X(112), ax.Y(st.na) - 12, B4.pal.amber, 12); B4.txt(c, "[K⁺]", ax.X(112), ax.Y(st.k) - 12, B4.pal.green, 12);
+      S.draw.label(c, "[Na⁺]", ax.R - 34, ax.Y(st.na) - 12, {color:P.amber, size:10}); S.draw.label(c, "[K⁺]", ax.R - 34, ax.Y(st.k) - 12, {color:P.green, size:10});
       var sNa = steady();
       ro.set(0, S.fmt(st.na, 0) + " mmol/L"); ro.set(1, S.fmt(st.k, 0) + " mmol/L"); ro.set(2, S.fmt(p, 1) + " mmol/L/min"); ro.set(3, S.fmt(sNa, 0) + " mmol/L");
       nt.set(atp.value === 0 ? "Sans ATP : plus de pompage. Le Na⁺ entre par fuite jusqu'à égaliser avec l'extérieur (≈ 145) et le K⁺ s'échappe : le gradient disparaît." : st.na > 40 ? "Le gradient s'effondre : la pompe n'arrive plus à compenser la fuite." : "La pompe compense la fuite : le gradient se maintient (équilibre dynamique, avec dépense d'ATP).", atp.value === 0 || st.na > 40 ? "bad" : "ok");

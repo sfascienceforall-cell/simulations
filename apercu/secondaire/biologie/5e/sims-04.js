@@ -104,11 +104,11 @@ SFA.sim({
   id: "b5-c04-ectotherme", ch: "c04", tag: "Comparaison",
   titre: "Lézard (ectotherme) contre mammifère (endotherme)",
   resume: "Température ambiante → température du corps, dépense d'énergie et activité.",
-  but: "Compare deux animaux selon la température de l'air. Observe qui garde sa température, qui dépense le plus d'énergie, et quand le lézard peut courir. Active le bain de soleil pour voir comment un ectotherme régule son comportement.",
+  but: "Compare deux animaux selon la température de l'air (curseur, ou glisse sur les graphiques). Observe qui garde sa température, qui dépense le plus d'énergie, et quand le lézard peut courir. Active le bain de soleil pour voir comment un ectotherme régule son comportement.",
   aRetenir: "Un endotherme produit sa chaleur : température constante, mais forte dépense d'énergie (surtout au froid). Un ectotherme dépend de la température extérieure : très économe, mais son activité dépend du milieu. Il règle sa température par son comportement (soleil, ombre).",
   piege: "Ectotherme ne veut pas dire « sang froid » : un lézard au soleil peut avoir un corps à 35 °C. Et endotherme ne veut pas dire « plus évolué » : chaque stratégie a des coûts et des avantages. Valeurs en unités arbitraires.",
   build: function(k, S){
-    var c1 = k.canvas(190), c2 = k.canvas(190), pal = S.draw.palette;
+    var c = k.canvas(500), pal = S.draw.palette, D = S.draw;
     var Ta = k.slider("Température de l'air", 0, 45, 1, 20, "°C");
     var sun = k.toggle("Le lézard prend un bain de soleil (+ 10 °C, max 36 °C)", false);
     var ro = k.readouts(["T corps lézard", "Activité du lézard", "Énergie mammifère", "Énergie lézard"]);
@@ -117,19 +117,89 @@ SFA.sim({
     function mrM(T){ return T < 28 ? 100 * (1 + 0.07 * (28 - T)) : (T > 35 ? 100 + 10 * (T - 35) : 100); }
     function mrL(Tb){ return 15 * Math.pow(2, (Tb - 37) / 10); }
     function perf(Tb){ return Tb < 8 || Tb > 42 ? 0 : Math.exp(-Math.pow((Tb - 35) / 8, 2)); }
+    var lx = 0, dir = 1, ph = 0, geo = {}, drag = false;
+    var lp = k.loop(function(dt){ var pf = perf(tbL(Ta.value, sun.value)); ph += dt; lx += dir * dt * pf * 120; if (lx > 1){ lx = 1; dir = -1; } if (lx < 0){ lx = 0; dir = 1; } k.redraw(); });
+    lp.play();
+    c.cv.style.touchAction = "none";
+    c.pointer(function(t, p){
+      if (t === "down") drag = p.y > geo.gy;
+      if (drag && (t === "down" || t === "drag") && geo.ax){ Ta.set(Math.max(0, Math.min(45, Math.round(p.x < geo.mid ? geo.ax.ix(p.x) : geo.ax2.ix(p.x)))));  k.redraw(); }
+      if (t === "up") drag = false;
+    });
+    function mammal(x, y, s, shiv, col){
+      var ctx = c.ctx, j = shiv ? Math.sin(ph * 40) * 1.2 : 0; ctx.save(); ctx.translate(x + j, y); ctx.scale(s, s);
+      ctx.fillStyle = col; ctx.strokeStyle = "#7a3d12"; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(-34, -8); ctx.bezierCurveTo(-64, -46, -80, -6, -52, 8); ctx.bezierCurveTo(-60, -2, -52, -22, -34, -8); ctx.fill(); ctx.stroke();   /* queue */
+      ctx.beginPath(); ctx.ellipse(-4, -6, 38, 22, 0, 0, 7); ctx.fill(); ctx.stroke();
+      ctx.beginPath(); ctx.ellipse(-14, 16, 6, 12, 0, 0, 7); ctx.ellipse(18, 16, 6, 12, 0, 0, 7); ctx.fill(); ctx.stroke();
+      ctx.beginPath(); ctx.arc(36, -22, 17, 0, 7); ctx.fill(); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(26, -34); ctx.lineTo(28, -54); ctx.lineTo(38, -38); ctx.moveTo(40, -36); ctx.lineTo(48, -52); ctx.lineTo(50, -32); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = "#fff"; ctx.beginPath(); ctx.ellipse(40, -4, 9, 6, 0, 0, 7); ctx.fill();
+      ctx.fillStyle = "#222"; ctx.beginPath(); ctx.arc(41, -26, 2.4, 0, 7); ctx.arc(52, -20, 2.4, 0, 7); ctx.fill();
+      ctx.restore();
+    }
+    function lizard(x, y, s, wig, col, still){
+      var ctx = c.ctx; ctx.save(); ctx.translate(x, y); ctx.scale(s, s);
+      var w = still ? 0 : Math.sin(ph * 9) * 4;
+      ctx.fillStyle = col; ctx.strokeStyle = "#1b5e45"; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(-18, -2); ctx.bezierCurveTo(-50, -4 + w, -70, 14 - w, -100, 6 + w); ctx.bezierCurveTo(-66, 22 - w, -48, 6, -18, 12); ctx.fill(); ctx.stroke();
+      [[-8, 1], [20, 1]].forEach(function(l){ ctx.beginPath(); ctx.moveTo(l[0], 10); ctx.lineTo(l[0] - 8 + w * .5, 24); ctx.lineTo(l[0] + 2, 24); ctx.stroke(); ctx.beginPath(); ctx.moveTo(l[0], -2); ctx.lineTo(l[0] - 6 - w * .5, -14); ctx.stroke(); });
+      ctx.beginPath(); ctx.ellipse(6, 5, 28, 11, 0, 0, 7); ctx.fill(); ctx.stroke();
+      ctx.beginPath(); ctx.ellipse(40, 2, 14, 8, 0.1, 0, 7); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = "#111"; ctx.beginPath(); ctx.arc(44, -1, 2.2, 0, 7); ctx.fill();
+      ctx.restore();
+    }
+    function gauge(x, y, T, label, col){
+      var ctx = c.ctx, h = 62; D.rrect(c, x - 5, y - h, 10, h, 5); ctx.fillStyle = "#fff"; ctx.fill(); ctx.strokeStyle = "#8a95a3"; ctx.lineWidth = 1.5; ctx.stroke();
+      var f = B5.cl(T / 45, 0, 1); D.rrect(c, x - 3, y - 2 - (h - 4) * f, 6, (h - 4) * f, 3); ctx.fillStyle = col; ctx.fill();
+      D.label(c, S.fmt(T, 0) + " °C", x + 10, y - h + 8, {color: col, align: "left", size: 11.5});
+      D.text(c, label, x, y + 12, {size: 10.5, color: pal.grey, weight: 800});
+    }
     k.draw(function(){
-      var T, a = [], b = [], m = [], l = [], s = sun.value;
-      for (T = 0; T <= 45; T += 1){ a.push([T, 37]); b.push([T, tbL(T, s)]); m.push([T, mrM(T)]); l.push([T, mrL(tbL(T, s))]); }
-      c1.clear();
-      var ax = S.draw.axes(c1, {x0: 0, x1: 45, y0: 0, y1: 45, xl: "T air (°C)", yl: "T corps (°C)", stepX: 5, stepY: 10});
-      B5.poly(c1, ax, a, pal.red, 2.6); B5.poly(c1, ax, b, pal.green, 2.6);
-      B5.leg(c1, [["mammifère", pal.red], ["lézard", pal.green]], ax.L + 8, ax.T + 34);
-      S.draw.line(c1, ax.X(Ta.value), ax.T, ax.X(Ta.value), ax.B, pal.ink, 1.4, [5, 4]);
-      c2.clear();
-      var ax2 = S.draw.axes(c2, {x0: 0, x1: 45, y0: 0, y1: 320, xl: "T air (°C)", yl: "énergie (u.a.)", stepX: 5, stepY: 80});
-      B5.poly(c2, ax2, m, pal.red, 2.6); B5.poly(c2, ax2, l, pal.green, 2.6);
-      S.draw.line(c2, ax2.X(Ta.value), ax2.T, ax2.X(Ta.value), ax2.B, pal.ink, 1.4, [5, 4]);
-      var tb = tbL(Ta.value, s), pf = perf(tb), em = mrM(Ta.value), el = mrL(tb);
+      c.clear(); var ctx = c.ctx, W = c.W, H = c.H, T = Ta.value, s = sun.value, tb = tbL(T, s), pf = perf(tb), em = mrM(T), el = mrL(tb);
+      /* ---------- scène ---------- */
+      var sh = 262, gy = sh - 52;
+      var warm = B5.cl((T - 5) / 35, 0, 1), top = ctx.createLinearGradient(0, 0, 0, sh);
+      top.addColorStop(0, "rgb(" + Math.round(190 + 60 * warm) + "," + Math.round(214 + 10 * warm) + "," + Math.round(240 - 50 * warm) + ")"); top.addColorStop(1, "#f6f1e4");
+      D.rrect(c, 8, 8, W - 16, sh, 12); ctx.fillStyle = top; ctx.fill();
+      ctx.save(); D.rrect(c, 8, 8, W - 16, sh, 12); ctx.clip();
+      ctx.fillStyle = T < 6 ? "#eef3f8" : "#cfd8a8"; ctx.fillRect(8, gy, W - 16, sh);
+      if (T < 6){ for (var f = 0; f < 10; f++) B5.circ(c, 30 + f * (W - 60) / 9, 24 + ((f * 37 + ph * 20) % 120), 2.6, "#fff", "#b8c6d6", 1); }
+      if (T > 26 || s){ D.glow(c, W - 50, 50, 60, pal.yellow, .85); B5.circ(c, W - 50, 50, 20, pal.yellow); }
+      /* rocher */
+      ctx.fillStyle = "#a79a8a"; ctx.beginPath(); ctx.ellipse(W * 0.72, gy + 4, 70, 18, 0, Math.PI, 0); ctx.fill(); ctx.fillRect(W * 0.72 - 70, gy + 4, 140, 6);
+      D.text(c, "air " + S.fmt(T, 0) + " °C", 24, 24, {align: "left", size: 13, color: pal.ink, weight: 900});
+      /* mammifère */
+      var mx = W * 0.22; mammal(mx, gy - 26, 1.0, T < 14, "#e0a36b");
+      if (T < 14) D.text(c, "frissons !", mx - 10, gy - 92, {size: 11, color: pal.red, weight: 800});
+      gauge(mx + 78, gy + 38, 37, "corps", pal.red);
+      D.text(c, "mammifère (endotherme)", mx, gy + 46, {size: 11, color: pal.ink, weight: 800});
+      /* énergie mammifère */
+      var flame = Math.min(1.9, em / 100); for (var q = 0; q < 3; q++){ ctx.fillStyle = q < flame * 1.5 ? pal.orange : "#e1d6c7"; ctx.beginPath(); ctx.arc(mx - 52 + q * 14, gy + 36, 5, 0, 7); ctx.fill(); }
+      D.text(c, "énergie", mx - 36, gy + 22, {size: 10, color: pal.grey, weight: 800});
+      /* lézard */
+      var zx = (s ? W * 0.72 - 40 : W * 0.5 + lx * (W * 0.45 - 70) + 60) , zy = s ? gy - 18 : gy - 12, still = pf < 0.05 || s;
+      lizard(zx, zy, 0.95, 0, pf < 0.2 ? "#8fb3a3" : "#3fa77c", still);
+      if (pf < 0.2) D.text(c, "z z z", zx + 30, zy - 34, {size: 13, color: pal.grey, weight: 900});
+      if (tb > 42) D.text(c, "trop chaud !", zx, zy - 40, {size: 11, color: pal.red, weight: 800});
+      gauge(W * 0.5 + 8, gy + 38, tb, "corps", pal.green);
+      D.text(c, "lézard (ectotherme)", W * 0.5 + 100, gy + 46, {size: 11, color: pal.ink, weight: 800});
+      ctx.restore();
+      /* ---------- graphiques ---------- */
+      var gy2 = sh + 20, mid = W / 2; geo.gy = gy2 - 4; geo.mid = mid;
+      var a = [], b = [], m = [], l = [], T2;
+      for (T2 = 0; T2 <= 45; T2 += 1){ a.push([T2, 37]); b.push([T2, tbL(T2, s)]); m.push([T2, mrM(T2)]); l.push([T2, mrL(tbL(T2, s))]); }
+      D.panel(c, 8, gy2, W - 16, H - gy2 - 8, {shadow: false, fill: "#fbfcfe"});
+      var ax = D.axes(c, {x0: 0, x1: 45, y0: 0, y1: 45, xl: "T air (°C)", yl: "", stepX: 15, stepY: 15, t: gy2 + 24, b: 32, l: 36, r: mid + 10});
+      D.text(c, "Température du corps (°C)", 14, gy2 + 12, {align: "left", size: 11.5, color: pal.ink, weight: 800});
+      B5.poly(c, ax, a, pal.red, 2.8); B5.poly(c, ax, b, pal.green, 2.8);
+      D.line(c, ax.X(T), ax.T, ax.X(T), ax.B, pal.ink, 1.2, [4, 3]); D.dot(c, ax.X(T), ax.Y(tb), 5, pal.green); D.dot(c, ax.X(T), ax.Y(37), 5, pal.red);
+      geo.ax = ax;
+      var ax2 = D.axes(c, {x0: 0, x1: 45, y0: 0, y1: 320, xl: "T air (°C)", yl: "", stepX: 15, stepY: 100, t: gy2 + 24, b: 32, l: mid + 34, r: 20});
+      D.text(c, "Énergie dépensée (u.a.)", mid + 6, gy2 + 12, {align: "left", size: 11.5, color: pal.ink, weight: 800});
+      B5.poly(c, ax2, m, pal.red, 2.8); B5.poly(c, ax2, l, pal.green, 2.8);
+      D.line(c, ax2.X(T), ax2.T, ax2.X(T), ax2.B, pal.ink, 1.2, [4, 3]); D.dot(c, ax2.X(T), ax2.Y(em), 5, pal.red); D.dot(c, ax2.X(T), ax2.Y(el), 5, pal.green);
+      geo.ax2 = ax2;
       ro.set(0, S.fmt(tb, 0) + " °C"); ro.set(1, S.fmt(pf * 100, 0) + " %"); ro.set(2, S.fmt(em, 0)); ro.set(3, S.fmt(el, 1) + " (÷ " + S.fmt(em / el, 0) + ")");
       if (tb > 42) nt.set("Au-dessus de 42 °C, le lézard est en danger (température critique) : il doit chercher l'ombre.", "warn");
       else if (pf < 0.2) nt.set("Trop froid pour être actif (" + S.fmt(pf * 100, 0) + " % de ses performances) : le lézard est engourdi. Le mammifère reste actif mais brûle " + S.fmt(em / el, 0) + " fois plus d'énergie.", "warn");

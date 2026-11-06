@@ -1,13 +1,13 @@
 /* Biologie 4e · chapitre 4 · Enzymes et catalyse biologique */
 SFA.sim({
-  id:"b4-c04-tph", ch:"c04", tag:"Classique · graphes",
+  id:"b4-c04-tph", ch:"c04", tag:"Carte interactive · enzyme",
   titre:"Température et pH : la courbe en cloche",
-  resume:"Fais varier température et pH pour quatre enzymes (trois humaines, une de bactérie thermophile), puis chauffe-les trop longtemps.",
-  but:"Choisis une enzyme, déplace température et pH, lis l'activité relative. Le bouton « Chauffer 5 min puis refroidir » montre ce que devient l'enzyme dénaturée.",
+  resume:"Glisse un point sur la carte température × pH : l'enzyme s'active, ralentit ou se déforme. Quatre enzymes à comparer.",
+  but:"Glisse le point sur la carte (ou utilise les curseurs) : la couleur donne l'activité, l'enzyme dessinée se déforme, les courbes en bordure suivent. Le bouton « Chauffer 5 min » montre ce que devient l'enzyme dénaturée.",
   aRetenir:"Chaque enzyme a une température et un pH optimaux (amylase salivaire : ≈ 37 °C, pH ≈ 7 ; pepsine : pH ≈ 2). Au-delà, la structure 3D de la protéine est détruite : c'est la dénaturation, irréversible. Le froid, lui, ralentit l'enzyme sans la détruire.",
   piege:"Une enzyme dénaturée par la chaleur ne « redevient pas active » en refroidissant, contrairement à un gel qui refond. Courbes de modèle (activité relative, optimum = 100 %), pas des mesures.",
   build:function(k, S){
-    var c1 = k.canvas(210), c2 = k.canvas(190);
+    var P = S.draw.palette, c = k.canvas(0, {ratio:1.2});
     var E = {amy:{n:"Amylase salivaire", T:37, pH:7, w:1.7}, pep:{n:"Pepsine (estomac)", T:37, pH:2, w:1.2}, tryp:{n:"Trypsine (intestin grêle)", T:37, pH:8, w:1.5}, therm:{n:"Enzyme de bactérie thermophile", T:70, pH:7, w:2}};
     var en = k.select("Enzyme", [["amy","Amylase salivaire"],["pep","Pepsine (estomac)"],["tryp","Trypsine (intestin)"],["therm","Bactérie thermophile (source chaude)"]], "amy", function(v){ T.set(E[v].T); ph.set(E[v].pH); res.on = false; });
     var T = k.slider("Température", 0, 90, 1, 37, "°C", function(){ res.on = false; });
@@ -19,19 +19,48 @@ SFA.sim({
     function fT(t, e){ var g = Math.pow(2, (t - e.T) / 10), d = 1 / (1 + Math.exp((t - e.T - 3.65) / 2)); return g * d / 0.8614; }
     function fP(p, e){ return Math.exp(-Math.pow((p - e.pH) / e.w, 2)); }
     function keep(t, e){ var kd = 0.01 * Math.pow(2, (t - e.T - 3) / 3); return Math.exp(-5 * kd); }
+    var cache = {}, geo = {}, subs = [], rr = B4.rng(9), tt = 0;
+    for (var i = 0; i < 7; i++) subs.push({x:rr(), y:rr(), v:0.12 + rr() * 0.12, ph:rr()});
+    var lp = k.loop(function(dt){ tt += dt; var e = E[en.value], a = Math.min(1, fT(T.value, e) * fP(ph.value, e)); subs.forEach(function(s){ s.x += s.v * dt * (0.25 + 1.6 * a); if (s.x > 1.1){ s.x = -0.1; s.y = rr(); } }); k.redraw(); });
+    lp.play();
+    function heat(e, w, h){
+      var key = en.value + "|" + w + "|" + h; if (cache.key === key) return cache.cv;
+      var cv = document.createElement("canvas"), nx = 60, ny = 36; cv.width = nx; cv.height = ny; var cx = cv.getContext("2d");
+      for (var ix = 0; ix < nx; ix++) for (var iy = 0; iy < ny; iy++){ var t = (ix + 0.5) / nx * 90, p = 14 - (iy + 0.5) / ny * 14, a = Math.min(1, fT(t, e) * fP(p, e)); var r = Math.round(247 - a * (247 - 20)), g = Math.round(249 - a * (249 - 150)), b = Math.round(252 - a * (252 - 120)); cx.fillStyle = "rgb(" + r + "," + g + "," + b + ")"; cx.fillRect(ix, iy, 1, 1); }
+      cache = {key:key, cv:cv}; return cv;
+    }
     k.draw(function(){
-      var e = E[en.value], t = T.value, p = ph.value, a = Math.min(1.0001, fT(t, e)) , b = fP(p, e);
-      c1.clear(); var ax = S.draw.axes(c1, {x0:0, x1:90, y0:0, y1:110, xl:"T (°C)", yl:"activité (%)", stepX:10, stepY:25});
-      S.draw.fn(c1, ax, function(x){ return fT(x, e) * fP(p, e) * 100; }, B4.pal.red, 2.6);
-      S.draw.line(c1, ax.X(t), ax.B, ax.X(t), ax.Y(fT(t, e) * b * 100), "#8a95a3", 1, [3, 3]); S.draw.dot(c1, ax.X(t), ax.Y(fT(t, e) * b * 100), 6, B4.pal.ink);
-      B4.txt(c1, "à pH " + S.fmt(p, 1), ax.X(88), ax.Y(100) + 8, "#5f6b7a", 12, "right");
-      if (res.on){ var kp = keep(res.T, e) * 100; S.draw.dot(c1, ax.X(e.T), ax.Y(kp), 7, B4.pal.violet); B4.txt(c1, "après chauffage : " + S.fmt(kp, 0) + " %", ax.X(e.T) + 8, ax.Y(kp) - 10, B4.pal.violet, 12, "left"); }
-      c2.clear(); var bx = S.draw.axes(c2, {x0:0, x1:14, y0:0, y1:110, xl:"pH", yl:"activité (%)", stepX:2, stepY:25});
-      S.draw.fn(c2, bx, function(x){ return fP(x, e) * fT(t, e) * 100; }, B4.pal.acc, 2.6);
-      S.draw.dot(c2, bx.X(p), bx.Y(fT(t, e) * b * 100), 6, B4.pal.ink);
-      B4.txt(c2, "à " + S.fmt(t, 0) + " °C", bx.X(13.8), bx.Y(100) + 8, "#5f6b7a", 12, "right");
-      var act = fT(t, e) * b * 100;
-      ro.set(0, S.fmt(act, 0) + " %"); ro.set(1, S.fmt(fT(t, e) * 100, 0) + " %"); ro.set(2, S.fmt(b * 100, 0) + " %"); ro.set(3, res.on ? S.fmt(keep(res.T, e) * 100, 0) + " %" : "—");
+      var e = E[en.value], t = T.value, p = ph.value, fa = Math.min(1.0001, fT(t, e)), fb = fP(p, e), act = Math.min(1, fa * fb);
+      c.clear(); var ctx = c.ctx, W = c.W, H = c.H, hx0 = 44, hx1 = W - 12, hy0 = 12, hy1 = H * 0.50;
+      geo = {x0:hx0, x1:hx1, y0:hy0, y1:hy1};
+      ctx.imageSmoothingEnabled = true; ctx.drawImage(heat(e, W, H), hx0, hy0, hx1 - hx0, hy1 - hy0); ctx.strokeStyle = "#cdd5e1"; ctx.lineWidth = 1; ctx.strokeRect(hx0, hy0, hx1 - hx0, hy1 - hy0);
+      function TX(v){ return hx0 + v / 90 * (hx1 - hx0); } function PY(v){ return hy1 - v / 14 * (hy1 - hy0); }
+      for (var v = 0; v <= 90; v += 15) S.draw.text(c, v, TX(v), hy1 + 11, {size:10, color:"#5f6b7a"}); for (v = 0; v <= 14; v += 2) S.draw.text(c, v, hx0 - 8, PY(v), {size:10, color:"#5f6b7a"});
+      S.draw.text(c, "température (°C)", hx1, hy1 + 23, {size:10.5, color:"#5f6b7a", align:"right"}); S.draw.text(c, "pH", hx0 - 31, (hy0 + hy1) / 2, {size:10.5, color:"#5f6b7a"});
+      /* repères d'optimum */
+      S.draw.line(c, TX(e.T), hy0, TX(e.T), hy1, "rgba(15,27,45,.25)", 1, [3, 3]); S.draw.line(c, hx0, PY(e.pH), hx1, PY(e.pH), "rgba(15,27,45,.25)", 1, [3, 3]);
+      S.draw.label(c, "optimum", TX(e.T) + 4, PY(e.pH) - 10, {color:P.ink, size:9.5, align:"left"});
+      /* point de réglage */
+      var px = TX(t), py = PY(p); S.draw.glow(c, px, py, 22, P.red, 0.3); S.draw.line(c, px, py, px, hy1, "rgba(192,50,29,.6)", 1.2); S.draw.line(c, hx0, py, px, py, "rgba(192,50,29,.6)", 1.2); S.draw.dot(c, px, py, 8, P.red);
+      if (res.on){ var kp = keep(res.T, e); S.draw.dot(c, TX(e.T), PY(e.pH), 6, P.violet); S.draw.label(c, "après chauffage : " + S.fmt(kp * 100, 0) + " %", TX(e.T), PY(e.pH) + 16, {color:P.violet, size:10}); }
+      S.draw.label(c, "activité " + S.fmt(act * 100, 0) + " %", hx1 - 4, hy0 + 14, {color:act > 0.6 ? P.green : act > 0.25 ? P.amber : P.red, size:12, align:"right"});
+      /* enzyme et substrats */
+      var sy0 = hy1 + 38, sh = H - sy0 - 6, ex = W * 0.52, ey = sy0 + sh * 0.5, er = Math.min(sh * 0.36, W * 0.13);
+      var heatD = Math.max(0, Math.min(1, (t - e.T - 4) / 14)), cold = Math.max(0, Math.min(1, (e.T - 5 - t) / 25)), phD = 1 - fb, bad = Math.max(heatD, phD * 0.9);
+      ctx.save(); ctx.fillStyle = "#f7f9fc"; S.draw.rrect(c, 6, sy0 - 8, W - 12, sh + 14, 12); ctx.fill(); ctx.strokeStyle = "#e3e7ed"; ctx.stroke(); ctx.restore();
+      /* substrats */
+      subs.forEach(function(s, i){ var x = 14 + s.x * (ex - er - 26), y = sy0 + 8 + s.y * (sh - 16); var near = s.x > 0.92; if (near && act > 0.3) return; ctx.save(); ctx.translate(x, y); ctx.rotate(s.x * 3 + i); ctx.fillStyle = "#f4a259"; ctx.fillRect(-5, -5, 10, 10); ctx.strokeStyle = "#a45c14"; ctx.strokeRect(-5, -5, 10, 10); ctx.restore(); });
+      /* produits */
+      subs.forEach(function(s, i){ if (s.x > 0.92 && act > 0.3){ var x = ex + er + 12 + (s.x - 0.92) * 60, y = ey + (i % 2 ? 12 : -12); S.draw.dot(c, x, y, 4, P.green); } });
+      /* corps de l'enzyme : cercle avec encoche (site actif) qui se déforme */
+      var open = er * (0.55 - 0.45 * bad), wob = bad * 5;
+      ctx.save(); ctx.translate(ex, ey); var g2 = ctx.createRadialGradient(-er * .3, -er * .3, 3, 0, 0, er * 1.2); g2.addColorStop(0, bad > 0.5 ? "#c9ced6" : "#b79af0"); g2.addColorStop(1, bad > 0.5 ? "#8b93a1" : "#6236c4"); ctx.fillStyle = g2; ctx.strokeStyle = "#3f1f87"; ctx.lineWidth = 2;
+      ctx.beginPath(); for (var q = 0; q <= 60; q++){ var a = q / 60 * 6.2832, rad = er * (1 + Math.sin(a * 5 + tt * 2) * 0.03 * (0.3 + bad * 5) + (bad > 0.4 ? Math.sin(a * 3 + 1) * 0.18 * bad : 0)); var xx = Math.cos(a) * rad, yy = Math.sin(a) * rad; if (Math.abs(a - 3.1416) < 0.55 * (open / er + 0.25) * 1.0){ var dd = (1 - Math.abs(a - 3.1416) / (0.55 * (open / er + 0.25))); xx += dd * er * 0.55 * (1 - bad * 0.6); } q ? ctx.lineTo(xx, yy) : ctx.moveTo(xx, yy); } ctx.closePath(); ctx.fill(); ctx.stroke(); ctx.restore();
+      S.draw.text(c, e.n.split(" ")[0], ex + er * 0.28, ey - er * 0.1, {size:10, color:"#fff"});
+      if (act > 0.3) S.draw.glow(c, ex - er * 0.55, ey, 18, P.green, 0.5 * act);
+      S.draw.label(c, bad > 0.5 ? "site actif déformé" : cold > 0.4 ? "enzyme intacte mais lente" : act > 0.7 ? "site actif adapté" : "site actif", ex - er - 4, sy0 + 6 + 8, {color:bad > 0.5 ? P.red : P.violet, size:10, align:"left"});
+      S.draw.text(c, "substrats", 12, sy0 + sh - 4, {size:9.5, color:"#a45c14", align:"left"}); S.draw.text(c, "produits", W - 12, sy0 + sh - 4, {size:9.5, color:P.green, align:"right"});
+      ro.set(0, S.fmt(act * 100, 0) + " %"); ro.set(1, S.fmt(fa * 100, 0) + " %"); ro.set(2, S.fmt(fb * 100, 0) + " %"); ro.set(3, res.on ? S.fmt(keep(res.T, e) * 100, 0) + " %" : "—");
       var msg, kind = "";
       if (res.on){ var kv = keep(res.T, e); msg = "Après 5 min à " + S.fmt(res.T, 0) + " °C puis retour à " + e.T + " °C, il reste " + S.fmt(kv * 100, 0) + " % de l'activité : " + (kv < 0.5 ? "la dénaturation est irréversible, refroidir ne répare rien." : "peu d'enzyme est détruite à cette température."); kind = kv < 0.5 ? "bad" : "ok"; }
       else if (t > e.T + 12){ msg = "Au-dessus de l'optimum, la structure tridimensionnelle se déforme : l'enzyme se dénature (perte de forme du site actif)."; kind = "bad"; }
@@ -40,6 +69,12 @@ SFA.sim({
       else { msg = "Conditions proches de l'optimum : activité maximale."; kind = "ok"; }
       nt.set(msg, kind);
     });
+    c.pointer(function(type, e){
+      if (type === "move" || !geo.x0) return; if (type === "down" && (e.x < geo.x0 - 8 || e.y > geo.y1 + 6)) return;
+      var tv = Math.max(0, Math.min(90, Math.round((e.x - geo.x0) / (geo.x1 - geo.x0) * 90))), pv = Math.max(0, Math.min(14, Math.round((geo.y1 - e.y) / (geo.y1 - geo.y0) * 140) / 10));
+      if (type === "down" || type === "drag"){ T.set(tv); ph.set(pv); res.on = false; k.redraw(); }
+    });
+    c.cv.style.touchAction = "pan-y";
   }
 });
 

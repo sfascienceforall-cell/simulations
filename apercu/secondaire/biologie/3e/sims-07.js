@@ -57,44 +57,66 @@ SFA.sim({
 
 /* ===== 2 · Stomates ===== */
 SFA.sim({
-  id:"b3-c07-stomates", ch:"c07", tag:"Modèle chiffré",
+  id:"b3-c07-stomates", ch:"c07", tag:"Modèle chiffré · animation",
   titre:"Le dilemme du stomate : respirer ou garder son eau",
   resume:"Lumière, humidité, eau du sol : le stomate s'ouvre ou se ferme. Que gagne la feuille, que perd-elle ?",
-  but:"Règle la lumière, l'humidité de l'air et l'eau disponible dans le sol. Lis l'ouverture des stomates, le CO₂ qui entre et l'eau qui s'échappe.",
+  but:"Règle la lumière, l'humidité de l'air et l'eau disponible dans le sol. Regarde les cellules de garde s'écarter : le CO₂ entre, l'eau sort. Lis l'ouverture, le CO₂ gagné et l'eau perdue.",
   aRetenir:"Quand les stomates s'ouvrent, le CO₂ entre (nécessaire à la photosynthèse) mais la vapeur d'eau sort (transpiration) : ouvrir, c'est gagner du carbone mais perdre de l'eau. La lumière provoque l'ouverture ; la sécheresse du sol provoque la fermeture, même en plein jour. La nuit, ils sont en général fermés.",
   piege:"Les plantes ne « respirent » pas seulement la nuit : leurs cellules respirent tout le temps. Et fermer les stomates par temps sec protège l'eau mais bloque aussi la photosynthèse (peu de CO₂ entre). (Modèle qualitatif, valeurs relatives.)",
   build:function(k,S){
-    var c = k.canvas(300);
+    var c = k.canvas(0,{ratio:1.0});
     var li = k.slider("Lumière", 0, 100, 5, 80, "%");
     var rh = k.slider("Humidité de l'air", 10, 100, 5, 50, "%");
     var so = k.slider("Eau disponible dans le sol", 0, 100, 5, 80, "%");
     var ro = k.readouts(["Ouverture des stomates","CO₂ qui entre","Eau perdue","CO₂ gagné pour 1 d'eau perdue"]);
     var nt = k.note("","");
+    var parts=[], seed=11, aS=0;
+    function rnd(){ seed=(seed*16807)%2147483647; return seed/2147483647; }
     function state(){
       var Lf = Math.min(1,1.25*li.value/(li.value+25)), Wf = so.value>=40 ? 1 : .05+.95*so.value/40, Hf = .75+.25*Math.min(1,(rh.value-10)/60);
       if (li.value===0) Lf = 0;
       var a = Math.max(0,Math.min(1,Lf*Wf*Hf)), vpd = es(25)*(1-rh.value/100), ref = es(25)*.5;
       return {a:a, co2:a*100, h2o:a*vpd/ref*100, vpd:vpd};
     }
+    var lp = k.loop(function(dt){
+      var st=state(); aS += (st.a-aS)*Math.min(1,dt*3);
+      if (rnd()<st.co2/100*dt*14) parts.push({t:0,x:.2+rnd()*.6,y:.97,a:0});
+      if (rnd()<st.h2o/100*dt*14) parts.push({t:1,x:.47+rnd()*.06,y:.5,a:0});
+      parts.forEach(function(p){ p.a+=dt; if (p.t===0){ var tx=.5, k1 = p.y>.66 ? 1.2 : 0; p.x += (tx-p.x)*dt*(p.y<.8?2.2:0); p.y -= dt*.22; } else { p.y += dt*.2; p.x += (rnd()-.5)*dt*.1 + (p.y>.64 ? (p.x<.5?-1:1)*dt*.12 : 0); } });
+      parts = parts.filter(function(p){ return p.y>.34 && p.y<1 && p.a<6; });
+      k.redraw();
+    }); lp.play();
     k.draw(function(){
-      c.clear(); var st = state(), g = c.ctx, cx = c.W/2, cy = 112, rw = 78;
-      var gap = 2 + 20*st.a;
-      var R = 68, th = .95;
-      [-1,1].forEach(function(sgn){
-        var xc = cx + sgn*(gap+12-R); g.save(); g.lineCap = "round";
-        [["#1d5a33",30],["#6bb273",25]].forEach(function(q){ g.strokeStyle = q[0]; g.lineWidth = q[1]; g.beginPath(); if (sgn>0) g.arc(xc,cy,R,-th,th); else g.arc(xc,cy,R,Math.PI-th,Math.PI+th); g.stroke(); });
-        g.restore();
-        for (var q=-2;q<=2;q++){ var an = q*.3, px = xc + sgn*R*Math.cos(an) , py = cy + R*Math.sin(an); circ(c,px,py,3,"#1d5a33"); }
-      });
-      T(c,"cellules de garde",cx,cy-R-22,{size:12,color:P.grey}); T(c,"pore (ouverture)",cx,cy+R+24,{size:12,color:P.grey});
-      /* flux */
-      var n1 = Math.round(st.co2/20), n2 = Math.round(st.h2o/25);
-      for (var i=0;i<n1;i++) D.arrow(c,cx-110+((i*17)%30),30+ i*20,cx-110+((i*17)%30)+0,52+i*20,P.acc,2.2);
-      T(c,"CO₂ ↓",cx-100,16,{size:12,color:P.acc}); T(c,"H₂O ↑",cx+100,16,{size:12,color:P.teal});
-      for (var j=0;j<n2;j++) D.arrow(c,cx+100+((j*13)%24),210-j*18,cx+100+((j*13)%24),188-j*18,P.teal,2.2);
-      var yb = 250, w = c.W-32;
-      [["Ouverture",st.a*100,P.green],["Eau perdue (réf. = 100)",Math.min(st.h2o,200),P.teal]].forEach(function(q,idx){ var yy = yb + idx*0; });
-      rect(c,16,238,w,12,"#eee",null,0,6); rect(c,16,238,Math.max(2,w*st.a),12,P.green,null,0,6); T(c,"ouverture "+S.fmt(st.a*100,0)+" %",16,264,{size:12,align:"left",color:P.ink});
+      var st=state(), g=c.ctx, W=c.W, H=c.H, tt=Date.now()/1000; c.clear();
+      var sk=g.createLinearGradient(0,0,0,H); sk.addColorStop(0,"#dcecfa"); sk.addColorStop(.6,"#eef6fb"); sk.addColorStop(1,"#f3f8f0"); g.fillStyle=sk; g.fillRect(0,0,W,H);
+      /* vapeur ambiante */
+      g.fillStyle="rgba(120,190,225,.35)"; for (var i=0;i<Math.round(rh.value/3);i++){ var vx=((i*0.618+.1)%1)*W, vy=H*(.65+((i*0.37)%1)*.26); g.beginPath(); g.arc(vx,vy+Math.sin(tt+i)*3,2.2,0,6.3); g.fill(); }
+      /* soleil */
+      var L=li.value/100; D.glow(c,W*.14,H*.1,W*(.12+.2*L),"#f4c542",.2+.5*L); g.beginPath(); g.arc(W*.14,H*.1,12+6*L,0,6.3); g.fillStyle=L>0?"#f7c948":"#9aa4b2"; g.fill();
+      if (L>0) for (i=0;i<7;i++){ var an=i*.9, rr=20+6*L; g.strokeStyle="#f4c542"; g.lineWidth=2; g.globalAlpha=.4+.6*L; g.beginPath(); g.moveTo(W*.14+Math.cos(an)*(rr),H*.1+Math.sin(an)*rr); g.lineTo(W*.14+Math.cos(an)*(rr+8),H*.1+Math.sin(an)*(rr+8)); g.stroke(); g.globalAlpha=1; }
+      if (L===0) D.label(c,"nuit",W*.14,H*.1+30,{size:11,color:P.grey});
+      /* feuille */
+      var ly=H*.3, lh=H*.2;
+      var lg=g.createLinearGradient(0,ly,0,ly+lh); lg.addColorStop(0,"#5fae6b"); lg.addColorStop(1,"#8cc98c"); g.fillStyle=lg; g.fillRect(0,ly,W,lh);
+      g.fillStyle="#1d6a3a"; for (i=0;i<22;i++){ var cx2=((i*.073)%1)*W+8, cy2=ly+8+((i*7)%3)*12+ (i%2)*6; g.beginPath(); g.ellipse(cx2,cy2,6,3.4,0,0,6.3); g.fill(); }
+      g.fillStyle="#d6eccb"; g.fillRect(0,ly+lh,W,H*.04); g.fillStyle="#e7f4de"; g.fillRect(0,ly-H*.03,W,H*.03);
+      g.strokeStyle="#7ba87e"; g.lineWidth=1; g.strokeRect(-1,ly+lh,W+2,H*.04);
+      D.text(c,"intérieur de la feuille (CO₂ utilisé par la photosynthèse)",W/2,ly+lh*.5,{size:11,color:"#0f3d22",halo:"rgba(255,255,255,.7)"});
+      /* stomate : cellules de garde */
+      var cx=W/2, cy=ly+lh+H*.02, gap=2+W*.075*aS, gw=W*.13;
+      g.fillStyle="#2f8f4f"; g.strokeStyle="#1d5a33"; g.lineWidth=2;
+      [-1,1].forEach(function(sd){ g.beginPath(); g.moveTo(cx+sd*gap/2,cy-H*.05); g.bezierCurveTo(cx+sd*(gap/2+gw*.9),cy-H*.05,cx+sd*(gap/2+gw*.9),cy+H*.07,cx+sd*gap/2,cy+H*.07); g.bezierCurveTo(cx+sd*(gap/2+gw*.28),cy+H*.04,cx+sd*(gap/2+gw*.28),cy-H*.02,cx+sd*gap/2,cy-H*.05); g.closePath(); g.fill(); g.stroke(); g.fillStyle="#1d5a33"; g.beginPath(); g.arc(cx+sd*(gap/2+gw*.55),cy+H*.01,3,0,6.3); g.fill(); g.fillStyle="#2f8f4f"; });
+      D.label(c,"cellules de garde",cx-gw*1.8,cy+H*.095,{size:11,color:"#1d5a33"}); D.label(c,"pore",cx+gw*1.5,cy+H*.095,{size:11,color:P.ink});
+      /* particules */
+      parts.forEach(function(p){ var x=p.x*W,y=p.y*H; if (p.t===0){ D.dot(c,x,y,4.2,P.acc); if (p.a<1.2) D.text(c,"CO₂",x+13,y,{size:10,color:P.acc}); } else { D.dot(c,x,y,3.4,P.teal); } });
+      D.arrow(c,W*.82,H*.78,W*.82,H*.66,P.acc,2.5); D.label(c,"CO₂ entre",W*.82,H*.82,{size:11,color:P.acc});
+      D.arrow(c,W*.18,H*.64,W*.18,H*.76,P.teal,2.5); D.label(c,"vapeur d'eau sort",W*.2,H*.8,{size:11,color:"#0b6a7a"});
+      /* sol */
+      var sy=H*.9; g.fillStyle="#7a5232"; g.fillRect(0,sy,W,H-sy); g.fillStyle="rgba(90,170,220,.85)"; g.fillRect(0,H-(H-sy)*so.value/100,W,(H-sy)*so.value/100);
+      D.label(c,"sol : eau disponible "+so.value+" %",8,sy-9,{size:11,color:"#5a3a1c",align:"left"});
+      /* jauge d'ouverture */
+      var gw2=Math.min(150,W*.4); D.rrect(c,W-gw2-10,H*.08,gw2,10,5); g.fillStyle="rgba(255,255,255,.8)"; g.fill(); D.rrect(c,W-gw2-10,H*.08,Math.max(6,gw2*st.a),10,5); g.fillStyle=P.green; g.fill();
+      D.text(c,"ouverture "+S.fmt(st.a*100,0)+" %",W-10,H*.08+22,{size:11.5,color:P.ink,align:"right"});
       ro.set(0,S.fmt(st.a*100,0)+" %"); ro.set(1,S.fmt(st.co2,0)+" (réf. 100)"); ro.set(2,S.fmt(st.h2o,0)+" (réf. 100)"); ro.set(3, st.h2o>0.5 ? S.fmt(st.co2/st.h2o,2) : "—");
       nt.set(li.value===0 ? "La nuit (pas de lumière), les stomates sont fermés : presque plus d'échanges." : so.value<40 ? "Sol sec : la plante ferme ses stomates pour garder son eau, même en pleine lumière. Elle perd moins d'eau, mais fait moins de photosynthèse." : rh.value<30 ? "Air très sec : l'eau s'échappe vite, la plante risque de se faner. Plus l'air est sec, plus chaque stomate ouvert coûte cher en eau." : rh.value>=95 ? "Air presque saturé de vapeur : très peu d'eau s'échappe, même avec des stomates ouverts. Le CO₂ entre sans coûter d'eau." : st.a>.7 ? "Stomates bien ouverts : beaucoup de CO₂ entre, mais beaucoup d'eau s'échappe aussi." : "Ouverture partielle : compromis entre gain de CO₂ et perte d'eau.","ok");
     });
@@ -105,12 +127,12 @@ SFA.sim({
 SFA.sim({
   id:"b3-c07-transpiration", ch:"c07", tag:"Modèle chiffré · potomètre",
   titre:"Transpiration : chaleur, air sec, vent et stomates",
-  resume:"Température, humidité, vent, stomates : de combien l'eau perdue par la feuille change-t-elle ? Un potomètre mesure l'absorption.",
-  but:"Choisis le facteur à faire varier sur le graphe et règle les autres. Lis l'eau perdue par une feuille et par un grand arbre, et regarde la bulle du potomètre avancer.",
+  resume:"Température, humidité, vent, stomates : de combien l'eau perdue par la feuille change-t-elle ? La sève monte, la bulle du potomètre avance.",
+  but:"Règle la température, l'humidité, le vent et l'ouverture des stomates. Regarde l'eau monter dans la plante (xylème) et la bulle du potomètre avancer. Choisis le facteur à faire varier sur le graphe.",
   aRetenir:"La transpiration est l'évaporation de l'eau par les stomates. Elle augmente avec la température, quand l'air est sec et quand il y a du vent (qui emporte la vapeur) ; fermer les stomates la réduit fortement. Elle aspire l'eau depuis les racines par le xylème : c'est le moteur de la montée de sève.",
   piege:"La plante ne « boit » pas par choix : l'eau est aspirée parce qu'elle s'évapore. Presque toute l'eau absorbée (plus de 95 %) est rejetée par transpiration ; une toute petite part sert à la photosynthèse et à la croissance. (Modèle simplifié.)",
   build:function(k,S){
-    var c1 = k.canvas(210), c2 = k.canvas(100);
+    var c0 = k.canvas(0,{ratio:.62}), c1 = k.canvas(190), c2 = k.canvas(70);
     var fa = k.seg("Facteur sur le graphe", [["T","Température"],["v","Vent"],["h","Humidité"],["o","Stomates"]], "T");
     var T1 = k.slider("Température", 5, 40, 1, 22, "°C");
     var H1 = k.slider("Humidité de l'air", 10, 100, 5, 55, "%");
@@ -119,22 +141,42 @@ SFA.sim({
     var ro = k.readouts(["Eau perdue (par m² de feuille)","Une feuille de 100 cm²","Un arbre (200 m² de feuilles, 10 h)"]);
     var nt = k.note("","");
     function E(T,h,v,o){ var gs = .35*o/100, gb = .5+.9*Math.sqrt(v), gt = (gs>0) ? 1/(1/gs+1/gb) : 0, vpd = es(T)*(1-h/100); return gt*vpd/101.3*1000; }   /* mmol/m²/s */
-    var pos = 0;
-    var lp = k.loop(function(dt){ pos += E(T1.value,H1.value,V1.value,O1.value)*dt*.012; k.redraw(); });
-    lp.play();
+    var pos = 0, flow = 0, vap = [], seed = 5;
+    function rnd(){ seed=(seed*16807)%2147483647; return seed/2147483647; }
+    var lp = k.loop(function(dt){
+      var e = E(T1.value,H1.value,V1.value,O1.value), ref = E(22,55,1,100);
+      pos += e*dt*.012; flow += e/ref*dt*1.2;
+      if (rnd() < e/ref*dt*10) vap.push({x:.5+(rnd()-.3)*.22,y:.3+rnd()*.08,a:0});
+      vap.forEach(function(p){ p.a+=dt; p.y -= dt*.08; p.x += dt*(.03+V1.value*.05); }); vap = vap.filter(function(p){ return p.a<3 && p.x<1.02; });
+      k.redraw();
+    }); lp.play();
     k.draw(function(){
-      var e = E(T1.value,H1.value,V1.value,O1.value), by = fa.value;
+      var e = E(T1.value,H1.value,V1.value,O1.value), by = fa.value, ref=E(22,55,1,100), g=c0.ctx, W=c0.W, H=c0.H, i;
+      /* scène */
+      c0.clear(); var sk=g.createLinearGradient(0,0,0,H*.8); sk.addColorStop(0,T1.value>28?"#fbe3c4":"#d8ebf8"); sk.addColorStop(1,"#eef7ee"); g.fillStyle=sk; g.fillRect(0,0,W,H);
+      g.fillStyle="#7a5232"; g.fillRect(0,H*.82,W,H*.18); g.fillStyle="#5fae4a"; g.fillRect(0,H*.8,W,H*.03);
+      var px=W*.42, top=H*.2;
+      g.strokeStyle="#c9a27a"; g.lineWidth=2; for (i=0;i<5;i++){ g.beginPath(); g.moveTo(px,H*.82); g.quadraticCurveTo(px+(i-2)*W*.05,H*.9,px+(i-2)*W*.12,H*.97); g.stroke(); }
+      g.strokeStyle="#3f8f4a"; g.lineWidth=12; g.lineCap="round"; g.beginPath(); g.moveTo(px,H*.82); g.lineTo(px,top+10); g.stroke();
+      g.strokeStyle="#b6e0f2"; g.lineWidth=5; g.beginPath(); g.moveTo(px,H*.82); g.lineTo(px,top+10); g.stroke();
+      var spd=e/ref; for (i=0;i<9;i++){ var yy=H*.82-((i/9+flow*.12)%1)*(H*.82-top-10); D.dot(c0,px,yy,2.6,"#2f7fd1"); }
+      [[-1,.3],[1,.42],[-1,.54],[1,.64]].forEach(function(q,j){ g.strokeStyle="#3f8f4a"; g.lineWidth=3; g.beginPath(); g.moveTo(px,H*(q[1]+.2)); g.lineTo(px+q[0]*W*.1,H*(q[1]+.13)); g.stroke(); g.fillStyle=j%2?"#4ea65b":"#3a8f4f"; g.beginPath(); g.ellipse(px+q[0]*W*.17,H*(q[1]+.12),W*.085,H*.045,q[0]*-.45,0,6.3); g.fill(); });
+      g.fillStyle="#3a8f4f"; g.beginPath(); g.ellipse(px,top-2,W*.12,H*.1,0,0,6.3); g.fill();
+      vap.forEach(function(p){ g.globalAlpha=Math.max(0,1-p.a/3); D.dot(c0,p.x*W,p.y*H,3,"#7cc3e8"); g.globalAlpha=1; });
+      /* vent */
+      if (V1.value>0){ g.strokeStyle="rgba(90,110,140,.6)"; g.lineWidth=2; g.lineCap="round"; for (i=0;i<3;i++){ var wy=H*(.15+i*.14), wx=((Date.now()/(1200-V1.value*90))%1)*W*.35; g.beginPath(); g.moveTo(W*.02+wx,wy); g.lineTo(W*.02+wx+14+V1.value*3,wy); g.stroke(); } D.text(c0,"vent "+S.fmt(V1.value,1)+" m/s",8,H*.05,{size:11,color:P.grey,align:"left"}); }
+      D.label(c0,"vapeur d'eau",W*.78,H*.18,{size:11,color:"#0b6a7a"}); D.label(c0,"xylème : eau aspirée",px+16,H*.74,{size:11,color:"#1f5f8f",align:"left"});
+      D.label(c0,S.fmt(T1.value,0)+" °C · "+H1.value+" % d'humidité",W-8,H*.93,{size:11,color:P.ink,align:"right"});
+      /* graphe */
       c1.clear(); var rng_ = {T:[5,40,"température (°C)",T1.value],v:[0,10,"vent (m/s)",V1.value],h:[10,100,"humidité (%)",H1.value],o:[0,100,"ouverture (%)",O1.value]}[by];
       var fv = function(x){ return E(by==="T"?x:T1.value,by==="h"?x:H1.value,by==="v"?x:V1.value,by==="o"?x:O1.value); };
       var ymax = Math.max(4,Math.ceil(Math.max(fv(rng_[0]),fv(rng_[1]),e)/2)*2+1);
-      var ax = D.axes(c1,{x0:rng_[0],x1:rng_[1],y0:0,y1:ymax,xl:rng_[2],yl:"mmol/m²/s",l:50});
+      var ax = D.axes(c1,{x0:rng_[0],x1:rng_[1],y0:0,y1:ymax,xl:rng_[2],yl:"mmol/m²/s",l:50,t:26});
       D.fn(c1,ax,fv,P.teal,3.2); D.dot(c1,ax.X(rng_[3]),ax.Y(e),6,P.violet);
-      c2.clear(); var g = c2.ctx, x0 = 24, x1 = c2.W-24, yy = 46;
-      rect(c2,x0,yy-9,x1-x0,18,"rgba(180,215,240,.5)",P.ink,2,9); T(c2,"potomètre : la bulle avance quand la plante absorbe",c2.W/2,16,{size:12,color:P.grey});
-      var bx = x1 - 20 - ((pos*40) % (x1-x0-40)); rect(c2,bx-10,yy-6,20,12,"#fff",P.ink,1.5,6);
-       T(c2,"transpiration ↑ = bulle plus rapide",x1,yy+26,{size:12,align:"right",color:P.grey});
+      c2.clear(); var g2 = c2.ctx, x0 = 24, x1 = c2.W-24, yy2 = 40;
+      rect(c2,x0,yy2-9,x1-x0,18,"rgba(180,215,240,.5)",P.ink,2,9); T(c2,"potomètre : la bulle avance quand la plante absorbe",c2.W/2,13,{size:11.5,color:P.grey});
+      var bx = x1 - 20 - ((pos*40) % (x1-x0-40)); rect(c2,bx-10,yy2-6,20,12,"#fff",P.ink,1.5,6);
       ro.set(0,S.fmt(e,1)+" mmol/m²/s ≈ "+S.fmt(e*64.8,0)+" g/h"); ro.set(1,S.fmt(e*.648,1)+" g/h"); ro.set(2,S.fmt(e*129.6,0)+" L");
-      var ref = E(22,55,1,100);
       nt.set(O1.value===0 ? "Stomates fermés : la perte d'eau est presque nulle (il reste un peu de perte par la cuticule, ignorée ici)." : e>ref*1.5 ? "Transpiration forte : "+S.fmt(e/ref,1)+" fois la valeur de référence (22 °C, 55 %, 1 m/s). La plante doit trouver beaucoup d'eau dans le sol." : e<ref*.6 ? "Transpiration faible ("+S.fmt(e/ref,1)+" fois la référence) : air frais, humide, calme ou stomates presque fermés." : "Transpiration proche de la valeur de référence.","ok");
     });
   }
