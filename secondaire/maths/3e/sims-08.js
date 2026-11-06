@@ -96,22 +96,29 @@ SFA.sim({
 SFA.sim({
   id:"m3-c08-encadrement", ch:"c08", tag:"Irrationnels", titre:"Encadrer une racine carrée décimale par décimale",
   resume:"On resserre l'encadrement de √2 : la précision augmente sans jamais finir ni se répéter.",
-  but:"Choisis un nombre et augmente le nombre de décimales. Compare les carrés des bornes avec le nombre de départ.",
+  but:"Choisis un nombre et augmente le nombre de décimales : à chaque ligne, on zoome sur la case qui contient la racine (le point noir). Compare les carrés des bornes avec le nombre de départ.",
   aRetenir:"Un encadrement donne une valeur approchée : par défaut (borne basse) et par excès (borne haute). Pour √2, aucun encadrement ne devient jamais une égalité : √2 est irrationnel.",
   piege:"Une calculatrice affiche 1,41421356… : c'est un arrondi. Jamais « √2 = 1,414 ». Mais attention : √9 = 3 est exact, c'est un carré parfait.",
   build:function(k,S){
-    var c=k.canvas(0,{ratio:.5}), P=S.draw.palette;
+    var M3=window.M3, c=k.canvas(0,{ratio:.95}), P=S.draw.palette, T=S.draw.tint;
     var N=k.select("Nombre",[[2,"√2"],[3,"√3"],[5,"√5"],[7,"√7"],[10,"√10"],[9,"√9 (carré parfait)"]],2);
     var d=k.slider("Nombre de décimales",0,6,1,2,"");
     var ro=k.readouts(["Borne basse","Borne haute","Carré de la borne basse","Carré de la borne haute"]); var nt=k.note("");
     k.draw(function(){
-      c.clear(); var n=+N.value, D=d.value, r=Math.sqrt(n), p=Math.pow(10,D), perfect=Math.round(r)*Math.round(r)===n;
+      c.clear(); var ctx=c.ctx, n=+N.value, D=d.value, r=Math.sqrt(n), p=Math.pow(10,D), perfect=Math.round(r)*Math.round(r)===n, fs=M3.sz(c,13);
       var lo=perfect?r:Math.floor(r*p+1e-9)/p, hi=perfect?r:lo+1/p;
-      var w=3/p, x0=lo-w, x1=hi+w;
-      var X=M3.nline(c,S,{x0:x0,x1:x1,y:c.H*0.62,step:1/p,dec:D,from:lo,to:hi,fo:false,too:false,color:P.red});
-      S.draw.text(c,"√"+n+" est ici",c.W/2,c.H*0.2,{size:13,color:P.grey}); S.draw.dot(c,X(r),c.H*0.62,5,P.ink);
-      ro.set(0,S.fmt(lo,D)); ro.set(1,S.fmt(hi,D)); ro.set(2,S.fmt(lo*lo,2*D+1)); ro.set(3,S.fmt(hi*hi,2*D+1));
-      nt.set(perfect?"√"+n+" = "+S.fmt(r,0)+" exactement : l'encadrement se réduit à un seul nombre.":"Largeur de l'encadrement : "+S.fmt(1/p,D)+". Les carrés des bornes entourent "+n+" sans jamais l'égaler.",perfect?"ok":"");
+      var rows=D+1, rh=Math.min(54,(c.H-30)/rows), L=20, R=c.W-20, cw=(R-L)/10;
+      for(var i=0;i<=D;i++){
+        var q=Math.pow(10,i), li=Math.floor(r*q+1e-9)/q, hv=li+1/q, parentLo=i===0?0:Math.floor(r*Math.pow(10,i-1)+1e-9)/Math.pow(10,i-1);
+        var y=14+i*rh, by=y+16, bh=Math.min(22,rh-26), idx=Math.round((li-parentLo)*q), cur=(i===D);
+        S.draw.text(c,(i===0?"Unités":i+(i===1?" décimale":" décimales"))+" :  "+S.fmt(li,i)+" < √"+n+" < "+S.fmt(hv,i),L,y+6,{size:fs,color:cur?P.ink:P.grey,align:"left",weight:cur?800:600});
+        for(var j=0;j<10;j++){ var on=(j===idx&&!(perfect&&false)); S.draw.rrect(c,L+j*cw+1,by,cw-2,bh,4); ctx.fillStyle=on?T(cur?P.red:P.acc,cur?0.5:0.4):"#f1f4f8"; ctx.fill(); if(on){ ctx.lineWidth=2; ctx.strokeStyle=cur?P.red:P.acc; ctx.stroke(); } }
+        var frac=((r-parentLo)*q)/10; if(!perfect||true) S.draw.dot(c,L+frac*(R-L),by+bh/2,3.6,P.ink);
+        if(i<D){ ctx.save(); ctx.strokeStyle=T(P.acc,0.35); ctx.setLineDash([3,4]); ctx.lineWidth=1.5; var nx=L+idx*cw; ctx.beginPath(); ctx.moveTo(nx,by+bh); ctx.lineTo(L,y+rh+16); ctx.moveTo(nx+cw,by+bh); ctx.lineTo(R,y+rh+16); ctx.stroke(); ctx.restore(); }
+      }
+      if(perfect) S.draw.label(c,"√"+n+" = "+S.fmt(r,0)+" exactement",c.W/2,c.H-14,{color:P.green,size:fs});
+      ro.set(0,S.fmt(lo,D)); ro.set(1,S.fmt(hi+(perfect?0:0),D)); ro.set(2,S.fmt(lo*lo,2*D+1)); ro.set(3,S.fmt(hi*hi,2*D+1));
+      nt.set(perfect?"√"+n+" = "+S.fmt(r,0)+" exactement : à chaque niveau le nombre tombe pile sur un trait.":"Largeur de l'encadrement : "+S.fmt(1/p,D)+". Les carrés des bornes entourent "+n+" sans jamais l'égaler.",perfect?"ok":"");
     });
   }
 });

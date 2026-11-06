@@ -32,28 +32,40 @@ SFA.sim({
 SFA.sim({
   id:"m3-c09-ombre", ch:"c09", tag:"Mesure indirecte", titre:"La hauteur d'un arbre grâce aux ombres",
   resume:"Un bâton et un arbre, deux ombres : la hauteur de l'arbre se calcule avec une proportion.",
-  but:"Change la hauteur du soleil : les ombres changent, mais pas la hauteur calculée. Active l'arrondi pour voir l'effet d'une mesure imprécise.",
+  but:"Fais glisser le soleil (ou le curseur) : les ombres changent, mais pas la hauteur calculée. Active l'arrondi pour voir l'effet d'une mesure imprécise.",
   aRetenir:"Le bâton et l'arbre forment avec leurs ombres deux triangles semblables : hauteur de l'arbre ÷ hauteur du bâton = ombre de l'arbre ÷ ombre du bâton.",
   piege:"Il faut mesurer les deux ombres en même temps (même position du soleil). Et plus l'ombre du bâton est courte, plus une petite erreur de mesure fausse la hauteur.",
   build:function(k,S){
-    var c=k.canvas(0,{ratio:.55}), P=S.draw.palette;
+    var M3=window.M3, c=k.canvas(0,{ratio:.66}), P=S.draw.palette, T=S.draw.tint;
     var hb=k.slider("Hauteur du bâton",1,2,0.5,1.5,"m"), ha=k.slider("Hauteur de l'arbre (inconnue)",5,25,1,12,"m"), so=k.slider("Hauteur du soleil",20,75,5,40,"°");
     var rd=k.toggle("Mesurer les ombres au décimètre près",false);
-    var ro=k.readouts(["Ombre du bâton","Ombre de l'arbre","Hauteur calculée"]); var nt=k.note("");
+    var ro=k.readouts(["Ombre du bâton","Ombre de l'arbre","Hauteur calculée"]); var nt=k.note(""); var geo={};
+    M3.drag(c,function(){ return [{id:"s",x:geo.sx||30,y:geo.sy||40,r:9999}]; },function(id,p){ var f=(geo.gy-20-p.y)/(geo.gy-60); so.set(M3.snap(20+f*55,5,20,75)); k.redraw(); });
     k.draw(function(){
-      c.clear(); var ctx=c.ctx, HB=hb.value, HA=ha.value, th=so.value*Math.PI/180;
-      var sb=HB/Math.tan(th), sa=HA/Math.tan(th);
-      var mb=rd.value?Math.round(sb*10)/10:sb, ma=rd.value?Math.round(sa*10)/10:sa;
-      var calc=HB*ma/mb;
-      var maxX=Math.max(sa+sb+4,12), sc=Math.min((c.W-50)/(maxX+3), (c.H-80)/Math.max(HA,10)), gy=c.H-26, x0=20;
-      S.draw.line(c,x0-10,gy,c.W-10,gy,P.grey,2);
-      /* arbre en x0+... ; bâton à droite de l'ombre de l'arbre */
-      var xt=x0+sc*2, xb=xt+sc*(sa+2);
-      ctx.fillStyle="#7a5c3a"; ctx.fillRect(xt-3,gy-HA*sc,6,HA*sc); ctx.beginPath(); ctx.arc(xt,gy-HA*sc,Math.min(18,HA*sc*0.28),0,7); ctx.fillStyle="#2e6b55"; ctx.fill();
-      ctx.fillStyle=P.amber; ctx.fillRect(xb-2,gy-HB*sc,4,HB*sc);
-      S.draw.line(c,xt,gy-HA*sc,xt+sa*sc,gy,P.amber,1.5,[4,3]); S.draw.line(c,xb,gy-HB*sc,xb+sb*sc,gy,P.amber,1.5,[4,3]);
-      ctx.strokeStyle="rgba(60,60,60,.45)"; ctx.lineWidth=6; ctx.beginPath(); ctx.moveTo(xt,gy+2); ctx.lineTo(xt+sa*sc,gy+2); ctx.stroke(); ctx.beginPath(); ctx.moveTo(xb,gy+2); ctx.lineTo(xb+sb*sc,gy+2); ctx.stroke();
-      S.draw.text(c,"arbre ?",xt,gy-HA*sc-22,{size:12,color:P.green}); S.draw.text(c,S.fmt(HB,1)+" m",xb+8,gy-HB*sc-14,{size:12,color:P.amber});
+      c.clear(); var ctx=c.ctx, HB=hb.value, HA=ha.value, th=so.value*Math.PI/180, fs=M3.sz(c,13);
+      var sb=HB/Math.tan(th), sa=HA/Math.tan(th), mb=rd.value?Math.round(sb*10)/10:sb, ma=rd.value?Math.round(sa*10)/10:sa, calc=HB*ma/mb;
+      var gy=c.H-34, sc=Math.min((c.W-130)/(sa+sb+5),(gy-60)/Math.max(HA,10)), xt=96, xb=xt+sc*(sa+2.5);
+      /* ciel et sol */
+      var g=ctx.createLinearGradient(0,0,0,gy); g.addColorStop(0,"#dbeafe"); g.addColorStop(1,"#f7fbff"); ctx.fillStyle=g; ctx.fillRect(0,0,c.W,gy);
+      ctx.fillStyle="#cfe3c6"; ctx.fillRect(0,gy,c.W,c.H-gy); S.draw.line(c,0,gy,c.W,gy,"#8fb085",2);
+      /* soleil */
+      var sy=gy-20-(so.value-20)/55*(gy-60), sx=30; geo.sx=sx; geo.sy=sy; geo.gy=gy;
+      S.draw.glow(c,sx,sy,44,P.yellow,0.7); S.draw.dot(c,sx,sy,13,P.yellow); M3.handle(c,sx,sy,P.amber,false,6);
+      S.draw.text(c,S.fmt(so.value,0)+"°",sx+30,sy+22,{size:fs,color:P.amber});
+      /* ombres */
+      ctx.fillStyle="rgba(40,55,70,.35)"; ctx.fillRect(xt,gy-3,sa*sc,6); ctx.fillRect(xb,gy-3,sb*sc,6);
+      /* triangles semblables */
+      ctx.beginPath(); ctx.moveTo(xt,gy-HA*sc); ctx.lineTo(xt,gy); ctx.lineTo(xt+sa*sc,gy); ctx.closePath(); ctx.fillStyle=T(P.green,0.14); ctx.fill();
+      ctx.beginPath(); ctx.moveTo(xb,gy-HB*sc); ctx.lineTo(xb,gy); ctx.lineTo(xb+sb*sc,gy); ctx.closePath(); ctx.fillStyle=T(P.amber,0.22); ctx.fill();
+      S.draw.line(c,xt,gy-HA*sc,xt+sa*sc,gy,P.amber,2,[5,4]); S.draw.line(c,xb,gy-HB*sc,xb+sb*sc,gy,P.amber,2,[5,4]);
+      /* arbre et bâton */
+      ctx.fillStyle="#7a5c3a"; ctx.fillRect(xt-4,gy-HA*sc*0.6,8,HA*sc*0.6);
+      ctx.beginPath(); ctx.arc(xt,gy-HA*sc*0.72,Math.min(34,Math.max(12,HA*sc*0.2)),0,7); ctx.fillStyle="#3f8f68"; ctx.fill();
+      ctx.beginPath(); ctx.arc(xt,gy-HA*sc,4,0,7); ctx.fillStyle=P.red; ctx.fill();
+      ctx.fillStyle=P.amber; ctx.fillRect(xb-2.5,gy-HB*sc,5,HB*sc);
+      M3.dim(c,xt-18,gy-HA*sc,xt-18,gy,"?",P.green); M3.dim(c,xb-14,gy-HB*sc,xb-14,gy,S.fmt(HB,1)+" m",P.amber);
+      S.draw.label(c,S.fmt(ma,2)+" m",xt+sa*sc/2,gy+18,{color:"#3b4a5a",size:fs-1}); S.draw.label(c,S.fmt(mb,2)+" m",xb+Math.max(sb*sc/2,16),gy+18,{color:"#3b4a5a",size:fs-1});
+      S.draw.label(c,"arbre ÷ "+S.fmt(HB,1)+" = "+S.fmt(ma,2)+" ÷ "+S.fmt(mb,2),c.W-14,18,{color:P.acc,size:fs,align:"right"});
       ro.set(0,S.fmt(mb,2)+" m"); ro.set(1,S.fmt(ma,2)+" m"); ro.set(2,S.fmt(HB,1)+" × "+S.fmt(ma,2)+" ÷ "+S.fmt(mb,2)+" = "+S.fmt(calc,2)+" m");
       nt.set(rd.value?(Math.abs(calc-HA)<0.005?"Même avec l'arrondi, le résultat est juste ici.":"Avec l'arrondi des ombres, on obtient "+S.fmt(calc,2)+" m au lieu de "+S.fmt(HA,0)+" m : l'erreur vient des mesures."):"Les deux triangles sont semblables : "+S.fmt(calc,2)+" m = hauteur de l'arbre, quelle que soit la hauteur du soleil.",rd.value&&Math.abs(calc-HA)>0.005?"warn":"ok");
     });
@@ -62,26 +74,30 @@ SFA.sim({
 SFA.sim({
   id:"m3-c09-echelle", ch:"c09", tag:"Facteur d'échelle", titre:"Agrandir ou réduire : k pour les longueurs, k² pour les aires",
   resume:"Quand les longueurs sont multipliées par k, le périmètre est multiplié par k, mais l'aire par k².",
-  but:"Fais varier k. Compte combien de copies de la figure de départ recouvrent l'image. Essaie les boutons A4 → A3 et A3 → A4.",
+  but:"Fais glisser le coin de l'image (ou le curseur) pour changer k. Compte combien de copies de la figure de départ recouvrent l'image. Essaie les boutons A4 → A3 et A3 → A4.",
   aRetenir:"Rapport k de similitude : longueurs et périmètres × k ; aires × k². Pour doubler l'aire, il faut multiplier les longueurs par √2 ≈ 1,414 (141 %).",
   piege:"Agrandir à 200 % ne double pas l'aire : elle est multipliée par 4. Un agrandissement de 141 % double l'aire (A4 → A3).",
   build:function(k,S){
-    var c=k.canvas(0,{ratio:.7}), P=S.draw.palette;
+    var M3=window.M3, c=k.canvas(0,{ratio:.7}), P=S.draw.palette, T=S.draw.tint;
     var kk=k.slider("Rapport k",0.5,3,0.1,2,"");
     k.button("A4 → A3 (141 %)",function(){ kk.set(1.4); });
     k.button("A3 → A4 (71 %)",function(){ kk.set(0.7); });
     k.button("200 %",function(){ kk.set(2); });
-    var ro=k.readouts(["Périmètre","Aire","Rapport des aires"]); var nt=k.note("");
+    var ro=k.readouts(["Périmètre","Aire","Rapport des aires"]); var nt=k.note(""); var geo={};
+    M3.drag(c,function(){ return geo.h?[geo.h]:[]; },function(id,p){ kk.set(M3.snap((p.x-geo.X2)/(3*geo.u),0.1,0.5,3)); k.redraw(); });
     k.draw(function(){
-      c.clear(); var ctx=c.ctx, K=kk.value, w=3, h=2;
-      var u=Math.min((c.W-50)/(w+w*K+0.8),(c.H-40)/Math.max(h,h*K))*1, ox=20, oy=c.H-22;
-      function R(x,y,ww,hh,fill,stroke,lw){ ctx.fillStyle=fill; ctx.fillRect(x,y,ww,hh); ctx.strokeStyle=stroke; ctx.lineWidth=lw||2; ctx.strokeRect(x,y,ww,hh); }
-      R(ox,oy-h*u,w*u,h*u,"rgba(30,63,143,.25)",P.acc,2.5);
-      for(var i=0;i<w;i++) for(var j=0;j<h;j++){ ctx.strokeStyle="rgba(255,255,255,.9)"; ctx.lineWidth=1; ctx.strokeRect(ox+i*u,oy-(j+1)*u,u,u); }
-      var X2=ox+w*u+0.8*u, ww=w*K*u, hh=h*K*u;
-      R(X2,oy-hh,ww,hh,"rgba(180,35,24,.18)",P.red,2.5);
-      if(K>=1){ ctx.save(); ctx.beginPath(); ctx.rect(X2,oy-hh,ww,hh); ctx.clip(); ctx.strokeStyle=P.red; ctx.lineWidth=1; for(var a=0;a<w*K;a++) for(var b=0;b<h*K;b++){ ctx.strokeRect(X2+a*u,oy-(b+1)*u,u,u); } ctx.restore(); }
-      S.draw.text(c,"départ",ox+w*u/2,oy-h*u-10,{size:12,color:P.acc}); S.draw.text(c,"image (×"+S.fmt(K,1)+")",X2+ww/2,oy-hh-10,{size:12,color:P.red});
+      c.clear(); var ctx=c.ctx, K=kk.value, w=3, h=2, fs=M3.sz(c,13);
+      var u=Math.min((c.W-50)/(w+w*3+1),(c.H-70)/(h*3)), ox=18, oy=c.H-28, X2=ox+w*u+u, ww=w*K*u, hh=h*K*u; geo.u=u; geo.X2=X2;
+      S.draw.rrect(c,ox,oy-h*u,w*u,h*u,3); ctx.fillStyle=T(P.acc,0.28); ctx.fill();
+      ctx.strokeStyle="#fff"; ctx.lineWidth=1; for(var i=1;i<w;i++){ ctx.beginPath(); ctx.moveTo(ox+i*u,oy-h*u); ctx.lineTo(ox+i*u,oy); ctx.stroke(); } for(var j=1;j<h;j++){ ctx.beginPath(); ctx.moveTo(ox,oy-j*u); ctx.lineTo(ox+w*u,oy-j*u); ctx.stroke(); }
+      ctx.strokeStyle=P.acc; ctx.lineWidth=2.6; ctx.strokeRect(ox,oy-h*u,w*u,h*u);
+      /* image : k² copies de la figure de départ, teintes alternées */
+      ctx.save(); ctx.beginPath(); ctx.rect(X2,oy-hh,ww,hh); ctx.clip();
+      for(var a=0;a<Math.ceil(K);a++) for(var b=0;b<Math.ceil(K);b++){ ctx.fillStyle=T((a+b)%2?P.red:P.orange,0.3); ctx.fillRect(X2+a*w*u,oy-(b+1)*h*u,w*u,h*u); ctx.strokeStyle="#fff"; ctx.lineWidth=2; ctx.strokeRect(X2+a*w*u,oy-(b+1)*h*u,w*u,h*u); }
+      ctx.restore(); ctx.strokeStyle=P.red; ctx.lineWidth=2.6; ctx.strokeRect(X2,oy-hh,ww,hh);
+      S.draw.text(c,"k² = "+S.fmt(K*K,2)+" copies",X2+ww/2,oy-hh/2,{size:Math.max(fs,Math.min(20,ww/7)),color:P.red,bg:"rgba(255,255,255,.8)"});
+      geo.h={id:"k",x:X2+ww,y:oy-hh,r:30}; M3.handle(c,X2+ww,oy-hh,P.red,false,8);
+      S.draw.label(c,"départ",ox+w*u/2,oy-h*u-16,{color:P.acc,size:fs}); S.draw.label(c,"image (× "+S.fmt(K,1)+")",X2+ww/2,Math.max(16,oy-hh-18),{color:P.red,size:fs});
       var per=2*(w+h)*K;
       ro.set(0,S.fmt(2*(w+h),0)+" → "+S.fmt(per,1)+"  (×"+S.fmt(K,1)+")"); ro.set(1,S.fmt(w*h,0)+" → "+S.fmt(w*h*K*K,2)+"  (×"+S.fmt(K*K,2)+")"); ro.set(2,"k² = "+S.fmt(K,1)+"² = "+S.fmt(K*K,2));
       nt.set(Math.abs(K*K-2)<0.1?"Quasi doublement de l'aire : k ≈ √2 ≈ 1,414. C'est le passage A4 → A3.":Math.abs(K*K-0.5)<0.05?"Aire divisée par 2 : réduction A3 → A4 (k ≈ 0,707).":"Longueurs ×"+S.fmt(K,1)+", aire ×"+S.fmt(K*K,2)+".",Math.abs(K*K-2)<0.1||Math.abs(K*K-0.5)<0.05?"ok":"");

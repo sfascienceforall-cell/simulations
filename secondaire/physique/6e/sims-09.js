@@ -117,51 +117,90 @@ SFA.sim({
 SFA.sim({
   id: "p6-c09-rayonnements", ch: "c09", tag: "Protection",
   titre: "Rayonnements α, β, γ : temps, distance, écran",
-  resume: "Quel écran arrête quel rayonnement ? Et quel rôle joue la distance ?",
-  but: "Choisis le type de rayonnement, le matériau et l'épaisseur de l'écran, puis la distance. Les points colorés sont les particules : celles qui sont arrêtées disparaissent. Lis le débit relatif reçu.",
+  resume: "Quel écran arrête quel rayonnement ? Joue avec le temps, la distance et l'écran : la dose reçue est affichée.",
+  but: "Choisis le rayonnement, le matériau et l'épaisseur de l'écran, puis déplace la personne (glisse-la) pour changer la distance et règle la durée d'exposition. Les particules arrêtées disparaissent dans l'écran ou dans l'air ; le dosimètre affiche la dose reçue.",
   aRetenir: "α (noyaux d'hélium) : très ionisants mais peu pénétrants (une feuille de papier ou la peau les arrête ; quelques cm dans l'air). β (électrons ou positons) : arrêtés par quelques mm d'aluminium. γ (photons très énergétiques) : très pénétrants, atténués de façon exponentielle par un matériau dense (plomb, béton). Trois moyens de se protéger : limiter le temps, augmenter la distance (la dose varie en 1/d²), interposer un écran.",
-  piege: "« Peu pénétrant » ne veut pas « peu dangereux » : un émetteur α avalé ou inhalé (contamination) irradie directement les tissus. Irradiation = exposition à un rayonnement ; contamination = présence de la substance radioactive sur ou dans le corps. Modèle simplifié : source ponctuelle, particules d'énergie de l'ordre du MeV, α : portée 4 cm dans l'air, β : portée ≈ 4,5 m dans l'air (0,54 g/cm² ÷ 1,2 mg/cm³) ; décroissance de la transmission β schématisée comme linéaire.",
+  piege: "« Peu pénétrant » ne veut pas « peu dangereux » : un émetteur α avalé ou inhalé (contamination) irradie directement les tissus. Irradiation = exposition à un rayonnement ; contamination = présence de la substance radioactive sur ou dans le corps. Modèle simplifié : source ponctuelle, particules d'énergie de l'ordre du MeV, α : portée 4 cm dans l'air, β : portée ≈ 4,5 m dans l'air (0,54 g/cm² ÷ 1,2 mg/cm³) ; décroissance de la transmission β schématisée comme linéaire. Débit de référence (100 µSv/h à 1 m) purement illustratif.",
   build: function(k, S){
-    var c = k.canvas(220), P = S.draw.palette;
+    var c = k.canvas(310), P = S.draw.palette, Pm = window.PH6;
     var ty = k.seg("Rayonnement", [["a", "α"], ["b", "β"], ["g", "γ"]], "g");
     var mt = k.select("Écran", [["pa", "Papier / carton"], ["al", "Aluminium"], ["pb", "Plomb"], ["be", "Béton"]], "pb");
     var ep = k.slider("Épaisseur de l'écran", 0, 100, 1, 10, "mm");
-    var di = k.slider("Distance source–détecteur", 1, 500, 1, 100, "cm");
-    var ro = k.readouts(["Transmission de l'écran", "Débit relatif au détecteur", "Épaisseur de demi-atténuation (γ)"]);
+    var di = k.slider("Distance source–personne", 1, 500, 1, 100, "cm");
+    var tm = k.slider("Durée d'exposition", 1, 120, 1, 30, "min");
+    var ro = k.readouts(["Transmission de l'écran", "Débit relatif à la personne", "Dose reçue (illustrative)", "Demi-atténuation (γ)"]);
     var nt = k.note("", "ok");
     var mat = {pa: {rho: 0.8, mu: 0.0637, n: "papier"}, al: {rho: 2.7, mu: 0.0615, n: "aluminium"}, pb: {rho: 11.35, mu: 0.0710, n: "plomb"}, be: {rho: 2.3, mu: 0.0637, n: "béton"}};
-    var parts = [], t = 0;
+    var parts = [], t = 0, geo = {}, hit = 0;
     function trans(){
-      var m = mat[mt.value], x = ep.value / 10;   /* cm */
+      var m = mat[mt.value], x = ep.value / 10;
       if (ty.value === "a") return x >= 0.01 ? 0 : 1;
       if (ty.value === "b"){ var R = 0.54 / m.rho; return Math.max(0, 1 - x / R); }
       return Math.exp(-m.mu * m.rho * x);
     }
     function rangeAir(){ return ty.value === "a" ? 4 : ty.value === "b" ? 450 : Infinity; }
+    function mapx(d, xs, xw){ return xs + xw * (0.1 + 0.9 * Math.log(Math.max(1, d)) / Math.log(500)); }
     var lp = k.loop(function(dt){
-      t += dt; var T = trans();
-      if (Math.random() < dt * 14){ parts.push({x: 0, y: (Math.random() - 0.5) * 0.6, ok: Math.random() < T, air: Math.random() < 1, dead: false}); }
-      parts.forEach(function(p){ p.x += dt * 0.55; });
-      parts = parts.filter(function(p){ return p.x < 1.05; });
+      t += dt; hit *= Math.pow(0.05, dt);
+      if (Math.random() < dt * 16){
+        var m = mat[mt.value], x = ep.value / 10, st = Infinity;
+        if (x > 0){ if (ty.value === "a") st = 0.003; else if (ty.value === "b"){ st = (0.54 / m.rho) * (0.7 + 0.5 * Math.random()); } else st = -Math.log(1 - Math.random()) / (m.mu * m.rho); }
+        parts.push({x: 0, a: (Math.random() - 0.5) * 0.34, st: st, lim: x, sc: 0, out: false});
+      }
+      parts.forEach(function(p){ p.x += dt * 150; });
+      parts = parts.filter(function(p){ return p.x < geo.xd + 12; });
       k.redraw();
     });
     lp.play();
+    c.cv.style.touchAction = "none"; c.cv.style.cursor = "ew-resize";
+    c.pointer(function(tp, p){
+      if ((tp === "down" || tp === "drag") && geo.xs){ var f = (p.x - geo.xs) / geo.xw; var d = Math.exp((f - 0.1) / 0.9 * Math.log(500)); di.set(Math.round(Math.max(1, Math.min(500, d)))); }
+    });
     k.draw(function(){
-      c.clear(); var ctx = c.ctx, W = c.W, H = c.H, cy = H / 2, xs = 30, xd = W - 40, xe = xs + (xd - xs) * 0.5, wE = Math.max(0, Math.min(60, ep.value * 0.6)) ;
-      var m = mat[mt.value], T = trans(), inAir = di.value <= rangeAir(), rel = inAir ? T * Math.pow(100 / di.value, 2) : 0;
-      ctx.fillStyle = ({pa: "#e8dfc9", al: "#b8c1cf", pb: "#4b5563", be: "#a39a8b"})[mt.value]; if (wE > 0) ctx.fillRect(xe - wE / 2, cy - 70, wE, 140);
-      S.draw.dot(c, xs, cy, 10, P.amber); S.draw.text(c, "source", xs, cy + 26, {size: 12}); ctx.fillStyle = P.green; ctx.fillRect(xd, cy - 18, 14, 36); S.draw.text(c, "détecteur", xd + 6, cy + 36, {size: 12, color: P.green});
-      /* limite de portée dans l'air */
-      var fracAir = Math.min(1, rangeAir() / di.value);
+      c.clear(); Pm.bg(c, "#f6f8fb", "#e8edf4"); var ctx = c.ctx, W = c.W, H = c.H, cy = H * 0.42, xs = 38, xw = W - 76, xd = mapx(di.value, xs, xw), xe = (xs + xd) / 2, m = mat[mt.value];
+      geo.xs = xs; geo.xw = xw; geo.xd = xd;
+      var T = trans(), inAir = di.value <= rangeAir(), rel = inAir ? T * Math.pow(100 / di.value, 2) : 0, wE = ep.value > 0 ? 6 + ep.value * 0.36 : 0;
+      var dose = 100 * rel * tm.value / 60;   /* µSv */
+      /* échelle de distance (log) */
+      S.draw.line(c, xs, cy + 54, xs + xw, cy + 54, "#cfd6e1", 2);
+      [1, 10, 100, 500].forEach(function(d){ var x = mapx(d, xs, xw); S.draw.line(c, x, cy + 49, x, cy + 59, "#9aa6b8", 1.5); S.draw.text(c, d < 100 ? d + " cm" : (d === 100 ? "1 m" : "5 m"), x, cy + 70, {size: 10.5, color: P.grey, weight: 600}); });
+      /* écran */
+      if (wE > 0){ var col = ({pa: ["#efe5cd", "#d7c9a4"], al: ["#cfd7e3", "#9aa7ba"], pb: ["#7b8594", "#3d4553"], be: ["#bdb3a3", "#8f8576"]})[mt.value]; var g = ctx.createLinearGradient(xe - wE / 2, 0, xe + wE / 2, 0); g.addColorStop(0, col[0]); g.addColorStop(1, col[1]); ctx.fillStyle = g; ctx.fillRect(xe - wE / 2, cy - 62, wE, 124); ctx.strokeStyle = "rgba(19,35,58,.5)"; ctx.lineWidth = 1; ctx.strokeRect(xe - wE / 2, cy - 62, wE, 124); S.draw.label(c, m.n + " " + ep.value + " mm", xe, cy - 74, {color: P.ink, size: 11}); }
+      /* particules */
+      var colP = ty.value === "g" ? "#7c3aed" : ty.value === "b" ? "#0e7490" : "#c0321d", lim = rangeAir();
       parts.forEach(function(p){
-        var x = p.x, px = xs + (xd - xs) * x;
-        if (!p.ok && wE > 0 && x > 0.5) return;
-        if (x > fracAir) return;
-        ctx.beginPath(); ctx.arc(px, cy + p.y * 160, 3.6, 0, 7); ctx.fillStyle = ty.value === "g" ? "#7c3aed" : ty.value === "b" ? "#0e7490" : "#b42318"; ctx.fill();
+        var px = xs + p.x, py = cy + p.a * Math.min(1, (p.x) / (xd - xs)) * 150 * 0.5 + p.a * 40;
+        var dcm = (Math.exp((((px - xs) / xw) - 0.1) / 0.9 * Math.log(500)));
+        if (px > xd + 2) return;
+        if (inAir === false && di.value > lim && dcm > lim) return;
+        if (lim < 500 && dcm > lim) return;
+        if (wE > 0 && px > xe - wE / 2){
+          var depth = px - (xe - wE / 2), stopPx = p.st * 10 * 0.36;   /* st en cm ; 1 mm = 0,36 px */
+          if (p.st < p.lim && depth > stopPx) return;
+        }
+        if (ty.value === "g"){ ctx.strokeStyle = colP; ctx.lineWidth = 2; ctx.beginPath(); for (var q = 0; q <= 10; q++){ ctx.lineTo(px - 10 + q * 2, py + Math.sin(q * 1.4 + p.x * 0.3) * 3); } ctx.stroke(); }
+        else { ctx.beginPath(); ctx.arc(px, py, ty.value === "a" ? 5.4 : 3.2, 0, 7); ctx.fillStyle = colP; ctx.fill(); if (ty.value === "a"){ ctx.fillStyle = "#fff"; ctx.font = "800 7px Mulish, sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText("α", px, py + 0.5); } }
+        if (px > xd - 6 && p.x > 10 && !p.counted){ p.counted = true; hit = 1; }
       });
+      /* portée dans l'air */
+      if (lim < 500){ var xl = mapx(lim, xs, xw); S.draw.line(c, xl, cy - 52, xl, cy + 52, P.red, 1.6, [4, 4]); S.draw.label(c, "portée dans l'air : " + (lim >= 100 ? lim / 100 + " m" : lim + " cm"), xl, cy - 60, {color: P.red, size: 11}); }
+      /* source : trèfle radioactif */
+      S.draw.glow(c, xs, cy, 40, "#f4c542", 0.5);
+      ctx.save(); ctx.translate(xs, cy); ctx.fillStyle = "#f4c542"; ctx.beginPath(); ctx.arc(0, 0, 16, 0, 7); ctx.fill(); ctx.strokeStyle = "#13233a"; ctx.lineWidth = 2; ctx.stroke(); ctx.fillStyle = "#13233a";
+      for (var a = 0; a < 3; a++){ ctx.beginPath(); ctx.moveTo(0, 0); ctx.arc(0, 0, 12, -1.5708 + a * 2.0944 - 0.5236, -1.5708 + a * 2.0944 + 0.5236, false); ctx.closePath(); ctx.fill(); }
+      S.draw.dot({ctx: ctx}, 0, 0, 3.4, "#f4c542"); ctx.restore();
+      S.draw.text(c, "source", xs, cy + 28, {size: 11.5, color: P.grey});
+      /* personne */
+      var hx = xd + 2; if (hit > 0.05) S.draw.glow(c, hx, cy, 34 + 10 * hit, P.red, 0.5 * hit);
+      ctx.fillStyle = "#4b5a70"; S.draw.rrect(c, hx - 7, cy - 6, 14, 30, 5); ctx.fill(); ctx.beginPath(); ctx.arc(hx, cy - 14, 7.5, 0, 7); ctx.fillStyle = "#f2c9a0"; ctx.fill(); ctx.strokeStyle = "#13233a"; ctx.lineWidth = 1.2; ctx.stroke();
+      ctx.fillStyle = P.green; ctx.fillRect(hx - 10, cy + 1, 7, 5);
+      S.draw.label(c, "glisse-moi", hx, cy + 38, {color: P.red, size: 11});
+      var doseTxt = dose >= 1000 ? S.fmt(dose / 1000, 1) + " mSv" : dose >= 10 ? S.fmt(dose, 0) + " µSv" : S.fmt(dose, 1) + " µSv";
+      S.draw.display(c, doseTxt, Math.min(W - 72, Math.max(72, W / 2)), H - 46, {w: 136, h: 54, caption: "DOSIMÈTRE · " + tm.value + " MIN", size: 22, color: dose > 1000 ? P.red : "#13233a"});
       ro.set(0, S.fmt(T * 100, T < 0.01 ? 2 : 1) + " %"); ro.set(1, inAir ? S.fmt(rel * 100, rel * 100 < 1 ? 2 : rel * 100 < 100 ? 1 : 0) + " % (réf. : 100 % à 1 m sans écran)" : "0 % (portée dépassée)");
-      ro.set(2, ty.value === "g" ? S.fmt(Math.log(2) / (m.mu * m.rho) * 10, 1) + " mm de " + m.n : "—");
-      nt.set(ty.value === "a" ? "α : arrêté par une simple feuille ; portée de 4 cm dans l'air." : ty.value === "b" ? "β : arrêté par quelques mm d'aluminium (portée ≈ 0,54 g/cm² divisée par la masse volumique)." : "γ : jamais complètement arrêté, seulement atténué ; double l'épaisseur de demi-atténuation → intensité ÷ 4.", "ok");
+      ro.set(2, doseTxt); ro.set(3, ty.value === "g" ? S.fmt(Math.log(2) / (m.mu * m.rho) * 10, 1) + " mm de " + m.n : "—");
+      nt.set(ty.value === "a" ? "α : arrêté par une simple feuille ; portée de 4 cm dans l'air. Éloigne la personne de plus de 4 cm : plus aucun risque externe." : ty.value === "b" ? "β : arrêté par quelques mm d'aluminium (portée ≈ 0,54 g/cm² divisée par la masse volumique)." : "γ : jamais complètement arrêté, seulement atténué ; double l'épaisseur de demi-atténuation → intensité ÷ 4. Compare : une radio du thorax ≈ 20 µSv.", "ok");
     });
   }
 });
+

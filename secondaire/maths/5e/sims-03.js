@@ -1,5 +1,16 @@
 (function(){
 var P = SFA.draw.palette, F = SFA.fmt;
+/*@@H:m5-c03-indetermination*/
+var ND = {
+  a:{N:function(x){ return x*x - 9; }, D:function(x){ return x - 3; }, ln:"x² − 9", ld:"x − 3", op:"/"},
+  b:{N:function(x){ return x*x - 5*x + 6; }, D:function(x){ return x*x - 4; }, ln:"x² − 5x + 6", ld:"x² − 4", op:"/"},
+  c:{N:function(x){ return Math.sqrt(x + 4) - 2; }, D:function(x){ return x; }, ln:"√(x + 4) − 2", ld:"x", op:"/"},
+  d:{N:function(x){ return 3*x*x - x + 1; }, D:function(x){ return 5*x*x + 2; }, ln:"3x² − x + 1", ld:"5x² + 2", op:"/"},
+  e:{N:function(x){ return Math.sqrt(x*x + x); }, D:function(x){ return x; }, ln:"√(x² + x)", ld:"x", op:"−"},
+  f:{N:function(x){ return x*x*x + 1; }, D:function(x){ return 2*x*x + x; }, ln:"x³ + 1", ld:"2x² + x", op:"/"}
+};
+function indG(v){ return !isFinite(v) ? "indéfini" : Math.abs(v) >= 1e6 ? SFA.sci(v, 2) : SFA.sci(v, 4); }
+/*@@E:m5-c03-indetermination*/
 function curve(c, ax, pt, t0, t1, col, dash, w){
   var ctx = c.ctx, n = 300; ctx.save(); ctx.beginPath(); ctx.rect(ax.L, ax.T, ax.R - ax.L, ax.B - ax.T); ctx.clip();
   ctx.strokeStyle = col; ctx.lineWidth = w || 2.6; if (dash) ctx.setLineDash(dash); ctx.beginPath();
@@ -27,10 +38,12 @@ SFA.sim({
   aRetenir:"La limite en a décrit ce que fait f(x) quand x s'approche de a, sans l'atteindre. Elle existe (finie ou infinie) quand les limites à gauche et à droite sont égales. La valeur f(a) n'a aucune influence.",
   piege:"« lim f(x) = f(a) » n'est vrai que si f est continue en a. Pour (x² − 4)/(x − 2), f(2) n'existe pas, et pourtant la limite en 2 vaut 4.",
   build:function(k, S){
-    var c = k.canvas(340);
+    var c = k.canvas(410);
     var sel = k.select("Fonction", Object.keys(AP).map(function(q){ return [q, AP[q].n]; }), "a");
     var side = k.seg("Côté", [["G", "Gauche"], ["D", "Droite"], ["B", "Les deux"]], "B");
     var s = k.slider("Zoom z (h = 10^−z)", 0, 2.5, 0.1, 0, "");
+    var run = k.loop(function(dt){ var v = s.value + dt * 0.45; if (v >= 2.5){ v = 2.5; run.pause(); } s.set(v); k.redraw(); });
+    k.button("▶ Se rapprocher de a", function(){ s.set(0); run.play(); }, true);
     var ro = k.readouts(["f(a − h)", "f(a + h)", "Limite à gauche", "Limite à droite"]);
     var nt = k.note("", "ok");
     k.draw(function(){
@@ -74,10 +87,12 @@ SFA.sim({
   aRetenir:"lim f(x) = L en +∞ signifie que f(x) s'approche de L autant qu'on veut pour x assez grand ; la droite y = L est alors asymptote horizontale. Les limites en +∞ et en −∞ peuvent être différentes.",
   piege:"Une fraction rationnelle n'a pas toujours pour limite le rapport des coefficients : cela dépend des degrés. deg num < deg den : limite 0 ; égaux : rapport des coefficients dominants ; deg num > deg den : infinie.",
   build:function(k, S){
-    var c = k.canvas(340);
+    var c = k.canvas(410);
     var sel = k.select("Fonction", Object.keys(IN).map(function(q){ return [q, IN[q].n]; }), "a");
     var X = k.slider("X (fenêtre [−X ; X])", 5, 200, 5, 20, "");
     var ei = k.slider("Finesse de ε (0 grand … 7 minuscule)", 0, 7, 1, 3, "");
+    var run = k.loop(function(dt){ var v = X.value + dt * 38; if (v >= 200){ v = 200; run.pause(); } X.set(v); k.redraw(); });
+    k.button("▶ Zoom arrière (x → ∞)", function(){ X.set(5); run.play(); }, true);
     var ro = k.readouts(["f(X)", "f(−X)", "ε", "|f(x) − L| < ε dès x ≥"]);
     var nt = k.note("", "ok");
     k.draw(function(){
@@ -119,25 +134,46 @@ SFA.sim({
   id:"m5-c03-indetermination", ch:"c03", tag:"Méthode",
   titre:"Lever une forme indéterminée, pas à pas",
   resume:"Factoriser, conjuguer ou mettre le plus haut degré en évidence.",
-  but:"Choisis une limite et avance étape par étape avec le curseur. Le tableau de valeurs vérifie chaque résultat.",
+  but:"Choisis une limite. Glisse le point sur la courbe vers la valeur cible (ou règle z) : numérateur et dénominateur partent tous deux vers 0 (ou ∞), pourtant leur quotient se stabilise. Avance ensuite dans le calcul étape par étape.",
   aRetenir:"0/0 : factoriser (ou conjuguer) et simplifier. ∞/∞ : mettre en évidence le plus haut degré. ∞ − ∞ : conjuguer, ou mettre en évidence. Une forme indéterminée n'est jamais « égale à 0 », « égale à 1 » ou « égale à ∞ ».",
   piege:"∞ − ∞ ≠ 0 : √(x² + x) − x tend vers 1/2, pas vers 0. De même 0/0 ≠ 0 et ∞/∞ ≠ 1.",
   build:function(k, S){
-    var c = k.canvas(300);
+    var c = k.canvas(430);
     var sel = k.select("Limite", Object.keys(CASES).map(function(q){ return [q, CASES[q].n]; }), "a");
+    var zs = k.slider("z : on se rapproche (h = 10^−z, ou x = 10^z)", 0, 5, 0.1, 1, "");
     var st = k.slider("Étape du calcul", 1, 4, 1, 1, "/ 4");
-    var ro = k.readouts(["Essai 1", "Essai 2", "Essai 3"]);
+    var ro = k.readouts(["x", "Numérateur", "Dénominateur", "Quotient (ou différence)"]);
     var nt = k.note("", "ok");
+    var ax = null;
+    function xOf(d){ return isFinite(d.a) ? d.a + Math.pow(10, -zs.value) : Math.pow(10, zs.value); }
+    c.pointer(function(type, p){
+      if (!ax || (type !== "down" && type !== "drag")) return; var d = CASES[sel.value], v = ax.ix(p.x);
+      if (isFinite(d.a)){ var h = Math.abs(v - d.a); zs.set(Math.max(0, Math.min(5, h > 1e-6 ? -Math.log10(h) : 5))); }
+      else zs.set(Math.max(0, Math.min(5, Math.log10(Math.max(1, v)))));
+      k.redraw();
+    });
+    sel.el.addEventListener("change", function(){ zs.set(1); });
     k.draw(function(){
-      var d = CASES[sel.value]; c.clear(); var w = d.win;
-      var ax = S.draw.axes(c, {x0:w[0], x1:w[1], y0:w[2], y1:w[3], l:50, xl:"x"});
-      S.draw.fn(c, ax, d.f, P.acc, 2.6);
-      if (isFinite(d.L)) S.draw.line(c, ax.L, ax.Y(d.L), ax.R, ax.Y(d.L), P.green, 1.4, [6, 4]);
-      if (isFinite(d.a) && isFinite(d.L)) hole(c, ax, d.a, d.L, P.green);
-      var xs = isFinite(d.a) ? [d.a + 0.1, d.a + 0.01, d.a + 0.001] : [10, 100, 1000];
-      xs.forEach(function(x, i){ ro.set(i, "x = " + F(x, 3) + "<br>f = " + F(d.f(x), 4)); });
+      var d = CASES[sel.value], nd = ND[sel.value]; c.clear(); var w = d.win;
+      ax = S.draw.axes(c, {x0:w[0], x1:w[1], y0:w[2], y1:w[3], l:50, xl:"x", yl:"f(x)"});
+      var fin = isFinite(d.a);
+      if (fin && sel.value !== "d"){
+        S.draw.fn(c, ax, nd.N, S.draw.tint(P.violet, 0.75), 1.6, [5, 4]); S.draw.fn(c, ax, nd.D, S.draw.tint(P.teal, 0.85), 1.6, [5, 4]);
+      }
+      S.draw.fn(c, ax, d.f, P.acc, 3);
+      if (isFinite(d.L)){ S.draw.line(c, ax.L, ax.Y(d.L), ax.R, ax.Y(d.L), P.green, 1.5, [6, 4]); S.draw.label(c, "limite = " + F(d.L, 3), ax.R - 6, ax.Y(d.L) - 12, {color:P.green, align:"right"}); }
+      if (fin && isFinite(d.L)){ S.draw.line(c, ax.X(d.a), ax.T, ax.X(d.a), ax.B, P.light, 1.4, [5, 4]); hole(c, ax, d.a, d.L, P.green); }
+      var xv = xOf(d), yv = d.f(xv), cl = Math.min(xv, w[1]), out = xv > w[1];
+      var py = isFinite(yv) ? Math.max(ax.T + 4, Math.min(ax.B - 4, ax.Y(yv))) : ax.Y(d.L || 0);
+      if (!out) S.draw.line(c, ax.X(xv), ax.B, ax.X(xv), py, P.red, 1, [3, 3]);
+      S.draw.glow(c, ax.X(cl), py, 18, P.red, 0.45); S.draw.dot(c, ax.X(cl), py, 7, P.red);
+      S.draw.label(c, out ? "x = " + F(xv, 0) + " (hors cadre) →" : "↔ glisse-moi", Math.min(ax.R - 8, ax.X(cl) + (out ? -10 : 12)), py - 22, {color:P.red, align:out ? "right" : "left"});
+      if (fin && sel.value !== "d"){ S.draw.legend(c, [[P.violet, "numérateur " + nd.ln, true], [P.teal, "dénominateur " + nd.ld, true], [P.acc, "quotient"]], ax.L + 8, ax.T + 6); }
+      var a = nd.N(xv), b = nd.D(xv);
+      ro.set(0, "x = " + indG(xv)); ro.set(1, indG(a)); ro.set(2, indG(b)); ro.set(3, indG(isFinite(yv) ? yv : NaN));
       var h = ""; for (var i = 0; i < st.value; i++) h += "<b>" + (i + 1) + ".</b> " + d.st[i] + "<br>";
-      nt.set(h + (st.value === 4 ? "<i>Le tableau confirme : " + (isFinite(d.L) ? "les valeurs s'approchent de " + F(d.L, 4) + "." : "les valeurs grandissent sans borne.") + "</i>" : ""), st.value === 4 ? "ok" : "");
+      var trend = fin ? (nd.op === "/" ? "numérateur et dénominateur tendent vers 0, mais leur quotient tend vers " : "") : "";
+      nt.set((st.value === 1 ? "" : "") + h + (st.value === 4 ? "<i>Le point confirme : " + (isFinite(d.L) ? (fin ? trend : "la valeur se stabilise près de ") + F(d.L, 4) + "." : "les valeurs grandissent sans borne.") + "</i>" : ""), st.value === 4 ? "ok" : "");
     });
   }
 });
@@ -151,7 +187,7 @@ SFA.sim({
   aRetenir:"La limite en a existe si lim à gauche = lim à droite. Avec un dénominateur qui s'annule, on étudie le signe de chaque côté : 1/(x − 2) tend vers −∞ à gauche et +∞ à droite, 1/(x − 2)² vers +∞ des deux côtés.",
   piege:"« 1/0 = ∞ » sans regarder le signe : 1/(x − 2) n'a pas de limite en 2, alors que 1/(x − 2)² a pour limite +∞.",
   build:function(k, S){
-    var c = k.canvas(340);
+    var c = k.canvas(410);
     var mode = k.seg("Mode", [["S", "Saut"], ["H", "s/(x − 2)"], ["Q", "s/(x − 2)²"]], "S");
     var m = k.slider("m (morceau de droite : m·x + p)", -2, 2, 0.5, 1, "");
     var p = k.slider("p", -3, 5, 0.5, 0, "");
@@ -167,7 +203,7 @@ SFA.sim({
         var fL = function(x){ return x + 1; }, fR = function(x){ return m.value * x + p.value; };
         piece(c, ax, fL, -1, 2, P.acc); piece(c, ax, fR, 2, 5, P.green);
         lg = 3; ld = 2 * m.value + p.value; f2 = v.value;
-        hole(c, ax, 2, lg, P.acc); hole(c, ax, 2, ld, P.green); S.draw.dot(c, ax.X(2), ax.Y(f2), 5, P.red);
+        hole(c, ax, 2, lg, P.acc); hole(c, ax, 2, ld, P.green); S.draw.label(c, "lim⁻ = " + F(lg, 1), ax.X(2) - 10, ax.Y(lg) - 14, {color:P.acc, align:"right", size:11}); S.draw.label(c, "lim⁺ = " + F(ld, 1), ax.X(2) + 10, ax.Y(ld) + (ld >= lg ? 16 : -16), {color:P.green, align:"left", size:11}); S.draw.dot(c, ax.X(2), ax.Y(f2), 5, P.red);
         ok = lg === ld; lim = ok ? F(lg, 2) : "n'existe pas";
         nt.set(ok ? (f2 === lg ? "Raccord parfait : limite gauche = limite droite = f(2) = " + F(lg, 1) + ". La fonction est continue en 2." : "Les limites gauche et droite valent " + F(lg, 1) + " mais f(2) = " + F(f2, 1) + " : la limite existe, la fonction est discontinue en 2 (point mal placé).") : "Limite gauche " + F(lg, 1) + " ≠ limite droite " + F(ld, 1) + " : saut de " + F(ld - lg, 1) + ", pas de limite en 2.", ok ? "ok" : "warn");
       } else {

@@ -190,7 +190,7 @@ SFA.figs("c04", [
   function game(x,y,ch,lab,col){ell(x,y,46,34,col+'18',col,2.2);ch.forEach(function(c,i){var cx=x+(i-(ch.length-1)/2)*26;if(c==='X')chX(cx,y,14,BLUE);else chY(cx,y+2,12,GREY);});TB(lab,x,y+56,GREY,12);}
   /* possibilité 1 */
   TB('possibilité 1',100,50,DRED,13);game(60,100,['X','X'],'ovule 24',RED);TB('+',118,106,GREY,20);game(170,100,['Y'],'spz 23',BLUE);
-  TB('possibilité 2',350,50,DRED,13);game(310,100,['X'],'ovule 23',RED);TB('+',368,106,GREY,20);game(420,100,['X','Y'],'spz 24',BLUE);
+  TB('possibilité 2',340,50,DRED,13);game(290,100,['X'],'ovule 23',RED);TB('+',346,106,GREY,20);game(396,100,['X','Y'],'spz 24',BLUE);
   var a=sg(p,0,.6);ga(a);box(20,180,200,70,DRED,'#fdecec',10);TB('erreur de la mère',120,206,INK,14);TB('méiose I ou II',120,232,DRED,16);
   box(240,180,200,70,BLUE,'#e6f1fb',10);TB('erreur du père',340,206,INK,14);TB('méiose I',340,232,BLUE_D,16);g1();
   ga(1-a);TB('quel parent ? quelle division ?',230,222,GREY,16);g1();

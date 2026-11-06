@@ -23,10 +23,10 @@ SFA.theo("c07",{
 });
 SFA.figs("c07",[
  /* 0 ATP */
- function(p){var s=Math.min(2,W/300);b4atp(W*.2,H*.4,3,s,'',true);TB('adénosine',W*.2,H*.4-34*s,BLUE_D,13);TB('3 phosphates',W*.2+30*s+22*s,H*.4-26*s,'#7a5a00',13);
-  A(W*.55,H*.52,0,H*.1,GREY,'',3);TB('+ H₂O',W*.66,H*.57,BLUE_D,15);b4atp(W*.2,H*.78,2,s,'',false);TB('+',W*.2+30*s+22*s*2+22,H*.78+5,INK,20);DOT(W*.62,H*.78,10*s,'#f2c879');TB('P',W*.62,H*.78+4*s,'#7a5a00',12*s);TB('ADP',W*.2+30*s+22,H*.78+34*s,INK,14);TB('Pi',W*.62,H*.78+30*s,INK,14);
+ function(p){var s=Math.min(1.7,W/300);b4atp(W*.2,H*.3,3,s,'',true);TB('adénosine',W*.2,H*.3-30*s,BLUE_D,13);TB('3 phosphates',W*.2+30*s+22*s,H*.3-24*s,'#7a5a00',13);
+  A(W*.55,H*.4,0,H*.1,GREY,'',3);TB('+ H₂O',W*.66,H*.45,BLUE_D,15);b4atp(W*.2,H*.65,2,s,'',false);TB('+',W*.2+30*s+22*s*2+22,H*.65+5,INK,20);DOT(W*.62,H*.65,10*s,'#f2c879');TB('P',W*.62,H*.65+4*s,'#7a5a00',12*s);TB('ADP',W*.2+30*s+22,H*.65+30*s,INK,14);TB('Pi',W*.62,H*.65+26*s,INK,14);
   if(p<=0)TB('ATP ?',W*.8,H*.35,GREY,28);
-  if(p>0){b4al(b4r(p,0,.5));TB('adénosine triphosphate',W*.7,H*.3,DGREEN,16);TB('énergie libérée',W*.84,H*.57,ORANGE,15);TB('resynthèse : respiration, fermentation, photosynthèse',W*.5,H*.95,DGREEN,13);b4al(1);}},
+  if(p>0){b4al(b4r(p,0,.5));TB('adénosine triphosphate',W*.7,H*.3,DGREEN,16);TB('énergie libérée',W*.84,H*.45,ORANGE,15);TB('resynthèse : respiration, fermentation, photosynthèse',W*.5,H*.87,DGREEN,13);b4al(1);}},
  /* 1 ana ou cata */
  function(p){var it=[['a','respiration','c'],['b','synthèse de protéine','a'],['c','photosynthèse','a'],['d','fermentation lactique','c'],['e','glycogène','a']];
   b4box(W*.27,H*.62,W*.46,H*.5,GREEN,'#f2fbf7',2);b4box(W*.75,H*.62,W*.46,H*.5,ORANGE,'#fff8ef',2);TB('anabolisme',W*.27,H*.42,DGREEN,16);TB('construire · consomme de l\'ATP',W*.27,H*.48,DGREEN,12);TB('catabolisme',W*.75,H*.42,'#8a5a17',16);TB('dégrader · libère de l\'énergie',W*.75,H*.48,'#8a5a17',12);
@@ -44,7 +44,7 @@ SFA.figs("c07",[
   var bars=[['10×60',0,600,BLUE],['6,25×170',600,1062.5,BLUE],['−5×16',1582.5,-80,RED],['+ 5',1582.5,5,BLUE]];
   bars.forEach(function(b,i){var x=M.x(i+.6),a=b[1],c=b[1]+b[2];var y1=M.y(Math.max(a,c)),y2=M.y(Math.min(a,c));ctx.fillStyle=b[3]+'44';ctx.strokeStyle=b[3];ctx.lineWidth=2;ctx.fillRect(x-W*.06,y1,W*.12,Math.max(2,y2-y1));ctx.strokeRect(x-W*.06,y1,W*.12,Math.max(2,y2-y1));TB(b[0],x,M.y(0)+18,INK,13);TB(String(b[2]).replace('.',',').replace('-','−'),x,y1-6,dk(b[3]),13);});
   if(p<=0){TB('MB ?',M.x(5.3),M.y(900),GREY,26);}
-  if(p>0){b4al(b4r(p,0,.5));var x=M.x(4.6);ctx.fillStyle='#d8f1e6';ctx.strokeStyle=GREEN;ctx.lineWidth=2;ctx.fillRect(x-W*.06,M.y(1587.5),W*.12,M.y(0)-M.y(1587.5));ctx.strokeRect(x-W*.06,M.y(1587.5),W*.12,M.y(0)-M.y(1587.5));TB('MB',x,M.y(0)+18,INK,13);TB('1 587,5',x,M.y(1587.5)-6,DGREEN,14);TB('× 1,55 → 2 461 kcal',M.x(3.3),M.y(1650),DGREEN,13);b4al(1);b4ans(p,'1 587,5 kcal ≈ 6 642 kJ · 2 461 kcal',GREEN,H-14);}},
+  if(p>0){b4al(b4r(p,0,.5));var x=M.x(4.6);ctx.fillStyle='#d8f1e6';ctx.strokeStyle=GREEN;ctx.lineWidth=2;ctx.fillRect(x-W*.06,M.y(1587.5),W*.12,M.y(0)-M.y(1587.5));ctx.strokeRect(x-W*.06,M.y(1587.5),W*.12,M.y(0)-M.y(1587.5));TB('MB',x,M.y(0)+18,INK,13);TB('1 587,5',x,M.y(1587.5)-6,DGREEN,14);TB('× 1,55 → 2 461 kcal',M.x(3.2),M.y(1000),DGREEN,13);b4al(1);b4ans(p,'1 587,5 kcal ≈ 6 642 kJ · 2 461 kcal',GREEN,H-14);}},
  /* 4 repas */
  function(p){var it=[['glucides','90 g','1 530 kJ',BLUE],['lipides','30 g','1 110 kJ',ORANGE],['protéines','25 g','425 kJ',VIOLET]],x0=W*.1,w=W*.8;
   it.forEach(function(q,i){var x=W*(.2+i*.3);b4box(x,H*.25,W*.24,H*.22,q[3],'#fff',2.2);TB(q[0],x,H*.23,dk(q[3]),15);TB(q[1],x,H*.31,INK,16);if(p>0){b4al(b4r(p,i*.12,i*.12+.3));TB(q[2],x,H*.55,dk(q[3]),15);b4al(1);}});
@@ -69,7 +69,7 @@ SFA.figs("c07",[
   vals.forEach(function(v,i){var x=M.x(i+.6),f=p<=0?(i<2?1:0):b4r(p,(i-1)*.12,(i-1)*.12+.4);if(i>=2&&p<=0){ctx.setLineDash([4,4]);ctx.strokeStyle=GREY;ctx.strokeRect(x-W*.06,M.y(250),W*.12,M.y(0)-M.y(250));ctx.setLineDash([]);TB('?',x,M.y(120),GREY,24);}else{var hh=(M.y(0)-M.y(v[1]))*(i<2?1:f);ctx.fillStyle=v[2]+'44';ctx.strokeStyle=v[2];ctx.lineWidth=2;ctx.fillRect(x-W*.06,M.y(0)-hh,W*.12,hh);ctx.strokeRect(x-W*.06,M.y(0)-hh,W*.12,hh);if(f>.9||i<2)TB(String(v[1]).replace('.',','),x,M.y(0)-hh-6,dk(v[2]),14);}TB(v[0],x,M.y(0)+18,INK,Math.max(11,Math.min(13,W/36)));});
   b4ans(p,'273,6 mmol (≈ 8,2 g) · 10 h : 158,4 mmol',GREEN,H-14);},
  /* 9 phrase exacte */
- function(p){var s=Math.min(1.4,W/420);b4atp(W*.14,H*.45,3,s,'',true);A(W*.3,H*.45,W*.1,0,ORANGE,'',3);TB('ATP → ADP + Pi',W*.38,H*.38,ORANGE,13);
+ function(p){var s=Math.min(1.4,W/420);b4atp(W*.14,H*.45,3,s,'',true);A(W*.3,H*.45,W*.1,0,ORANGE,'',3);TB('ATP → ADP + Pi',W*.2,H*.28,ORANGE,13);
   b4box(W*.62,H*.2,W*.34,H*.16,GREEN,'#fff',2);TB('synthèse de protéines',W*.62,H*.2+5,DGREEN,13);b4box(W*.62,H*.45,W*.34,H*.16,GREEN,'#fff',2);TB('contraction musculaire',W*.62,H*.45+5,DGREEN,13);b4box(W*.62,H*.7,W*.34,H*.16,GREEN,'#fff',2);TB('transport actif',W*.62,H*.7+5,DGREEN,13);
   [.2,.45,.7].forEach(function(y){A(W*.4,H*.45,W*.04,(y-.45)*H*.9,ORANGE,'',2.2);});
   if(p>0){b4al(b4r(p,0,.5));ctx.strokeStyle=VIOLET;ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(W*.14,H*.62);ctx.lineTo(W*.14,H*.82);ctx.lineTo(W*.4,H*.82);ctx.stroke();TB('régénéré à partir d\'ADP + Pi',W*.28,H*.93,VIOLET,14);b4al(1);b4ans(p,'phrase 3 : l\'ATP transfère l\'énergie',GREEN,H-14);}}

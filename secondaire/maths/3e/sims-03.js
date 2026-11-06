@@ -10,22 +10,26 @@ M3.lin = function(a,b,S){
 SFA.sim({
   id:"m3-c03-ab", ch:"c03", tag:"Droite", titre:"Pente a et ordonnée à l'origine b",
   resume:"Deux curseurs : a fait pivoter la droite, b la fait glisser.",
-  but:"Bouge a puis b. Regarde la droite, son équation, son zéro et le petit triangle « un pas à droite, a en hauteur ».",
+  but:"Fais glisser le point rouge (b) et le point orange (a), ou utilise les curseurs. Regarde la droite, son équation, son zéro et le petit triangle « un pas à droite, a en hauteur ».",
   aRetenir:"f(x) = ax + b : a est la pente (de combien y varie quand x augmente de 1), b est l'ordonnée du point où la droite coupe l'axe y. Si a > 0 la droite monte, si a < 0 elle descend.",
   piege:"b n'est pas l'endroit où la droite coupe l'axe des x. Cet endroit, le zéro, vaut −b/a.",
   build:function(k,S){
     var c=k.canvas(360), P=S.draw.palette;
     var a=k.slider("a (pente)",-4,4,0.5,1,""), b=k.slider("b (ordonnée à l'origine)",-5,5,0.5,2,"");
     var ro=k.readouts(["Équation","Zéro (y = 0)","La droite…"]);
+    var M3=window.M3, geo={};
+    M3.drag(c,function(){ return geo.ax?[{id:"a",x:geo.ax.X(1),y:geo.ax.Y(a.value+b.value),r:26},{id:"b",x:geo.ax.X(0),y:geo.ax.Y(b.value),r:26}]:[]; },function(id,p){
+      if(id==="b") b.set(M3.snap(geo.ax.iy(p.y),0.5,-5,5)); else a.set(M3.snap(geo.ax.iy(p.y)-b.value,0.5,-4,4)); k.redraw(); });
     k.draw(function(){
       c.clear(); var A=a.value,B=b.value;
       var ax=S.draw.axes(c,{x0:-6,x1:6,y0:-8,y1:8,xl:"x",yl:"y",stepX:1,stepY:2});
-      S.draw.fn(c,ax,function(x){return A*x+B;},P.acc,3);
+      geo.ax=ax; S.draw.fn(c,ax,function(x){return A*x+B;},P.acc,3);
       S.draw.line(c,ax.X(0),ax.Y(B),ax.X(1),ax.Y(B),P.amber,2,[4,3]); S.draw.line(c,ax.X(1),ax.Y(B),ax.X(1),ax.Y(A+B),P.amber,2,[4,3]);
       S.draw.text(c,"1",ax.X(0.5),ax.Y(B)+(A>=0?12:-12),{size:12,color:P.amber}); S.draw.text(c,S.fmt(A,1),ax.X(1)+14,ax.Y(B+A/2),{size:12,color:P.amber});
-      S.draw.dot(c,ax.X(0),ax.Y(B),6,P.red);
       var z=A!==0?-B/A:null;
-      if(z!==null&&Math.abs(z)<=6) S.draw.dot(c,ax.X(z),ax.Y(0),6,P.green);
+      if(z!==null&&Math.abs(z)<=6){ S.draw.dot(c,ax.X(z),ax.Y(0),6,P.green); S.draw.label(c,"zéro : x = "+S.fmt(z,2),ax.X(z),ax.Y(0)+(A>0?26:-26),{color:P.green,size:12}); }
+      M3.handle(c,ax.X(0),ax.Y(B),P.red,false,8); M3.handle(c,ax.X(1),ax.Y(A+B),P.amber,false,8);
+      S.draw.label(c,"b = "+S.fmt(B,1),ax.X(0)+(c.W<420?34:40),ax.Y(B)+(A>=0?-22:22),{color:P.red,size:12});
       ro.set(0,M3.lin(A,B,S)); ro.set(1,A===0?(B===0?"tous les x":"aucun"):"x = "+S.fmt(z,2));
       ro.set(2,A>0?"monte (croissante)":A<0?"descend (décroissante)":"est horizontale");
     });
@@ -34,7 +38,7 @@ SFA.sim({
 SFA.sim({
   id:"m3-c03-pente", ch:"c03", tag:"Taux de variation", titre:"Le triangle de pente ne change pas de rapport",
   resume:"Prends deux points sur une droite : Δy ÷ Δx vaut toujours a.",
-  but:"Déplace le premier point et la largeur du triangle. Le triangle grandit, mais le rapport Δy ÷ Δx reste le même.",
+  but:"Fais glisser les deux points sur la droite (ou utilise les curseurs). Le triangle grandit, mais le rapport Δy ÷ Δx reste le même.",
   aRetenir:"Sur une droite, a = Δy ÷ Δx = (y₂ − y₁) ÷ (x₂ − x₁), quels que soient les deux points choisis.",
   piege:"On divise la variation de y par la variation de x, pas l'inverse : Δx ÷ Δy est une erreur très fréquente.",
   build:function(k,S){
@@ -43,6 +47,8 @@ SFA.sim({
     var x1=k.slider("Point 1 : x₁",-2,2,0.5,-2,""), dx=k.slider("Largeur Δx",-4,4,0.5,3,"");
     var ro=k.readouts(["Δx","Δy","Δy ÷ Δx","Piège Δx ÷ Δy"]);
     var nt=k.note("");
+    var M3=window.M3, geo={};
+    M3.drag(c,function(){ return geo.h||[]; },function(id,p){ var X1=x1.value; if(id==="p1") x1.set(M3.snap(geo.ax.ix(p.x),0.5,-2,2)); else dx.set(M3.snap(geo.ax.ix(p.x)-X1,0.5,-4,4)); k.redraw(); });
     k.draw(function(){
       c.clear(); var A=a.value,B=b.value,X1=x1.value,DX=dx.value,X2=X1+DX,f=function(x){return A*x+B;};
       var ax=S.draw.axes(c,{x0:-6,x1:6,y0:-16,y1:16,xl:"x",yl:"y",stepX:1,stepY:4});
@@ -50,8 +56,10 @@ SFA.sim({
       var Y1=f(X1),Y2=f(X2);
       S.draw.line(c,ax.X(X1),ax.Y(Y1),ax.X(X2),ax.Y(Y1),P.amber,2.5); S.draw.line(c,ax.X(X2),ax.Y(Y1),ax.X(X2),ax.Y(Y2),P.green,2.5);
       S.draw.text(c,"Δx = "+S.fmt(DX,1),ax.X((X1+X2)/2),ax.Y(Y1)+(A*DX>=0?14:-14),{size:12,color:P.amber,bg:"rgba(255,255,255,.85)"});
-      S.draw.dot(c,ax.X(X1),ax.Y(Y1),6,P.red); S.draw.dot(c,ax.X(X2),ax.Y(Y2),6,P.red);
+      geo.ax=ax; geo.h=[{id:"p1",x:ax.X(X1),y:ax.Y(Y1),r:24},{id:"p2",x:ax.X(X2),y:ax.Y(Y2),r:24}];
+      M3.handle(c,ax.X(X1),ax.Y(Y1),P.red,false,8); M3.handle(c,ax.X(X2),ax.Y(Y2),P.green,false,8);
       var DY=Y2-Y1;
+      S.draw.text(c,"Δy = "+S.fmt(DY,2),ax.X(X2)+(DX>=0?12:-12),ax.Y((Y1+Y2)/2),{size:12,color:P.green,align:DX>=0?"left":"right",bg:"rgba(255,255,255,.85)"});
       ro.set(0,S.fmt(DX,1)); ro.set(1,S.fmt(DY,2)); ro.set(2,DX===0?"—":S.fmt(DY/DX,2)); ro.set(3,DY===0?"impossible":S.fmt(DX/DY,2));
       if(DX===0) nt.set("Δx = 0 : les deux points sont sur la même verticale, on ne peut pas diviser par 0.","warn");
       else nt.set("Le rapport Δy ÷ Δx vaut "+S.fmt(DY/DX,2)+" = a, quelle que soit la taille du triangle.","ok");
@@ -111,13 +119,16 @@ SFA.sim({
     var p=k.slider("Prix à l'acte p",2,6,0.5,3,"€"), F=k.slider("Abonnement fixe F",10,60,5,30,"€"), q=k.slider("Prix avec abonnement q",0,5,0.5,1.5,"€"), n=k.slider("Nombre de trajets n",0,40,1,12,"");
     var ro=k.readouts(["Coût à l'acte","Coût abonnement","Seuil n*"]);
     var nt=k.note("");
+    var M3=window.M3, geo={};
+    M3.drag(c,function(){ return geo.ax?[{id:"n",x:geo.ax.X(n.value),y:geo.ax.Y(p.value*n.value),r:9999}]:[]; },function(id,pt){ n.set(M3.snap(geo.ax.ix(pt.x),1,0,40)); k.redraw(); });
     k.draw(function(){
       c.clear(); var pp=p.value,FF=F.value,qq=q.value,N=n.value;
       var ymax=Math.ceil(Math.max(pp*40,FF+qq*40)/20)*20;
       var ax=S.draw.axes(c,{x0:0,x1:40,y0:0,y1:ymax,xl:"trajets n",yl:"coût (€)",stepX:5,stepY:ymax/5});
       S.draw.fn(c,ax,function(x){return pp*x;},P.red,2.8); S.draw.fn(c,ax,function(x){return FF+qq*x;},P.acc,2.8);
       var ca=pp*N, cb=FF+qq*N;
-      S.draw.dot(c,ax.X(N),ax.Y(ca),5,P.red); S.draw.dot(c,ax.X(N),ax.Y(cb),5,P.acc);
+      geo.ax=ax; S.draw.line(c,ax.X(N),ax.B,ax.X(N),ax.T,"rgba(15,27,45,.25)",1.5,[4,4]);
+      S.draw.dot(c,ax.X(N),ax.Y(cb),5.5,P.acc); M3.handle(c,ax.X(N),ax.Y(ca),P.red,false,8);
       var star=pp>qq?FF/(pp-qq):null;
       if(star!==null&&star<=40){ S.draw.dot(c,ax.X(star),ax.Y(pp*star),7,P.green); S.draw.line(c,ax.X(star),ax.Y(pp*star),ax.X(star),ax.Y(0),P.green,1.5,[4,3]); }
       S.draw.text(c,"à l'acte",ax.X(36),ax.Y(pp*36)-14,{size:12,color:P.red}); S.draw.text(c,"abonnement",ax.X(34),ax.Y(FF+qq*34)+16,{size:12,color:P.acc});

@@ -3,31 +3,78 @@ SFA.sim({
   id:"c4-c07-burger", ch:"c07", tag:"Classique",
   titre:"Le burger chimique",
   resume:"Une recette (2 pains + 1 steak + 2 tranches de fromage) : qui manque en premier, que reste-t-il ?",
-  but:"Règle le nombre d'ingrédients. Compare, pour chacun, « combien de burgers il permet » : le plus petit nombre limite.",
+  but:"Règle le nombre d'ingrédients (curseurs, ou touche les ingrédients dessinés). Le plus petit nombre de « burgers permis » limite tout. Défi : ne gaspille rien !",
   aRetenir:"Le réactif limitant est celui qui permet de faire le moins de « portions » : on divise chaque quantité par son coefficient. Les autres restent en excès.",
   piege:"Le réactif limitant n'est pas forcément celui dont on a le moins : 12 pains et 7 steaks limitent à 6 burgers à cause des pains (12 / 2 = 6), pas des steaks.",
   build:function(k, S){
-    var c = k.canvas(300);
+    var c = k.canvas(370), P = S.draw.palette;
     var p = k.slider("Pains", 0, 30, 1, 12, ""), s = k.slider("Steaks", 0, 20, 1, 7, ""), f = k.slider("Tranches de fromage", 0, 30, 1, 20, "");
     var ro = k.readouts(["Burgers possibles", "Limitant", "Reste"]);
     var nt = k.note("", "ok");
+    var st = {defi:false, won:false, score:0, hits:[]};
+    var names = ["pains", "steaks", "fromage"], need = [2, 1, 2], sl = [p, s, f], cols = ["#d9a05b", "#7a4a2b", "#f4c542"];
+    k.button("🎯 Défi : zéro gaspillage", function(){
+      var B = 3 + Math.floor(Math.random() * 3);
+      p.set(2 * B + 2 * (1 + Math.floor(Math.random() * 4))); s.set(B + 1 + Math.floor(Math.random() * 6)); f.set(2 * B + 2 * (1 + Math.floor(Math.random() * 4)));
+      st.defi = true; st.won = false;
+    }, true);
+    k.button("Mode libre", function(){ st.defi = false; });
+    c.pointer(function(type, pt){
+      if (type !== "down") return;
+      st.hits.forEach(function(h){ if (pt.x >= h.x - 1 && pt.x <= h.x + h.w + 1 && pt.y >= h.y - 1 && pt.y <= h.y + h.h + 1) sl[h.r].set(h.r === 1 && h.i + 1 === s.value ? h.i : (h.i + 1 === sl[h.r].value ? h.i : h.i + 1)); });
+      k.redraw();
+    });
+    function icon(kind, x, y, u, a){
+      var ctx = c.ctx; ctx.save(); ctx.globalAlpha = a;
+      if (kind === 0){ ctx.fillStyle = cols[0]; ctx.beginPath(); ctx.ellipse(x + u / 2, y + u * .6, u * .5, u * .4, 0, Math.PI, 0); ctx.lineTo(x + u, y + u * .75); ctx.lineTo(x, y + u * .75); ctx.closePath(); ctx.fill(); ctx.fillStyle = "#b9803a"; ctx.fillRect(x, y + u * .72, u, u * .22); }
+      else if (kind === 1){ ctx.fillStyle = cols[1]; S.draw.rrect(c, x, y + u * .2, u, u * .6, u * .28); ctx.fill(); }
+      else { ctx.fillStyle = cols[2]; ctx.beginPath(); ctx.moveTo(x, y + u * .22); ctx.lineTo(x + u, y + u * .22); ctx.lineTo(x + u * .88, y + u * .82); ctx.lineTo(x + u * .12, y + u * .82); ctx.closePath(); ctx.fill(); ctx.strokeStyle = "rgba(160,120,0,.5)"; ctx.lineWidth = 1; ctx.stroke(); }
+      ctx.restore();
+    }
+    function burger(x, y, w){   /* x,y = coin haut-gauche de la pile */
+      var ctx = c.ctx, h1 = w * .42, y0 = y;
+      ctx.fillStyle = "#d9a05b"; ctx.beginPath(); ctx.ellipse(x + w / 2, y0 + h1, w / 2, h1, 0, Math.PI, 0); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = "#fff3c4"; [[.28, .45], [.5, .3], [.7, .5]].forEach(function(q){ ctx.fillRect(x + w * q[0], y0 + h1 * q[1], 2, 1.6); });
+      var yy = y0 + h1;
+      ctx.fillStyle = "#f4c542"; ctx.fillRect(x - 1, yy, w + 2, w * .1); yy += w * .1;
+      ctx.fillStyle = "#7a4a2b"; S.draw.rrect(c, x - 1, yy, w + 2, w * .2, w * .1); ctx.fill(); yy += w * .2;
+      ctx.fillStyle = "#f4c542"; ctx.fillRect(x - 1, yy, w + 2, w * .1); yy += w * .1;
+      ctx.fillStyle = "#c98a3e"; S.draw.rrect(c, x, yy, w, w * .2, w * .08); ctx.fill();
+    }
     k.draw(function(){
-      var q = [Math.floor(p.value / 2), s.value, Math.floor(f.value / 2)], B = Math.min.apply(0, q);
-      var names = ["pains", "steaks", "fromage"], need = [2, 1, 2], have = [p.value, s.value, f.value], cols = ["#d9a05b", "#7a4a2b", "#f4c542"];
-      c.clear(); var W = c.W, ctx = c.ctx, cw = Math.min(16, (W - 130) / 30);
-      for (var r = 0; r < 3; r++){
-        var y = 24 + r * 36; C4.label(c, names[r] + " (" + need[r] + " par burger)", 8, y - 12, "#2c3a4e", 12, "left");
-        for (var i = 0; i < have[r]; i++){ ctx.fillStyle = i < B * need[r] ? cols[r] : "rgba(160,170,185,.35)"; ctx.fillRect(8 + i * (cw + 1), y - 4, cw, 18); if (i >= B * need[r]){ ctx.strokeStyle = cols[r]; ctx.strokeRect(8 + i * (cw + 1) + .5, y - 3.5, cw - 1, 17); } }
-        C4.label(c, S.fmt(have[r] / need[r], 1) + " burgers", W - 8, y + 6, q[r] === B ? "#b42318" : "#5f6b7a", 12, "right");
-      }
-      var by = 160; C4.label(c, "Burgers préparés : " + B, 8, by, "#1e3f8f", 14, "left");
-      for (i = 0; i < Math.min(B, 14); i++){ var bx = 14 + (i % 14) * ((W - 28) / 14), by2 = by + 26 + Math.floor(i / 14) * 30; ctx.fillStyle = "#d9a05b"; ctx.fillRect(bx, by2, 14, 5); ctx.fillStyle = "#7a4a2b"; ctx.fillRect(bx, by2 + 5, 14, 5); ctx.fillStyle = "#d9a05b"; ctx.fillRect(bx, by2 + 10, 14, 5); }
-      C4.label(c, "équation : 2 P + 1 S + 2 F → 1 B", 8, 260, "#5f6b7a", 12, "left");
-      C4.label(c, "gris : ingrédients qui restent", 8, 282, "#5f6b7a", 12, "left");
+      var W = c.W, ctx = c.ctx, have = [p.value, s.value, f.value], q = [Math.floor(have[0] / 2), have[1], Math.floor(have[2] / 2)], B = Math.min.apply(0, q);
+      C4.bg(c);
+      var u = Math.min(19, (W - 24) / 16), per = Math.floor((W - 24) / (u + 3)), y = 8; st.hits = [];
       var lim = []; q.forEach(function(v, i){ if (v === B) lim.push(names[i]); });
+      for (var r = 0; r < 3; r++){
+        var isLim = q[r] === B && have[r] >= 0;
+        S.draw.text(c, names[r] + "  (" + need[r] + " par burger)", 12, y + 8, {size:12.5, color:P.ink, align:"left"});
+        S.draw.text(c, S.fmt(have[r] / need[r], 1) + " burger" + (have[r] / need[r] >= 2 ? "s" : ""), W - 12, y + 8, {size:12.5, color:isLim ? P.red : P.grey, align:"right"});
+        if (isLim) S.draw.label(c, "⛔ limitant", W - 12 - 82, y + 8, {color:P.red, size:11.5, align:"right"});
+        y += 20;
+        for (var i = 0; i < have[r]; i++){
+          var col = i % per, row = Math.floor(i / per), x = 12 + col * (u + 3), yy = y + row * (u + 3), used = i < B * need[r];
+          icon(r, x, yy, u, used ? 1 : .32);
+          if (!used){ ctx.save(); ctx.strokeStyle = "rgba(120,130,145,.55)"; ctx.setLineDash([2, 2]); ctx.strokeRect(x - .5, yy + u * .12, u + 1, u * .76); ctx.restore(); }
+        }
+        var rows = Math.max(1, Math.ceil(Math.max(have[r], 1) / per)); var tgt = Math.max(30, rows * (u + 3));
+        for (i = 0; i < Math.max(1, Math.ceil(sl[r].el.max / per)) * per && i < +sl[r].el.max; i++) st.hits.push({r:r, i:i, x:12 + (i % per) * (u + 3), y:y + Math.floor(i / per) * (u + 3), w:u, h:u});
+        y += Math.ceil(+sl[r].el.max / per) * (u + 3) + 6;
+      }
+      /* burgers préparés */
+      var by = Math.max(y + 4, 214);
+      ctx.fillStyle = "rgba(255,255,255,.6)"; S.draw.rrect(c, 8, by - 8, W - 16, 370 - by - 4, 10); ctx.fill();
+      S.draw.text(c, "Burgers préparés : " + B, 14, by + 8, {size:14, color:P.acc, align:"left"});
+      var bu = Math.min(30, (W - 40) / 10.5);
+      for (i = 0; i < Math.min(B, 10); i++) burger(14 + i * (bu + 4), by + 30, bu);
+      if (B > 10) S.draw.text(c, "+" + (B - 10), W - 22, by + 48, {size:14, color:P.acc});
+      S.draw.text(c, "recette : 2 P + 1 S + 2 F → 1 B  ·  en grisé : les restes", 14, 354, {size:12, color:P.grey, align:"left", weight:600});
       var rest = [have[0] - 2 * B, have[1] - B, have[2] - 2 * B];
+      var zero = rest[0] === 0 && rest[1] === 0 && rest[2] === 0 && B >= 2;
+      if (st.defi && zero && !st.won){ st.won = true; st.score++; }
       ro.set(0, B); ro.set(1, lim.join(" et ")); ro.set(2, rest[0] + " p. · " + rest[1] + " s. · " + rest[2] + " f.");
-      nt.set(B === 0 ? "Impossible de faire un burger : il manque au moins un ingrédient." : "Il manque d'abord : " + lim.join(" / ") + ". Les autres ingrédients sont « en excès ».", B === 0 ? "warn" : "ok");
+      if (st.defi) nt.set(zero ? "✅ Zéro gaspillage : " + B + " burgers, tout est utilisé ! (réussis : " + st.score + ")" : "🎯 Défi : change les quantités (sans toucher à ce qui est déjà parfait) pour que tous les ingrédients soient utilisés. Reste : " + rest[0] + " pain(s), " + rest[1] + " steak(s), " + rest[2] + " fromage(s). Pense : pains = 2 × burgers, steaks = burgers, fromage = 2 × burgers.", zero ? "ok" : "");
+      else nt.set(B === 0 ? "Impossible de faire un burger : il manque au moins un ingrédient." : "Il manque d'abord : " + lim.join(" / ") + ". Les autres ingrédients sont « en excès ».", B === 0 ? "warn" : "ok");
     });
   }
 });
@@ -49,11 +96,11 @@ SFA.sim({
     k.draw(function(){
       var e = C4.REAC[rx.value], m = [a.value, b.value], M = e.r.map(function(t){ return C4.M(t[1]); }), n = [m[0] / M[0], m[1] / M[1]], rt = [n[0] / e.r[0][0], n[1] / e.r[1][0]];
       var xm = Math.min(rt[0], rt[1]), li = rt[0] <= rt[1] ? 0 : 1, eq = Math.abs(rt[0] - rt[1]) < 1e-9, ex = 1 - li;
-      c.clear(); var W = c.W, ctx = c.ctx, mx = Math.max(rt[0], rt[1]);
+      c.clear(); C4.bg(c); var W = c.W, ctx = c.ctx, mx = Math.max(rt[0], rt[1]);
       C4.label(c, C4.eqU(rx.value), W / 2, 14, "#2c3a4e", 13);
       C4.label(c, "n / coefficient (mol)", 8, 40, "#5f6b7a", 12, "left");
       e.r.forEach(function(t, i){
-        var y = 56 + i * 40, w = (W - 130) * rt[i] / mx; ctx.fillStyle = i === li ? "#b42318" : "#8a95a3"; ctx.fillRect(100, y, Math.max(2, w), 24);
+        var y = 56 + i * 40, w = (W - 130) * rt[i] / mx; ctx.fillStyle = i === li ? "#c0321d" : "#8a95a3"; ctx.fillRect(100, y, Math.max(2, w), 24);
         C4.label(c, C4.uni(t[1]) + " (" + S.fmt(m[i], 1) + " g)", 8, y + 12, "#0f1b2d", 12, "left");
         C4.tag(c, S.fmt(n[i], 3) + " / " + t[0] + " = " + S.fmt(rt[i], 3), 104, y + 12, "#fff", 12, "left");
       });
@@ -62,7 +109,7 @@ SFA.sim({
       var mxm = Math.max.apply(0, sp.map(function(s){ return Math.max(s.m0, s.m1); })) || 1, cw = (W - 20) / sp.length, base = 262, hs = 100 / mxm;
       sp.forEach(function(s, i){ var x0 = 10 + i * cw;
         ctx.fillStyle = "#dfe4ea"; ctx.fillRect(x0 + cw * 0.1, base - s.m0 * hs, cw * 0.36, s.m0 * hs);
-        ctx.fillStyle = i < e.r.length ? "#b42318" : "#2e6b55"; ctx.fillRect(x0 + cw * 0.5, base - s.m1 * hs, cw * 0.36, s.m1 * hs);
+        ctx.fillStyle = i < e.r.length ? "#c0321d" : "#24775a"; ctx.fillRect(x0 + cw * 0.5, base - s.m1 * hs, cw * 0.36, s.m1 * hs);
         C4.label(c, S.fmt(s.m1, 1), x0 + cw * 0.68, base - s.m1 * hs - 8, "#0f1b2d", 11); C4.label(c, C4.uni(s.f), x0 + cw / 2, base + 14, "#0f1b2d", 12); });
       C4.label(c, "masses (g) : gris = avant, couleur = après", W / 2, 290, "#5f6b7a", 12);
       var pr = e.p[0], mp = pr[0] * xm * C4.M(pr[1]), left = (n[ex] - e.r[ex][0] * xm) * M[ex];
@@ -88,12 +135,12 @@ SFA.sim({
     var nt = k.note("", "");
     k.draw(function(){
       var ns = ms.value / 138, na = va.value * 1.08 / 102, li = ns <= na ? "acide salicylique" : "anhydride acétique", xm = Math.min(ns, na), th = xm * 180, rd = mo.value / th * 100;
-      c.clear(); var W = c.W, sc = 200 / Math.max(th, mo.value, 0.01) * 0.85;
+      c.clear(); C4.bg(c); var W = c.W, sc = 200 / Math.max(th, mo.value, 0.01) * 0.85;
       C4.rr(c.ctx, 40, 235 - th * sc, 90, th * sc, 4); c.ctx.fillStyle = "#dfe4ea"; c.ctx.fill(); c.ctx.strokeStyle = "#8a95a3"; c.ctx.stroke();
-      C4.rr(c.ctx, 160, 235 - mo.value * sc, 90, Math.max(2, mo.value * sc), 4); c.ctx.fillStyle = rd > 100.5 ? "#b42318" : "#2e6b55"; c.ctx.fill();
+      C4.rr(c.ctx, 160, 235 - mo.value * sc, 90, Math.max(2, mo.value * sc), 4); c.ctx.fillStyle = rd > 100.5 ? "#c0321d" : "#24775a"; c.ctx.fill();
       C4.label(c, "théorique", 85, 250, "#2c3a4e", 12); C4.label(c, S.fmt(th, 2) + " g", 85, 230 - th * sc, "#2c3a4e", 13);
       C4.label(c, "obtenu", 205, 250, "#2c3a4e", 12); C4.label(c, S.fmt(mo.value, 2) + " g", 205, 230 - mo.value * sc, "#2c3a4e", 13);
-      C4.label(c, S.fmt(rd, 0) + " %", W * 0.78, 110, rd > 100.5 ? "#b42318" : "#1e3f8f", 34);
+      C4.label(c, S.fmt(rd, 0) + " %", W * 0.78, 110, rd > 100.5 ? "#c0321d" : "#1f4b9e", 34);
       C4.label(c, "n(acide sal.) = " + S.fmt(ns * 1000, 1) + " mmol", W * 0.55, 160, "#5f6b7a", 12, "left"); C4.label(c, "n(anhydride) = " + S.fmt(na * 1000, 1) + " mmol", W * 0.55, 180, "#5f6b7a", 12, "left");
       ro.set(0, li); ro.set(1, S.fmt(th, 2) + " g"); ro.set(2, S.fmt(rd, 1) + " %");
       nt.set(rd > 100.5 ? "Rendement > 100 % : impossible. Le produit est sans doute humide ou impur." : rd > 85 ? "Très bon rendement pour une synthèse au laboratoire." : "Les pertes viennent des transferts, de la recristallisation, des produits secondaires.", rd > 100.5 ? "warn" : "");
@@ -120,14 +167,14 @@ SFA.sim({
     k.button("▶ Allumer", function(){ st.p = 0; lp.play(); }, true); k.button("↺ Remettre", function(){ lp.pause(); st.p = 0; });
     k.draw(function(){
       var nO = 0.21 * V.value / 24, nC = F.value / 1000 / 24, xm = Math.min(nC, nO / 2), li = nC < nO / 2 ? "CH₄" : nC > nO / 2 ? "O₂" : "aucun", x = xm * st.p;
-      c.clear(); var W = c.W, ctx = c.ctx, cx = W * 0.25;
+      c.clear(); C4.bg(c); var W = c.W, ctx = c.ctx, cx = W * 0.25;
       ctx.strokeStyle = "#5f6b7a"; ctx.lineWidth = 3; ctx.fillStyle = "rgba(200,225,240,.3)"; C4.rr(ctx, cx - 62, 30, 124, 190, 14); ctx.fill(); ctx.stroke();
       ctx.fillStyle = "#8a95a3"; ctx.fillRect(cx - 5, 190, 10, 30);
       var alive = st.p < 1 && st.p > 0, fl = alive ? 38 : (st.p === 0 ? 20 : 0), jit = alive ? Math.sin(Date.now() / 90) * 3 : 0;
       if (fl > 0){ ctx.fillStyle = "#f4a640"; ctx.beginPath(); ctx.moveTo(cx - 8, 190); ctx.quadraticCurveTo(cx + jit, 190 - fl * 1.6, cx + 8, 190); ctx.fill(); }
-      C4.label(c, st.p === 0 ? "prête" : alive ? "flamme" : "flamme éteinte", cx, 240, alive ? "#b45309" : "#5f6b7a", 13);
+      C4.label(c, st.p === 0 ? "prête" : alive ? "flamme" : "flamme éteinte", cx, 240, alive ? "#c26a0c" : "#5f6b7a", 13);
       var bx = W * 0.5, bw = (W - bx - 20) / 3, base = 235, hs = 160 / Math.max(nO, nC * 2, 1e-9) / 1.1;
-      var vals = [[nO - 2 * x, "O₂", "#1e3f8f", nO], [nC - x, "CH₄", "#b42318", nC], [x, "CO₂", "#2e6b55", 0]];
+      var vals = [[nO - 2 * x, "O₂", "#1f4b9e", nO], [nC - x, "CH₄", "#c0321d", nC], [x, "CO₂", "#24775a", 0]];
       vals.forEach(function(v, i){ var xx = bx + i * bw; ctx.fillStyle = "#e6eaf0"; ctx.fillRect(xx + 4, base - v[3] * hs, bw - 14, v[3] * hs); ctx.fillStyle = v[2]; ctx.fillRect(xx + 4, base - Math.max(0, v[0]) * hs, bw - 14, Math.max(0, v[0]) * hs); C4.label(c, v[1], xx + bw / 2 - 3, base + 14, "#0f1b2d", 12); C4.label(c, S.fmt(Math.max(0, v[0]) * 1000, 1), xx + bw / 2 - 3, base - Math.max(0, v[0]) * hs - 9, "#0f1b2d", 11); });
       C4.label(c, "mmol", bx - 2, 50, "#5f6b7a", 12, "left");
       ro.set(0, S.fmt(nO * 1000, 2) + " mmol"); ro.set(1, S.fmt(nC * 1000, 2) + " mmol"); ro.set(2, li); ro.set(3, S.fmt(xm * 1000, 2) + " mmol (" + S.fmt(xm * 24000, 0) + " mL)");

@@ -115,58 +115,85 @@ SFA.sim({
 SFA.sim({
   id: "p6-c02-moteur-cc", ch: "c02", tag: "Moteur",
   titre: "Le moteur à courant continu et son commutateur",
-  resume: "Une spire dans un champ : le couple change avec l'angle. Pourquoi le commutateur est indispensable.",
-  but: "Vue de bout : la spire a deux côtés actifs (⊙ et ⊗) qui subissent des forces opposées. Compare avec et sans commutateur ; le graphe montre le couple en fonction de l'angle.",
+  resume: "Une spire dans un champ : le couple change avec l'angle. Lâche le moteur, saisis la spire à la main, compare avec et sans commutateur.",
+  but: "Vue de bout : la spire a deux côtés actifs (⊙ et ⊗) qui subissent des forces opposées. Lâche le moteur et compare avec et sans commutateur ; tu peux aussi attraper la spire avec la souris ou le doigt pour la tourner. Le graphe montre le couple selon l'angle.",
   aRetenir: "Une spire de N tours, d'aire A, dans un champ B : couple Γ = N·B·I·A·cos α (α = angle entre le plan de la spire et B). Sans commutateur, le couple s'inverse après 90° et la spire se stabilise (plan perpendiculaire à B). Le commutateur inverse le courant à chaque demi-tour : le couple garde le même sens, la spire tourne.",
-  piege: "Le couple n'est pas constant : il s'annule quand le plan de la spire est perpendiculaire au champ (« point mort »). Un vrai moteur utilise plusieurs bobines décalées pour lisser le couple. Le mouvement de la spire sans commutateur est schématique (oscillation amortie).",
+  piege: "Le couple n'est pas constant : il s'annule quand le plan de la spire est perpendiculaire au champ (« point mort »). Un vrai moteur utilise plusieurs bobines décalées pour lisser le couple. La vitesse est calculée avec un frottement visqueux simple (modèle simplifié).",
   build: function(k, S){
-    var c = k.canvas(260), g = k.canvas(190), P = S.draw.palette;
+    var c = k.canvas(330), g = k.canvas(190), P = S.draw.palette, Pm = window.PH6;
     var N = k.slider("Nombre de spires N", 20, 200, 10, 100, "");
     var B = k.slider("Champ B", 0.05, 0.5, 0.05, 0.1, "T");
     var I = k.slider("Intensité I", 0.5, 5, 0.5, 2, "A");
-    var comm = k.seg("Collecteur", [["avec", "Avec commutateur"], ["sans", "Sans commutateur"]], "avec", function(){ t = 0; });
-    var ro = k.readouts(["Couple maximal", "Couple moyen sur un tour", "Couple à l'instant"]);
-    var A = 0.01, t = 0, alpha = 0;
+    var comm = k.seg("Collecteur", [["avec", "Avec commutateur"], ["sans", "Sans commutateur"]], "avec");
+    var run = true, alpha = 0.35, om = 0, hold = false, A = 0.01, Jm = 0.005, fr = 0.02;
+    k.button("Lâcher / arrêter le moteur", function(){ run = !run; if (run) hold = false; else om = 0; }, true);
+    k.button("Remettre à 20°", function(){ alpha = 0.35; om = 0; });
+    var ro = k.readouts(["Couple maximal", "Couple moyen sur un tour", "Vitesse de rotation", "Couple à l'instant"]);
     var lp = k.loop(function(dt){
-      t += dt;
-      if (comm.value === "avec") alpha = (t * 2.2) % (2 * Math.PI);
-      else alpha = Math.PI / 2 * (1 - Math.exp(-t / 1.6) * Math.cos(t * 3.2));
+      if (run && !hold){
+        var T0 = N.value * B.value * I.value * A, n = 4, h = dt / n;
+        for (var i = 0; i < n; i++){
+          var cs = Math.cos(alpha), gam = comm.value === "avec" ? T0 * Math.abs(cs) : T0 * cs;
+          om += (gam - fr * om) / Jm * h; alpha += om * h;
+        }
+        alpha = ((alpha % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
+      }
       k.redraw();
     });
     lp.play();
+    var geo = {};
+    c.cv.style.touchAction = "none"; c.cv.style.cursor = "grab";
+    c.pointer(function(t, p){
+      if (t === "down"){ hold = true; om = 0; }
+      if (t === "down" || t === "drag"){ if (!hold) return; var dx = p.x - geo.cx, dy = -(p.y - geo.cy); if (dx * dx + dy * dy > 16) alpha = (Math.atan2(dy, dx) + 2 * Math.PI) % (2 * Math.PI); }
+      if (t === "up"){ hold = false; }
+    });
     k.draw(function(){
-      c.clear(); g.clear(); var ctx = c.ctx, cx = c.W / 2, cy = c.H / 2, w = 70, tm = N.value * B.value * I.value * A;
-      var cosA = Math.cos(alpha), avec = comm.value === "avec";
-      var sgn = avec ? (cosA >= 0 ? 1 : -1) : 1;   /* le commutateur inverse le courant à chaque demi-tour */
-      /* champ horizontal */
-      for (var j = -3; j <= 3; j++) if (j) S.draw.arrow(c, cx - 190, cy + j * 34, cx - 100, cy + j * 34, "#b5c3da", 2), S.draw.arrow(c, cx + 100, cy + j * 34, cx + 190, cy + j * 34, "#b5c3da", 2);
-      S.draw.text(c, "B", cx - 205, cy - 8, {size: 14, math: true, color: P.acc});
-      /* aimants */
-      ctx.fillStyle = "rgba(180,35,24,.15)"; ctx.fillRect(cx - 230, cy - 120, 20, 240); ctx.fillStyle = "rgba(30,63,143,.15)"; ctx.fillRect(cx + 210, cy - 120, 20, 240);
-      S.draw.text(c, "N", cx - 220, cy, {size: 14, color: P.red}); S.draw.text(c, "S", cx + 220, cy, {size: 14, color: P.acc});
-      /* spire : plan à l'angle alpha de B */
+      c.clear(); g.clear(); Pm.bg(c); var ctx = c.ctx, W = c.W, H = c.H, cx = W / 2, cy = H / 2 - 6; geo.cx = cx; geo.cy = cy;
+      var w = Math.min(78, W * 0.2), tm = N.value * B.value * I.value * A, cosA = Math.cos(alpha), avec = comm.value === "avec";
+      var sgn = avec ? (cosA >= 0 ? 1 : -1) : 1;
+      /* pôles de l'aimant */
+      var pw = Math.max(34, W * 0.1), ph = H * 0.62;
+      [[8, P.red, "N"], [W - 8 - pw, P.acc, "S"]].forEach(function(m){
+        var gr = ctx.createLinearGradient(m[0], 0, m[0] + pw, 0); gr.addColorStop(0, Pm.mix(m[1], "#ffffff", 0.3)); gr.addColorStop(1, Pm.mix(m[1], "#000000", 0.25));
+        S.draw.rrect(c, m[0], cy - ph / 2, pw, ph, 8); ctx.fillStyle = gr; ctx.fill(); ctx.strokeStyle = "rgba(19,35,58,.6)"; ctx.lineWidth = 1.3; ctx.stroke();
+        S.draw.text(c, m[2], m[0] + pw / 2, cy, {size: 22, color: "#fff", weight: 800});
+      });
+      /* lignes de champ de N vers S */
+      for (var j = -3; j <= 3; j++){ var yy = cy + j * ph / 8; S.draw.arrow(c, 8 + pw + 6, yy, 8 + pw + 30, yy, "#aebfdc", 2); S.draw.arrow(c, W - 8 - pw - 32, yy, W - 8 - pw - 6, yy, "#aebfdc", 2); S.draw.line(c, 8 + pw + 34, yy, W - 8 - pw - 36, yy, "rgba(150,170,205,.35)", 1.5); }
+      S.draw.label(c, "B →", cx, cy - ph / 2 - 8, {color: P.acc});
+      /* collecteur : bague fendue, balais à gauche (+) et à droite (−) */
+      var rr = 19, a1 = alpha;
+      if (avec){
+        [[a1 - Math.PI / 2, a1 + Math.PI / 2, "#d68a2f"], [a1 + Math.PI / 2, a1 + 3 * Math.PI / 2, "#a85f12"]].forEach(function(h){
+          ctx.beginPath(); ctx.arc(cx, cy, rr, -h[1], -h[0]); ctx.lineWidth = 9; ctx.strokeStyle = h[2]; ctx.lineCap = "butt"; ctx.stroke(); });
+        ctx.beginPath(); ctx.arc(cx, cy, rr + 5, 0, 7); ctx.lineWidth = 1; ctx.strokeStyle = "rgba(19,35,58,.5)"; ctx.stroke();
+      } else { ctx.beginPath(); ctx.arc(cx, cy, rr, 0, 7); ctx.lineWidth = 9; ctx.strokeStyle = "#d68a2f"; ctx.stroke(); }
+      [[-1, "+", P.red], [1, "−", P.acc]].forEach(function(b){ Pm.metal(c, cx + b[0] * (rr + 6) - (b[0] < 0 ? 12 : 0), cy - 6, 12, 12, 2, "#5b6573"); S.draw.text(c, b[1], cx + b[0] * (rr + 26), cy - 15, {size: 14, color: b[2], weight: 800}); });
+      /* spire */
       var x1 = cx + w * Math.cos(alpha), y1 = cy - w * Math.sin(alpha), x2 = 2 * cx - x1, y2 = 2 * cy - y1;
-      S.draw.line(c, x1, y1, x2, y2, P.amber, 5);
-      /* courants (alternent avec commutateur) : côté 1 sortant si sgn>0 */
-      function sym(x, y, out){ ctx.beginPath(); ctx.arc(x, y, 11, 0, 7); ctx.fillStyle = "#fff"; ctx.fill(); ctx.strokeStyle = P.ink; ctx.lineWidth = 2; ctx.stroke();
-        if (out) S.draw.dot(c, x, y, 3.5, P.ink); else { S.draw.line(c, x - 5, y - 5, x + 5, y + 5, P.ink, 2); S.draw.line(c, x - 5, y + 5, x + 5, y - 5, P.ink, 2); } }
-      sym(x1, y1, sgn > 0); sym(x2, y2, sgn < 0);
-      /* forces : côté sortant → vers le haut */
-      var fl = 46 * (0.35 + 0.65 * Math.min(1, tm / 5));
-      S.draw.arrow(c, x1, y1 - 14, x1, y1 - 14 - (sgn > 0 ? fl : -fl) * 1, P.red, 3);
-      S.draw.arrow(c, x2, y2 + 14, x2, y2 + 14 + (sgn > 0 ? fl : -fl) * 1, P.red, 3);
+      S.draw.line(c, x1, y1, x2, y2, "#e0953a", 7); S.draw.line(c, x1, y1, x2, y2, "#f3c585", 2.5);
       S.draw.dot(c, cx, cy, 4, P.ink);
-      S.draw.text(c, "α = " + S.fmt(alpha * 180 / Math.PI, 0) + "°", cx, c.H - 14, {size: 13});
-      var inst = tm * cosA * sgn;
-      var mean = avec ? 2 / Math.PI * tm : 0;
-      ro.set(0, S.fmt(tm, 3) + " N·m"); ro.set(1, avec ? S.fmt(mean, 3) + " N·m" : "0 (sur un tour)"); ro.set(2, S.fmt(inst, 3) + " N·m");
-      /* graphe couple/angle */
-      var ax = S.draw.axes(g, {x0: 0, x1: 360, y0: -tm * 1.1, y1: tm * 1.1, xl: "α (°)", yl: "Γ (N·m)", l: 56, t: 18, stepX: 90});
-      S.draw.fn(g, ax, function(x){ return tm * Math.cos(x * Math.PI / 180); }, P.acc, 2.2, [6, 4]);
-      S.draw.fn(g, ax, function(x){ return tm * Math.abs(Math.cos(x * Math.PI / 180)); }, P.red, 2.8);
+      function sym(x, y, out){ ctx.beginPath(); ctx.arc(x, y, 12, 0, 7); ctx.fillStyle = "#fff"; ctx.fill(); ctx.strokeStyle = P.ink; ctx.lineWidth = 2; ctx.stroke();
+        if (out) S.draw.dot(c, x, y, 3.8, P.ink); else { S.draw.line(c, x - 5, y - 5, x + 5, y + 5, P.ink, 2.2); S.draw.line(c, x - 5, y + 5, x + 5, y - 5, P.ink, 2.2); } }
+      sym(x1, y1, sgn > 0); sym(x2, y2, sgn < 0);
+      /* forces */
+      var fl = 18 + 40 * Math.min(1, tm / 4);
+      if (Math.abs(cosA) > 0.04 || !avec){ var dirF = (sgn > 0 ? 1 : -1);
+        S.draw.arrow(c, x1, y1 - dirF * 16, x1, y1 - dirF * (16 + fl), P.red, 3.5); S.draw.arrow(c, x2, y2 + dirF * 16, x2, y2 + dirF * (16 + fl), P.red, 3.5); }
+      S.draw.label(c, "F", x1 + 14, y1 - (sgn > 0 ? 1 : -1) * (16 + fl / 2), {color: P.red, size: 12});
       var ad = alpha * 180 / Math.PI;
-      S.draw.dot(g, ax.X(ad), ax.Y(inst), 6, P.ink);
-      S.draw.text(g, "rouge : avec commutateur   bleu pointillé : sans", ax.R - 4, ax.T + 8, {size: 12, align: "right", color: P.ink});
+      S.draw.label(c, "α = " + S.fmt(ad, 0) + " °", cx, H - 16, {color: P.ink, size: 13});
+      if (hold) S.draw.label(c, "tu tiens la spire", cx, 18, {color: P.amber, size: 12});
+      var inst = tm * cosA * sgn, mean = avec ? 2 / Math.PI * tm : 0;
+      ro.set(0, S.fmt(tm, 3) + " N·m"); ro.set(1, avec ? S.fmt(mean, 3) + " N·m" : "0 (sur un tour)");
+      ro.set(2, S.fmt(Math.abs(om) * 60 / (2 * Math.PI), 0) + " tr/min"); ro.set(3, S.fmt(inst, 3) + " N·m");
+      /* graphe */
+      var ax = S.draw.axes(g, {x0: 0, x1: 360, y0: -tm * 1.15, y1: tm * 1.15, xl: "α (°)", yl: "Γ (N·m)", l: 56, t: 22, stepX: 90});
+      S.draw.fn(g, ax, function(x){ return tm * Math.cos(x * Math.PI / 180); }, P.acc, 2.2, [6, 4]);
+      S.draw.fn(g, ax, function(x){ return tm * Math.abs(Math.cos(x * Math.PI / 180)); }, P.red, 3);
+      S.draw.dot(g, ax.X(ad), ax.Y(inst), 7, P.ink);
+      S.draw.legend(g, [[P.red, "avec commutateur"], [P.acc, "sans commutateur", true]], g.W - 10, 4, {align: "right"});
     });
   }
 });
@@ -174,48 +201,85 @@ SFA.sim({
 SFA.sim({
   id: "p6-c02-spectrometre", ch: "c02", tag: "Niche · Chimie",
   titre: "Spectromètre de masse : trier des isotopes",
-  resume: "Des ions accélérés puis déviés par B se posent à 2r du point d'entrée : r = (1/B)·√(2·m·U/q).",
-  but: "Choisis un élément. La tension U accélère les ions, le champ B les fait tourner en demi-cercle. Plus l'ion est lourd, plus il tombe loin. Observe le spectre de masse en bas.",
+  resume: "Des ions accélérés puis déviés par B se posent à 2r du point d'entrée : r = (1/B)·√(2·m·U/q). Place la fente pour collecter un isotope.",
+  but: "Choisis un élément. La tension U accélère les ions, le champ B les fait tourner en demi-cercle. Plus l'ion est lourd, plus il tombe loin. Glisse la fente sur la plaque, ou lance le défi : règle U ou B pour qu'un isotope précis passe dans la fente.",
   aRetenir: "Accélération : q·U = ½·m·v². Déviation : r = m·v/(q·B). D'où r = (1/B)·√(2·m·U/q). À U et B fixés, r est proportionnel à √m : les isotopes lourds tombent plus loin. La hauteur des pics donne l'abondance de chaque isotope.",
   piege: "La tension U ne trie pas les isotopes : à U fixée, tous les ions de même charge reçoivent la même énergie cinétique, les plus lourds vont simplement moins vite. Le tri vient de la déviation dans B : l'ion le plus lourd a la plus grande quantité de mouvement, donc le plus grand rayon. Modèle : ions simplement chargés (q = +e), dans le vide, sans relativité.",
   build: function(k, S){
-    var c = k.canvas(330), P = S.draw.palette, u = 1.66054e-27, e = 1.60218e-19;
+    var c = k.canvas(440), P = S.draw.palette, Pm = window.PH6, u = 1.66054e-27, e = 1.60218e-19;
     var els = {
-      Ne: {n: "Néon", iso: [[20, 19.99244, 90.5], [22, 21.99139, 9.5]]},
-      Cl: {n: "Chlore", iso: [[35, 34.96885, 75.8], [37, 36.96590, 24.2]]},
-      Mg: {n: "Magnésium", iso: [[24, 23.98504, 79.0], [25, 24.98584, 10.0], [26, 25.98259, 11.0]]},
-      Cu: {n: "Cuivre", iso: [[63, 62.92960, 69.2], [65, 64.92779, 30.8]]}
+      Ne: {n: "Néon", s: "Ne", iso: [[20, 19.99244, 90.5], [22, 21.99139, 9.5]]},
+      Cl: {n: "Chlore", s: "Cl", iso: [[35, 34.96885, 75.8], [37, 36.96590, 24.2]]},
+      Mg: {n: "Magnésium", s: "Mg", iso: [[24, 23.98504, 79.0], [25, 24.98584, 10.0], [26, 25.98259, 11.0]]},
+      Cu: {n: "Cuivre", s: "Cu", iso: [[63, 62.92960, 69.2], [65, 64.92779, 30.8]]}
     };
-    var el = k.select("Élément", [["Ne", "Néon (²⁰Ne, ²²Ne)"], ["Cl", "Chlore (³⁵Cl, ³⁷Cl)"], ["Mg", "Magnésium (²⁴Mg, ²⁵Mg, ²⁶Mg)"], ["Cu", "Cuivre (⁶³Cu, ⁶⁵Cu)"]], "Ne");
+    var sup = {20: "²⁰", 22: "²²", 35: "³⁵", 37: "³⁷", 24: "²⁴", 25: "²⁵", 26: "²⁶", 63: "⁶³", 65: "⁶⁵"};
+    var el = k.select("Élément", [["Ne", "Néon (²⁰Ne, ²²Ne)"], ["Cl", "Chlore (³⁵Cl, ³⁷Cl)"], ["Mg", "Magnésium (²⁴Mg, ²⁵Mg, ²⁶Mg)"], ["Cu", "Cuivre (⁶³Cu, ⁶⁵Cu)"]], "Ne", function(){ slit = null; goal = null; });
     var U = k.slider("Tension d'accélération U", 200, 5000, 100, 2000, "V");
     var B = k.slider("Champ B", 0.05, 0.5, 0.01, 0.2, "T");
-    var ro = k.readouts(["Rayon (isotope léger)", "Rayon (isotope lourd)", "Écart entre les impacts"]);
-    var cols = [P.acc, P.red, P.green];
-    function rad(mu){ return Math.sqrt(2 * mu * u * U.value / e) / B.value; }
+    var slit = null, goal = null, tt = 0, geo = {};   /* slit : position physique (m) de la fente, mesurée depuis la source */
+    function rad(mu, UU, BB){ return Math.sqrt(2 * mu * u * (UU === undefined ? U.value : UU) / e) / (BB === undefined ? B.value : BB); }
+    k.button("Défi : fais passer l'isotope le plus lourd dans la fente", function(){
+      var E = els[el.value], mu = E.iso[E.iso.length - 1][1], U0 = 400 + Math.round(Math.random() * 40) * 100, B0 = 0.1 + Math.round(Math.random() * 30) / 100;
+      slit = 2 * rad(mu, U0, B0); goal = {j: E.iso.length - 1, el: el.value};
+      U.set(U.value === U0 ? U0 + 600 : 2000); B.set(B.value === B0 ? B0 + 0.05 : 0.2);
+    }, true);
+    k.button("Retirer la fente", function(){ slit = null; goal = null; });
+    var ro = k.readouts(["Rayon (isotope léger)", "Rayon (isotope lourd)", "Écart entre les impacts", "Dans la fente"]);
+    var nt = k.note("Les ions décrivent un demi-cercle de rayon r, puis frappent la plaque à 2r de la source.");
+    var lp = k.loop(function(dt){ tt += dt; k.redraw(); }); lp.play();
     function len(m){ return m >= 1 ? S.fmt(m, 2) + " m" : S.fmt(m * 100, 1) + " cm"; }
+    c.cv.style.touchAction = "none"; c.cv.style.cursor = "ew-resize";
+    c.pointer(function(t, p){
+      if ((t === "down" || t === "drag") && geo.sc){ var d = (p.x - geo.x0) / geo.sc; slit = Math.max(0.01, Math.min(d, (c.W - geo.x0 - 8) / geo.sc)); }
+    });
     k.draw(function(){
-      c.clear(); var ctx = c.ctx, W = c.W, H = c.H, E = els[el.value], iso = E.iso;
+      c.clear(); Pm.bg(c); var ctx = c.ctx, W = c.W, H = c.H, E = els[el.value], iso = E.iso, cols = [P.acc, P.red, P.green];
       var rs = iso.map(function(i){ return rad(i[1]); }), rmax = Math.max.apply(null, rs);
-      var yd = H - 90, x0 = 50, avail = W - 90, sc = Math.min(avail / (2 * rmax), (yd - 30) / rmax);
-      /* champ entrant (croix) */
-      for (var gx = 30; gx < W; gx += 40) for (var gy = 20; gy < yd - 6; gy += 40){ ctx.strokeStyle = "#cdd4de"; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.arc(gx, gy, 5, 0, 7); ctx.stroke(); ctx.beginPath(); ctx.arc(gx, gy, 1.4, 0, 7); ctx.fillStyle = "#cdd4de"; ctx.fill(); }
-      S.draw.line(c, 20, yd, W - 20, yd, P.ink, 3);
-      S.draw.text(c, "plaque détectrice", W - 20, yd + 14, {size: 12, align: "right", color: P.grey});
-      S.draw.text(c, "B ⊙ (sortant)", 24, 14, {size: 12, align: "left", color: P.grey});
-      /* trajectoires : demi-cercles posés sur yd, départ en x0 */
+      var yd = H - 130, x0 = 38, avail = W - x0 - 22, sc = Math.min(avail / (2 * rmax), (yd - 56) / rmax); geo.sc = sc; geo.x0 = x0;
+      /* champ sortant (points) */
+      for (var gx = 28; gx < W - 10; gx += 36) for (var gy = 28; gy < yd - 8; gy += 36){ ctx.strokeStyle = "#c5cfdd"; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.arc(gx, gy, 4.6, 0, 7); ctx.stroke(); ctx.beginPath(); ctx.arc(gx, gy, 1.3, 0, 7); ctx.fillStyle = "#c5cfdd"; ctx.fill(); }
+      S.draw.label(c, "B ⊙ (vers toi)", 12, 14, {color: P.grey, align: "left", size: 11.5});
+      /* plaque */
+      Pm.metal(c, 10, yd, W - 20, 8, 3, "#7d8795");
+      /* accélérateur : deux plaques et tension */
+      Pm.metal(c, x0 - 22, yd + 14, 44, 5, 2, "#c9a24a"); Pm.metal(c, x0 - 22, yd + 24, 44, 5, 2, "#7d8795");
+      S.draw.label(c, "U", x0 + 34, yd + 22, {color: P.amber, size: 11.5});
+      S.draw.dot(c, x0, yd + 4, 5, P.ink); S.draw.text(c, "source", x0, yd + 40, {size: 11.5, color: P.grey});
+      /* trajectoires et ions animés */
       iso.forEach(function(i, j){
-        var R = rs[j] * sc;
-        ctx.beginPath(); ctx.arc(x0 + R, yd, R, Math.PI, 2 * Math.PI); ctx.strokeStyle = cols[j]; ctx.lineWidth = 2.6; ctx.stroke();
-        S.draw.dot(c, x0 + 2 * R, yd, 5, cols[j]);
-        S.draw.text(c, i[0] + el.value, x0 + 2 * R, yd - 14 - j * 14, {size: 12, color: cols[j]});
+        var R = rs[j] * sc, cxx = x0 + R;
+        ctx.beginPath(); ctx.arc(cxx, yd, R, Math.PI, 2 * Math.PI); ctx.strokeStyle = Pm.mix(cols[j], "#ffffff", 0.45); ctx.lineWidth = 2; ctx.setLineDash([5, 4]); ctx.stroke(); ctx.setLineDash([]);
+        var T = 2.2 + 1.2 * Math.sqrt(rs[j] / rmax), ph = ((tt + j * 0.4) % (T + 0.5)) / T, f = Math.min(1, ph);
+        for (var q = 8; q >= 0; q--){ var ff = Math.max(0, f - q * 0.012), aa = Math.PI + ff * Math.PI; if (f >= 1 && q > 0) continue; ctx.globalAlpha = 1 - q * 0.11; S.draw.dot(c, cxx + R * Math.cos(aa), yd + R * Math.sin(aa), q ? 3 : 5.2, cols[j]); }
+        ctx.globalAlpha = 1;
+        /* impact */
+        var X = x0 + 2 * R; S.draw.dot(c, X, yd, 5, cols[j]);
       });
-      S.draw.dot(c, x0, yd, 6, P.ink); S.draw.text(c, "source", x0, yd + 14, {size: 12});
-      /* spectre (positions relatives) */
-      var sy = H - 28, spec = [];
-      S.draw.line(c, x0, sy, x0 + 2 * rmax * sc, sy, P.grey, 1);
-      iso.forEach(function(i, j){ var X = x0 + 2 * rs[j] * sc, hgt = 36 * i[2] / 100; ctx.fillStyle = cols[j]; ctx.fillRect(X - 3, sy - hgt - 4, 6, hgt + 4); S.draw.text(c, S.fmt(i[2], 1) + " %", X, sy - hgt - 12, {size: 12, color: cols[j]}); });
-      ro.set(0, len(rs[0])); ro.set(1, len(rs[rs.length - 1]));
-      ro.set(2, S.fmt((2 * rs[rs.length - 1] - 2 * rs[0]) * 1000, 1) + " mm");
+      /* spectre sous la plaque */
+      var by = yd + 70;
+      S.draw.line(c, 10, by, W - 10, by, "#d5dce6", 1);
+      iso.forEach(function(i, j){
+        var X = x0 + 2 * rs[j] * sc, hgt = 34 * i[2] / 100 + 3;
+        ctx.fillStyle = cols[j]; S.draw.rrect(c, X - 4, by - hgt, 8, hgt, 2); ctx.fill();
+        S.draw.line(c, X, yd + 6, X, by - hgt - 1, Pm.mix(cols[j], "#ffffff", 0.55), 1, [2, 3]);
+        S.draw.label(c, sup[i[0]] + E.s + "  " + S.fmt(i[2], 1) + " %", Math.min(W - 52, Math.max(52, X)), by + 14 + j * 18, {color: cols[j], size: 11.5});
+      });
+      /* fente */
+      var inSlit = "—";
+      if (slit !== null){
+        var sx = x0 + slit * sc; ctx.fillStyle = "rgba(19,35,58,.9)"; ctx.fillRect(sx - 14, yd - 2, 10, 12); ctx.fillRect(sx + 4, yd - 2, 10, 12);
+        S.draw.arrow(c, sx, yd - 30, sx, yd - 8, P.amber, 2.5); S.draw.label(c, "fente : " + len(slit), sx, yd - 40, {color: P.amber, size: 11.5});
+        var tol = Math.max(0.004, slit * 0.012), best = null;
+        iso.forEach(function(i, j){ if (Math.abs(2 * rs[j] - slit) <= tol) best = j; });
+        inSlit = best === null ? "rien" : sup[iso[best][0]] + E.s;
+        if (goal && goal.el === el.value){
+          var ok = best === goal.j;
+          nt.set("<b>Défi :</b> la fente est fixée à " + len(slit) + ". Règle U et/ou B pour que le ion le plus lourd (" + sup[iso[goal.j][0]] + E.s + ") y entre. " + (ok ? "Réussi : r = " + len(rs[goal.j]) + " et 2r = " + len(2 * rs[goal.j]) + "." : "Pour l'instant, 2r = " + len(2 * rs[goal.j]) + "."), ok ? "ok" : "warn");
+        }
+      }
+      ro.set(0, len(rs[0])); ro.set(1, len(rs[rs.length - 1])); ro.set(2, S.fmt((2 * rs[rs.length - 1] - 2 * rs[0]) * 1000, 1) + " mm"); ro.set(3, inSlit);
     });
   }
 });
+

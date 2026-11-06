@@ -125,7 +125,7 @@ SFA.figs("c09", [
     var u1 = [2 / Math.sqrt(5), -1 / Math.sqrt(5)], u2 = [1 / Math.sqrt(5), 2 / Math.sqrt(5)]; umb_vec(m, 6 * u1[0], 6 * u1[1], GREEN, '', 3); umb_vec(m, u2[0], u2[1], VIOLET, '', 3);
     umb_TB('6 v₁', m.X(6 * u1[0]) + 6, m.Y(6 * u1[1]) + 18, DGREEN, 13, 'left'); umb_TB('1 v₂', m.X(u2[0]) - 18, m.Y(u2[1]) - 6, VIOLET, 12, 'left');
     if (p > 0){ ctx.globalAlpha = umb_clamp(p, 0, .4); LN(m.X(-6.2 * u1[0]), m.Y(-6.2 * u1[1]), m.X(6.2 * u1[0]), m.Y(6.2 * u1[1]), 'rgba(15,110,86,.45)', 1.6, [5, 4]); ctx.globalAlpha = 1; }
-    umb_TB('A = PDP⁻¹', W * .03, H * .12, INK, 14, 'left'); umb_TB('D = diag(6 ; 1)', W * .03, H * .26, DRED, 12, 'left'); },
+    umb_TB('A = PDP⁻¹', W * .03, H * .12, INK, 14, 'left'); umb_TB('D = diag(6 ; 1)', W * .03, H * .93, DRED, 12, 'left'); },
   /* 8 maladie */
   function(p){ function box(x, y, c, l, v){ ctx.fillStyle = '#fff'; ctx.strokeStyle = c; ctx.lineWidth = 2.6; ctx.beginPath(); ctx.roundRect(x - 52, y - 34, 104, 68, 12); ctx.fill(); ctx.stroke(); umb_TB(l, x, y - 8, c, 13); umb_TB(v, x, y + 18, INK, 15); }
     var xs = W * .22, xm = W * .78, yy = H * .4; box(xs, yy, DGREEN, 'sains', p > 0 ? '2/3' : 'S'); box(xm, yy, DRED, 'malades', p > 0 ? '1/3' : 'M');

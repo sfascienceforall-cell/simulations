@@ -156,32 +156,63 @@ SFA.sim({
 SFA.sim({
   id: "p6-c06-ola", ch: "c06", tag: "Niche · Stade",
   titre: "L'ola : une onde qui traverse la foule sans déplacer personne",
-  resume: "Chaque spectateur se lève avec un retard sur son voisin : l'onde avance à v = distance entre sièges / retard.",
-  but: "Une rangée de spectateurs se lève l'un après l'autre. Règle le retard entre voisins et la durée debout. Suis le spectateur numéro 10 (en rouge) : il ne quitte jamais son siège.",
+  resume: "Clique sur un spectateur pour lancer l'ola : chacun se lève avec un retard sur son voisin, et l'onde avance à v = distance entre sièges / retard.",
+  but: "Clique (ou touche) un spectateur pour lancer l'ola depuis son siège ; il devient le spectateur suivi (en rouge). Règle le retard entre voisins et la durée debout. La « photo » montre la bosse dans l'espace, le « film » montre ce que vit un seul spectateur dans le temps.",
   aRetenir: "Une onde est la propagation d'une perturbation de proche en proche. Ici, la vitesse de l'onde est v = (distance entre sièges) / (retard entre voisins), sans que personne ne se déplace. Le nombre de personnes debout en même temps vaut (durée debout) / (retard), et la « longueur » de la bosse est v × durée debout.",
   piege: "On confond souvent la vitesse de l'onde (plusieurs m/s) avec celle des spectateurs (ils font juste un aller-retour vertical). Une onde transporte de l'information et de l'énergie, pas de la matière.",
   build: function(k, S){
-    var c = k.canvas(230), P = S.draw.palette;
+    var c = k.canvas(270), g1 = k.canvas(120), g2 = k.canvas(120), P = S.draw.palette, Pm = window.PH6;
     var dl = k.slider("Retard entre voisins", 0.04, 0.5, 0.02, 0.1, "s");
     var du = k.slider("Durée debout", 0.3, 1.5, 0.1, 0.8, "s");
+    var dr = k.seg("Sens de l'ola", [["1", "vers la droite →"], ["-1", "← vers la gauche"]], "1");
+    var cont = k.toggle("Relancer automatiquement", true);
     var ro = k.readouts(["Vitesse de l'onde", "Personnes debout en même temps", "Largeur de la bosse", "Mouvement horizontal d'un spectateur"]);
-    var t = 0, N = 30, d = 0.5;
-    var lp = k.loop(function(dt){ t += dt; k.redraw(); }); lp.play();
-    k.draw(function(){
-      c.clear(); var ctx = c.ctx, W = c.W, H = c.H, base = H - 60, step = (W - 40) / (N - 1), cycle = N * dl.value + du.value + 1.2, tt = t % cycle;
-      for (var i = 0; i < N; i++){
-        var s = tt - i * dl.value, up = (s >= 0 && s <= du.value) ? Math.sin(Math.PI * s / du.value) : 0, x = 20 + i * step, h = 22 + 34 * up;
-        var col = i === 9 ? P.red : (up > 0 ? P.amber : P.acc);
-        ctx.fillStyle = "#dfe5ee"; ctx.fillRect(x - step * 0.4, base + 14, step * 0.8, 6);
-        S.draw.line(c, x, base + 12, x, base + 12 - h, col, 3.5);
-        S.draw.dot(c, x, base + 6 - h, 5.5, col);
-        if (up > 0){ S.draw.line(c, x, base + 12 - h * 0.7, x - 7, base + 12 - h * 0.9 - 6, col, 2.5); S.draw.line(c, x, base + 12 - h * 0.7, x + 7, base + 12 - h * 0.9 - 6, col, 2.5); }
-      }
-      S.draw.text(c, "spectateur n° 10 (reste à sa place)", 20 + 9 * step, base + 40, {size: 12, color: P.red});
-      var v = d / dl.value, nb = du.value / dl.value;
-      S.draw.arrow(c, 20, 26, Math.min(W - 20, 20 + 120), 26, P.ink, 2); S.draw.text(c, "sens de l'onde", 20 + 170, 26, {size: 12});
-      ro.set(0, S.fmt(v, 1) + " m/s (" + S.fmt(v * 3.6, 0) + " km/h)"); ro.set(1, S.fmt(Math.min(nb, N), 1) + (nb > N ? " (toute la rangée de " + N + " : la bosse déborde)" : "")); ro.set(2, S.fmt(v * du.value, 1) + " m" + (v * du.value > (N - 1) * d ? " (plus longue que la rangée de " + S.fmt((N - 1) * d, 1) + " m)" : "")); ro.set(3, "0 m");
-    });
     k.note("On suppose 0,50 m entre deux spectateurs voisins. Dans un vrai stade, l'ola avance à environ 10 à 12 m/s, soit 20 à 25 sièges par seconde.");
+    var N = 30, D = 0.5, t = 0, w = {t0: 0, i0: 0, dir: 1}, tr = 9, geo = {};
+    k.button("Relancer l'ola depuis le spectateur suivi", function(){ w = {t0: t, i0: tr, dir: parseInt(dr.value, 10)}; }, true);
+    function up(i, tt){ var rel = (i - w.i0) * w.dir; if (rel < 0) return 0; var s = tt - w.t0 - rel * dl.value; return (s >= 0 && s <= du.value) ? Math.sin(Math.PI * s / du.value) : 0; }
+    function endT(){ var far = w.dir > 0 ? N - 1 - w.i0 : w.i0; return w.t0 + far * dl.value + du.value + 0.6; }
+    var lp = k.loop(function(dt){ t += dt; if (cont.value && t > endT()) w = {t0: t, i0: w.dir > 0 ? 0 : N - 1, dir: w.dir}; k.redraw(); });
+    lp.play();
+    c.cv.style.touchAction = "manipulation"; c.cv.style.cursor = "pointer";
+    c.pointer(function(tp, p){
+      if (tp !== "down" || !geo.step) return;
+      var i = Math.max(0, Math.min(N - 1, Math.round((p.x - geo.x0) / geo.step))); tr = i; w = {t0: t, i0: i, dir: parseInt(dr.value, 10)};
+    });
+    function person(x, base, h, col, upv, big){
+      var ctx = c.ctx, s = big ? 1.35 : 1;
+      ctx.fillStyle = col; S.draw.rrect(c, x - 4 * s, base - h - 11 * s, 8 * s, 11 * s + h * 0.0, 3); ctx.fill();
+      ctx.beginPath(); ctx.arc(x, base - h - 15 * s, 4.2 * s, 0, 7); ctx.fillStyle = "#f2c9a0"; ctx.fill();
+      if (upv > 0.05){ ctx.strokeStyle = col; ctx.lineWidth = 2.4 * s; ctx.lineCap = "round"; ctx.beginPath(); ctx.moveTo(x - 4 * s, base - h - 9 * s); ctx.lineTo(x - 8 * s, base - h - 21 * s - upv * 5); ctx.moveTo(x + 4 * s, base - h - 9 * s); ctx.lineTo(x + 8 * s, base - h - 21 * s - upv * 5); ctx.stroke(); }
+    }
+    k.draw(function(){
+      c.clear(); g1.clear(); g2.clear(); Pm.bg(c, "#f3f6fb", "#e4eaf3"); var ctx = c.ctx, W = c.W, H = c.H, x0 = 16, step = (W - 32) / (N - 1), base = H - 46; geo.step = step; geo.x0 = x0;
+      /* gradins */
+      ctx.fillStyle = "#c9d1dd"; ctx.fillRect(0, base + 8, W, 8); ctx.fillStyle = "#b5bfcd"; ctx.fillRect(0, base + 16, W, H - base);
+      ctx.fillStyle = "#dbe1ea"; ctx.fillRect(0, base - 30, W, 8);
+      for (var i = 0; i < N; i++){ var xb = x0 + (i + 0.5) * step; person(xb, base - 30 + 8, 0, "rgba(120,135,160,.45)", 0, false); }
+      var v = D / dl.value, nb = du.value / dl.value;
+      for (i = 0; i < N; i++){
+        var x = x0 + i * step, u = up(i, t), h = 4 + 52 * u, col = i === tr ? P.red : (u > 0 ? P.amber : P.acc);
+        ctx.fillStyle = "#cfd6e1"; ctx.fillRect(x - step * 0.42, base + 8, step * 0.84, 4);
+        person(x, base + 8 - 12 - 0 - 0 + 12 - 0, h, col, u, true);
+      }
+      var xt = x0 + tr * step; S.draw.arrow(c, xt, base + 40, xt, base + 22, P.red, 2.5); S.draw.label(c, "spectateur suivi (n° " + (tr + 1) + ")", Math.min(W - 70, Math.max(70, xt)), base + 46, {color: P.red, size: 11.5});
+      S.draw.label(c, "clique sur un spectateur pour lancer l'ola", W / 2, 16, {color: P.ink, size: 11.5});
+      /* photo */
+      var ax1 = S.draw.axes(g1, {x0: 0, x1: (N - 1) * D, y0: 0, y1: 1.15, xl: "x (m)", yl: "", l: 40, t: 22, b: 28, stepY: 1, stepX: 3});
+      S.draw.text(g1, "PHOTO à l'instant t : hauteur selon la place", ax1.L + 6, 10, {size: 11, color: P.ink, align: "left"});
+      var pts = []; for (i = 0; i < N; i++) pts.push([ax1.X(i * D), ax1.Y(up(i, t))]);
+      g1.ctx.beginPath(); pts.forEach(function(q, j){ j ? g1.ctx.lineTo(q[0], q[1]) : g1.ctx.moveTo(q[0], q[1]); }); g1.ctx.strokeStyle = P.amber; g1.ctx.lineWidth = 2.6; g1.ctx.stroke();
+      pts.forEach(function(q, j){ S.draw.dot(g1, q[0], q[1], j === tr ? 5 : 2.6, j === tr ? P.red : P.amber); });
+      /* film : spectateur suivi */
+      var Tw = Math.max(1.5, Math.abs(N - 1 - w.i0) * dl.value + du.value), ax2 = S.draw.axes(g2, {x0: 0, x1: Tw, y0: 0, y1: 1.15, xl: "t (s)", yl: "", l: 40, t: 22, b: 28, stepY: 1});
+      S.draw.text(g2, "FILM du spectateur n° " + (tr + 1) + " : hauteur selon le temps", ax2.L + 6, 10, {size: 11, color: P.ink, align: "left"});
+      S.draw.fn(g2, ax2, function(tt){ return up(tr, w.t0 + tt); }, P.red, 2.8);
+      var ts = t - w.t0; if (ts >= 0 && ts <= Tw) S.draw.dot(g2, ax2.X(ts), ax2.Y(up(tr, t)), 5, P.red);
+      ro.set(0, S.fmt(v, 1) + " m/s (" + S.fmt(v * 3.6, 0) + " km/h)"); ro.set(1, S.fmt(Math.min(nb, N), 1) + (nb > N ? " (toute la rangée de " + N + " : la bosse déborde)" : ""));
+      ro.set(2, S.fmt(v * du.value, 1) + " m" + (v * du.value > (N - 1) * D ? " (plus longue que la rangée de " + S.fmt((N - 1) * D, 1) + " m)" : "")); ro.set(3, "0 m");
+    });
   }
 });
+

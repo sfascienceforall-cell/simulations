@@ -168,31 +168,60 @@ SFA.sim({
   id:"p4-c10-sthenope-lentille", ch:"c10", tag:"Comparaison",
   titre:"Sténopé ou lentille : netteté et lumière",
   resume:"Un trou d'épingle est net mais sombre ; une lentille est lumineuse mais n'est nette qu'à la bonne distance.",
-  but:"Règle le diamètre du sténopé, l'ouverture de la lentille (f = 50 mm) et la distance de mise au point. Compare le flou d'un point lumineux à différentes distances.",
+  but:"Règle le diamètre du sténopé, l'ouverture de la lentille (f = 50 mm) et la distance de mise au point, puis déplace l'objet (curseur ou clic sur le graphique). Compare les deux images obtenues sur le capteur.",
   aRetenir:"Sténopé : un point de l'objet donne une tache de diamètre ≈ celui du trou, à toute distance (netteté partout, mais très peu de lumière). Lentille : un point donne un point sur le capteur, mais seulement pour la distance de mise au point ; ailleurs, tache de flou. Plus l'ouverture est grande, plus il y a de lumière et moins la profondeur de champ est grande.",
   piege:"Un grand trou de sténopé donne une image floue, pas plus lumineuse « utilement ». Et une lentille grande ouverte n'est nette que dans une plage étroite de distances (faible profondeur de champ). (Optique géométrique : la diffraction est négligée.)",
   build:function(k,S){
-    var g1 = k.canvas(260), f = 50;
+    var P = S.draw.palette, c = PX.canvas(k, 0.5, 0.72), g1 = PX.canvas(k, 0.48, 0.66), f = 50, A0 = {};
     var A = k.slider("Ouverture de la lentille", 2, 25, 1, 12, "mm");
     var a = k.slider("Diamètre du sténopé", 0.1, 3, 0.1, 1, "mm");
     var p0 = k.slider("Mise au point de la lentille", 0.5, 10, 0.5, 2, "m");
     var po = k.slider("Distance de l'objet", 0.3, 10, 0.1, 5, "m");
     var ro = k.readouts(["Flou du sténopé", "Flou de la lentille", "Lumière lentille / sténopé", "Lentille nette (< 0,15 mm) de… à…"]);
     var nt = k.note("", "");
+    g1.pointer(function(type, p){ if (type === "up" || type === "move" || !A0.ax) return; po.set(Math.max(0.3, Math.min(10, Math.round(A0.ax.ix(p.x) * 10) / 10))); k.redraw(); });
+    var hasF = (function(){ try { return "filter" in document.createElement("canvas").getContext("2d"); } catch (e){ return false; } })();
+    var off = document.createElement("canvas");
+    function pattern(w, h){
+      off.width = w; off.height = h; var o = off.getContext("2d");
+      o.fillStyle = "#101826"; o.fillRect(0, 0, w, h);
+      o.fillStyle = "#ffe9a8"; o.font = "800 " + Math.round(h * 0.42) + "px Mulish, Arial, sans-serif"; o.textAlign = "center"; o.textBaseline = "middle"; o.fillText("SFA", w / 2, h * 0.38);
+      o.fillStyle = "#e0562f"; o.fillRect(w * 0.12, h * 0.68, w * 0.18, h * 0.08); o.fillStyle = "#3ec28f"; o.fillRect(w * 0.41, h * 0.68, w * 0.18, h * 0.08); o.fillStyle = "#5aa0ff"; o.fillRect(w * 0.70, h * 0.68, w * 0.18, h * 0.08);
+      o.strokeStyle = "#cfd8e6"; o.lineWidth = 1.5; for (var i = 0; i < 9; i++){ o.beginPath(); o.moveTo(w * (0.12 + i * 0.095), h * 0.84); o.lineTo(w * (0.12 + i * 0.095), h * (i % 2 ? 0.9 : 0.94)); o.stroke(); }
+    }
+    function blurImg(x, y, w, h, sigma, bright){
+      var ctx = c.ctx; ctx.save(); ctx.beginPath(); PX.rr(ctx, x, y, w, h, 8); ctx.clip();
+      ctx.fillStyle = "#0b111c"; ctx.fillRect(x, y, w, h);
+      pattern(Math.round(w), Math.round(h)); ctx.globalAlpha = bright;
+      if (hasF){ ctx.filter = "blur(" + sigma.toFixed(2) + "px)"; ctx.drawImage(off, x, y, w, h); ctx.filter = "none"; }
+      else { var n = sigma < 0.6 ? 1 : 12; for (var i = 0; i < n; i++){ var an = i / n * 6.2832; ctx.globalAlpha = bright / (n > 1 ? n / 2.2 : 1); ctx.drawImage(off, x + Math.cos(an) * sigma * 1.5, y + Math.sin(an) * sigma * 1.5, w, h); } }
+      ctx.restore(); ctx.save(); ctx.strokeStyle = "#13233a"; ctx.lineWidth = 3; PX.rr(ctx, x, y, w, h, 8); ctx.stroke(); ctx.restore();
+    }
     k.draw(function(){
-      var P = SFA.draw.palette, d = 1 / (1 / f - 1 / (p0.value * 1000)), Ap = A.value, ap = a.value;
+      var d = 1 / (1 / f - 1 / (p0.value * 1000)), Ap = A.value, ap = a.value;
       var lens = function(pm){ var q = 1 / (1 / f - 1 / (pm * 1000)); return Ap * Math.abs(d - q) / q; };
       var pin = function(pm){ return ap * (1 + d / (pm * 1000)); };
+      var bp = pin(po.value), bl = lens(po.value), ph = PX.phone(c), pw = (c.W - 36) / 2, phh = Math.min(c.H - 66, pw * 0.72), pxmm = pw / 9;
+      c.clear(); PX.bg(c, "#f4f6fa", "#e6ebf3");
+      var rel = Math.pow(ap / Ap, 2), brP = Math.min(1, 0.2 + 0.8 * Math.pow(Math.min(1, rel), 0.3));
+      [[12, "Sténopé", bp, brP, P.red, "lumière : × " + S.fmt(Math.min(1, rel), 3).replace(/0+$/, "")], [24 + pw, "Lentille", bl, 1, P.acc, "lumière : × 1"]].forEach(function(q, j){
+        var x = j ? 24 + pw : 12;
+        blurImg(x, 28, pw, phh, q[2] * pxmm / 2.4, q[3]);
+        S.draw.label(c, q[1], x + pw / 2, 14, {color:q[4], size:PX.fs(c, 12.5)});
+        var sharp = q[2] <= 0.15;
+        S.draw.label(c, "tache " + S.fmt(q[2], 2) + " mm : " + (sharp ? "net" : q[2] < 0.5 ? "un peu flou" : "flou"), x + pw / 2, 28 + phh + 16, {color:sharp ? P.green : P.red, size:PX.fs(c, 11)});
+        S.draw.label(c, q[5], x + pw / 2, 28 + phh + 36, {color:q[4], size:PX.fs(c, 11)});
+      });
       var ymax = Math.max(1.6 * ap, 1);
-      g1.clear(); var ax = S.draw.axes(g1, {x0:0.3, x1:10, y0:0, y1:ymax, xl:"distance (m)", yl:"flou (mm)", stepX:1});
+      g1.clear(); var ax = S.draw.axes(g1, {x0:0.3, x1:10, y0:0, y1:ymax, xl:"distance de l'objet (m)", yl:"flou (mm)", stepX:1}); A0.ax = ax;
       S.draw.fn(g1, ax, pin, P.red, 3); S.draw.fn(g1, ax, lens, P.acc, 3);
-      S.draw.line(g1, ax.L, ax.Y(0.15), ax.R, ax.Y(0.15), P.green, 1.5, [5, 4]); P4.label(g1, "0,15 mm : net", ax.X(3.4), ax.Y(0.15) - 9, P.green, "left");
-      P4.label(g1, "sténopé", ax.X(9.8), ax.Y(pin(9.8)) - 10, P.red, "right"); P4.label(g1, "lentille", ax.X(0.9), ax.Y(Math.min(ymax * 0.9, lens(0.9))) + 14, P.acc, "left");
-      S.draw.line(g1, ax.X(po.value), ax.B, ax.X(po.value), ax.T, "#b8c0cc", 1.2, [3, 3]); S.draw.dot(g1, ax.X(po.value), ax.Y(Math.min(ymax, pin(po.value))), 5, P.red); S.draw.dot(g1, ax.X(po.value), ax.Y(Math.min(ymax, lens(po.value))), 5, P.acc);
-      S.draw.line(g1, ax.X(p0.value), ax.B, ax.X(p0.value), ax.B - 10, P.acc, 3);
+      S.draw.line(g1, ax.L, ax.Y(0.15), ax.R, ax.Y(0.15), P.green, 1.5, [5, 4]); S.draw.label(g1, "0,15 mm : net", ax.X(3.4), ax.Y(0.15) - 12, {color:P.green, align:"left", size:11});
+      S.draw.label(g1, "sténopé", ax.X(9.8), ax.Y(pin(9.8)) - 12, {color:P.red, align:"right", size:11.5}); S.draw.label(g1, "lentille", ax.X(0.9), ax.Y(Math.min(ymax * 0.9, lens(0.9))) + 14, {color:P.acc, align:"left", size:11.5});
+      S.draw.line(g1, ax.X(po.value), ax.B, ax.X(po.value), ax.T, "#b8c0cc", 1.2, [3, 3]); S.draw.dot(g1, ax.X(po.value), ax.Y(Math.min(ymax, bp)), 5.5, P.red); S.draw.dot(g1, ax.X(po.value), ax.Y(Math.min(ymax, bl)), 5.5, P.acc);
+      S.draw.line(g1, ax.X(p0.value), ax.B, ax.X(p0.value), ax.B - 12, P.acc, 3); S.draw.label(g1, "mise au point", ax.X(p0.value), ax.B - 24, {color:P.acc, size:10.5});
       var lo = null, hi = null; for (var pm = 0.3; pm <= 10.001; pm += 0.05){ if (lens(pm) <= 0.15){ if (lo === null) lo = pm; hi = pm; } }
-      ro.set(0, S.fmt(pin(po.value), 2) + " mm"); ro.set(1, S.fmt(lens(po.value), 2) + " mm"); ro.set(2, "× " + S.fmt(Math.pow(Ap / ap, 2), 0)); ro.set(3, lo === null ? "nulle part" : S.fmt(lo, 1) + " m à " + (hi >= 9.95 ? "∞" : S.fmt(hi, 1) + " m"));
-      nt.set("Objet à " + S.fmt(po.value, 1) + " m : sténopé → tache de " + S.fmt(pin(po.value), 2) + " mm ; lentille → tache de " + S.fmt(lens(po.value), 2) + " mm. La lentille capte " + S.fmt(Math.pow(Ap / ap, 2), 0) + " fois plus de lumière que ce sténopé.", "");
+      ro.set(0, S.fmt(bp, 2) + " mm"); ro.set(1, S.fmt(bl, 2) + " mm"); ro.set(2, "× " + S.fmt(Math.pow(Ap / ap, 2), 0)); ro.set(3, lo === null ? "nulle part" : S.fmt(lo, 1) + " m à " + (hi >= 9.95 ? "∞" : S.fmt(hi, 1) + " m"));
+      nt.set("Objet à " + S.fmt(po.value, 1) + " m : sténopé → tache de " + S.fmt(bp, 2) + " mm ; lentille → tache de " + S.fmt(bl, 2) + " mm. La lentille capte " + S.fmt(Math.pow(Ap / ap, 2), 0) + " fois plus de lumière que ce sténopé." + (rel < 0.5 ? " (Image du sténopé éclaircie sur l'écran pour rester visible.)" : ""), "");
     });
   }
 });

@@ -1,1 +1,0 @@
-/home/claude/simulations/secondaire/biologie/4e/exos-09.js

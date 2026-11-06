@@ -34,32 +34,107 @@ SFA.sim({
   id:"uc-c08-equilibrage-redox", ch:"c08", tag:"Équilibrage",
   titre:"Équilibrer une réaction redox, étape par étape",
   resume:"Demi-équations en milieu acide puis basique : O, H, charges, électrons, somme.",
-  but:"Choisis une réaction et avance l’étape par l’étape : tu vois la méthode des demi-équations et un contrôle automatique des atomes et des charges.",
+  but:"Choisis une réaction et avance étape par étape : les termes ajoutés s'allument, et le contrôle des atomes et des charges passe du rouge au vert quand chaque demi-équation est équilibrée.",
   aRetenir:"Ordre : (1) éléments autres que O et H, (2) O avec H₂O, (3) H avec H⁺, (4) charges avec e⁻, (5) égaliser les e⁻, (6) additionner. En milieu basique, on ajoute autant de OH⁻ que de H⁺ des deux côtés puis H⁺ + OH⁻ → H₂O.",
   piege:"Équilibrer les charges avant les atomes d’O et de H. Laisser des e⁻ dans le bilan final. Écrire des H⁺ dans une réaction en milieu basique.",
   build:function(k,S){
-    var c = k.canvas(10); c.cv.style.display="none";
+    var c = k.canvas(400);
     var sel = k.select("Réaction",[["fe","MnO₄⁻ + Fe²⁺ (acide)"],["cr","Cr₂O₇²⁻ + Fe²⁺ (acide)"],["h2o2","MnO₄⁻ + H₂O₂ (acide)"],["i","MnO₄⁻ + I⁻ (basique)"],["cl","Cl₂ + OH⁻ (basique)"]],"fe");
     var st = k.slider("Étape",1,7,1,1,"/ 6 ou 7");
+    k.button("Étape suivante ▶", function(){ st.set(Math.min(7, Math.round(st.value) + 1)); }, true);
+    k.button("Recommencer", function(){ st.set(1); });
     var ro = k.readouts(["Atomes","Charges"]);
-    var out = k.note("","","stage");
+    var out = k.note("","");
+    var tt = 0, lp = k.loop(function(dt, t){ tt = t; k.redraw(); }); lp.play();
+    var SUBS = "₀₁₂₃₄₅₆₇₈₉", SUPS = "⁰¹²³⁴⁵⁶⁷⁸⁹";
+    function toInt(sx, tab){ var s = ""; for (var i = 0; i < sx.length; i++){ var j = tab.indexOf(sx[i]); s += j >= 0 ? j : ""; } return s === "" ? 1 : parseInt(s, 10); }
+    function parseTerm(t){
+      var m = /^\s*(\d+)?\s*(.+?)\s*$/.exec(t), n = m[1] ? +m[1] : 1, sp = m[2], q = 0, at = {};
+      var cm = /([⁰¹²³⁴⁵⁶⁷⁸⁹]*)([⁺⁻])$/.exec(sp);
+      if (cm){ q = (cm[2] === "⁺" ? 1 : -1) * (cm[1] ? toInt(cm[1], SUPS) : 1); sp = sp.slice(0, cm.index); }
+      if (sp === "e") return {n:n, at:{}, q:q * 1, sp:t};
+      var re = /([A-Z][a-z]?)([₀-₉]*)/g, mm; while ((mm = re.exec(sp))) at[mm[1]] = (at[mm[1]] || 0) + (mm[2] ? toInt(mm[2], SUBS) : 1);
+      return {n:n, at:at, q:q, sp:t};
+    }
+    function parseEq(str){
+      str = str.replace(/\([^)]*\)/g, "").replace(/\s+×.*$/, "");
+      var p = str.split("→"); if (p.length < 2) return null;
+      return [p[0].split(" + "), p[1].split(" + ")].map(function(side){ return side.map(function(t){ return t.trim(); }).filter(Boolean); });
+    }
+    function tally(terms){ var at = {}, q = 0; terms.forEach(function(t){ var o = parseTerm(t); for (var e in o.at) at[e] = (at[e] || 0) + o.n * o.at[e]; q += o.n * o.q; }); return {at:at, q:q}; }
+    function fmtq(q){ return q === 0 ? "0" : (q > 0 ? "+" + q : "−" + Math.abs(q)); }
+    function eqLayout(ctx, sides, size, prevTerms){
+      var parts = []; sides[0].forEach(function(t, i){ if (i) parts.push({s:" + ", sep:true}); parts.push({s:t, nw:prevTerms ? prevTerms.indexOf(t) < 0 : false}); });
+      parts.push({s:"  →  ", sep:true}); sides[1].forEach(function(t, i){ if (i) parts.push({s:" + ", sep:true}); parts.push({s:t, nw:prevTerms ? prevTerms.indexOf(t) < 0 : false}); });
+      ctx.font = "700 " + size + "px 'STIX Two Text', 'Cambria Math', serif"; var w = 0; parts.forEach(function(p){ p.w = ctx.measureText(p.s).width + (p.sep ? 0 : 8); w += p.w; });
+      return {parts:parts, w:w};
+    }
+    function drawEq(sides, prevSides, x0, y, maxW, base){
+      var ctx = c.ctx, size = base, prevT = prevSides ? prevSides[0].concat(prevSides[1]) : null, lay = eqLayout(ctx, sides, size, prevT);
+      while (lay.w > maxW && size > 10){ size -= 0.5; lay = eqLayout(ctx, sides, size, prevT); }
+      var x = x0 + (maxW - lay.w) / 2;
+      lay.parts.forEach(function(p){
+        if (p.nw){ ctx.save(); ctx.fillStyle = "rgba(244,197,66,.45)"; S.draw.rrect(c, x - 1, y - size * 0.75, p.w - 2, size * 1.5, 6); ctx.fill(); ctx.restore(); }
+        ctx.save(); ctx.font = "700 " + size + "px 'STIX Two Text', 'Cambria Math', serif"; ctx.fillStyle = p.sep ? "#64748b" : "#0f1b2d"; ctx.textAlign = "left"; ctx.textBaseline = "middle"; ctx.fillText(p.s, x + (p.sep ? 0 : 3), y); ctx.restore();
+        x += p.w;
+      });
+    }
+    function chips(sides, x0, y, W2){
+      var ctx = c.ctx, a = tally(sides[0]), b = tally(sides[1]), els = {}, e, all = [];
+      for (e in a.at) els[e] = 1; for (e in b.at) els[e] = 1;
+      var ord = Object.keys(els).sort(function(p, q){ var r = {O:1, H:2}; return (r[p] || 9) - (r[q] || 9) || (p < q ? -1 : 1); });
+      ord.forEach(function(e2){ all.push({l:e2, a:a.at[e2] || 0, b:b.at[e2] || 0}); });
+      all.push({l:"charge", a:a.q, b:b.q, q:true});
+      var cw = Math.min(86, (W2 - 4 * (all.length - 1)) / all.length), ok = true;
+      all.forEach(function(ch, i){
+        var good = ch.a === ch.b; if (!good) ok = false; var x = x0 + i * (cw + 4);
+        ctx.save(); ctx.fillStyle = good ? "rgba(36,119,90,.12)" : "rgba(192,50,29,.12)"; ctx.strokeStyle = good ? "#24775a" : "#c0321d"; ctx.lineWidth = 1.6; S.draw.rrect(c, x, y, cw, 36, 8); ctx.fill(); ctx.stroke(); ctx.restore();
+        S.draw.text(c, ch.l, x + cw / 2, y + 10, {size:10.5, color:"#64748b", weight:700});
+        S.draw.text(c, (ch.q ? fmtq(ch.a) + " | " + fmtq(ch.b) : ch.a + " | " + ch.b) + (good ? " ✓" : " ✗"), x + cw / 2, y + 25, {size:11.5, color:good ? "#24775a" : "#c0321d", weight:800});
+      });
+      return ok;
+    }
     k.draw(function(){
-      var d=RX[sel.value], n=Math.round(st.value), B=d.basic;
-      var titles=["Écrire les demi-équations (éléments autres que O et H)","Équilibrer O avec H₂O","Équilibrer H avec H⁺","Équilibrer les charges avec des électrons"];
+      var P = S.draw.palette, ctx = c.ctx, W = c.W, H = c.H, d = RX[sel.value], n = Math.round(st.value), B = d.basic, ph = W < 420;
+      UC.bg(c, "#f6f9fc", "#ffffff");
+      var titles = ["Écrire les demi-équations (éléments autres que O et H)","Équilibrer O avec H₂O","Équilibrer H avec H⁺","Équilibrer les charges avec des électrons"];
       if (B) titles.push("Milieu basique : ajouter des OH⁻ de chaque côté (H⁺ + OH⁻ → H₂O)");
       titles.push("Égaliser le nombre d’électrons échangés","Additionner : les électrons disparaissent");
-      var tot=titles.length; if (n>tot) n=tot;
-      var h="<b>Étape "+n+" / "+tot+" : "+titles[n-1]+"</b><br><br>";
-      var idx=Math.min(n-1, d.red.length-1);
-      if (n<=d.red.length){ h+="<b>Réduction :</b> "+d.red[idx]+"<br><b>Oxydation :</b> "+d.ox[idx]+"<br>"; }
-      else if (n===d.red.length+1){ h+="<b>Réduction :</b> "+d.red[d.red.length-1]+"  <b>(× "+d.mult[0]+")</b><br><b>Oxydation :</b> "+d.ox[d.ox.length-1]+"  <b>(× "+d.mult[1]+")</b><br>Les deux demi-équations échangent le même nombre d’électrons.<br>"; }
-      else {
-        h+="<b>Bilan :</b> "+eqs(d.L)+" → "+eqs(d.Rt)+"<br>"+(B?"Milieu basique : aucun H⁺ dans le bilan.":"Milieu acide : les H⁺ restent dans le bilan.")+(d.note?"<br>"+d.note:"");
+      var tot = titles.length; if (n > tot) n = tot;
+      S.draw.label(c, "Étape " + n + " / " + tot, 12, 18, {color:P.mat, align:"left", size:12.5});
+      S.draw.text(c, titles[n - 1], 12, 42, {size:ph ? 11.5 : 13, align:"left", color:P.ink, weight:800});
+      var idx = Math.min(n - 1, d.red.length - 1), halfPhase = n <= d.red.length, margin = 12, pw = W - 2 * margin;
+      function panel(y, h, title, col){ ctx.save(); ctx.fillStyle = UC.rgba(col, 0.07); ctx.strokeStyle = UC.rgba(col, 0.55); ctx.lineWidth = 1.6; S.draw.rrect(c, margin, y, pw, h, 12); ctx.fill(); ctx.stroke(); ctx.restore(); S.draw.text(c, title, margin + 10, y + 14, {size:11, align:"left", color:col, weight:800}); }
+      var y1 = 58, ph1 = 112;
+      if (halfPhase){
+        var redS = parseEq(d.red[idx]), oxS = parseEq(d.ox[idx]), pr = idx > 0 ? parseEq(d.red[idx - 1]) : null, po = idx > 0 ? parseEq(d.ox[idx - 1]) : null, okAll = true;
+        panel(y1, ph1, "RÉDUCTION (gain d'électrons)", "#1f4b9e"); drawEq(redS, pr, margin + 6, y1 + 44, pw - 12, ph ? 15 : 18); var o1 = chips(redS, margin + 10, y1 + 66, pw - 20);
+        panel(y1 + ph1 + 10, ph1, "OXYDATION (perte d'électrons)", "#c0321d"); drawEq(oxS, po, margin + 6, y1 + ph1 + 54, pw - 12, ph ? 15 : 18); var o2 = chips(oxS, margin + 10, y1 + ph1 + 76, pw - 20);
+        okAll = o1 && o2; ro.set(0, o1 && o2 ? "équilibrés ✔" : "à équilibrer"); ro.set(1, o1 && o2 ? "équilibrées ✔" : "à équilibrer");
+        out.set(n === 1 ? "On écrit chaque couple séparément et on équilibre l'élément qui change (Mn, Cr, Fe, I, Cl…)." : n < d.red.length ? "Regarde le contrôle : les cases rouges disent ce qu'il reste à équilibrer (O, puis H, puis charges)." : "Les deux demi-équations sont équilibrées en atomes et en charges (cases vertes). Reste à égaliser les électrons.", n === d.red.length ? "ok" : "");
+      } else if (n === d.red.length + 1){
+        var rs = parseEq(d.red[d.red.length - 1]), os = parseEq(d.ox[d.ox.length - 1]), eR = 0, eO = 0;
+        rs[0].concat(rs[1]).forEach(function(t){ var o = parseTerm(t); if (o.sp.indexOf("e⁻") >= 0) eR = o.n; }); os[0].concat(os[1]).forEach(function(t){ var o = parseTerm(t); if (o.sp.indexOf("e⁻") >= 0) eO = o.n; });
+        panel(y1, ph1, "RÉDUCTION × " + d.mult[0], "#1f4b9e"); drawEq(rs, null, margin + 6, y1 + 44, pw - 12, ph ? 15 : 18); S.draw.label(c, d.mult[0] + " × " + eR + " e⁻ = " + (d.mult[0] * eR) + " e⁻ captés", W / 2, y1 + 86, {color:"#1f4b9e", size:12.5});
+        panel(y1 + ph1 + 10, ph1, "OXYDATION × " + d.mult[1], "#c0321d"); drawEq(os, null, margin + 6, y1 + ph1 + 54, pw - 12, ph ? 15 : 18); S.draw.label(c, d.mult[1] + " × " + eO + " e⁻ = " + (d.mult[1] * eO) + " e⁻ cédés", W / 2, y1 + ph1 + 96, {color:"#c0321d", size:12.5});
+        /* électrons qui circulent de l'oxydation vers la réduction */
+        for (var q = 0; q < 6; q++){ var u = ((q / 6) + tt * 0.35) % 1, ex = W - 36, ey = y1 + ph1 + 4 - (ph1 + 4) * u; S.draw.dot(c, ex, y1 + ph1 + 5 - u * (ph1 + 0), 3, "#b45309"); }
+        S.draw.text(c, "e⁻", W - 20, y1 + ph1 + 5, {size:11, color:"#b45309", weight:800});
+        ro.set(0, "—"); ro.set(1, d.mult[0] * eR === d.mult[1] * eO ? "e⁻ égaux (" + d.mult[0] * eR + ") ✔" : "e⁻ différents ✘");
+        out.set("Les deux demi-équations échangent le même nombre d’électrons.", "");
+      } else {
+        var L = d.L.map(function(t){ return (t.n > 1 ? t.n + " " : "") + t.l; }), R2 = d.Rt.map(function(t){ return (t.n > 1 ? t.n + " " : "") + t.l; });
+        panel(y1, 2 * ph1 + 10, "BILAN : LES ÉLECTRONS ONT DISPARU", "#24775a");
+        drawEq([L, R2], null, margin + 6, y1 + 66, pw - 12, ph ? 15 : 19);
+        var okF = chips([L, R2], margin + 10, y1 + 110, pw - 20);
+        S.draw.text(c, B ? "Milieu basique : aucun H⁺ dans le bilan." : "Milieu acide : les H⁺ restent dans le bilan.", W / 2, y1 + 172, {size:12, color:P.ink, weight:700});
+        if (d.note) S.draw.text(c, "Dismutation : Cl est oxydé ET réduit.", W / 2, y1 + 194, {size:11.5, color:P.grey, weight:700});
+        var a2 = side(d.L), b2 = side(d.Rt), okA = true, els2 = {}, e3; for (e3 in a2.at) els2[e3] = 1; for (e3 in b2.at) els2[e3] = 1; for (e3 in els2) if (a2.at[e3] !== b2.at[e3]) okA = false;
+        ro.set(0, okA ? "équilibrés ✔" : "✘"); ro.set(1, a2.q === b2.q ? "conservées ✔ (" + fmtq(a2.q) + ")" : "✘");
+        out.set("<b>Bilan :</b> " + eqs(d.L) + " → " + eqs(d.Rt) + "<br>" + (B ? "Milieu basique : aucun H⁺ dans le bilan." : "Milieu acide : les H⁺ restent dans le bilan.") + (d.note ? "<br>" + d.note : ""), "ok");
       }
-      out.set(h,n===tot?"ok":"");
-      if (n===tot){ var a=side(d.L), b=side(d.Rt), okA=true; var els={}; for (var e in a.at) els[e]=1; for (e in b.at) els[e]=1; for (e in els) if (a.at[e]!==b.at[e]) okA=false;
-        ro.set(0,okA?"équilibrés ✔":"✘"); ro.set(1,a.q===b.q?"conservées ✔ ("+(a.q<0?"−"+Math.abs(a.q):a.q)+")":"✘"); }
-      else { ro.set(0,"—"); ro.set(1,"—"); }
+      /* frise de progression */
+      for (var s = 1; s <= tot; s++){ var bx = margin + (s - 1) * (pw / tot); ctx.fillStyle = s <= n ? P.mat : "#e3e7ed"; S.draw.rrect(c, bx + 1, H - 18, pw / tot - 3, 7, 3.5); ctx.fill(); }
     });
   }
 });

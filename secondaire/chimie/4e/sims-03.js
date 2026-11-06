@@ -14,11 +14,11 @@ SFA.sim({
     var ro = k.readouts(["Masse molaire M", "n = m / M", "N molécules"]);
     var nt = k.note("", "");
     k.draw(function(){
-      var cmp = C4.parse(f.value); c.clear();
+      var cmp = C4.parse(f.value); c.clear(); C4.bg(c);
       if (!cmp){ nt.set("Formule non reconnue. Respecte les majuscules (Ca, pas CA) et utilise des parenthèses ( ). Éléments connus : H, C, N, O, Na, Mg, Al, S, Cl, K, Ca, Fe, Cu, Zn, Ag, Ba, Pb, P, F, Br, I, Li, Mn, Cr, Au.", "warn"); ro.set(0, "—"); ro.set(1, "—"); ro.set(2, "—"); return; }
       var els = Object.keys(cmp), Mt = C4.M(f.value);
       var y = 28; C4.label(c, C4.uni(f.value.replace(/\./g, "·")), c.W / 2, 22, "#0f1b2d", 20);
-      var x0 = 20, wbar = c.W - 40, acc = 0, cols = ["#1e3f8f", "#b42318", "#2e6b55", "#B45309", "#5B21B6", "#0e7490", "#8a95a3", "#c8a600"];
+      var x0 = 20, wbar = c.W - 40, acc = 0, cols = ["#1f4b9e", "#c0321d", "#24775a", "#c26a0c", "#6236c4", "#0e7f96", "#8a95a3", "#c8a600"];
       els.forEach(function(e, i){
         var mm = cmp[e] * C4.MM[e], fr = mm / Mt;
         c.ctx.fillStyle = cols[i % cols.length]; c.ctx.fillRect(x0 + acc * wbar, 44, fr * wbar - 1, 26); acc += fr;
@@ -26,7 +26,7 @@ SFA.sim({
         c.ctx.fillStyle = cols[i % cols.length]; c.ctx.fillRect(x0, ty - 7, 14, 14);
         C4.label(c, e + " : " + cmp[e] + " × " + S.fmt(C4.MM[e], 1) + " = " + S.fmt(mm, 1) + " g/mol  (" + S.fmt(100 * fr, 1) + " %)", x0 + 22, ty, "#2c3a4e", 13, "left");
       });
-      C4.label(c, "M = " + S.fmt(Mt, 1) + " g/mol", c.W / 2, Math.min(c.H - 14, 100 + els.length * 22 + 12), "#1e3f8f", 16);
+      C4.label(c, "M = " + S.fmt(Mt, 1) + " g/mol", c.W / 2, Math.min(c.H - 14, 100 + els.length * 22 + 12), "#1f4b9e", 16);
       var n = m.value / Mt;
       ro.set(0, S.fmt(Mt, 1) + " g/mol"); ro.set(1, S.fmt(n, 3) + " mol"); ro.set(2, S.sci(n * 6.02e23, 2));
       nt.set("Masses atomiques arrondies (H 1 ; C 12 ; N 14 ; O 16 ; Na 23 ; S 32 ; Cl 35,5 ; Ca 40 ; Cu 63,5…). Barre : part de chaque élément dans la masse.", "");
@@ -50,11 +50,11 @@ SFA.sim({
     var ro = k.readouts(["M(A)", "m(A)", "M(B)", "m(B)"]);
     k.draw(function(){
       var MA = C4.M(A.value), MB = C4.M(B.value), nn = n.value, mx = Math.max(MA, MB) * 3 * 1.05;
-      c.clear();
+      c.clear(); C4.bg(c);
       var ax = S.draw.axes(c, {x0:0, x1:3, y0:0, y1:mx, xl:"n (mol)", yl:"m (g)"});
-      S.draw.line(c, ax.X(0), ax.Y(0), ax.X(3), ax.Y(MA * 3), "#1e3f8f", 3);
-      S.draw.line(c, ax.X(0), ax.Y(0), ax.X(3), ax.Y(MB * 3), "#b42318", 3);
-      [[MA, "#1e3f8f"], [MB, "#b42318"]].forEach(function(p){
+      S.draw.line(c, ax.X(0), ax.Y(0), ax.X(3), ax.Y(MA * 3), "#1f4b9e", 3);
+      S.draw.line(c, ax.X(0), ax.Y(0), ax.X(3), ax.Y(MB * 3), "#c0321d", 3);
+      [[MA, "#1f4b9e"], [MB, "#c0321d"]].forEach(function(p){
         S.draw.line(c, ax.X(nn), ax.Y(0), ax.X(nn), ax.Y(p[0] * nn), p[1], 1, [3, 3]); S.draw.line(c, ax.X(0), ax.Y(p[0] * nn), ax.X(nn), ax.Y(p[0] * nn), p[1], 1, [3, 3]);
         S.draw.dot(c, ax.X(nn), ax.Y(p[0] * nn), 6, p[1]);
       });
@@ -84,12 +84,12 @@ SFA.sim({
     k.draw(function(){
       var hh = H[+h.value], x = +hh[1], Man = C4.M(hh[0]), Mh = Man + 18 * x, mi = m0.value;
       var mw = mi * 18 * x / Mh, f = frac(t.value), mnow = mi - f * mw;
-      c.clear(); var W = c.W, ctx = c.ctx;
+      c.clear(); C4.bg(c); var W = c.W, ctx = c.ctx;
       var ax = S.draw.axes(c, {x0:0, x1:10, y0:0, y1:Math.ceil(mi / 5) * 5, xl:"t (min)", yl:"m (g)", l:42});
       var pts = []; for (var i = 0; i <= 100; i++){ var tt = i / 10; pts.push([tt, mi - frac(tt) * mw]); }
-      ctx.save(); ctx.strokeStyle = "#1e3f8f"; ctx.lineWidth = 3; ctx.beginPath(); pts.forEach(function(p, j){ if (j) ctx.lineTo(ax.X(p[0]), ax.Y(p[1])); else ctx.moveTo(ax.X(p[0]), ax.Y(p[1])); }); ctx.stroke(); ctx.restore();
-      S.draw.dot(c, ax.X(t.value), ax.Y(mnow), 7, "#b42318");
-      var mfin = mi - mw; S.draw.line(c, ax.X(8), ax.Y(mfin), ax.X(10), ax.Y(mfin), "#2e6b55", 1.5, [4, 4]);
+      ctx.save(); ctx.strokeStyle = "#1f4b9e"; ctx.lineWidth = 3; ctx.beginPath(); pts.forEach(function(p, j){ if (j) ctx.lineTo(ax.X(p[0]), ax.Y(p[1])); else ctx.moveTo(ax.X(p[0]), ax.Y(p[1])); }); ctx.stroke(); ctx.restore();
+      S.draw.dot(c, ax.X(t.value), ax.Y(mnow), 7, "#c0321d");
+      var mfin = mi - mw; S.draw.line(c, ax.X(8), ax.Y(mfin), ax.X(10), ax.Y(mfin), "#24775a", 1.5, [4, 4]);
       var done = t.value >= 8, lost = mi - mnow, xe = (lost / 18) / (mnow / Man);
       /* creuset */
       var cx = W * 0.82, cy = 70, col = hh[0] === "CuSO4" ? "rgb(" + Math.round(47 + 200 * f) + "," + Math.round(111 + 130 * f) + "," + Math.round(208 + 30 * f) + ")" : "#f3f1ea";
@@ -124,12 +124,12 @@ SFA.sim({
     var ro = k.readouts(["Le plus riche", "% massique", "Masse d'élément (plus riche)"]);
     k.draw(function(){
       var gg = G[g.value], rows = gg.l.map(function(f){ var cmp = C4.parse(f); return {f:f, p:100 * cmp[gg.el] * C4.MM[gg.el] / C4.M(f)}; }).sort(function(a, b){ return b.p - a.p; });
-      c.clear();
+      c.clear(); C4.bg(c);
       var W = c.W, y = 22, rh = Math.min(40, 250 / rows.length), lw = 100;
       rows.forEach(function(r, i){
         var yy = 20 + i * rh;
         C4.label(c, C4.uni(r.f), 10, yy + rh / 2, "#0f1b2d", 13, "left");
-        C4.bar(c, lw, yy + 4, W - lw - 16, rh - 10, r.p / 100, i === 0 ? "#2e6b55" : "#1e3f8f");
+        C4.bar(c, lw, yy + 4, W - lw - 16, rh - 10, r.p / 100, i === 0 ? "#24775a" : "#1f4b9e");
         C4.label(c, S.fmt(r.p, 1) + " %", lw + 6, yy + rh / 2, "#fff", 12, "left");
         C4.label(c, S.fmt(r.p * m.value / 100, 1) + " kg", W - 22, yy + rh / 2, lw + (r.p / 100) * (W - lw - 16) > W - 90 ? "#fff" : "#2c3a4e", 12, "right");
       });

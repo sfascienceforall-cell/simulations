@@ -81,7 +81,7 @@
     function (p) {
       var x0 = W * .08, w = W * .84, y = H * .56, mx = function (a) { return x0 + (a - 8) / 8 * w; };
       LN(x0, y, x0 + w, y, INK, 2.4); for (var a = 8; a <= 16; a += 2) { LN(mx(a), y - 5, mx(a), y + 5, INK, 2); TB(a + ' ans', mx(a), y + 20, GREY, 12); }
-      DOT(mx(11), y, 8, ORANGE); TB('début du développement', mx(11), y - 38, ORANGE, 12); TB('des seins (11 ans)', mx(11), y - 22, ORANGE, 12);
+      DOT(mx(11), y, 8, ORANGE); TB('début du développement', mx(11) + 10, y - 38, ORANGE, 12, 'right'); TB('des seins (11 ans)', mx(11) + 10, y - 22, ORANGE, 12, 'right');
       ctx.fillStyle = 'rgba(29,158,117,.18)'; ctx.fillRect(mx(12.3), y - 14, mx(14.5) - mx(12.3), 28); TB('premières règles : en moyenne ≈ 2 ans après', mx(13.4), y + 46, DGREEN, 12);
       arrow(mx(12), y - 70, 0, 38, DRED, '', 3); TB('12 ans', mx(12), y - 76, DRED, 14);
       if (p > 0) { BH.al(BH.ph(p, 0, .6)); DOT(mx(13), y, 8, DGREEN); TB('≈ 13 ans', mx(13), y - 22, DGREEN, 13); BH.sol(p, 'tout à fait habituel : pas d’anomalie', W * .5, H * .95, DGREEN, 14); BH.a1(); }
@@ -90,7 +90,7 @@
     function (p) {
       var bx = [W * .04, W * .38, W * .72], by = H * .3;
       [['hypophyse', '#fbe9d6', ORANGE], ['testicules', '#e3f4ec', DGREEN]].forEach(function (b, i) { var x = bx[i * 2 > 1 ? 2 : 0]; BH.rr(x, by, W * .24, H * .18, b[1], b[2], 10, 2.4); TB(b[0], x + W * .12, by + H * .11, b[2], 13); });
-      arrow(W * .29, by + H * .06, W * .38 - W * .29 + W * .02, 0, BLUE, '', 3); TB('LH, FSH', W * .5, by + H * .03 - 4, BLUE_D, 13);
+      arrow(W * .29, by + H * .09, W * .41, 0, BLUE, '', 3); TB('LH, FSH', W * .5, by + H * .09 - 8, BLUE_D, 13);
       var yb = by + H * .38; LN(bx[2] + W * .12, by + H * .18, bx[2] + W * .12, yb, RED, 3); LN(bx[2] + W * .12, yb, bx[0] + W * .12, yb, RED, 3); LN(bx[0] + W * .12, yb, bx[0] + W * .12, by + H * .19, RED, 3); LN(bx[0] + W * .12 - 12, by + H * .2, bx[0] + W * .12 + 12, by + H * .2, RED, 4);
       TB('testostérone : frein (−)', W * .5, yb + 16, DRED, 13);
       arrow(W * .86, H * .9, 0, -(H * .9 - yb) + 4, ORANGE, '', 3); TB('injection', W * .86, H * .96, ORANGE, 12);
@@ -108,18 +108,18 @@
     },
     /* 9 ovocytes perdus par jour */
     function (p) {
-      var O = { x: W * .16, y: H * .82 }, w = W * .76, h = H * .6, mx = function (a) { return O.x + (a - 12) / 25 * w; }, my = function (v) { return O.y - v / 400000 * h; };
+      var O = { x: W * .16, y: H * .74 }, w = W * .76, h = H * .52, mx = function (a) { return O.x + (a - 12) / 25 * w; }, my = function (v) { return O.y - v / 400000 * h; };
       BH.axes(O.x, O.y, w + 6, h + 16, null, 'ovocytes'); TB('âge (ans)', O.x + w * .5, O.y + 30, GREY, 12);
       [12, 25, 37].forEach(function (a) { TB(a, mx(a), O.y + 14, GREY, 11); }); [25000, 350000].forEach(function (v) { TB(v >= 100000 ? '350 000' : '25 000', O.x - 4, my(v) + 4, GREY, 11, 'right'); });
       BH.fn(function (a) { return 350000 - 13000 * (a - 12); }, 12, 37, mx, my, BLUE, 3.4, 40); DOT(mx(12), my(350000), 5, BLUE_D); DOT(mx(37), my(25000), 5, DRED);
-      TB('perte : 325 000 en 25 ans', W * .52, H * .22, INK, 13);
-      if (p > 0) { BH.al(BH.ph(p, 0, .6)); TB('13 000 / an ≈ 36 / jour', W * .52, H * .31, DRED, 15); BH.al(BH.ph(p, .5, 1)); TB('12 ovulations par an : 12 / 13 000 ≈ 0,09 %', W * .5, H * .93, DGREEN, 12.5); BH.a1(); }
+      TB('perte : 325 000 en 25 ans', W * .52, H * .14, INK, 13);
+      if (p > 0) { BH.al(BH.ph(p, 0, .6)); TB('13 000 / an ≈ 36 / jour', W * .52, H * .23, DRED, 15); BH.al(BH.ph(p, .5, 1)); TB('12 ovulations par an : 12 / 13 000 ≈ 0,09 %', W * .5, H * .95, DGREEN, 12.5); BH.a1(); }
     },
     /* 10 chronologie */
     function (p) {
       var x0 = W * .05, w = W * .9, y = H * .46; LN(x0, y, x0 + w, y, INK, 2.4);
-      var ev = [['avant la naissance', 'ovocyte I\n bloqué en prophase I', .08], ['puberté, chaque cycle', 'méiose I achevée :\novocyte II + GP1', .34], ['ovulation', 'ovocyte II libéré\n(métaphase II)', .62], ['fécondation', 'méiose II achevée :\novule + GP2', .9]];
-      ev.forEach(function (e, i) { var x = x0 + w * e[2]; DOT(x, y, 7, i === 3 ? DGREEN : BLUE_D); TB(e[0], x, y - 24, i === 3 ? DGREEN : BLUE_D, 12); e[1].split('\n').forEach(function (s, k) { TB(s.trim(), x, y + 28 + k * 15, i === 3 ? DGREEN : INK, 11.5); }); });
+      var ev = [['avant naissance', 'ovocyte I bloqué\nen prophase I', .12], ['puberté (cycles)', 'méiose I finie :\novocyte II + GP1', .37], ['ovulation', 'ovocyte II libéré\n(métaphase II)', .63], ['fécondation', 'méiose II finie :\novule + GP2', .88]];
+      ev.forEach(function (e, i) { var x = x0 + w * e[2]; DOT(x, y, 7, i === 3 ? DGREEN : BLUE_D); TB(e[0], x, y - 24, i === 3 ? DGREEN : BLUE_D, 12); e[1].split('\n').forEach(function (s, k) { TB(s.trim(), x, y + 28 + k * 15, i === 3 ? DGREEN : INK, 11); }); });
       if (p > 0) { BH.al(BH.ph(p, 0, .7)); LN(x0 + w * .08, y - 50, x0 + w * .9, y - 50, DGREEN, 3); TB('seule la 2ᵉ proposition est correcte', W * .5, y - 62, DGREEN, 13); BH.a1(); BH.sol(p, 'la méiose II ne s’achève que s’il y a fécondation', W * .5, H * .93, DGREEN, 13); } else TB('quel enchaînement ?', W * .5, H * .1, GREY, 15);
     }
   ]);

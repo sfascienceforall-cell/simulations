@@ -97,12 +97,12 @@ SFA.figs("c01",[
   b4bact(W*xs[3],yy,W*.17,H*.14,.2,{flag:true,fill:'#e6f1fb',col:BLUE});
   xs.forEach(function(x,i){TB(L[i],W*x,H*.2,GREY,22);});
   TB('lactobacille',W*xs[0],H*.82,INK,13);TB('levure',W*xs[1],H*.82,INK,13);TB('cyanobactérie',W*xs[2],H*.82,INK,13);TB('E. coli',W*xs[3],H*.82,INK,13);
-  if(p>0){b4al(b4r(p,0,.4));ctx.strokeStyle=GREEN;ctx.lineWidth=3.5;ctx.beginPath();ctx.arc(W*xs[1]+W*.015,yy-H*.03,W*.125,0,7);ctx.stroke();TB('noyau + enveloppe',W*xs[1],H*.69,DGREEN,13);b4al(1);}
+  if(p>0){b4al(b4r(p,0,.4));ctx.strokeStyle=GREEN;ctx.lineWidth=3.5;ctx.beginPath();ctx.arc(W*xs[1]+W*.015,yy-H*.03,W*.125,0,7);ctx.stroke();TB('noyau + enveloppe',W*xs[1],H*.745,DGREEN,13);b4al(1);}
   b4ans(p,'B : la levure est eucaryote',GREEN,H-20);},
  /* 4 barre d'échelle */
  function(p){var cx=W*.4,cy=H*.46,R=Math.min(H*.36,W*.3);b4ell(cx,cy,R*1.25,R,'#fdf3ee',ORA2,2.4);b4ell(cx,cy,R*.6,R*.6,'#e4e0fa',VIOLET,2.4);b4ell(cx+R*.12,cy-R*.1,R*.2,R*.2,'#b9b3ee');
   var bl=R*1.2*25/60;LN(W*.72,H*.35,W*.72+bl,H*.35,INK,5);TB('25 mm = 5 µm',W*.72+bl/2,H*.27,INK,14);
-  if(p<=0)TB('noyau : 60 mm',cx+R*.9,cy+R*.9,VIOLET,14);
+  
   b4dim(cx-R*.6,cy+R*.7,cx+R*.6,cy+R*.7,'60 mm',VIOLET,0);
   if(p>0){b4al(b4r(p,0,.5));var f=b4r(p,0,.6);LN(W*.72,H*.35,W*.72+bl,H*.35,INK,5);TB('60 ÷ 25 = 2,4 barres',W*.76,H*.55,VIOLET,14);TB('2,4 × 5 µm',W*.76,H*.64,ORANGE,15);b4al(1);
    b4ans(p,'G = × 5 000  ;  noyau = 12 µm',GREEN);}},

@@ -25,6 +25,9 @@ function bar(x,y,w,h,col,lab,val,vs){ctx.fillStyle=col;ctx.fillRect(x,y-h,w,h);i
 /* cellule de gamète : disque avec lettre */
 function gam(x,y,r,c,l){DOT(x,y,r,c+'33');ctx.strokeStyle=c;ctx.lineWidth=2;ctx.beginPath();ctx.arc(x,y,r,0,7);ctx.stroke();TB(l,x,y+r*.36,dk(c),Math.round(r*1.05));}
 function drop(x,y,s,col,lab,fs){ctx.beginPath();ctx.moveTo(x,y-s*1.5);ctx.bezierCurveTo(x+s*.3,y-s*.8,x+s,y-s*.3,x+s,y+s*.35);ctx.arc(x,y+s*.35,s,0,PI,false);ctx.bezierCurveTo(x-s,y-s*.3,x-s*.3,y-s*.8,x,y-s*1.5);ctx.fillStyle=col+'33';ctx.fill();ctx.strokeStyle=col;ctx.lineWidth=2.4;ctx.stroke();if(lab)TB(lab,x,y+s*.55,dk(col),fs||Math.round(s*.95));}
+function chX(x,y,s,col){LN(x-s*.5,y-s,x+s*.5,y+s,col,s*.3);LN(x+s*.5,y-s,x-s*.5,y+s,col,s*.3);}
+function chY(x,y,s,col){LN(x-s*.5,y-s,x,y,col,s*.3);LN(x+s*.5,y-s,x,y,col,s*.3);LN(x,y,x,y+s,col,s*.3);}
+function hsh(i){var s=Math.sin(i*127.1+311.7)*43758.5453;return s-Math.floor(s);}
 function pig(x,y,s,col,eye){ell(x,y,26*s,16*s,col,INK,2);ell(x+25*s,y-5*s,12*s,10*s,col,INK,2);ell(x+30*s,y-15*s,4*s,6*s,col,INK,1.6,.4);DOT(x+29*s,y-7*s,2*s,eye||'#fff');DOT(x+36*s,y-3*s,1.8*s,INK);LN(x-14*s,y+16*s,x-14*s,y+22*s,INK,2);LN(x+10*s,y+16*s,x+10*s,y+22*s,INK,2);}
 function flower(x,y,r,col){for(var i=0;i<5;i++){var a=i*1.2566-1.57;ell(x+Math.cos(a)*r*.62,y+Math.sin(a)*r*.62,r*.5,r*.36,col,'rgba(0,0,0,.25)',1.4,a);}DOT(x,y,r*.22,'#f6c445');}
 function mouse(x,y,s,col){ell(x,y,20*s,12*s,col,INK,2);ell(x+19*s,y-3*s,9*s,7*s,col,INK,2);ell(x+17*s,y-12*s,5*s,5*s,col,INK,1.6);DOT(x+22*s,y-5*s,1.8*s,INK);ctx.strokeStyle=INK;ctx.lineWidth=1.6;ctx.beginPath();ctx.moveTo(x-20*s,y);ctx.quadraticCurveTo(x-34*s,y-6*s,x-38*s,y+6*s);ctx.stroke();}

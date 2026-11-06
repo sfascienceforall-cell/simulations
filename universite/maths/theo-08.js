@@ -79,42 +79,42 @@ function umb_f(x){ return nfmt(Math.round(x * 100) / 100); }
 
 SFA.figs("c08", [
   /* 1 système 2x2 : deux droites */
-  function(p){ var m = umb_pl(5, 4, {ox:W * .38, oy:H * .78, k:34, step:1}); var X = m.X, Y = m.Y;
+  function(p){ var m = umb_pl(5, 6.5, {ox:W * .12, oy:H * .88, k:Math.min(W / 12.5, H / 7.7), step:1, xl:'x', yl:'y'}); var X = m.X, Y = m.Y;
     LN(X(0.5), Y(6), X(4), Y(-1), BLUE, 3); LN(X(1.5), Y(-.5), X(5), Y(3), RED, 3);
-    umb_TB('2x + y = 7', X(.4), Y(6.4), BLUE_D, 12, 'left'); umb_TB('x − y = 2', X(4.4), Y(3.2), DRED, 12, 'left');
-    DOT(X(3), Y(1), 6, GREEN); if (p > 0){ ctx.globalAlpha = umb_clamp(p, 0, .4); umb_TB('(3 ; 1)', X(3) + 14, Y(1) + 22, DGREEN, 15, 'left'); ctx.globalAlpha = 1; }
-    umb_TB('une solution = une intersection', W * .62, H * .1, GREY, 11, 'left'); },
+    umb_TB('2x + y = 7', X(.6), Y(6.4), BLUE_D, 12, 'left'); umb_TB('x − y = 2', X(4.2), Y(3.7), DRED, 12, 'left');
+    DOT(X(3), Y(1), 6, GREEN); if (p > 0){ ctx.globalAlpha = umb_clamp(p, 0, .4); umb_TB('(3 ; 1)', X(3) + 12, Y(1) + 24, DGREEN, 15, 'left'); ctx.globalAlpha = 1; }
+    umb_TB('une solution =', W * .66, H * .14, GREY, 11, 'left'); umb_TB('une intersection', W * .66, H * .27, GREY, 11, 'left'); },
   /* 2 AB et BA */
-  function(p){ var m = umb_pl(5.6, 5.6, {ox:W * .14, oy:H * .86, k:Math.min(W / 10, H / 6.5), step:1, grid:true, xl:' ', yl:' '});
+  function(p){ var m = umb_pl(7.6, 7.6, {ox:W * .07, oy:H * .9, k:Math.min(W / 16, H / 8.6), step:1, xl:' ', yl:' '});
     ctx.beginPath(); ctx.moveTo(m.X(0), m.Y(0)); ctx.lineTo(m.X(2), m.Y(4)); ctx.lineTo(m.X(3), m.Y(7)); ctx.lineTo(m.X(1), m.Y(3)); ctx.closePath(); ctx.fillStyle = 'rgba(55,138,221,.2)'; ctx.fill(); ctx.strokeStyle = BLUE; ctx.lineWidth = 2.4; ctx.stroke();
     ctx.globalAlpha = .35 + .65 * umb_clamp(p, 0, .6); ctx.beginPath(); ctx.moveTo(m.X(0), m.Y(0)); ctx.lineTo(m.X(3), m.Y(1)); ctx.lineTo(m.X(7), m.Y(3)); ctx.lineTo(m.X(4), m.Y(2)); ctx.closePath(); ctx.fillStyle = 'rgba(216,90,48,.2)'; ctx.fill(); ctx.strokeStyle = ORA2; ctx.stroke(); ctx.globalAlpha = 1;
-    umb_TB('AB', m.X(1.9), m.Y(5.2), BLUE_D, 14); umb_TB('BA', m.X(4.7), m.Y(1.1), DRED, 14);
-    um8_mat([[2, 1], [4, 3]], W * .56, H * .2, 34, 30, BLUE_D, 12); umb_TB('= AB', W * .56 + 74, H * .2 + 20, BLUE_D, 11, 'left');
-    um8_mat([[3, 4], [1, 2]], W * .56, H * .52, 34, 30, DRED, 12); umb_TB('= BA', W * .56 + 74, H * .52 + 20, DRED, 11, 'left'); umb_TB('AB ≠ BA', W * .6, H * .88, INK, 14, 'left'); },
+    umb_TB('AB', m.X(1.1), m.Y(6), BLUE_D, 14); umb_TB('BA', m.X(5.4), m.Y(1.3), DRED, 14);
+    um8_mat([[2, 1], [4, 3]], W * .62, H * .2, 34, 30, BLUE_D, 12); umb_TB('= AB', W * .62 + 74, H * .2 + 20, BLUE_D, 11, 'left');
+    um8_mat([[3, 4], [1, 2]], W * .62, H * .52, 34, 30, DRED, 12); umb_TB('= BA', W * .62 + 74, H * .52 + 20, DRED, 11, 'left'); umb_TB('AB ≠ BA', W * .66, H * .9, INK, 14, 'left'); },
   /* 3 det 2x2 */
-  function(p){ var m = umb_pl(6.5, 4.8, {ox:W * .16, oy:H * .84, k:Math.min(W / 13.5, H / 6), step:1, xl:' ', yl:' '});
+  function(p){ var m = umb_pl(6.5, 4.8, {ox:W * .08, oy:H * .88, k:Math.min(W / 14, H / 7.2), step:1, xl:' ', yl:' '});
     ctx.beginPath(); ctx.moveTo(m.X(0), m.Y(0)); ctx.lineTo(m.X(3), m.Y(2)); ctx.lineTo(m.X(8), m.Y(6)); ctx.lineTo(m.X(5), m.Y(4)); ctx.closePath(); ctx.fillStyle = 'rgba(186,117,23,' + (.1 + .3 * p) + ')'; ctx.fill(); ctx.strokeStyle = ORANGE; ctx.lineWidth = 2; ctx.stroke();
     umb_vec(m, 3, 2, BLUE, 'c₁', 3); umb_vec(m, 5, 4, VIOLET, 'c₂', 3);
-    umb_TB('M = [[3 ; 5] ; [2 ; 4]]', W * .5, H * .12, INK, 12, 'left'); if (p > 0){ ctx.globalAlpha = umb_clamp(p, 0, .4); umb_TB('aire = |3·4 − 5·2| = 2', W * .5, H * .26, DRED, 14, 'left'); ctx.globalAlpha = 1; } },
+    umb_TB('M = [[3 ; 5] ; [2 ; 4]]', W * .1, H * .12, INK, 12, 'left'); if (p > 0){ ctx.globalAlpha = umb_clamp(p, 0, .4); umb_TB('aire = |3·4 − 5·2| = 2', W * .4, H * .95, DRED, 14, 'left'); ctx.globalAlpha = 1; } },
   /* 4 det 3x3 : parallélépipède */
-  function(p){ var o = umb_v3(Math.min(W * .083, H * .108), 6, [1.6, 2, 2.4]); umb_ax3(o, 5, ['x', 'y', 'z']);
+  function(p){ var o = umb_v3(Math.min(W * .062, H * .082), 8, [1.2, 1.5, 1.8]); o.cx = W * .3; umb_ax3(o, 4, ['x', 'y', 'z']);
     var c1 = [2, 1, 0], c2 = [0, 3, 1], c3 = [1, 2, 4], O = [0, 0, 0]; function ad(a, b){ return [a[0] + b[0], a[1] + b[1], a[2] + b[2]]; }
     var f = 'rgba(186,117,23,' + (.1 + .12 * p) + ')'; umb_poly3(o, [O, c1, ad(c1, c2), c2], f, 'rgba(186,117,23,.7)'); umb_poly3(o, [O, c1, ad(c1, c3), c3], f, 'rgba(186,117,23,.7)'); umb_poly3(o, [O, c2, ad(c2, c3), c3], f, 'rgba(186,117,23,.7)');
     umb_poly3(o, [c3, ad(c1, c3), ad(ad(c1, c2), c3), ad(c2, c3)], f, 'rgba(186,117,23,.7)');
     umb_A3(o, O, c1, BLUE, 'c₁', 3); umb_A3(o, O, c2, VIOLET, 'c₂', 3); umb_A3(o, O, c3, RED, 'c₃', 3);
-    umb_TB('M = [[2 ; 0 ; 1] ; [1 ; 3 ; 2] ; [0 ; 1 ; 4]]', W * .5, H * .1, INK, 11, 'left'); if (p > 0){ ctx.globalAlpha = umb_clamp(p, 0, .4); umb_TB('volume = |det M| = 21', W * .5, H * .22, DRED, 14, 'left'); ctx.globalAlpha = 1; } },
+    umb_TB('M = [[2 ; 0 ; 1] ;', W * .6, H * .1, INK, 10, 'left'); umb_TB('[1 ; 3 ; 2] ; [0 ; 1 ; 4]]', W * .6, H * .23, INK, 10, 'left'); if (p > 0){ ctx.globalAlpha = umb_clamp(p, 0, .4); umb_TB('volume = |det M|', W * .6, H * .42, DRED, 12, 'left'); umb_TB('= 21', W * .6, H * .56, DRED, 15, 'left'); ctx.globalAlpha = 1; } },
   /* 5 inverse */
-  function(p){ var m = umb_pl(3.4, 3.4, {ox:W * .22, oy:H * .5, k:Math.min(W / 13, H / 7.5), step:1, xl:' ', yl:' '});
-    um8_grid(m, 2, 1, 5, 3, ORANGE, 1, 'rgba(186,117,23,.2)'); ctx.beginPath(); ctx.rect(m.X(0), m.Y(1), m.k, m.k); ctx.fillStyle = 'rgba(55,138,221,.3)'; ctx.fill(); ctx.strokeStyle = BLUE; ctx.lineWidth = 2; ctx.stroke();
-    umb_TB('M', m.X(1.6), m.Y(3.4), DRED, 14); umb_TB('carré unité', m.X(.5), m.Y(-.5), BLUE_D, 11);
-    um8_mat([[2, 1], [5, 3]], W * .52, H * .27, 30, 28, BLUE_D, 12); umb_TB('det = 1', W * .52, H * .46, GREY, 11, 'left');
-    if (p > 0){ ctx.globalAlpha = umb_clamp(p, 0, .4); umb_TB('M⁻¹ =', W * .52, H * .68, DRED, 13, 'left'); um8_mat([[3, -1], [-5, 2]], W * .72, H * .66, 30, 28, DRED, 12); ctx.globalAlpha = 1; } },
+  function(p){ var m = umb_pl(4, 8.6, {ox:W * .16, oy:H * .88, k:Math.min(W / 14, H / 10.2), step:1, xl:' ', yl:' '});
+    ctx.beginPath(); ctx.moveTo(m.X(0), m.Y(0)); ctx.lineTo(m.X(2), m.Y(5)); ctx.lineTo(m.X(3), m.Y(8)); ctx.lineTo(m.X(1), m.Y(3)); ctx.closePath(); ctx.fillStyle = 'rgba(186,117,23,.2)'; ctx.fill(); ctx.strokeStyle = ORANGE; ctx.lineWidth = 2.2; ctx.stroke();
+    ctx.beginPath(); ctx.rect(m.X(0), m.Y(1), m.k, m.k); ctx.fillStyle = 'rgba(55,138,221,.3)'; ctx.fill(); ctx.strokeStyle = BLUE; ctx.lineWidth = 2; ctx.stroke();
+    umb_TB('M(carré)', m.X(2.9), m.Y(8.2) + 6, DRED, 12, 'left'); umb_TB('carré unité', m.X(1.2), m.Y(.5) + 4, BLUE_D, 11, 'left');
+    um8_mat([[2, 1], [5, 3]], W * .56, H * .27, 30, 28, BLUE_D, 12); umb_TB('det = 1', W * .56, H * .48, GREY, 11, 'left');
+    if (p > 0){ ctx.globalAlpha = umb_clamp(p, 0, .4); umb_TB('M⁻¹ =', W * .56, H * .72, DRED, 13, 'left'); um8_mat([[3, -1], [-5, 2]], W * .76, H * .7, 30, 28, DRED, 12); ctx.globalAlpha = 1; } },
   /* 6 droites parallèles */
-  function(p){ var m = umb_pl(5, 4, {ox:W * .3, oy:H * .5, k:Math.min(W / 11, H / 7), step:1, xl:' ', yl:' '});
-    LN(m.X(-3), m.Y(3), m.X(5), m.Y(-1), BLUE, 3); var s = .15 + .85 * umb_clamp(p, 0, .5);
-    ctx.globalAlpha = s; LN(m.X(-3), m.Y(5.5), m.X(5), m.Y(1.5), RED, 3); ctx.globalAlpha = 1;
-    umb_TB('x + 2y = 3', m.X(-3.2), m.Y(2.2), BLUE_D, 12, 'left'); umb_TB('2x + 4y = 7', m.X(-3.2), m.Y(5), DRED, 12, 'left');
-    umb_TB('mêmes pentes', W * .66, H * .3, INK, 13, 'left'); umb_TB('second membre différent', W * .66, H * .45, INK, 12, 'left'); if (p > 0){ ctx.globalAlpha = umb_clamp(p, .3, .8); umb_TB('aucune solution', W * .66, H * .65, DRED, 15, 'left'); ctx.globalAlpha = 1; } },
+  function(p){ var m = umb_pl(4.2, 3, {ox:W * .34, oy:H * .5, k:Math.min(W / 11, H / 6.4), step:1, xl:'x', yl:'y'});
+    LN(m.X(-3.6), m.Y(3.3), m.X(4.4), m.Y(-.7), BLUE, 3); ctx.globalAlpha = .2 + .8 * umb_clamp(p, 0, .5); LN(m.X(-3.6), m.Y(3.55), m.X(4.4), m.Y(-.45), RED, 3); ctx.globalAlpha = 1;
+    umb_TB('x + 2y = 3', m.X(1.6), m.Y(-.2) + 16, BLUE_D, 12, 'left'); umb_TB('2x + 4y = 7', m.X(-3.6), m.Y(3.55) - 12, DRED, 12, 'left');
+    umb_TB('mêmes pentes', W * .64, H * .2, INK, 12, 'left'); umb_TB('seconds membres', W * .64, H * .33, INK, 11, 'left'); umb_TB('différents', W * .64, H * .45, INK, 11, 'left'); if (p > 0){ ctx.globalAlpha = umb_clamp(p, .3, .8); umb_TB('aucune solution', W * .64, H * .7, DRED, 14, 'left'); ctx.globalAlpha = 1; } },
   /* 7 Gauss */
   function(p){ var cw = 44, x = W * .08, y = H * .26; um8_mat([[1, 1, 1, 6], [2, -1, 1, 3], [1, 2, -1, 2]], x, y, cw, 32, BLUE_D, 13); umb_TB('[A | b]', x, y - 36, GREY, 11, 'left');
     var x2 = W * .55; umb_TB('→', W * .47, y + 32, ORANGE, 24); var t = [[1, 1, 1, 6], [0, -3, -1, -9], [0, 0, -7, -21]];
@@ -127,7 +127,7 @@ SFA.figs("c08", [
       LN(xs[i] - bw / 2 - 8, base - tg[i] * sc, xs[i] + bw / 2 + 8, base - tg[i] * sc, DRED, 2.2, [5, 3]); umb_TB(nm[i], xs[i], base + 16, INK, 11); umb_TB(tg[i] + ' g', xs[i] + bw / 2 + 12, base - tg[i] * sc + 4, DRED, 10, 'left'); }
     umb_TB('2 A + 3 B + 1 C', W * .5, H * .1, INK, 13); },
   /* 9 rang : plan */
-  function(p){ var o = umb_v3(Math.min(W * .075, H * .1), 6, [3, 4, 5]); umb_ax3(o, 6, ['x', 'y', 'z']); umb_pp(o, [1, -2, 1], 0, 7, 'rgba(29,158,117,' + (.06 + .12 * p) + ')', 'rgba(15,110,86,.5)');
+  function(p){ var o = umb_v3(Math.min(W * .035, H * .05), -6, [3.5, 4.5, 4.5]); o.cx = W * .3; umb_ax3(o, 9, ['x', 'y', 'z']); umb_pp(o, [1, -2, 1], 0, 6, 'rgba(29,158,117,' + (.06 + .12 * p) + ')', 'rgba(15,110,86,.5)');
     umb_A3(o, [0, 0, 0], [1, 2, 3], BLUE, 'L₁', 3); umb_A3(o, [0, 0, 0], [4, 5, 6], VIOLET, 'L₂', 3); umb_A3(o, [0, 0, 0], [7, 8, 9], RED, 'L₃', 3);
     umb_TB('trois lignes dans un même plan', W * .47, H * .1, INK, 12, 'left'); if (p > 0){ ctx.globalAlpha = umb_clamp(p, 0, .4); umb_TB('rang = 2, det = 0', W * .47, H * .24, DRED, 15, 'left'); ctx.globalAlpha = 1; } },
   /* 10 paramètre : courbe det(m) */

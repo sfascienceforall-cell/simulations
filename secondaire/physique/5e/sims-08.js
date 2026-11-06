@@ -124,7 +124,7 @@ SFA.sim({
   aRetenir: "Entre deux plaques : E = U/d (uniforme). Force constante F = q·E : la particule suit une parabole (comme un projectile) : a = q·E/m et y = ½·a·t² avec t = x/v₀. La déviation est d'autant plus grande que E est grand et v₀ petite.",
   piege: "Le champ uniforme n'est valable qu'entre les plaques (loin des bords). L'électron est dévié vers la plaque +, le proton vers la plaque −. À même champ, le proton, 1 836 fois plus massif, est bien moins dévié (modèle sans pesanteur, qui est négligeable ici).",
   build: function(k, S){
-    var c = k.canvas(0, {ratio: 0.55});
+    var c = k.canvas(0, {ratio: 0.62});
     var U = k.slider("Tension entre les plaques U", 10, 300, 5, 100, "V");
     var d = k.slider("Distance entre les plaques d", 1, 5, 0.5, 3, "cm");
     var v0 = k.slider("Vitesse d'entrée v₀", 5, 30, 1, 15, "·10⁶ m/s");
@@ -132,46 +132,57 @@ SFA.sim({
     var pol = k.seg("Plaque du haut", [[1, "+"], [-1, "−"]], 1);
     var ro = k.readouts(["Champ E = U/d", "Accélération a", "Durée dans les plaques", "Déviation à la sortie", "Résultat"]);
     var nt = k.note("", "");
-    var Lcm = 4;
+    var Lcm = 4, ph = 0, hits = [], lastKey = "", G0 = {x1: 0, y1: 0, x2: 0, y2: 0, X: null, Y: null, u: 1, hd: 1};
+    var lp = k.loop(function(dt){ ph += dt / 2.6; if (ph > 1.15){ ph = 0; } k.redraw(); }); lp.play();
+    /* manipulation directe : la plaque du haut (distance d) et la flèche d'entrée (v₀) */
+    P5x.drag(c, k, function(){ return [
+      {x: G0.x1, y: G0.y1, r: 28, set: function(px, py){ d.set(Math.round(P5.clamp((G0.ym - py) / G0.u * 2, 1, 5) * 2) / 2); }},
+      {x: G0.x2, y: G0.y2, r: 26, set: function(px){ v0.set(Math.round(P5.clamp((px - G0.ax - 14) / 1.4, 5, 30))); }}]; });
     k.draw(function(){
-      var pal = S.draw.palette, ctx = c.ctx; c.clear();
-      var E = U.value / (d.value / 100), mass = part.value === "e" ? ME : MP, q = (part.value === "e" ? -1 : 1) * QE * pol.value;   /* q·pol : >0 => force vers le haut */
+      var pal = S.draw.palette, ctx = c.ctx; P5x.sky(c, "#f6f9fd", "#eaf0f8");
+      var E = U.value / (d.value / 100), mass = part.value === "e" ? ME : MP, q = (part.value === "e" ? -1 : 1) * QE * pol.value;
       var a = Math.abs(q) * E / mass, V0 = v0.value * 1e6, T = Lcm / 100 / V0;
-      var dirUp = (part.value === "e" ? 1 : -1) * pol.value > 0 ? 1 : -1;   /* +1 : force vers le haut (électron attiré par la plaque +) */
+      var dirUp = (part.value === "e" ? 1 : -1) * pol.value > 0 ? 1 : -1;
       var yL = 0.5 * a * T * T, hit = yL > d.value / 200, tHit = hit ? Math.sqrt(d.value / 100 / a) : T, xHit = V0 * tHit;
-      var u = Math.min((c.W - 120) / (Lcm * 1.9), (c.H - 90) / 5.2), x0 = 40, ym = c.H / 2;
-      function X(xcm){ return x0 + xcm * u; } function Y(ycm){ return ym - ycm * u; }
-      /* plaques */
-      var hd = d.value / 2;
-      ctx.fillStyle = pol.value > 0 ? pal.red : pal.acc; ctx.fillRect(X(0), Y(hd) - 8, Lcm * u, 8);
-      ctx.fillStyle = pol.value > 0 ? pal.acc : pal.red; ctx.fillRect(X(0), Y(-hd), Lcm * u, 8);
-      S.draw.text(c, pol.value > 0 ? "+" : "−", X(Lcm) + 14, Y(hd) - 4, {size: 16, color: pol.value > 0 ? pal.red : pal.acc}); S.draw.text(c, pol.value > 0 ? "−" : "+", X(Lcm) + 14, Y(-hd) + 4, {size: 16, color: pol.value > 0 ? pal.acc : pal.red});
-      for (var i = 1; i < 6; i++){ var xx = X(Lcm * i / 6); P5.vec(c, xx, pol.value > 0 ? Y(hd) + 2 : Y(-hd) - 2, xx, pol.value > 0 ? Y(-hd) - 4 : Y(hd) + 4, "#b6c0cf", "", {w: 1.2}); }
-      S.draw.text(c, "E (de + vers −)", X(Lcm / 2), Y(hd) - 22, {size: 12, color: pal.grey});
-      /* trajectoire (cm) */
-      ctx.strokeStyle = pal.amber; ctx.lineWidth = 3; ctx.beginPath();
-      var n = 60, ended = false;
-      for (i = 0; i <= n; i++){
-        var tt = tHit * i / n, xcm = V0 * tt * 100, ycm = 100 * 0.5 * a * tt * tt * dirUp;
-        if (i === 0) ctx.moveTo(X(xcm), Y(ycm)); else ctx.lineTo(X(xcm), Y(ycm));
-      }
-      ctx.stroke();
-      if (!hit){
-        var yo = yL * 100 * dirUp, slope = a * T / V0 * dirUp, xs = Lcm + 3.5, yS = yo + slope * 3.5, hS = 3.2;   /* hS : demi-hauteur de l'écran (cm) */
-        var xEnd = Math.abs(yS) <= hS ? xs : Lcm + (hS * Math.sign(yS) - yo) / slope;   /* si la particule dépasse l'écran, on arrête le tracé à son bord */
-        ctx.setLineDash([6, 4]); ctx.beginPath(); ctx.moveTo(X(Lcm), Y(yo)); ctx.lineTo(X(xEnd), Y(yo + slope * (xEnd - Lcm))); ctx.stroke(); ctx.setLineDash([]);
-        S.draw.line(c, X(xs), Y(-hS), X(xs), Y(hS), pal.grey, 3); S.draw.text(c, "écran", X(xs), Y(-hS) + 14, {size: 12, color: pal.grey});
-        if (Math.abs(yS) <= hS) S.draw.dot(c, X(xs), Y(yS), 5, pal.red);
-        else S.draw.text(c, "elle passe au-dessus/au-dessous de l'écran", X(Lcm / 2), c.H - 14, {size: 12, color: pal.red});
-      } else S.draw.dot(c, X(xHit * 100), Y(hd * dirUp), 6, pal.red);
-      S.draw.dot(c, X(0), Y(0), 6, pal.amber);
-      P5.vec(c, X(0) - 34, Y(0), X(0) - 4, Y(0), pal.green, "v₀", {dy: -12});
+      var u = Math.min((c.W - 110) / (Lcm * 1.95), (c.H - 84) / 6.9), x0 = 34, ym = c.H / 2 + 4;
+      function X(xcm){ return x0 + (xcm + 0) * u + 34; } function Y(ycm){ return ym - ycm * u; }
+      G0.ym = ym; G0.u = u; G0.ax = X(0) - 40;
+      var hd = d.value / 2, pc = pol.value > 0 ? pal.red : pal.acc, nc = pol.value > 0 ? pal.acc : pal.red;
+      /* lignes de champ entre les plaques (flèches) et plaques métalliques */
+      var up = Y(hd), dn = Y(-hd);
+      ctx.fillStyle = S.draw.tint(pc, 0.05); ctx.fillRect(X(0), up, Lcm * u, dn - up);
+      for (var i = 1; i < 7; i++){ var xx = X(Lcm * i / 7); P5.vec(c, xx, pol.value > 0 ? up + 3 : dn - 3, xx, pol.value > 0 ? dn - 8 : up + 8, "rgba(110,125,150,.55)", "", {w: 1.3}); }
+      function plate(y, col, sym, below){ ctx.fillStyle = P5x.lin(ctx, 0, y - 8, 0, y + 8, [[0, P5x.shade(col, 0.3)], [1, col]]); P5x.rr(ctx, X(0), y - 5, Lcm * u, 10, 3); ctx.fill();
+        for (var j = 0; j < 8; j++) S.draw.text(c, sym, X(Lcm * (j + 0.5) / 8), y + (below ? 14 : -14), {size: 13, color: col}); }
+      plate(up, pc, pol.value > 0 ? "+" : "−", false); plate(dn, nc, pol.value > 0 ? "−" : "+", true);
+      P5x.tag(c, "E = " + S.fmt(E, 0) + " V/m, de + vers −", X(Lcm / 2), up - 30, "#4b5868", {size: 11.5});
+      /* écran fluorescent et traces */
+      var xs = Lcm + 3.5, hS = 3.2, yo = yL * 100 * dirUp, slope = a * T / V0 * dirUp;
+      ctx.fillStyle = "#2a3a40"; ctx.fillRect(X(xs) - 2, Y(hS), 5, 2 * hS * u); P5x.tag(c, "écran", X(xs), Y(-hS) + 14, "#4b5868", {size: 11});
+      var yS = yo + slope * 3.5, onScreen = !hit && Math.abs(yS) <= hS, keyc = [U.value, d.value, v0.value, part.value, pol.value].join();
+      if (keyc !== lastKey){ lastKey = keyc; ph = 0; }
+      if (onScreen){ S.draw.glow(c, X(xs), Y(yS), 14, "#46f0a0", 0.5 + 0.3 * (ph > 0.92 ? 1 : 0)); S.draw.dot(c, X(xs), Y(yS), 3.5, "#46f0a0"); }
+      /* trajectoire complète en pointillés puis particule animée */
+      var xEnd = hit ? xHit * 100 : (Math.abs(yS) <= hS ? xs : Lcm + (hS * Math.sign(yS) - yo) / (slope || 1e-9));
+      function yat(xc){ if (xc <= 0) return 0; if (xc <= Lcm) return 100 * 0.5 * a * Math.pow(xc / 100 / V0, 2) * dirUp; return yo + slope * (xc - Lcm); }
+      if (hit) xEnd = xHit * 100;
+      ctx.strokeStyle = "rgba(224,122,31,.55)"; ctx.lineWidth = 2.2; ctx.setLineDash([5, 4]); ctx.beginPath(); for (var s = 0; s <= 80; s++){ var xc = -2.8 + (xEnd + 2.8) * s / 80, yy = yat(xc); if (s) ctx.lineTo(X(xc), Y(yy)); else ctx.moveTo(X(xc), Y(yy)); } ctx.stroke(); ctx.setLineDash([]);
+      var pxc = -2.8 + (xEnd + 2.8) * Math.min(1, ph / 0.92), pyc = yat(pxc);
+      if (ph < 1.05){ for (var tr = 6; tr >= 1; tr--){ var xt = pxc - tr * 0.18; if (xt > -2.8) S.draw.dot(c, X(xt), Y(yat(xt)), 2.6, "rgba(224,122,31," + (0.5 - tr * 0.07).toFixed(2) + ")"); }
+        P5x.ball(c, X(pxc), Y(pyc), 5.5, part.value === "e" ? "#2f7fd1" : "#c0321d"); S.draw.text(c, part.value === "e" ? "−" : "+", X(pxc), Y(pyc), {size: 9, color: "#fff"}); }
+      if (hit && ph >= 0.92) S.draw.glow(c, X(xHit * 100), Y(hd * dirUp), 18, "#ff6b57", 0.8);
+      /* poignées : plaque haute et flèche v₀ */
+      G0.x1 = X(Lcm) + 4; G0.y1 = up; P5x.handle(c, G0.x1, G0.y1, pc, 7);
+      var alen = 14 + v0.value * 1.4; P5.vec(c, X(0) - 40, Y(0), X(0) - 40 + alen, Y(0), pal.green, "v₀", {dy: -14, size: 13, w: 3});
+      G0.x2 = X(0) - 40 + alen; G0.y2 = Y(0); P5x.handle(c, G0.x2, G0.y2, pal.green, 6);
+      P5x.hint(c, "Tire la plaque du haut (d) ou la flèche verte (v₀)", {y: 14, size: 11.5});
       ro.set(0, S.fmt(E, 0) + " V/m"); ro.set(1, S.sci(a, 2) + " m/s²"); ro.set(2, S.sci(T, 2) + " s");
       ro.set(3, hit ? "—" : S.fmt(yL * 1000, part.value === "e" ? 1 : 3) + " mm"); ro.set(4, hit ? "touche une plaque" : "sort des plaques");
       nt.set(hit ? "La particule touche la plaque (déviation " + S.fmt(yL * 1000, 1) + " mm > d/2 = " + S.fmt(d.value * 5, 1) + " mm). Diminue U, augmente d ou v₀." : "E = U/d = " + S.fmt(E, 0) + " V/m ; la particule est déviée vers la plaque " + (part.value === "e" ? "positive" : "négative") + ". Force électrique ≫ poids (négligé).", hit ? "warn" : "");
     });
   }
 });
+
 
 SFA.sim({
   id: "p5-c08-millikan", ch: "c08", tag: "Expérience",
@@ -181,32 +192,60 @@ SFA.sim({
   aRetenir: "À l'équilibre : q·E = m·g avec E = U/d, donc q = m·g·d/U. En mesurant plusieurs gouttelettes, Millikan a trouvé des charges toujours multiples entiers d'une même valeur : la charge élémentaire e = 1,6·10⁻¹⁹ C.",
   piege: "Si la tension est trop faible, la gouttelette descend ; trop forte, elle monte (vitesse limite due aux frottements de l'air). On ne mesure q que lorsqu'elle est immobile : sinon le calcul q = m·g·d/U donne des valeurs non entières en multiples de e.",
   build: function(k, S){
-    var c = k.canvas(0, {ratio: 0.6});
+    var c = k.canvas(0, {ratio: 0.72});
     var gouttes = {A: {r: 1.0, n: 4}, B: {r: 1.2, n: 6}, C: {r: 0.8, n: 2}, D: {r: 1.5, n: 11}};
     var sel = k.seg("Gouttelette", [["A", "A"], ["B", "B"], ["C", "C"], ["D", "D"]], "A");
     var U = k.slider("Tension U entre les plaques", 0, 800, 1, 300, "V");
+    k.button("U − 1 V", function(){ U.set(U.value - 1); });
+    k.button("U + 1 V", function(){ U.set(U.value + 1); });
+    k.button("Noter la mesure", function(){ note(); }, true);
+    k.button("Effacer le carnet", function(){ carnet = {}; });
     var tg = k.toggle("Révéler le nombre de charges élémentaires n (triche !)", false);
     var ro = k.readouts(["Rayon r", "Masse m", "Vitesse de dérive", "q = m·g·d/U", "q / e"]);
-    var nt = k.note("", ""), y = 0, G = 9.81, RHO = 875, ETA = 1.8e-5, D = 0.01;
-    var lp = k.loop(function(dt){ var g = gouttes[sel.value], m = 4 / 3 * Math.PI * Math.pow(g.r * 1e-6, 3) * RHO, qE = g.n * QE * U.value / D, vd = (m * G - qE) / (6 * Math.PI * ETA * g.r * 1e-6); y += vd * 1e6 * 3 * dt; var H = 100; if (y > H) y -= 2 * H; if (y < -H) y += 2 * H; k.redraw(); });
+    var nt = k.note("", ""), y = 0, G = 9.81, RHO = 875, ETA = 1.8e-5, D = 0.01, carnet = {}, jit = 0;
+    function par(){ var g = gouttes[sel.value], m = 4 / 3 * Math.PI * Math.pow(g.r * 1e-6, 3) * RHO, qE = g.n * QE * U.value / D; return {g: g, m: m, qE: qE, vd: (m * G - qE) / (6 * Math.PI * ETA * g.r * 1e-6), Ueq: m * G * D / (g.n * QE)}; }
+    function note(){ var p = par(); if (U.value <= 0) return; var qm = p.m * G * D / U.value; carnet[sel.value] = {x: qm / QE, ok: Math.abs(U.value - p.Ueq) / p.Ueq < 0.03}; }
+    var lp = k.loop(function(dt){ var p = par(); y += p.vd * 1e6 * 3 * dt; var H = 100; if (y > H) y -= 2 * H; if (y < -H) y += 2 * H; jit += dt; k.redraw(); });
     lp.play();
     k.draw(function(){
-      var pal = S.draw.palette, ctx = c.ctx, g = gouttes[sel.value]; c.clear();
-      var m = 4 / 3 * Math.PI * Math.pow(g.r * 1e-6, 3) * RHO, q = g.n * QE, Ueq = m * G * D / q, qE = q * U.value / D, vd = (m * G - qE) / (6 * Math.PI * ETA * g.r * 1e-6);
-      var px0 = 60, pw = c.W - 120, top = 36, bot = c.H - 36;
-      ctx.fillStyle = pal.red; ctx.fillRect(px0, top - 8, pw, 8); ctx.fillStyle = pal.acc; ctx.fillRect(px0, bot, pw, 8);
-      S.draw.text(c, "plaque + (haut)", px0 + 6, top - 20, {align: "left", size: 12, color: pal.red}); S.draw.text(c, "plaque − (bas)", px0 + 6, bot + 22, {align: "left", size: 12, color: pal.acc});
-      var cx = c.W / 2, cy = (top + bot) / 2 + y * ((bot - top) / 2 - 12) / 100;
-      S.draw.dot(c, cx, cy, 6 + g.r * 4, "#b5842f");
-      var s = 40 / (m * G);
-      P5.vec(c, cx + 20, cy, cx + 20, cy + m * G * s, pal.ink, "m·g", {dx: 14});
-      if (qE > 0) P5.vec(c, cx - 20, cy, cx - 20, cy - qE * s, pal.red, "q·E", {dx: -14});
-      var near = Math.abs(U.value - Ueq) / Ueq < 0.01;
-      S.draw.text(c, near ? "Immobile : équilibre !" : vd > 0 ? "La gouttelette descend" : "La gouttelette monte", c.W - 14, 22, {align: "right", size: 14, color: near ? pal.green : pal.red});
+      var pal = S.draw.palette, ctx = c.ctx, p = par(), g = p.g, m = p.m, q = g.n * QE, Ueq = p.Ueq, qE = p.qE, vd = p.vd;
+      P5x.sky(c, "#f6f9fd", "#eaf0f8");
+      var vw = Math.min(c.W * 0.56, c.H - 20), vx = 10 + vw / 2, vy = c.H / 2, rad = vw / 2;
+      /* champ du microscope : disque noir, réticule, plaques */
+      ctx.save(); ctx.beginPath(); ctx.arc(vx, vy, rad, 0, 7); ctx.clip();
+      ctx.fillStyle = P5x.lin(ctx, 0, vy - rad, 0, vy + rad, [[0, "#0d1a2e"], [1, "#060d1a"]]); ctx.fillRect(vx - rad, vy - rad, vw, vw);
+      var top = vy - rad * 0.72, bot = vy + rad * 0.72;
+      ctx.fillStyle = "#d84a35"; ctx.fillRect(vx - rad, top - 10, vw, 10); ctx.fillStyle = "#3c74d6"; ctx.fillRect(vx - rad, bot, vw, 10);
+      ctx.fillStyle = "rgba(255,255,255,.7)"; ctx.font = "800 12px Mulish, sans-serif"; ctx.textAlign = "center"; ctx.fillText("+", vx - rad * 0.55, top - 1); ctx.fillText("−", vx - rad * 0.55, bot + 9);
+      ctx.strokeStyle = "rgba(120,220,170,.25)"; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(vx - rad, vy); ctx.lineTo(vx + rad, vy); ctx.moveTo(vx, top); ctx.lineTo(vx, bot); ctx.stroke();
+      for (var t = -5; t <= 5; t++){ var yy = vy + t * (bot - top) / 11; ctx.beginPath(); ctx.moveTo(vx - 6, yy); ctx.lineTo(vx + 6, yy); ctx.stroke(); }
+      var cy = (top + bot) / 2 + y * ((bot - top) / 2 - 16) / 100, near = Math.abs(U.value - Ueq) / Ueq < 0.01;
+      var jx = Math.sin(jit * 23) * 0.9 * (near ? 1.6 : 0.6), jy = Math.cos(jit * 31) * 0.9;
+      S.draw.glow(c, vx + jx, cy + jy, 22 + g.r * 6, "#ffd66b", 0.55);
+      S.draw.dot(c, vx + jx, cy + jy, 3 + g.r * 1.8, "#fff2b5");
+      /* forces */
+      var s = 38 / (m * G);
+      P5.vec(c, vx + 22, cy, vx + 22, cy + m * G * s, "#e6eefc", "m·g", {dx: 18, size: 11.5, w: 2.4});
+      if (qE > 0) P5.vec(c, vx - 22, cy, vx - 22, cy - Math.min(qE * s, 90), "#ff8a78", "q·E", {dx: -18, size: 11.5, w: 2.4});
+      ctx.restore();
+      ctx.strokeStyle = "#13233a"; ctx.lineWidth = 5; ctx.beginPath(); ctx.arc(vx, vy, rad, 0, 7); ctx.stroke(); ctx.strokeStyle = "#8a95a3"; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(vx, vy, rad + 3, 0, 7); ctx.stroke();
+      P5x.tag(c, near ? "Immobile : équilibre !" : vd > 0 ? "La goutte descend" : "La goutte monte", vx, top + 24, near ? "#7be0ae" : "#ff9f90", {size: 12, fill: "rgba(6,13,26,.8)"});
+      /* appareil : afficheur de tension et carnet de mesures */
+      var ix = vx + rad + 18, iw = c.W - ix - 10;
+      if (iw > 110){
+        S.draw.display(c, S.fmt(U.value, 0) + " V", ix + iw / 2, 40, {w: Math.min(iw, 150), h: 56, caption: "TENSION U"});
+        S.draw.text(c, "d = 1,0 cm", ix + iw / 2, 82, {size: 11.5, color: pal.grey});
+        S.draw.panel(c, ix, 98, iw, c.H - 108, {title: "Carnet : q / e mesuré", radius: 10});
+        var lx0 = ix + 14, lx1 = ix + iw - 14, ly = 98 + (c.H - 108) * 0.62, nmax = 12;
+        S.draw.line(c, lx0, ly, lx1, ly, "#9aa6b6", 1.6);
+        for (var n = 0; n <= nmax; n++){ var xx = lx0 + (lx1 - lx0) * n / nmax; S.draw.line(c, xx, ly - 4, xx, ly + 4, "#9aa6b6", 1.2); if (n % 2 === 0) S.draw.text(c, n + "", xx, ly + 15, {size: 10.5, color: pal.grey}); }
+        Object.keys(carnet).forEach(function(key, i){ var e = carnet[key], xx = lx0 + (lx1 - lx0) * Math.min(e.x, nmax) / nmax, col = e.ok ? pal.green : pal.red; S.draw.dot(c, xx, ly - 14 - (i % 2) * 14, 5.5, col); S.draw.text(c, key, xx, ly - 14 - (i % 2) * 14 - 11, {size: 10.5, color: col}); });
+        P5x.hint(c, Object.keys(carnet).length ? "vert : à l'équilibre" : "immobilise, puis « Noter »", {x: ix + 10, y: 98 + (c.H - 108) - 12, size: 10.5});
+      }
       var qm = U.value > 0 ? m * G * D / U.value : NaN;
       ro.set(0, S.fmt(g.r, 1) + " µm"); ro.set(1, S.sci(m, 2) + " kg"); ro.set(2, S.fmt(Math.abs(vd) * 1e6, 1) + " µm/s " + (near ? "(≈ 0)" : vd > 0 ? "↓" : "↑"));
       ro.set(3, U.value > 0 ? S.sci(qm, 3) + " C" : "—"); ro.set(4, U.value > 0 ? S.fmt(qm / QE, 2) : "—");
-      nt.set(near ? "Équilibre : U = " + S.fmt(U.value, 0) + " V → q = m·g·d/U = " + S.sci(qm, 3) + " C = " + S.fmt(qm / QE, 1) + " · e" + (tg.value ? " (n = " + g.n + ")" : ". Arrondis à l'entier le plus proche !") : "Pas à l'équilibre : la valeur de q/e est quelconque. Ajuste U pour immobiliser la gouttelette (la poussée d'Archimède de l'air est négligée ; modèle simplifié).", near ? "ok" : "");
+      nt.set(near ? "Équilibre : U = " + S.fmt(U.value, 0) + " V → q = m·g·d/U = " + S.sci(qm, 3) + " C = " + S.fmt(qm / QE, 1) + " · e" + (tg.value ? " (n = " + g.n + ")" : ". Arrondis à l'entier le plus proche !") : "Pas à l'équilibre : la valeur de q/e est quelconque. Ajuste U (boutons ± 1 V pour le réglage fin) pour immobiliser la gouttelette (la poussée d'Archimède de l'air est négligée ; modèle simplifié).", near ? "ok" : "");
     });
   }
 });

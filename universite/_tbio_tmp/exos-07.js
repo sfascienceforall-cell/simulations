@@ -1,1 +1,0 @@
-/home/claude/simulations/universite/_tbio_tmp/../biologie/exos-07.js

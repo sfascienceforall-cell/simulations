@@ -35,6 +35,7 @@ SFA.sim({
       c.clear(); var A1=a1.value,B1=b1.value,C1=c1.value,A2=a2.value,B2=b2.value,C2=c2.value;
       var ax=S.draw.axes(c,{x0:-10,x1:10,y0:-10,y1:10,xl:"x",yl:"y",stepX:2,stepY:2});
       M3.drawXY(c,ax,A1,B1,C1,P.acc,S); M3.drawXY(c,ax,A2,B2,C2,P.red,S);
+      S.draw.legend(c,[[P.acc,"(1) "+M3.eqXY(A1,B1,C1,S)],[P.red,"(2) "+M3.eqXY(A2,B2,C2,S)]],ax.R-4,ax.T+4,{align:"right"});
       var r=M3.solve2(A1,B1,C1,A2,B2,C2);
       ro.set(0,M3.eqXY(A1,B1,C1,S)); ro.set(1,M3.eqXY(A2,B2,C2,S));
       if(r.kind==="one"){ if(Math.abs(r.x)<=10&&Math.abs(r.y)<=10) S.draw.dot(c,ax.X(r.x),ax.Y(r.y),7,P.green);
@@ -60,6 +61,7 @@ SFA.sim({
       c.clear(); var M=m.value,K=kk.value;
       var ax=S.draw.axes(c,{x0:-2,x1:8,y0:-10,y1:10,xl:"x",yl:"y",stepX:1,stepY:2});
       M3.drawXY(c,ax,2,1,6,P.acc,S); M3.drawXY(c,ax,4,M,K,P.red,S);
+      S.draw.legend(c,[[P.acc,"(1) "+M3.eqXY(2,1,6,S)],[P.red,"(2) "+M3.eqXY(4,M,K,S)]],ax.R-4,ax.T+4,{align:"right"});
       var r=M3.solve2(2,1,6,4,M,K);
       ro.set(0,M3.eqXY(2,1,6,S)); ro.set(1,M3.eqXY(4,M,K,S));
       if(r.kind==="one"){ if(r.x>=-2&&r.x<=8&&r.y>=-10&&r.y<=10) S.draw.dot(c,ax.X(r.x),ax.Y(r.y),7,P.green); ro.set(2,"1 solution : ("+S.fmt(r.x,2)+" ; "+S.fmt(r.y,2)+")"); nt.set("Pentes différentes : les droites se coupent en un seul point.","ok"); }
@@ -71,30 +73,48 @@ SFA.sim({
 SFA.sim({
   id:"m3-c06-combinaison", ch:"c06", tag:"Combinaison", titre:"Combinaison : fais disparaître une inconnue",
   resume:"Multiplie les équations puis additionne-les : l'une des inconnues doit s'annuler.",
-  but:"Choisis un système, règle les multiplicateurs p et q et trouve ceux qui font disparaître x ou y.",
+  but:"Choisis un système, règle les multiplicateurs p et q et regarde le tableau : quand une colonne de la somme tombe à 0, l'inconnue a disparu. Les boutons d'aide proposent un choix de p et q.",
   aRetenir:"On multiplie les équations pour que les coefficients d'une inconnue soient opposés, puis on additionne : il reste une équation à une inconnue. On remplace ensuite pour trouver l'autre.",
   piege:"Il faut multiplier tous les termes de l'équation, y compris le second membre. Attention aux signes quand on soustrait.",
   build:function(k,S){
-    var c=k.canvas(0,{ratio:.7}), P=S.draw.palette;
+    var M3=window.M3, c=k.canvas(0,{ratio:.95}), P=S.draw.palette, T=S.draw.tint;
     var PRE=[[2,3,13,1,-1,-1],[3,2,16,5,-2,0],[1,2,7,3,-1,0],[4,-3,-1,2,1,7]];
-    var ps=k.select("Système",PRE.map(function(p,i){return [i,"{ "+M3.eqXY(p[0],p[1],p[2],S)+"  ;  "+M3.eqXY(p[3],p[4],p[5],S)+" }"];}),0);
+    var ps=k.select("Système",PRE.map(function(p,i){return [i,"{ "+M3.eqXY(p[0],p[1],p[2],S)+"  ;  "+M3.eqXY(p[3],p[4],p[5],S)+" }"];}),0,function(){ p.set(1); q.set(1); });
     var p=k.slider("Multiplicateur p de l'équation 1",-5,5,1,1,""), q=k.slider("Multiplicateur q de l'équation 2",-5,5,1,3,"");
+    function gcd(a,b){ a=Math.abs(a); b=Math.abs(b); while(b){ var t=a%b; a=b; b=t; } return a||1; }
+    k.button("Aide : éliminer x",function(){ var E=PRE[+ps.value], g=gcd(E[0],E[3]); p.set(E[3]/g); q.set(-E[0]/g); },false);
+    k.button("Aide : éliminer y",function(){ var E=PRE[+ps.value], g=gcd(E[1],E[4]); p.set(E[4]/g); q.set(-E[1]/g); },false);
     var ro=k.readouts(["Somme","Résultat"]); var nt=k.note("");
     k.draw(function(){
-      c.clear(); var E=PRE[+ps.value], pp=p.value, qq=q.value;
+      c.clear(); var ctx=c.ctx, E=PRE[+ps.value], pp=p.value, qq=q.value, fs=M3.sz(c,16);
       var A=pp*E[0]+qq*E[3], B=pp*E[1]+qq*E[4], C=pp*E[2]+qq*E[5];
-      var L=[["(1)  "+M3.eqXY(E[0],E[1],E[2],S),P.acc],["(2)  "+M3.eqXY(E[3],E[4],E[5],S),P.red],
-        ["(1) × "+(pp<0?"("+S.fmt(pp,0)+")":S.fmt(pp,0))+" :  "+M3.eqXY(pp*E[0],pp*E[1],pp*E[2],S),P.acc],["(2) × "+(qq<0?"("+S.fmt(qq,0)+")":S.fmt(qq,0))+" :  "+M3.eqXY(qq*E[3],qq*E[4],qq*E[5],S),P.red],["Somme :  "+M3.eqXY(A,B,C,S),P.ink]];
-      L.forEach(function(l,i){ S.draw.text(c,l[0],c.W*0.04,20+i*((c.H-50)/5),{size:14,align:"left",color:l[1],math:true}); });
-      var res="", kind="";
-      if(A===0&&B===0){ res=C===0?"0 = 0 : tout s'annule":"0 = "+S.fmt(C,0)+" : impossible"; kind="warn"; }
-      else if(A===0){ var y=C/B; res="x a disparu : y = "+S.fmt(y,2); kind="ok";
-        var x=(E[2]-E[1]*y)/E[0]; res+=", puis x = "+S.fmt(x,2); }
-      else if(B===0){ var x2=C/A; res="y a disparu : x = "+S.fmt(x2,2); kind="ok"; var y2=(E[2]-E[0]*x2)/E[1]; res+=", puis y = "+S.fmt(y2,2); }
+      var lw=Math.min(104,c.W*0.25), cw=(c.W-lw-26)/3, rh=Math.min(48,(c.H-190)/6), x0=12+lw, y0=44;
+      ["x","y","= constante"].forEach(function(h,i){ S.draw.text(c,h,x0+i*cw+cw/2,y0-16,{size:fs-1,color:P.grey,math:true,italic:i<2}); });
+      var rows=[
+        {l:"(1)",v:[E[0],E[1],E[2]],col:P.acc},{l:"(2)",v:[E[3],E[4],E[5]],col:P.red},
+        {l:"(1) × "+M3.par(pp,0),v:[pp*E[0],pp*E[1],pp*E[2]],col:P.acc,mul:true},{l:"(2) × "+M3.par(qq,0),v:[qq*E[3],qq*E[4],qq*E[5]],col:P.red,mul:true},
+        {l:"Somme",v:[A,B,C],col:P.ink,sum:true}];
+      var y=y0;
+      rows.forEach(function(r,i){
+        if(i===2) y+=10; if(i===4){ y+=8; S.draw.line(c,12,y-5,c.W-12,y-5,P.ink,2.5); S.draw.text(c,"+",x0-14,y-12,{size:fs+4,color:P.ink}); }
+        S.draw.text(c,r.l,12,y+rh/2,{size:fs-1,color:r.col,align:"left",math:true});
+        r.v.forEach(function(val,j){
+          var cx=x0+j*cw+3, zero=(r.sum&&j<2&&val===0), cc=zero?P.green:r.col;
+          S.draw.rrect(c,cx,y,cw-6,rh-6,9); ctx.fillStyle=zero?T(P.green,0.22):T(cc,r.sum?0.07:0.09); ctx.fill(); ctx.lineWidth=zero?3:1.5; ctx.strokeStyle=zero?P.green:T(cc,0.45); ctx.stroke();
+          S.draw.text(c,(j===2?"= ":"")+S.fmt(val,0),cx+(cw-6)/2,y+(rh-6)/2,{size:fs+2,color:zero?P.green:cc,weight:800}); });
+        y+=rh; });
+      var res="", kind="", sol=M3.solve2(E[0],E[1],E[2],E[3],E[4],E[5]);
+      var vx=(A===0&&B!==0), vy=(B===0&&A!==0);
+      if(A===0&&B===0){ res=C===0?"0 = 0 : tout s'est annulé (p et q mal choisis)":"0 = "+S.fmt(C,0)+" : impossible ici"; kind="warn"; }
+      else if(vx){ var yv=C/B; res="x a disparu : "+S.fmt(B,0)+"y = "+S.fmt(C,0)+", donc y = "+S.fmt(yv,2); kind="ok"; }
+      else if(vy){ var xv=C/A; res="y a disparu : "+S.fmt(A,0)+"x = "+S.fmt(C,0)+", donc x = "+S.fmt(xv,2); kind="ok"; }
       else { res="Aucune inconnue n'a disparu : essaie d'autres multiplicateurs."; kind="warn"; }
-      S.draw.text(c,res,c.W/2,c.H-14,{size:13,color:kind==="ok"?P.green:P.red});
-      ro.set(0,M3.eqXY(A,B,C,S)); ro.set(1,res);
-      nt.set(kind==="ok"?"Bien joué : une inconnue a disparu. Vérifie le couple dans les deux équations de départ.":"Cherche p et q pour que les coefficients de x (ou de y) soient opposés.",kind);
+      var ry=y+16, col=kind==="ok"?P.green:P.red;
+      S.draw.panel(c,12,ry,c.W-24,50,{shadow:false,fill:T(col,0.09),stroke:T(col,0.45)});
+      S.draw.text(c,res,c.W/2,ry+17,{size:Math.max(12,fs-2),color:col});
+      if(kind==="ok"&&sol.kind==="one") S.draw.text(c,"Solution du système : ("+S.fmt(sol.x,2)+" ; "+S.fmt(sol.y,2)+")",c.W/2,ry+37,{size:Math.max(12,fs-2),color:P.ink,weight:800});
+      ro.set(0,M3.eqXY(A,B,C,S)); ro.set(1,kind==="ok"&&sol.kind==="one"?"("+S.fmt(sol.x,2)+" ; "+S.fmt(sol.y,2)+")":"—");
+      nt.set(kind==="ok"?"Bien joué : "+(vx?"x":"y")+" a disparu. Vérifie le couple dans les deux équations de départ.":(A===0&&B===0?"p = q = 0 ou combinaison nulle : on n'obtient rien d'utile. Change p et q.":"Cherche p et q pour que les coefficients de x (ou de y) soient opposés : la case de la somme devient verte."),kind);
     });
   }
 });
@@ -113,7 +133,7 @@ SFA.sim({
       var ax=S.draw.axes(c,{x0:0,x1:30,y0:0,y1:30,xl:"poules x",yl:"lapins y",stepX:5,stepY:5,t:28,b:34,r:10}), ctx=c.ctx;
       S.draw.fn(c,ax,function(xx){return t-xx;},P.acc,2.6);
       S.draw.fn(c,ax,function(xx){return (p-2*xx)/4;},P.red,2.6);
-      S.draw.text(c,"bleu : x + y = "+t+"   rouge : 2x + 4y = "+p,c.W-12,10,{size:12,color:P.ink,align:"right"});
+      S.draw.legend(c,[[P.acc,"têtes : x + y = "+t],[P.red,"pattes : 2x + 4y = "+p]],c.W-12,34,{align:"right"});
       if(x>=0&&y>=0&&x<=30&&y<=30) S.draw.dot(c,ax.X(x),ax.Y(y),7,ok?P.green:P.amber);
       ro.set(0,S.fmt(x,1)); ro.set(1,S.fmt(y,1)); ro.set(2,ok?S.fmt(x,0)+" + "+S.fmt(y,0)+" = "+t+" ; "+S.fmt(2*x+4*y,0)+" pattes ✓":"—");
       if(ok) nt.set(S.fmt(x,0)+" poules et "+S.fmt(y,0)+" lapins : "+S.fmt(x,0)+" × 2 + "+S.fmt(y,0)+" × 4 = "+S.fmt(p,0)+" pattes.","ok");

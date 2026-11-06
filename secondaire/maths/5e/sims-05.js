@@ -1,5 +1,19 @@
 (function(){
 var P = SFA.draw.palette, F = SFA.fmt;
+/*@@H:m5-c05-regles*/
+function rgTiles(c, S, y, items, w){
+  /* items : [[etiquette, valeur, couleur]] ou "op" (chaîne) ; tuiles de calcul alignées */
+  var P = S.draw.palette, nT = items.filter(function(i){ return typeof i !== "string"; }).length, nO = items.length - nT, pad = 8;
+  var opw = 15, tw = Math.min(86, (w - 2 * pad - nO * opw) / nT), x = pad + (w - 2 * pad - nO * opw - nT * tw) / 2;
+  items.forEach(function(it){
+    if (typeof it === "string"){ S.draw.text(c, it, x + opw / 2, y + 22, {size:15, color:P.grey}); x += opw; return; }
+    S.draw.panel(c, x, y, tw, 46, {fill:S.draw.tint(it[2], 0.08), stroke:S.draw.tint(it[2], 0.6), radius:9, shadow:false});
+    S.draw.text(c, it[0], x + tw / 2, y + 12, {size:11, color:it[2], weight:800, math:true});
+    S.draw.text(c, it[1], x + tw / 2, y + 31, {size:tw < 56 ? 12 : 14, color:P.ink, mono:true, weight:600});
+    x += tw;
+  });
+}
+/*@@E:m5-c05-regles*/
 function line(c, ax, x0, y0, m, col, dash, w){ var L = ax.x0, R = ax.x1; SFA.draw.line(c, ax.X(L), ax.Y(y0 + m * (L - x0)), ax.X(R), ax.Y(y0 + m * (R - x0)), col, w || 2, dash); }
 function clipped(c, ax, fn){ var ctx = c.ctx; ctx.save(); ctx.beginPath(); ctx.rect(ax.L, ax.T, ax.R - ax.L, ax.B - ax.T); ctx.clip(); fn(); ctx.restore(); }
 
@@ -18,23 +32,24 @@ SFA.sim({
   aRetenir:"Le taux d'accroissement (f(a + h) − f(a))/h est la pente de la sécante. Sa limite quand h → 0 est le nombre dérivé f′(a), pente de la tangente : f′(a) = lim (f(a + h) − f(a))/h.",
   piege:"Sécante ≠ tangente : la tangente est la position limite des sécantes. Et le nombre dérivé est la pente de la tangente, pas la valeur f(a).",
   build:function(k, S){
-    var c = k.canvas(350);
+    var c = k.canvas(430);
     var sel = k.select("Fonction", Object.keys(FN).map(function(q){ return [q, FN[q].n]; }), "a", function(){ var d = FN[sel.value]; a.el.min = d.lo; a.el.max = d.hi; a.set(d.a); });
     var a = k.slider("a", -2, 2, 0.1, 1, "");
     var z = k.slider("Rapprochement z (h = 10^−z)", -0.3, 3, 0.1, 0, "");
     var sg = k.seg("Côté du 2e point", [["1", "À droite (h > 0)"], ["-1", "À gauche (h < 0)"]], "1");
     var ro = k.readouts(["h", "Pente de la sécante", "f′(a) (tangente)", "Écart"]);
-    var nt = k.note("", "ok");
+    var nt = k.note("", "ok"), axs = null;
+    c.pointer(function(t, p){ if ((t === "down" || t === "drag") && axs){ var h = axs.ix(p.x) - a.value; if (Math.abs(h) < 1e-3) h = 1e-3; sg.set(h > 0 ? "1" : "-1"); z.set(Math.max(-0.3, Math.min(3, -Math.log10(Math.abs(h))))); k.redraw(); } });
     k.draw(function(){
       var d = FN[sel.value], w = d.w; c.clear();
-      var ax = S.draw.axes(c, {x0:w[0], x1:w[1], y0:w[2], y1:w[3], xl:"x", yl:"y"});
+      var ax = axs = S.draw.axes(c, {x0:w[0], x1:w[1], y0:w[2], y1:w[3], xl:"x", yl:"y"});
       var A = a.value, h = Number(sg.value) * Math.pow(10, -z.value), B = A + h;
       S.draw.fn(c, ax, d.f, P.acc, 2.6);
       var fa = d.f(A), fb = d.f(B);
       if (!isFinite(fb) || !isFinite(fa)){ nt.set("a + h sort du domaine de f : choisis une autre valeur.", "warn"); return; }
       var slope = (fb - fa) / h, t = d.d(A);
       clipped(c, ax, function(){ line(c, ax, A, fa, t, P.green, [6, 5], 2); line(c, ax, A, fa, slope, P.red, null, 2); });
-      S.draw.dot(c, ax.X(A), ax.Y(fa), 6, P.acc); S.draw.dot(c, ax.X(B), ax.Y(fb), 6, P.red);
+      S.draw.dot(c, ax.X(A), ax.Y(fa), 6, P.acc); S.draw.glow(c, ax.X(B), ax.Y(fb), 16, P.red, 0.4); S.draw.dot(c, ax.X(B), ax.Y(fb), 7, P.red); S.draw.label(c, "↔ glisse B vers A", ax.X(B) + 12, ax.Y(fb) + 22, {color:P.red, align:"left", size:11});
       S.draw.text(c, "A", ax.X(A) - 10, ax.Y(fa) - 10, {color:P.acc}); S.draw.text(c, "B", ax.X(B) + 10, ax.Y(fb) - 10, {color:P.red});
       ro.set(0, F(h, 4)); ro.set(1, F(slope, 4)); ro.set(2, F(t, 4)); ro.set(3, F(slope - t, 4));
       nt.set("Sécante AB : pente (f(" + F(B, 3) + ") − f(" + F(A, 2) + ")) / " + F(h, 4) + " = <b>" + F(slope, 4) + "</b>. Tangente : f′(" + F(A, 2) + ") = <b>" + F(t, 4) + "</b>. Équation de la tangente : y = " + F(t, 3) + "·(" + (A === 0 ? "x" : A < 0 ? "x + " + F(-A, 2) : "x − " + F(A, 2)) + ")" + (fa < 0 ? " − " + F(-fa, 3) : " + " + F(fa, 3)) + ".", "ok");
@@ -58,7 +73,7 @@ SFA.sim({
   aRetenir:"f′(x) est la pente de la tangente en x. Quand la tangente est horizontale, f′ = 0. Quand f monte, f′ > 0 ; quand f descend, f′ < 0. Une pointe comme |x| en 0 : pas de tangente, f′ n'existe pas.",
   piege:"Une fonction continue n'est pas toujours dérivable : |x| est continue en 0 mais n'a pas de tangente (pointe).",
   build:function(k, S){
-    var c1 = k.canvas(220), c2 = k.canvas(200);
+    var c1 = k.canvas(250), c2 = k.canvas(220);
     var sel = k.select("Fonction", Object.keys(DF).map(function(q){ return [q, DF[q].n]; }), "a", function(){ x.el.min = DF[sel.value].lo || -2.5; x.set(1); });
     var x = k.slider("Abscisse x", -2.5, 2.5, 0.05, 1, "");
     var ro = k.readouts(["f(x)", "f′(x)", "Tangente"]);
@@ -96,29 +111,69 @@ var LB = {
 SFA.sim({
   id:"m5-c05-regles", ch:"c05", tag:"Vérification",
   titre:"Produit, quotient, composée : la bonne règle et la fausse",
-  resume:"Compare la bonne formule, la valeur numérique et la règle « naïve ».",
-  but:"Choisis f, g et l'opération. La tangente correcte (verte) suit la courbe ; la tangente de la règle naïve (rouge pointillée) s'en écarte.",
+  resume:"Un rectangle montre pourquoi (f·g)′ ≠ f′·g′ ; compare la bonne règle à la règle naïve.",
+  but:"Choisis f, g et l'opération. Pour le produit, regarde le rectangle f × g grandir : deux bandes vertes (les vraies contributions) et un petit coin rouge (ce que la règle naïve f′g′ croit être tout). Réduis Δx : le coin disparaît.",
   aRetenir:"(f·g)′ = f′g + fg′ · (f/g)′ = (f′g − fg′)/g² · (f∘g)′ = f′(g(x))·g′(x) (on n'oublie pas la dérivée intérieure). Somme : (f + g)′ = f′ + g′, la seule règle « naïve » qui est juste.",
   piege:"(f·g)′ ≠ f′·g′ et (f/g)′ ≠ f′/g′. Pour une composée, dériver seulement « l'extérieur » oublie le facteur g′(x).",
   build:function(k, S){
-    var c = k.canvas(330);
+    var c = k.canvas(520);
     var fs = k.select("f", Object.keys(LB).map(function(q){ return [q, LB[q].n]; }), "a");
     var gs = k.select("g", Object.keys(LB).map(function(q){ return [q, LB[q].n]; }), "e");
     var op = k.seg("Opération", [["P", "f·g"], ["Q", "f/g"], ["C", "f(g(x))"]], "P");
     var x = k.slider("x", 0.5, 3, 0.1, 1.5, "");
+    var dx = k.slider("Δx (pas du secant et du rectangle)", 0.02, 1, 0.02, 0.5, "");
     var ro = k.readouts(["h′(x) par la règle", "Pente numérique", "Règle naïve", "Écart naïf"]);
     var nt = k.note("", "ok");
     k.draw(function(){
-      c.clear(); var f = LB[fs.value], g = LB[gs.value], X = x.value, o = op.value, h, good, naive, rule, nrule;
+      c.clear(); var f = LB[fs.value], g = LB[gs.value], X = x.value, o = op.value, D = dx.value, h, good, naive, rule, nrule, t;
       if (o === "P"){ h = function(t){ return f.f(t) * g.f(t); }; good = f.d(X) * g.f(X) + f.f(X) * g.d(X); naive = f.d(X) * g.d(X); rule = "f′g + fg′"; nrule = "f′·g′"; }
       else if (o === "Q"){ h = function(t){ return f.f(t) / g.f(t); }; good = (f.d(X) * g.f(X) - f.f(X) * g.d(X)) / (g.f(X) * g.f(X)); naive = f.d(X) / g.d(X); rule = "(f′g − fg′)/g²"; nrule = "f′/g′"; }
       else { h = function(t){ return f.f(g.f(t)); }; good = f.d(g.f(X)) * g.d(X); naive = f.d(g.f(X)); rule = "f′(g(x))·g′(x)"; nrule = "f′(g(x)) seul"; }
-      var num = (h(X + 1e-6) - h(X - 1e-6)) / 2e-6, y = h(X), lo = Infinity, hi = -Infinity, t;
+      var num = (h(X + 1e-6) - h(X - 1e-6)) / 2e-6, y = h(X), lo = Infinity, hi = -Infinity, topH = 196;
+      /* bandeau du haut */
+      S.draw.panel(c, 4, 4, c.W - 8, topH - 8, {fill:"#fafbfd", stroke:"#e3e7ed", radius:12, shadow:false});
+      if (o === "P"){
+        var fa = f.f(X), ga = g.f(X), df = f.f(X + D) - fa, dg = g.f(X + D) - ga, lw = Math.min(c.W * 0.52, 260);
+        var s = Math.min((lw - 28) / (fa + df), (topH - 64) / (ga + dg)), ox = 20, oy = topH - 26, rw = fa * s, rh = ga * s;
+        S.draw.panel(c, ox, oy - rh, rw, rh, {fill:S.draw.tint(P.acc, 0.16), stroke:P.acc, radius:2, shadow:false});
+        S.draw.panel(c, ox + rw, oy - rh, df * s, rh, {fill:S.draw.tint(P.green, 0.38), stroke:P.green, radius:0, shadow:false});
+        S.draw.panel(c, ox, oy - rh - dg * s, rw, dg * s, {fill:S.draw.tint(P.green, 0.22), stroke:P.green, radius:0, shadow:false});
+        S.draw.panel(c, ox + rw, oy - rh - dg * s, df * s, dg * s, {fill:S.draw.tint(P.red, 0.6), stroke:P.red, radius:0, shadow:false});
+        S.draw.text(c, "f·g = " + F(fa * ga, 2), ox + rw / 2, oy - rh / 2, {size:12, color:P.acc});
+        S.draw.text(c, "f = " + F(fa, 2), ox + rw / 2, oy + 11, {size:11, color:P.grey}); S.draw.text(c, "g = " + F(ga, 2), ox + 4, oy - rh + 12, {size:11, color:P.grey, align:"left"});
+        var tx = lw + 26, lh = 21, ty = 24;
+        S.draw.text(c, "Quand x passe à x + Δx :", tx, ty, {align:"left", size:12, color:P.ink});
+        [[P.green, "g·Δf", ga * df], [P.green, "f·Δg", fa * dg], [P.red, "Δf·Δg", df * dg]].forEach(function(q, i){
+          c.ctx.fillStyle = S.draw.tint(q[0], 0.55); c.ctx.fillRect(tx, ty + 18 + i * lh, 12, 12);
+          S.draw.text(c, q[1] + " = " + F(q[2], 3), tx + 18, ty + 25 + i * lh, {align:"left", size:12, color:i === 2 ? P.red : P.ink});
+        });
+        var delta = (fa + df) * (ga + dg) - fa * ga;
+        S.draw.text(c, "gain total = " + F(delta, 3), tx, ty + 18 + 3 * lh + 8, {align:"left", size:12, color:P.acc});
+        S.draw.text(c, "÷ Δx → " + F(delta / D, 3) + (D > 0.1 ? "" : " ≈ h′"), tx, ty + 18 + 3 * lh + 28, {align:"left", size:12, color:P.acc});
+        S.draw.text(c, "coin rouge : tout ce que voit f′g′", tx, topH - 14, {align:"left", size:10.5, color:P.red, weight:700});
+      } else if (o === "Q"){
+        var fa2 = f.f(X), ga2 = g.f(X), fd = f.d(X), gd = g.d(X);
+        S.draw.text(c, "Quotient : (f′g − fg′) / g²", 14, 18, {align:"left", size:12.5, color:P.ink});
+        rgTiles(c, S, 34, [["f′g", F(fd * ga2, 2), P.acc], "−", ["fg′", F(fa2 * gd, 2), P.green], "=", ["numérateur", F(fd * ga2 - fa2 * gd, 2), P.violet], "÷", ["g²", F(ga2 * ga2, 2), P.teal], "=", ["h′", F(good, 3), P.green]], c.W);
+        rgTiles(c, S, 108, [["f′", F(fd, 2), P.red], "÷", ["g′", F(gd, 2), P.red], "=", ["règle naïve", F(naive, 3), P.red]], c.W);
+        S.draw.text(c, "En rouge : la règle fausse f′/g′ — elle donne autre chose.", 14, topH - 22, {align:"left", size:11, color:P.red, weight:700});
+      } else {
+        var gx = g.f(X);
+        S.draw.text(c, "Composée : on dérive l'extérieur puis on multiplie par la dérivée intérieure", 14, 18, {align:"left", size:12, color:P.ink});
+        rgTiles(c, S, 34, [["g(x)", F(gx, 3), P.teal], "→", ["f′(g(x))", F(f.d(gx), 3), P.acc], "×", ["g′(x)", F(g.d(X), 3), P.green], "=", ["h′", F(good, 3), P.green]], c.W);
+        rgTiles(c, S, 108, [["f′(g(x)) seul", F(naive, 3), P.red], "≠", ["h′", F(good, 3), P.green]], c.W);
+        S.draw.text(c, "Oublier g′(x), c'est ne dériver que l'extérieur.", 14, topH - 22, {align:"left", size:11, color:P.red, weight:700});
+      }
+      /* graphe */
       for (t = 0.2; t <= 3.5; t += 0.05){ var v = h(t); if (isFinite(v)){ lo = Math.min(lo, v); hi = Math.max(hi, v); } }
-      var pad = (hi - lo) * 0.15 + 0.2, ax = S.draw.axes(c, {x0:0, x1:3.5, y0:lo - pad, y1:hi + pad, xl:"x", yl:"h", stepX:0.5});
-      S.draw.fn(c, ax, h, P.acc, 2.6);
-      clipped(c, ax, function(){ line(c, ax, X, y, good, P.green, null, 2.2); line(c, ax, X, y, naive, P.red, [6, 5], 2); });
-      S.draw.dot(c, ax.X(X), ax.Y(y), 6, P.acc);
+      var pad = (hi - lo) * 0.15 + 0.2, ax = S.draw.axes(c, {x0:0, x1:3.5, y0:lo - pad, y1:hi + pad, xl:"x", yl:"h", stepX:0.5, t:topH + 14, b:28, l:44});
+      S.draw.fn(c, ax, h, P.acc, 2.8);
+      clipped(c, ax, function(){
+        line(c, ax, X, y, good, P.green, null, 2.4); line(c, ax, X, y, naive, P.red, [6, 5], 2);
+        var sec = (h(X + D) - y) / D; line(c, ax, X, y, sec, P.amber, [2, 4], 2);
+      });
+      S.draw.dot(c, ax.X(X + D), ax.Y(h(X + D)), 5, P.amber); S.draw.dot(c, ax.X(X), ax.Y(y), 6.5, P.acc);
+      S.draw.legend(c, [[P.green, "tangente (règle exacte)"], [P.red, "règle naïve", true], [P.amber, "sécante (pas Δx)", true]], ax.L + 8, ax.T + 4);
       ro.set(0, F(good, 4)); ro.set(1, F(num, 4)); ro.set(2, F(naive, 4)); ro.set(3, F(naive - good, 4));
       var hn = o === "P" ? f.n + "·" + g.n : o === "Q" ? f.n + " / " + g.n : "f(g(x)) avec f = " + f.n + ", g = " + g.n;
       nt.set("h(x) = " + hn + ". Règle exacte : " + rule + " = <b>" + F(good, 4) + "</b>, et la limite numérique donne " + F(num, 4) + " (identiques). Règle naïve (" + nrule + ") : " + F(naive, 4) + (Math.abs(naive - good) < 1e-6 ? " : égale ici par hasard, ne généralise pas." : " : fausse."), "ok");
@@ -135,7 +190,7 @@ SFA.sim({
   aRetenir:"Vitesse moyenne = Δs/Δt = pente de la sécante. Vitesse instantanée = s′(t₀) = limite de la vitesse moyenne quand Δt → 0 : pente de la tangente à la courbe s(t). Ici s′(t) = 9,8·t (m/s), sans frottements.",
   piege:"La vitesse moyenne entre 0 et t₀ (s(t₀)/t₀ = 4,9·t₀) vaut la moitié de la vitesse instantanée à t₀, car la bille accélère.",
   build:function(k, S){
-    var c = k.canvas(360);
+    var c = k.canvas(430);
     var t0 = k.slider("t₀", 0.5, 3, 0.1, 2, "s");
     var z = k.slider("Rapprochement z (Δt = 10^−z s)", -0.3, 3, 0.1, 0, "");
     var ro = k.readouts(["Vitesse moyenne", "Vitesse instantanée", "Écart", "Vit. moy. [0 ; t₀]"]);

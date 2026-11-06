@@ -1,1 +1,0 @@
-/home/claude/simulations/secondaire/biologie/4e/theo-07.js

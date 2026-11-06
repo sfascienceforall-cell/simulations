@@ -9,39 +9,58 @@ SFA.sim({
   aRetenir: "F = G·m₁·m₂/r². Doubler la distance divise la force par 4 ; doubler une masse double la force. Les deux astres exercent l'un sur l'autre des forces de même valeur (troisième loi), mais le plus léger accélère le plus.",
   piege: "La force sur la Lune n'est pas plus petite que sur la Terre : elle est égale. C'est l'accélération (a = F/m) qui est plus grande pour la Lune. Et la loi est en 1/r², pas en 1/r.",
   build: function(k, S){
-    var c = k.canvas(260), gr = k.canvas(160);
+    var c = k.canvas(270), gr = k.canvas(190);
     var d = k.slider("Distance Terre-Lune (centre à centre)", 50, 800, 1, 384, "·10³ km");
     var fT = k.slider("Masse de la Terre (en masses terrestres)", 0.5, 5, 0.1, 1, "M⊕");
     var fL = k.slider("Masse de la Lune (en masses lunaires)", 0.1, 10, 0.1, 1, "M☾");
+    k.button("Distance réelle (384 000 km)", function(){ d.set(384); });
+    k.button("Doubler la distance", function(){ d.set(Math.min(800, d.value * 2)); });
     var ro = k.readouts(["Force F (sur chaque astre)", "Accélération de la Lune", "Accélération de la Terre", "Période de révolution", "Vitesse de la Lune"]);
-    var nt = k.note("", ""), ph = 0;
+    var nt = k.note("", ""), ph = 0, G0 = {cx: 0, cy: 0, sc: 1, mx: 0, my: 0}, gx = null;
     var lp = k.loop(function(dt){ ph += dt * 2 * Math.PI / 9; k.redraw(); }); lp.play();
+    /* manipulation directe : on tire la Lune sur son orbite (distance) ; sur le graphe, on glisse le point */
+    P5x.drag(c, k, function(){ return [{x: G0.mx, y: G0.my, r: 30, set: function(px, py){ d.set(Math.round(P5.clamp(Math.hypot(px - G0.cx, py - G0.cy) / G0.sc, 50, 800))); }}]; });
+    P5x.drag(gr, k, function(){ if (!gx) return null; var F = G * MT * fT.value * ML * fL.value / Math.pow(d.value * 1e6, 2) / 1e20; return [{x: gx.X(d.value), y: gx.Y(Math.min(F, gx.y1)), r: 30, set: function(px){ d.set(Math.round(P5.clamp(gx.ix(px), 50, 800))); }}]; });
     k.draw(function(){
       var pal = S.draw.palette, ctx = c.ctx, M1 = MT * fT.value, M2 = ML * fL.value, r = d.value * 1e6;
       var F = G * M1 * M2 / (r * r), aL = F / M2, aT = F / M1, T = 2 * Math.PI * Math.sqrt(r * r * r / (G * (M1 + M2))), rL = r * M1 / (M1 + M2), vL = 2 * Math.PI * rL / T;
-      c.clear();
-      var cx = c.W / 2, cy = 130, sc = Math.min(c.W / 2 - 50, 105) / 800, rr = r / 1e6 * sc;      /* px */
+      P5x.space(c);
+      var cx = c.W / 2, cy = 136, sc = Math.min(c.W / 2 - 40, 130) / 800, rr = r / 1e6 * sc;
       var rE = rr * (M2 / (M1 + M2)), rM = rr * (M1 / (M1 + M2));
-      ctx.strokeStyle = "#cbd3de"; ctx.setLineDash([4, 4]); ctx.beginPath(); ctx.arc(cx, cy, rM, 0, 2 * Math.PI); ctx.stroke(); ctx.setLineDash([]);
+      G0.cx = cx; G0.cy = cy; G0.sc = sc * M1 / (M1 + M2);
+      ctx.strokeStyle = "rgba(255,255,255,.22)"; ctx.setLineDash([4, 5]); ctx.lineWidth = 1.2; ctx.beginPath(); ctx.arc(cx, cy, rM, 0, 7); ctx.stroke(); ctx.beginPath(); ctx.arc(cx, cy, rE, 0, 7); ctx.stroke(); ctx.setLineDash([]);
       var ex = cx - rE * Math.cos(ph), ey = cy + rE * Math.sin(ph), mx = cx + rM * Math.cos(ph), my = cy - rM * Math.sin(ph);
-      S.draw.dot(c, ex, ey, 20 + 6 * Math.cbrt(fT.value), pal.acc); S.draw.dot(c, mx, my, 6 + 4 * Math.cbrt(fL.value), pal.grey);
-      S.draw.line(c, ex, ey, mx, my, "#b6c0cf", 1.5, [3, 3]);
-      var ux = (mx - ex) / Math.hypot(mx - ex, my - ey), uy = (my - ey) / Math.hypot(mx - ex, my - ey), La = 46;
-      P5.vec(c, mx, my, mx - ux * La, my - uy * La, pal.red, "F", {});
-      P5.vec(c, ex, ey, ex + ux * La, ey + uy * La, pal.red, "F", {});
-      S.draw.text(c, "tailles et échelle de masse non réalistes ; mouvement accéléré", 10, c.H - 12, {align: "left", size: 12, color: pal.grey});
-      S.draw.text(c, "Les deux forces ont la même valeur (3e loi de Newton)", c.W / 2, 20, {size: 13, color: pal.red});
+      G0.mx = mx; G0.my = my;
+      S.draw.line(c, ex, ey, mx, my, "rgba(255,255,255,.3)", 1.3, [3, 4]);
+      var rEp = 18 + 5 * Math.cbrt(fT.value), rMp = 5 + 3.4 * Math.cbrt(fL.value);
+      S.draw.dot(c, cx, cy, 2.5, "#ffd66b");
+      P5x.planet(c, ex, ey, rEp, "#2f6fc4", "#7fc0ff"); P5x.planet(c, mx, my, rMp, "#b4bcc9");
+      var L0 = Math.hypot(mx - ex, my - ey), ux = (mx - ex) / L0, uy = (my - ey) / L0, La = 30 + 14 * Math.log10(Math.max(F, 1e18) / 1e18 + 1) * 4;
+      La = P5.clamp(26 + 18 * Math.log10(F / 1e18 + 1), 26, 96);
+      P5.vec(c, mx, my, mx - ux * La, my - uy * La, "#ff8a78", "F", {size: 14, w: 3.2});
+      P5.vec(c, ex, ey, ex + ux * La, ey + uy * La, "#ff8a78", "F", {size: 14, w: 3.2});
+      P5x.handle(c, mx, my, "#c9d3e3", 7);
+      P5x.banner(c, "Mêmes valeurs de force : 3e loi de Newton", "#ff9f90", 20, {fill: "rgba(10,20,45,.8)"});
+      P5x.hint(c, "Tire la Lune pour changer d · astres hors échelle · mouvement accéléré", {y: c.H - 10, color: "#9fb4da", size: 10.5});
+      P5x.tag(c, "d = " + S.fmt(d.value, 0) + " 000 km", (ex + mx) / 2, (ey + my) / 2 - 12, "#e6eefc", {size: 11, fill: "rgba(10,20,45,.75)"});
+      /* graphe F(r) avec le point à 2d */
       gr.clear();
-      var Fs = function(x){ return G * M1 * M2 / Math.pow(x * 1e6, 2) / 1e20; }, ymax = Fs(50) * 1.05;
-      var ax = S.draw.axes(gr, {x0: 0, x1: 800, y0: 0, y1: ymax, xl: "r (10³ km)", yl: "F (10²⁰ N)", stepX: 100, l: 50});
-      S.draw.fn(gr, ax, function(x){ return x < 40 ? Infinity : Fs(x); }, pal.red);
-      S.draw.dot(gr, ax.X(d.value), ax.Y(F / 1e20), 6, pal.acc);
+      var Fs = function(x){ return G * M1 * M2 / Math.pow(x * 1e6, 2) / 1e20; }, ymax = Fs(100) * 1.05;
+      gx = S.draw.axes(gr, {x0: 0, x1: 800, y0: 0, y1: ymax, xl: "r (10³ km)", yl: "F (10²⁰ N)", stepX: 100, l: 54});
+      S.draw.area(gr, gx, function(x){ return x < 45 ? ymax : Fs(x); }, 50, 800, pal.red, 0.07);
+      S.draw.fn(gr, gx, function(x){ return x < 40 ? Infinity : Fs(x); }, pal.red, 2.8);
+      var d2 = d.value * 2;
+      if (d2 <= 800){ S.draw.line(gr, gx.X(d2), gx.Y(0), gx.X(d2), gx.Y(Fs(d2)), pal.grey, 1.2, [4, 4]); S.draw.dot(gr, gx.X(d2), gx.Y(Fs(d2)), 5, "#ffffff"); gr.ctx.strokeStyle = pal.red; gr.ctx.lineWidth = 2; gr.ctx.beginPath(); gr.ctx.arc(gx.X(d2), gx.Y(Fs(d2)), 5, 0, 7); gr.ctx.stroke(); P5x.tag(gr, "2r : F ÷ 4", gx.X(d2) + (gx.X(d2) > gr.W - 110 ? -8 : 8), Math.min(gx.Y(Fs(d2)) - 16, gx.Y(0) - 40), pal.red, {align: gx.X(d2) > gr.W - 110 ? "right" : "left", size: 11}); }
+      S.draw.line(gr, gx.X(d.value), gx.Y(0), gx.X(d.value), gx.Y(Fs(d.value)), pal.acc, 1.2, [4, 4]);
+      P5x.handle(gr, gx.X(d.value), gx.Y(Math.min(Fs(d.value), ymax)), pal.acc, 8);
+      var rl = gx.X(d.value) > gr.W - 120; P5x.tag(gr, "r = " + S.fmt(d.value, 0) + "·10³ km", gx.X(d.value) + (rl ? -12 : 12), gx.Y(0) - 14, pal.acc, {align: rl ? "right" : "left", size: 11});
       ro.set(0, S.sci(F, 2) + " N"); ro.set(1, S.sci(aL, 2) + " m/s²"); ro.set(2, S.sci(aT, 2) + " m/s²");
       ro.set(3, S.fmt(T / 86400, 1) + " jours"); ro.set(4, S.fmt(vL / 1000, 2) + " km/s");
       nt.set("F = G·M·m/r² = " + S.sci(F, 2) + " N. À la distance moyenne réelle (384 000 km, masses réelles), on trouve 1,98·10²⁰ N et 27,3 jours. Période : T = 2π·√(r³/(G·(M + m))).", "");
     });
   }
 });
+
 
 SFA.sim({
   id: "p5-c07-satellite", ch: "c07", tag: "Orbites",
@@ -51,36 +70,80 @@ SFA.sim({
   aRetenir: "Un satellite en orbite circulaire est en chute libre : la gravité est la force centripète, G·M·m/r² = m·v²/r, donc v = √(G·M/r) et T = 2π·√(r³/(G·M)). Plus on est haut, plus on va lentement et plus la période est longue. Géostationnaire : T = 23 h 56 min, h ≈ 35 800 km.",
   piege: "En orbite, la gravité n'est pas nulle : à 400 km d'altitude, g vaut encore ≈ 8,7 m/s² (89 % de sa valeur au sol). Les astronautes flottent parce qu'ils tombent en même temps que leur vaisseau, pas parce qu'il n'y a plus de gravité.",
   build: function(k, S){
-    var c = k.canvas(0, {ratio: 0.8});
+    var c = k.canvas(0, {ratio: 0.86});
     var h = k.slider("Altitude du satellite", 200, 60000, 100, 400, "km");
     k.button("Station spatiale (400 km)", function(){ h.set(400); });
     k.button("GPS (20 200 km)", function(){ h.set(20200); });
     k.button("Géostationnaire (35 786 km)", function(){ h.set(35786); });
+    k.button("Remettre la vue", function(){ yaw = 0.5; pit = 0.5; });
     var ro = k.readouts(["g à cette altitude", "Vitesse orbitale", "Période", "g / g au sol"]);
-    var nt = k.note("", ""), t = 0, Tsid = 86164;
+    var nt = k.note("", ""), t = 0, Tsid = 86164, yaw = 0.5, pit = 0.5;
     var lp = k.loop(function(dt){ t += dt * 1800; k.redraw(); }); lp.play();      /* 1 s = 30 min */
+    /* vue 3D tournable : on glisse sur la scène */
+    var lx = 0, ly = 0;
+    c.pointer(function(type, p){
+      if (type === "down"){ lx = p.x; ly = p.y; c.cv.style.cursor = "grabbing"; }
+      else if (type === "drag"){ yaw += (p.x - lx) * 0.012; pit = P5.clamp(pit + (p.y - ly) * 0.012, -1.35, 1.35); lx = p.x; ly = p.y; k.redraw(); }
+      else if (type === "up") c.cv.style.cursor = "grab";
+    });
+    c.cv.style.cursor = "grab"; c.cv.style.touchAction = "none";
     k.draw(function(){
       var pal = S.draw.palette, ctx = c.ctx, H = h.value * 1000, r = RT + H, g = GMT / (r * r), v = Math.sqrt(GMT / r), T = 2 * Math.PI * Math.sqrt(r * r * r / GMT);
-      c.clear();
-      var cx = c.W / 2, cy = c.H / 2, R = Math.min(c.W, c.H) / 2 - 22, rpx = R, epx = Math.max(RT / r * R, 8);
-      ctx.strokeStyle = "#cbd3de"; ctx.setLineDash([4, 4]); ctx.beginPath(); ctx.arc(cx, cy, rpx, 0, 2 * Math.PI); ctx.stroke(); ctx.setLineDash([]);
+      P5x.space(c);
+      var cx = c.W / 2, cy = c.H / 2 + 6, R = Math.min(c.W, c.H) / 2 - 26, epx = Math.max(RT / r * R, 9), D = 5 * R;
+      var cy0 = Math.cos(yaw), sy0 = Math.sin(yaw), cp = Math.cos(pit), sp = Math.sin(pit);
+      function pr(x, y, z){ var x1 = x * cy0 + z * sy0, z1 = -x * sy0 + z * cy0, y2 = y * cp - z1 * sp, z2 = y * sp + z1 * cp, f = D / (D - z2); return {x: cx + x1 * f, y: cy - y2 * f, z: z2, f: f}; }
       var eA = 2 * Math.PI * t / Tsid, sA = 2 * Math.PI * t / T;
-      S.draw.dot(c, cx, cy, epx, "#8db3e8");
-      ctx.strokeStyle = "#5b82bd"; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(cx, cy, epx, 0, 2 * Math.PI); ctx.stroke();
-      S.draw.dot(c, cx + epx * Math.cos(eA), cy - epx * Math.sin(eA), 4.5, pal.yellow);
-      var sx = cx + rpx * Math.cos(sA), sy = cy - rpx * Math.sin(sA);
-      S.draw.line(c, cx, cy, sx, sy, "#e2e7ee", 1);
-      S.draw.dot(c, sx, sy, 6, pal.red);
-      P5.vec(c, sx, sy, sx + (cx - sx) / rpx * 34, sy + (cy - sy) / rpx * 34, pal.red, "", {w: 2});
-      S.draw.text(c, "Terre", cx, cy + epx + 14 > c.H - 8 ? cy : cy, {size: 12, color: "#fff"});
-      S.draw.text(c, "point jaune : un lieu de l'équateur", 10, c.H - 12, {align: "left", size: 12, color: pal.grey});
-      S.draw.text(c, "1 seconde à l'écran = 30 minutes", 10, 16, {align: "left", size: 12, color: pal.grey});
+      function ring(rad, col, w, dash, front){
+        ctx.save(); ctx.strokeStyle = col; ctx.lineWidth = w; ctx.setLineDash(dash || []);
+        var seg = null; ctx.beginPath();
+        for (var i = 0; i <= 120; i++){ var a = i / 120 * 2 * Math.PI, p = pr(rad * Math.cos(a), 0, rad * Math.sin(a)), vis = front ? p.z >= 0 : p.z < 0; if (vis){ if (seg) ctx.lineTo(p.x, p.y); else ctx.moveTo(p.x, p.y); seg = true; } else seg = null; }
+        ctx.stroke(); ctx.restore();
+      }
+      var rg = R * (RT + 35786e3) / r, showGeo = rg <= R * 1.7 && Math.abs(H - 35786e3) > 1500e3;
+      if (showGeo){ ring(rg, "rgba(244,197,66,.45)", 1.3, [3, 5], false); }
+      ring(R, "rgba(255,120,100,.45)", 2.2, null, false);
+      var sp3 = pr(R * Math.cos(sA), 0, R * Math.sin(sA)), sBehind = sp3.z < 0;
+      function sat(){
+        var p = sp3; S.draw.glow(c, p.x, p.y, 14, "#ff8a78", 0.6);
+        ctx.save(); ctx.translate(p.x, p.y); ctx.fillStyle = "#cfd8e6"; ctx.fillRect(-3, -3, 6, 6); ctx.fillStyle = "#4d8be0"; ctx.fillRect(-12, -2, 8, 4); ctx.fillRect(4, -2, 8, 4); ctx.restore();
+        var ex = pr(0, 0, 0); var dx = ex.x - p.x, dy = ex.y - p.y, d = Math.hypot(dx, dy) || 1;
+        P5.vec(c, p.x, p.y, p.x + dx / d * 34, p.y + dy / d * 34, "#ff8a78", "", {w: 2.2});
+      }
+      if (sBehind && Math.hypot(sp3.x - cx, sp3.y - cy) > epx) sat();
+      /* Terre : sphère, océan, continents (calottes), méridiens */
+      P5x.planet(c, cx, cy, epx, "#2f6fc4", "#7fc0ff");
+      ctx.save(); ctx.beginPath(); ctx.arc(cx, cy, epx, 0, 7); ctx.clip();
+      function sph(lat, lon){ var la = lat * Math.PI / 180, lo = lon * Math.PI / 180 + eA; return pr(epx * Math.cos(la) * Math.cos(lo), epx * Math.sin(la), epx * Math.cos(la) * Math.sin(lo)); }
+      [[48, 15, 26], [5, 20, 30], [40, -100, 28], [-12, -58, 22], [48, 95, 34], [-25, 135, 14]].forEach(function(L){
+        var pts = [], vis = 0; for (var i = 0; i < 28; i++){ var a = i / 28 * 2 * Math.PI, lat = L[0] + L[2] * 0.7 * Math.sin(a), lon = L[1] + L[2] * 1.1 * Math.cos(a), p = sph(lat, lon); if (p.z > 0) vis++; pts.push(p); }
+        if (vis < 2) return; ctx.fillStyle = "rgba(76,160,96,.8)"; ctx.beginPath();
+        pts.forEach(function(p, i){ var X = p.x, Y = p.y; if (p.z <= 0){ var dx = X - cx, dy = Y - cy, d = Math.hypot(dx, dy) || 1; X = cx + dx / d * epx * 0.999; Y = cy + dy / d * epx * 0.999; } if (i) ctx.lineTo(X, Y); else ctx.moveTo(X, Y); }); ctx.closePath(); ctx.fill();
+      });
+      ctx.lineWidth = 0.9; ctx.strokeStyle = "rgba(255,255,255,.28)";
+      for (var lo = 0; lo < 360; lo += 30){ ctx.beginPath(); var on = false; for (var la = -90; la <= 90; la += 6){ var p = sph(la, lo); if (p.z > 0){ if (on) ctx.lineTo(p.x, p.y); else ctx.moveTo(p.x, p.y); on = true; } else on = false; } ctx.stroke(); }
+      for (var la2 = -60; la2 <= 60; la2 += 30){ ctx.beginPath(); on = false; for (var lo2 = 0; lo2 <= 360; lo2 += 6){ var p2 = sph(la2, lo2); if (p2.z > 0){ if (on) ctx.lineTo(p2.x, p2.y); else ctx.moveTo(p2.x, p2.y); on = true; } else on = false; } ctx.stroke(); }
+      ctx.lineWidth = 2; ctx.strokeStyle = "rgba(255,255,255,.7)"; ctx.beginPath(); on = false; for (var lo3 = 0; lo3 <= 360; lo3 += 4){ var p3 = sph(0, lo3); if (p3.z > 0){ if (on) ctx.lineTo(p3.x, p3.y); else ctx.moveTo(p3.x, p3.y); on = true; } else on = false; } ctx.stroke();
+      ctx.restore();
+      /* un lieu de l'équateur (point jaune) */
+      var pj = sph(0, 0); if (pj.z > 0) S.draw.dot(c, pj.x, pj.y, 4.5, pal.yellow);
+      /* axe des pôles */
+      var pn = pr(0, epx * 1.25, 0), ps = pr(0, 0, 0); S.draw.line(c, pn.x, pn.y, cx + (pn.x - cx) * 0.8, cy + (pn.y - cy) * 0.8, "rgba(255,255,255,.4)", 1.2, [2, 3]); P5x.tag(c, "N", pn.x, pn.y - 8, "#cfdcf5", {size: 11, fill: "rgba(10,20,45,.6)"});
+      ring(R, "#ff7864", 2.6, null, true);
+      if (showGeo) ring(rg, "rgba(244,197,66,.9)", 1.5, [3, 5], true);
+      if (!(sBehind && Math.hypot(sp3.x - cx, sp3.y - cy) > epx) && !(sBehind)) sat();
+      else if (sBehind && Math.hypot(sp3.x - cx, sp3.y - cy) <= epx){ /* masqué par la Terre */ }
+      if (showGeo){ var gp = pr(rg * Math.cos(eA), 0, rg * Math.sin(eA)); if (gp.z > -epx * 0.3) P5x.tag(c, "géostationnaire", gp.x, gp.y - 12, "#ffd66b", {size: 11, fill: "rgba(10,20,45,.7)"}); }
+      P5x.hint(c, "Glisse pour faire tourner la vue 3D", {y: 14, color: "#cfdcf5"});
+      P5x.hint(c, "1 s à l'écran = 30 min · point jaune : un lieu de l'équateur", {y: c.H - 10, color: "#9fb4da", size: 11});
       ro.set(0, S.fmt(g, 2) + " m/s²"); ro.set(1, S.fmt(v / 1000, 2) + " km/s (" + S.fmt(v * 3.6, 0) + " km/h)"); ro.set(2, S.fmt(T / 3600, 2) + " h (" + S.fmt(T / 60, 0) + " min)"); ro.set(3, S.fmt(100 * g / 9.82, 0) + " %");
       var geo = Math.abs(T - Tsid) < 120;
+      if (geo) P5x.banner(c, "Orbite géostationnaire : le satellite suit le point jaune", "#7be0ae", 40, {fill: "rgba(10,20,45,.8)"});
       nt.set(geo ? "Orbite géostationnaire : T ≈ 24 h (un jour sidéral), le satellite reste au-dessus du même point de l'équateur." : "Le satellite tombe en permanence vers la Terre avec a = g = " + S.fmt(g, 2) + " m/s², mais sa vitesse horizontale est assez grande pour que le sol se « dérobe » : il reste à la même altitude.", geo ? "ok" : "");
     });
   }
 });
+
 
 SFA.sim({
   id: "p5-c07-newton", ch: "c07", tag: "Niche utile",
@@ -95,6 +158,7 @@ SFA.sim({
     var v0 = k.slider("Vitesse horizontale de tir", 1, 12, 0.01, 6, "km/s");
     k.button("Vitesse circulaire", function(){ v0.set(Math.round(Math.sqrt(GMT / (RT + h0.value * 1000)) / 10) / 100); });
     k.button("Vitesse d'évasion", function(){ v0.set(Math.min(12, Math.ceil(Math.sqrt(2 * GMT / (RT + h0.value * 1000)) / 10) / 100)); });
+    k.button("Tirer à nouveau", function(){ ptr = 0; lp.play(); }, true);
     var ro = k.readouts(["Vitesse circulaire v_c", "Vitesse d'évasion", "Résultat", "Altitude min.", "Altitude max."]);
     var nt = k.note("", "");
     function orbit(r0, V){
@@ -115,32 +179,53 @@ SFA.sim({
       }
       return {pts: pts, impact: impact, minr: minr, maxr: maxr};
     }
+    var cache = null, ptr = 0, hd = {x: 0, y: 0, sx: 0, sy: 0, kx: 1};
+    var lp = k.loop(function(dt){ if (cache){ ptr += dt * cache.pts.length / 4.5; if (ptr >= cache.pts.length + 20){ lp.pause(); } } k.redraw(); });
+    /* manipulation directe : on tire la pointe de la flèche de vitesse au départ */
+    P5x.drag(c, k, function(){ return [{x: hd.x, y: hd.y, r: 32, set: function(px){ v0.set(Math.round(P5.clamp((px - hd.sx - 10) / hd.kx, 1, 12) * 20) / 20); ptr = 0; lp.play(); }}]; });
+    lp.play();
     k.draw(function(){
       var pal = S.draw.palette, ctx = c.ctx, r0 = RT + h0.value * 1000, V = v0.value * 1000, vc = Math.sqrt(GMT / r0), ve = Math.SQRT2 * vc;
-      var o = orbit(r0, V); c.clear();
-      /* périgée / apogée exacts (énergie et moment cinétique conservés) : plus fiables que l'intégration numérique */
+      var key = h0.value + "|" + v0.value;
+      if (!cache || cache.key !== key){ cache = orbit(r0, V); cache.key = key; ptr = 0; if (!lp.running) lp.play(); }
+      var o = cache; P5x.space(c);
       var q = V * V / (vc * vc), rpe = V < vc ? r0 * q / (2 - q) : r0, rap = V >= vc ? (q < 2 ? r0 * q / (2 - q) : Infinity) : r0;
-      o.impact = V < vc && rpe <= RT; if (!o.impact){ o.minr = rpe; o.maxr = rap; }
-      var half = Math.min(c.W, c.H) / 2 - 12, view = Math.max(r0 * 2.6, 1.6 * Math.min(o.maxr, r0 * 6)), sc = half / (view / 2) * 1.0;
-      var cx = c.W / 2, cy = c.H / 2;
-      sc = Math.min((c.W / 2 - 14) / (view / 2), (c.H / 2 - 14) / (view / 2));
-      S.draw.dot(c, cx, cy, RT * sc, "#8db3e8"); ctx.strokeStyle = "#5b82bd"; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(cx, cy, RT * sc, 0, 2 * Math.PI); ctx.stroke();
-      ctx.fillStyle = "#a98b63"; ctx.beginPath(); ctx.arc(cx, cy, RT * sc, -1.5707963 - 0.02, -1.5707963 + 0.02); ctx.lineTo(cx + 0, cy - r0 * sc); ctx.fill();
-      ctx.strokeStyle = o.impact ? pal.red : pal.acc; ctx.lineWidth = 2.4; ctx.beginPath();
-      o.pts.forEach(function(p, i){ var X = cx + p[1] * sc, Y = cy - p[0] * sc; if (i === 0) ctx.moveTo(X, Y); else ctx.lineTo(X, Y); }); ctx.stroke();
-      S.draw.dot(c, cx, cy - r0 * sc, 5, pal.amber);
-      S.draw.text(c, "départ", cx + 8, cy - r0 * sc - 10, {align: "left", size: 12, color: pal.amber});
+      var impact = V < vc && rpe <= RT, minr = impact ? 0 : rpe, maxr = rap;
+      var view = Math.max(r0 * 2.6, 1.6 * Math.min(maxr, r0 * 6)), cx = c.W / 2, cy = c.H / 2;
+      var sc = Math.min((c.W / 2 - 14) / (view / 2), (c.H / 2 - 14) / (view / 2)), sy0 = cy - r0 * sc;
+      P5x.planet(c, cx, cy, RT * sc, "#3d7fd1", "#7fc0ff");
+      ctx.save(); ctx.beginPath(); ctx.arc(cx, cy, RT * sc, 0, 7); ctx.clip(); ctx.fillStyle = "rgba(60,150,90,.55)"; ctx.beginPath(); ctx.ellipse(cx - RT * sc * 0.3, cy - RT * sc * 0.55, RT * sc * 0.35, RT * sc * 0.2, 0.5, 0, 7); ctx.fill(); ctx.beginPath(); ctx.ellipse(cx + RT * sc * 0.45, cy + RT * sc * 0.2, RT * sc * 0.25, RT * sc * 0.35, -0.3, 0, 7); ctx.fill(); ctx.restore();
+      /* orbite circulaire de référence */
+      ctx.strokeStyle = "rgba(255,255,255,.22)"; ctx.setLineDash([4, 5]); ctx.lineWidth = 1.2; ctx.beginPath(); ctx.arc(cx, cy, r0 * sc, 0, 7); ctx.stroke(); ctx.setLineDash([]);
+      /* montagne (haute ici de h0, plus large en bas) */
+      var mw = Math.max(8, RT * sc * 0.14), sb = Math.sqrt(Math.max(0, Math.pow(RT * sc, 2) - mw * mw));
+      if (h0.value > 0){ ctx.fillStyle = P5x.lin(ctx, 0, sy0, 0, cy - sb, [[0, "#eef2f6"], [0.3, "#8d98a8"], [1, "#5b6676"]]); ctx.beginPath(); ctx.moveTo(cx - mw, cy - sb + 2); ctx.lineTo(cx, sy0); ctx.lineTo(cx + mw, cy - sb + 2); ctx.closePath(); ctx.fill(); }
+      /* trajectoire animée */
+      var n = Math.min(o.pts.length, Math.floor(ptr)), col = impact ? "#ff6b57" : "#7fd1ff";
+      ctx.lineJoin = "round"; ctx.lineCap = "round";
+      for (var pass = 0; pass < 2; pass++){ ctx.strokeStyle = pass ? col : S.draw.tint(col, 0.25); ctx.lineWidth = pass ? 2.6 : 7; ctx.beginPath(); for (var i = 0; i < n; i++){ var p = o.pts[i], X = cx + p[1] * sc, Y = cy - p[0] * sc; if (i === 0) ctx.moveTo(X, Y); else ctx.lineTo(X, Y); } ctx.stroke(); }
+      if (n > 0 && n <= o.pts.length){ var pp = o.pts[Math.min(n, o.pts.length) - 1], bx = cx + pp[1] * sc, by = cy - pp[0] * sc; S.draw.glow(c, bx, by, 16, "#ffd66b", 0.8); S.draw.dot(c, bx, by, 4.5, "#ffe9a8"); }
+      if (impact && n >= o.pts.length){ var ip = o.pts[o.pts.length - 1]; S.draw.glow(c, cx + ip[1] * sc, cy - ip[0] * sc, 22, "#ff7a45", 0.9); }
+      /* canon et flèche de vitesse */
+      S.draw.dot(c, cx, sy0, 5, "#ffb02e");
+      var kx = 12, hx = cx + 10 + (V / 1000) * kx; if (hx > c.W - 14){ kx = (c.W - 24 - cx) / (V / 1000); hx = cx + 10 + (V / 1000) * kx; } hd.kx = kx; hd.sx = cx;
+      P5.vec(c, cx + 6, sy0, hx, sy0, "#ffd66b", "", {w: 3}); hd.x = hx; hd.y = sy0; P5x.handle(c, hx, sy0, "#ffb02e", 6.5);
+      P5x.tag(c, "v₀ = " + S.fmt(v0.value, 2) + " km/s", cx + 10, sy0 - 18, "#ffd66b", {align: "left", size: 11.5, fill: "rgba(10,20,45,.8)"});
+      P5x.hint(c, "Tire la pointe jaune pour régler v₀", {y: 14, color: "#cfdcf5"});
+      P5x.hint(c, "échelle : rayon de la Terre = " + S.fmt(RT / 1000, 0) + " km", {y: c.H - 10, color: "#9fb4da", size: 11});
       var res, kind;
       if (V >= ve - 1) { res = "évasion (trajectoire ouverte)"; kind = "ok"; }
-      else if (o.impact) { res = "retombe au sol"; kind = "warn"; }
+      else if (impact) { res = "retombe au sol"; kind = "warn"; }
       else if (Math.abs(V - vc) < 0.012 * 1000) { res = "orbite quasi circulaire"; kind = "ok"; }
       else { res = "orbite elliptique"; kind = "ok"; }
+      if (n >= o.pts.length - 1) P5x.banner(c, res.charAt(0).toUpperCase() + res.slice(1), kind === "warn" ? "#ff8a78" : "#7be0ae", c.H - 36, {fill: "rgba(10,20,45,.8)"});
       ro.set(0, S.fmt(vc / 1000, 2) + " km/s"); ro.set(1, S.fmt(ve / 1000, 2) + " km/s"); ro.set(2, res);
-      ro.set(3, o.impact ? "0 (impact)" : S.fmt((o.minr - RT) / 1000, 0) + " km"); ro.set(4, V >= ve - 1 ? "∞" : S.fmt((o.maxr - RT) / 1000, 0) + " km");
-      nt.set(V >= ve - 1 ? "v ≥ √2·v_c : l'énergie est suffisante pour échapper à l'attraction de la Terre (modèle sans air et sans autres astres)." : o.impact ? "La vitesse est inférieure à v_c : la trajectoire finit par couper le sol. Plus v est grande, plus l'impact est loin." : V < vc ? "v est inférieure à v_c, mais le point le plus bas de l'ellipse reste au-dessus du sol : le projectile tourne autour de la Terre (le point de tir est l'apogée)." : "v est comprise entre v_c et √2·v_c (ou égale à v_c) : le projectile ne touche plus le sol, il tourne autour de la Terre.", kind);
+      ro.set(3, impact ? "0 (impact)" : S.fmt((minr - RT) / 1000, 0) + " km"); ro.set(4, V >= ve - 1 ? "∞" : S.fmt((maxr - RT) / 1000, 0) + " km");
+      nt.set(V >= ve - 1 ? "v ≥ √2·v_c : l'énergie est suffisante pour échapper à l'attraction de la Terre (modèle sans air et sans autres astres)." : impact ? "La vitesse est inférieure à v_c : la trajectoire finit par couper le sol. Plus v est grande, plus l'impact est loin." : V < vc ? "v est inférieure à v_c, mais le point le plus bas de l'ellipse reste au-dessus du sol : le projectile tourne autour de la Terre (le point de tir est l'apogée)." : "v est comprise entre v_c et √2·v_c (ou égale à v_c) : le projectile ne touche plus le sol, il tourne autour de la Terre.", kind);
     });
   }
 });
+
 
 SFA.sim({
   id: "p5-c07-kepler", ch: "c07", tag: "Kepler",

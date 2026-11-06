@@ -63,14 +63,17 @@ SFA.sim({
     var eta = k.slider("Rendement η", 80, 100, 1, 100, "%");
     var src = k.seg("Source", [["ac", "Alternatif (prise)"], ["dc", "Continu (pile)"]], "ac");
     var ro = k.readouts(["U₂", "I₂", "I₁", "P₂ (reçue par la charge)", "P₁ (fournie)"]);
-    var nt = k.note("", "ok");
+    var nt = k.note("", "ok"), tt = 0;
+    var lpf = k.loop(function(dt){ tt += dt; k.redraw(); }); lpf.play();
+    function ac2(){ return src.value === "ac"; }
     k.draw(function(){
-      c.clear(); g.clear(); var ctx = c.ctx, W = c.W, H = c.H;
+      c.clear(); g.clear(); window.PH6.bg(c); var ctx = c.ctx, W = c.W, H = c.H;
       var m = N2.value / N1.value, ac = src.value === "ac", u2 = ac ? U1.value * m : 0, i2 = u2 / R.value, p2 = u2 * i2, p1 = p2 / (eta.value / 100), i1 = ac ? p1 / U1.value : 0;
       if (!ac){ i1 = U1.value / 1e9; }
       /* noyau */
-      var cx = W / 2, cy = H / 2 + 6, cw = 220, ch = 150;
-      ctx.lineWidth = 22; ctx.strokeStyle = "#9aa4b2"; ctx.strokeRect(cx - cw / 2, cy - ch / 2, cw, ch); ctx.lineWidth = 1;
+      var cx = W / 2, cy = H / 2 + 6, cw = Math.max(150, Math.min(220, W - 200)), ch = 150;
+      var cg = ctx.createLinearGradient(cx - cw / 2, 0, cx + cw / 2, 0); cg.addColorStop(0, "#7d8795"); cg.addColorStop(0.5, "#b9c2cf"); cg.addColorStop(1, "#7d8795"); ctx.lineWidth = 22; ctx.strokeStyle = cg; ctx.strokeRect(cx - cw / 2, cy - ch / 2, cw, ch); ctx.lineWidth = 1; ctx.strokeStyle = "rgba(19,35,58,.35)"; ctx.strokeRect(cx - cw / 2 - 11, cy - ch / 2 - 11, cw + 22, ch + 22); ctx.strokeRect(cx - cw / 2 + 11, cy - ch / 2 + 11, cw - 22, ch - 22);
+      if (ac2()){ var ph = Math.sin(tt * 2 * Math.PI * 0.8), dirF = ph >= 0 ? 1 : -1, al = Math.abs(ph); for (var q = 0; q < 8; q++){ var u = ((q / 8) + (dirF > 0 ? 1 : -1) * 0) % 1, per = 2 * (cw + ch), d0 = u * per, px, py, ang; if (d0 < cw){ px = cx - cw / 2 + d0; py = cy - ch / 2; ang = 0; } else if (d0 < cw + ch){ px = cx + cw / 2; py = cy - ch / 2 + (d0 - cw); ang = Math.PI / 2; } else if (d0 < 2 * cw + ch){ px = cx + cw / 2 - (d0 - cw - ch); py = cy + ch / 2; ang = Math.PI; } else { px = cx - cw / 2; py = cy + ch / 2 - (d0 - 2 * cw - ch); ang = -Math.PI / 2; } if (dirF < 0) ang += Math.PI; ctx.globalAlpha = 0.25 + 0.75 * al; S.draw.arrow(c, px - Math.cos(ang) * 6, py - Math.sin(ang) * 6, px + Math.cos(ang) * 6, py + Math.sin(ang) * 6, "#ffd54a", 3); ctx.globalAlpha = 1; } }
       function bob(x, n, col){
         var t = Math.max(3, Math.min(14, Math.round(n / 150)));
         ctx.strokeStyle = col; ctx.lineWidth = 3;
@@ -79,20 +82,20 @@ SFA.sim({
       bob(cx - cw / 2, N1.value, P.acc); bob(cx + cw / 2, N2.value, P.red);
       S.draw.text(c, "primaire", cx - cw / 2, cy + ch / 2 - 4 + 22, {size: 12, color: P.acc}); S.draw.text(c, "N₁ = " + N1.value, cx - cw / 2, cy + ch / 2 + 40 - 10, {size: 12, color: P.acc});
       S.draw.text(c, "secondaire", cx + cw / 2, cy + ch / 2 + 18, {size: 12, color: P.red}); S.draw.text(c, "N₂ = " + N2.value, cx + cw / 2, cy + ch / 2 + 30, {size: 12, color: P.red});
-      S.draw.text(c, "U₁ = " + S.fmt(U1.value, 0) + " V", cx - cw / 2 - 70, cy - 20, {size: 14, color: P.acc});
-      S.draw.text(c, "U₂ = " + S.fmt(u2, 1) + " V", cx + cw / 2 + 74, cy - 20, {size: 14, color: P.red});
-      S.draw.text(c, ac ? "~" : "=", cx - cw / 2 - 70, cy + 14, {size: 22, color: P.ink});
-      S.draw.text(c, m > 1 ? "élévateur (U₂ > U₁)" : m < 1 ? "abaisseur (U₂ < U₁)" : "rapport 1", cx, 18, {size: 14});
+      S.draw.label(c, "U₁ = " + S.fmt(U1.value, 0) + " V", Math.max(46, cx - cw / 2 - 54), cy - 20, {size: 13, color: P.acc});
+      S.draw.label(c, "U₂ = " + S.fmt(u2, 1) + " V", Math.min(W - 46, cx + cw / 2 + 54), cy - 20, {size: 13, color: P.red});
+      S.draw.text(c, ac ? "~" : "=", Math.max(46, cx - cw / 2 - 54), cy + 14, {size: 22, color: P.ink});
+      S.draw.label(c, m > 1 ? "élévateur (U₂ > U₁)" : m < 1 ? "abaisseur (U₂ < U₁)" : "rapport 1", cx, 18, {size: 13, color: P.ink});
       ro.set(0, S.fmt(u2, 1) + " V"); ro.set(1, S.fmt(i2, 3) + " A"); ro.set(2, ac ? S.fmt(i1, 3) + " A" : "≈ 0 (régime continu)");
       ro.set(3, S.fmt(p2, 2) + " W"); ro.set(4, ac ? S.fmt(p1, 2) + " W" : "0 W");
       nt.set(ac ? "Rapport de transformation m = N₂/N₁ = " + S.fmt(m, 3) + ". I₁/I₂ = " + S.fmt(i2 > 0 ? i1 / i2 : 0, 3) + (eta.value === 100 ? " = m (transformateur idéal)." : " : les pertes augmentent I₁.") + (p2 > 10000 ? " Puissance de " + S.fmt(p2 / 1000, 0) + " kW : bien au-delà d'un transformateur de laboratoire (ordre de grandeur d'un poste de quartier) ; le calcul idéal reste valable mais l'appareil réel chaufferait." : "") : "Sur courant continu, le flux est constant : aucune tension induite au secondaire (après l'instant d'enclenchement).", ac ? (p2 > 10000 ? "warn" : "ok") : "warn");
       /* barres comparées */
       var mx = Math.max(U1.value, u2, 1), items = [["Tension", U1.value, u2, P.acc, "V"], ["Intensité", i1, i2, P.green, "A"], ["Puissance", p1, p2, P.amber, "W"]];
-      var bw = (g.W - 40) / 3;
+      var bw = (g.W - 40) / 3; S.draw.text(g, "à gauche (gris) : primaire · à droite (couleur) : secondaire", g.W / 2, 118, {size: 11.5, color: P.grey, weight: 600});
       items.forEach(function(it, j){
         var x0 = 20 + j * bw, big = Math.max(it[1], it[2], 1e-9), h1 = (it[1] / big) * 62, h2 = (it[2] / big) * 62;
         g.ctx.fillStyle = "#c5cedb"; g.ctx.fillRect(x0 + 10, 84 - h1, bw / 2 - 16, h1); g.ctx.fillStyle = it[3]; g.ctx.fillRect(x0 + bw / 2 + 2, 84 - h2, bw / 2 - 16, h2);
-        S.draw.text(g, it[0], x0 + bw / 2, 100, {size: 12}); S.draw.text(g, "primaire | secondaire", x0 + bw / 2, 118, {size: 12, color: P.grey});
+        S.draw.text(g, it[0], x0 + bw / 2, 100, {size: 12}); 
         S.draw.text(g, S.fmt(it[1], 2), x0 + 10 + (bw / 2 - 16) / 2, 78 - h1 - 6, {size: 12}); S.draw.text(g, S.fmt(it[2], 2), x0 + bw / 2 + 2 + (bw / 2 - 16) / 2, 78 - h2 - 6, {size: 12});
       });
     });
@@ -102,36 +105,73 @@ SFA.sim({
 SFA.sim({
   id: "p6-c04-ligne-ht", ch: "c04", tag: "Réseau",
   titre: "Pourquoi transporter l'énergie sous très haute tension",
-  resume: "Pour la même puissance, élever la tension réduit l'intensité et divise les pertes par effet Joule par le carré.",
-  but: "Une centrale envoie une puissance P dans une ligne de résistance R. Fais varier la tension de transport : l'intensité et les pertes changent. Observe la courbe des pertes en fonction de U.",
+  resume: "Pour la même puissance, élever la tension réduit l'intensité et divise les pertes par effet Joule par le carré. Défi : moins de 1 % de pertes.",
+  but: "Une centrale envoie une puissance P dans une ligne de résistance R. Fais varier la tension de transport : l'intensité, l'échauffement de la ligne et la lumière de la ville changent. Lance le défi : trouve la tension qui limite les pertes à 1 %.",
   aRetenir: "Pour transporter P = U·I, l'intensité vaut I = P/U. La ligne dissipe P_perdue = R·I² = R·P²/U² : doubler U divise les pertes par 4. Voilà pourquoi on élève la tension à 150 ou 380 kV pour les longues distances, puis on l'abaisse avec des transformateurs.",
   piege: "Ce ne sont pas les volts qui chauffent la ligne mais l'intensité : les pertes dépendent de I², pas de U. Modèle simplifié : ligne monophasée, facteur de puissance 1 (le réseau réel est triphasé).",
   build: function(k, S){
-    var c = k.canvas(150), g = k.canvas(240), P = S.draw.palette;
+    var c = k.canvas(300), g = k.canvas(220), P = S.draw.palette, Pm = window.PH6;
     var Pw = k.slider("Puissance transportée P", 1, 200, 1, 100, "MW");
     var Rl = k.slider("Résistance de la ligne R", 1, 30, 1, 10, "Ω");
     var Uk = k.slider("Tension de transport U", 10, 400, 10, 380, "kV");
+    var goal = false, t = 0;
+    k.button("Défi : pertes ≤ 1 %", function(){ goal = true; Pw.set(40 + Math.round(Math.random() * 16) * 10); Rl.set(8 + Math.round(Math.random() * 14)); Uk.set(60); }, true);
     var ro = k.readouts(["Intensité I = P/U", "Perte R·I²", "Perte relative", "Puissance reçue"]);
     var nt = k.note("", "ok");
-    function loss(Pm, R, U){ var I = Pm * 1e6 / (U * 1e3); return R * I * I / 1e6; }   /* en MW */
+    var lp = k.loop(function(dt){ t += dt; k.redraw(); }); lp.play();
+    function loss(p, R, U){ var I = p * 1e6 / (U * 1e3); return R * I * I / 1e6; }
     k.draw(function(){
-      c.clear(); g.clear(); var ctx = c.ctx, W = c.W;
-      var I = Pw.value * 1e6 / (Uk.value * 1e3), lo = loss(Pw.value, Rl.value, Uk.value), pc = lo / Pw.value * 100, impossible = lo >= Pw.value;
-      /* schéma : centrale → élévateur → ligne → abaisseur → ville */
-      function box(x, w, txt, col){ ctx.fillStyle = col; ctx.fillRect(x, 52, w, 44); ctx.strokeStyle = P.ink; ctx.lineWidth = 1.5; ctx.strokeRect(x, 52, w, 44); S.draw.text(c, txt, x + w / 2, 74, {size: 12}); }
-      var bw = Math.min(90, W / 5);
-      box(10, bw, "centrale", "#dbe7ff"); box(10 + bw + 8, bw * 0.7, "↑ U", "#fde8d0"); box(W - 10 - bw, bw, "ville", "#dff3e6"); box(W - 10 - bw - 8 - bw * 0.7, bw * 0.7, "↓ U", "#fde8d0");
-      var xa = 10 + bw + 8 + bw * 0.7, xb = W - 10 - bw - 8 - bw * 0.7, heat = Math.min(1, pc / 20);
-      ctx.strokeStyle = "rgb(" + Math.round(90 + 165 * heat) + "," + Math.round(110 - 60 * heat) + "," + Math.round(140 - 100 * heat) + ")"; ctx.lineWidth = 4 + 8 * Math.min(1, I / 5000); ctx.beginPath(); ctx.moveTo(xa, 74); ctx.lineTo(xb, 74); ctx.stroke();
-      S.draw.text(c, "ligne : U = " + S.fmt(Uk.value, 0) + " kV, I = " + S.fmt(I, 0) + " A", (xa + xb) / 2, 36, {size: 13});
-      S.draw.text(c, "chaleur perdue : " + (impossible ? "tout !" : S.fmt(lo, 2) + " MW"), (xa + xb) / 2, 112, {size: 13, color: P.red});
+      c.clear(); g.clear(); Pm.bg(c, "#f4f8ff", "#e9eff7"); var ctx = c.ctx, W = c.W, H = c.H;
+      var I = Pw.value * 1e6 / (Uk.value * 1e3), lo = loss(Pw.value, Rl.value, Uk.value), pc = lo / Pw.value * 100, impossible = lo >= Pw.value, heat = Math.min(1, pc / 15);
+      var gy = H - 52;
+      /* sol */
+      ctx.fillStyle = "#cfe0cf"; ctx.fillRect(0, gy, W, H - gy); ctx.fillStyle = "#b7cdb7"; ctx.fillRect(0, gy, W, 3);
+      /* barre de bilan */
+      var bx = 12, bw = W - 24, by = 12;
+      ctx.fillStyle = "#e3e7ed"; S.draw.rrect(c, bx, by, bw, 18, 6); ctx.fill();
+      var fr = impossible ? 0 : 1 - lo / Pw.value;
+      ctx.fillStyle = P.green; S.draw.rrect(c, bx, by, bw * fr, 18, 6); ctx.fill();
+      if (fr < 1){ ctx.fillStyle = P.red; ctx.save(); S.draw.rrect(c, bx, by, bw, 18, 6); ctx.clip(); ctx.fillRect(bx + bw * fr, by, bw * (1 - fr), 18); ctx.restore(); }
+      S.draw.text(c, "reçue par la ville : " + S.fmt(impossible ? 0 : Pw.value - lo, 1) + " MW", bx + 8, by + 9, {size: 11.5, color: "#fff", align: "left"});
+      if (!impossible && pc < 12) S.draw.text(c, "", bx + bw - 6, by + 9, {size: 11, color: "#fff", align: "right"});
+      /* centrale */
+      var cxp = 14, cw = Math.min(78, W * 0.2);
+      Pm.metal(c, cxp, gy - 56, cw, 56, 4, "#8d9bb0"); Pm.metal(c, cxp + cw * 0.62, gy - 92, 14, 40, 3, "#6f7d92");
+      for (var q = 0; q < 3; q++){ var sy = gy - 100 - ((t * 24 + q * 22) % 66), a = 0.5 - ((t * 24 + q * 22) % 66) / 140; ctx.beginPath(); ctx.arc(cxp + cw * 0.62 + 7 + (66 - (t * 24 + q * 22) % 66) * -0.12, sy, 7 + ((t * 24 + q * 22) % 66) * 0.12, 0, 7); ctx.fillStyle = "rgba(120,130,145," + Math.max(0, a) + ")"; ctx.fill(); }
+      S.draw.text(c, "centrale", cxp + cw / 2, gy + 14, {size: 11.5, color: P.grey});
+      /* transformateurs */
+      var tw = 24, xa = cxp + cw + 14, xb = W - 14 - Math.min(78, W * 0.2) - 14 - tw;
+      [[xa, "↑U"], [xb, "↓U"]].forEach(function(tr){ Pm.metal(c, tr[0], gy - 34, tw, 34, 3, "#d6a24b"); S.draw.text(c, tr[1], tr[0] + tw / 2, gy - 17, {size: 11.5, color: "#5b3b05"}); });
+      /* pylônes et câbles */
+      var x0 = xa + tw, x1 = xb, np = 4, ph = 76, cableY = gy - ph, wire = "rgb(" + Math.round(70 + 185 * heat) + "," + Math.round(90 - 50 * heat) + "," + Math.round(120 - 90 * heat) + ")";
+      var px = []; for (var i = 0; i < np; i++) px.push(x0 + 16 + (x1 - x0 - 32) * i / (np - 1));
+      px.forEach(function(x){ ctx.strokeStyle = "#5a6575"; ctx.lineWidth = 2.4; ctx.beginPath(); ctx.moveTo(x - 9, gy); ctx.lineTo(x, cableY - 4); ctx.lineTo(x + 9, gy); ctx.moveTo(x - 6, gy - 22); ctx.lineTo(x + 6, gy - 22); ctx.moveTo(x - 12, cableY + 2); ctx.lineTo(x + 12, cableY + 2); ctx.stroke(); });
+      var lw = 3 + 5 * Math.min(1, I / 4000);
+      function cable(yoff, glow){
+        ctx.beginPath(); ctx.moveTo(x0, gy - 28);
+        for (var s2 = 0; s2 < px.length; s2++){ var xs = px[s2]; ctx.lineTo(xs, cableY + 2 + yoff); if (s2 < px.length - 1){ var xm = (xs + px[s2 + 1]) / 2; ctx.quadraticCurveTo(xm, cableY + 2 + yoff + 16, px[s2 + 1], cableY + 2 + yoff); } }
+        ctx.lineTo(x1, gy - 28); ctx.strokeStyle = glow ? "rgba(255,120,40," + (0.15 + 0.5 * heat) + ")" : wire; ctx.lineWidth = glow ? lw + 10 : lw; ctx.lineJoin = "round"; ctx.setLineDash(glow ? [] : [3 + 10 / Math.max(0.3, Math.min(6, I / 600)), 3]); ctx.lineDashOffset = -t * 40; ctx.stroke(); ctx.setLineDash([]);
+      }
+      if (heat > 0.03) cable(0, true); cable(0, false);
+      /* chaleur qui monte */
+      var nh = Math.round(4 + 14 * heat);
+      for (var h = 0; h < nh; h++){ var hx = x0 + 10 + ((h * 53.7) % 1000) / 1000 * (x1 - x0 - 20), hp = ((t * 0.7 + h * 0.37) % 1), hy = cableY - 6 - hp * 40; ctx.globalAlpha = (1 - hp) * Math.min(1, 0.25 + heat); S.draw.text(c, "~", hx + Math.sin(t * 3 + h) * 3, hy, {size: 15, color: P.red}); ctx.globalAlpha = 1; }
+      /* ville */
+      var vw = Math.min(78, W * 0.2), vx = W - 14 - vw, lit = impossible ? 0 : Math.max(0, 1 - lo / Pw.value), rng = [0.2, 0.7, 0.4, 0.9, 0.1, 0.6, 0.3, 0.8, 0.5, 0.95, 0.15, 0.55];
+      [[0, 46], [vw * 0.36, 62], [vw * 0.68, 38]].forEach(function(bd, bi){ ctx.fillStyle = "#9aa8bd"; ctx.fillRect(vx + bd[0], gy - bd[1], vw * 0.3, bd[1]);
+        for (var wy = 0; wy < Math.floor(bd[1] / 12) ; wy++) for (var wx = 0; wx < 2; wx++){ var on = rng[(bi * 4 + wy * 2 + wx) % 12] < lit; ctx.fillStyle = on ? "#ffe27a" : "#6c7a90"; ctx.fillRect(vx + bd[0] + 4 + wx * vw * 0.13, gy - bd[1] + 5 + wy * 12, vw * 0.1, 7); } });
+      S.draw.text(c, "ville", vx + vw / 2, gy + 14, {size: 11.5, color: P.grey});
+      S.draw.label(c, "U = " + S.fmt(Uk.value, 0) + " kV · I = " + S.fmt(I, 0) + " A", (x0 + x1) / 2, cableY - 46, {color: P.ink, size: 12});
+      S.draw.text(c, impossible ? "la ligne dissiperait tout !" : "chaleur perdue : " + S.fmt(lo, 2) + " MW", (x0 + x1) / 2, gy + 14, {size: 12, color: P.red});
       ro.set(0, S.fmt(I, 0) + " A"); ro.set(1, impossible ? "> P" : S.fmt(lo, 2) + " MW"); ro.set(2, impossible ? "> 100 %" : S.fmt(pc, 2) + " %"); ro.set(3, impossible ? "0 MW" : S.fmt(Pw.value - lo, 1) + " MW");
-      nt.set(impossible ? "Avec ces valeurs, la ligne dissiperait plus que la puissance envoyée : le transport est impossible. Augmente la tension !" : pc > 10 ? "Plus de 10 % de pertes : réseau très peu rentable. Augmente U." : "Les pertes sont raisonnables.", impossible ? "bad" : pc > 10 ? "warn" : "ok");
-      /* graphe pertes relatives vs U */
+      if (goal){ var ok = !impossible && pc <= 1; nt.set("<b>Défi :</b> avec P = " + Pw.value + " MW et R = " + Rl.value + " Ω, règle U pour que les pertes ne dépassent pas 1 %. " + (ok ? "Réussi : " + S.fmt(pc, 2) + " % à " + Uk.value + " kV." : "Actuellement : " + (impossible ? "ligne impossible" : S.fmt(pc, 1) + " %") + ". Rappel : pertes ∝ 1/U²."), ok ? "ok" : "warn"); }
+      else nt.set(impossible ? "Avec ces valeurs, la ligne dissiperait plus que la puissance envoyée : le transport est impossible. Augmente la tension !" : pc > 10 ? "Plus de 10 % de pertes : réseau très peu rentable. Augmente U." : "Les pertes sont raisonnables.", impossible ? "bad" : pc > 10 ? "warn" : "ok");
+      /* graphe */
       var ymax = 30, ax = S.draw.axes(g, {x0: 0, x1: 400, y0: 0, y1: ymax, xl: "U (kV)", yl: "pertes (%)", l: 54, t: 22, stepX: 100, stepY: 10});
-      S.draw.fn(g, ax, function(U){ return U < 5 ? NaN : Math.min(100, Rl.value * Pw.value * 1e6 / Math.pow(U * 1e3, 2) * 100); }, P.red);
-      var yy = Math.min(ymax, pc); S.draw.dot(g, ax.X(Uk.value), ax.Y(yy), 6, P.ink);
-      if (pc > ymax) S.draw.text(g, "hors échelle (" + (impossible ? ">100" : S.fmt(pc, 0)) + " %)", ax.X(Uk.value) + 8, ax.Y(ymax) + 14, {size: 12, align: "left", color: P.ink});
+      S.draw.fn(g, ax, function(U){ return U < 5 ? NaN : Math.min(100, Rl.value * Pw.value * 1e6 / Math.pow(U * 1e3, 2) * 100); }, P.red, 3);
+      if (goal) S.draw.line(g, ax.L, ax.Y(1), ax.R, ax.Y(1), P.green, 1.6, [5, 4]);
+      S.draw.dot(g, ax.X(Uk.value), ax.Y(Math.min(ymax, pc)), 7, P.ink);
+      if (pc > ymax) S.draw.label(g, "hors échelle (" + (impossible ? ">100" : S.fmt(pc, 0)) + " %)", ax.X(Uk.value) + 8, ax.Y(ymax) + 14, {align: "left", color: P.ink, size: 11.5});
     });
   }
 });

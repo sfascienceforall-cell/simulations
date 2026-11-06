@@ -47,7 +47,7 @@ SFA.figs("c02",[
  /* 3 noyau */
  function(p){var cx=W*.22,cy=H*.5,R=H*.28;b4ell(cx,cy,R,R,'#e4e0fa',VIOLET,3);ctx.strokeStyle=VIOLET;ctx.lineWidth=2;ctx.beginPath();for(var i=0;i<30;i++){ctx.lineTo(cx-R*.5+i*R/30*1.0,cy+Math.sin(i*.9)*R*.35);}ctx.stroke();
   TB('ADN',cx,cy+R*.62,VIOLET,14);for(var j=0;j<3;j++)b4ell(cx+R*Math.cos(-.6+j*.6),cy+R*Math.sin(-.6+j*.6),4,7,'#fff',VIOLET,2,-.6+j*.6);
-  b4rer(W*.72,H*.4,W*.2,H*.24,true);b4ribo(W*.66,H*.78,3);b4ribo(W*.8,H*.8,3);TB('ribosomes',W*.74,H*.92,VIOLET,13);
+  b4rer(W*.72,H*.4,W*.2,H*.24,true);b4ribo(W*.66,H*.7,3);b4ribo(W*.8,H*.72,3);TB('ribosomes',W*.74,H*.82,VIOLET,13);
   if(p<=0){TB('« le cerveau de la cellule » ?',W*.5,H*.1,GREY,18);}
   if(p>0){var f=b4r(p,0,.8);b4al(b4r(p,0,.3));TB('ADN = plans',cx,H*.14,VIOLET,15);b4al(1);
    var x=cx+R+f*(W*.7-cx-R-20);DOT(x,cy-R*.4+f*(H*.4-cy+R*.4),6,RED);LN(cx+R,cy-R*.4,x,cy-R*.4+f*(H*.4-cy+R*.4),RED,2,[4,4]);b4al(b4r(p,.4,.8));TB('ARNm = copie de travail',W*.5,H*.26,RED,14);b4al(1);
@@ -75,7 +75,7 @@ SFA.figs("c02",[
  function(p){function mt(x,y,s){b4ell(x,y,45*s,28*s,'#fdece4',ORA2,2.4);b4ell(x,y,40*s,23*s,null,ORA2,1.4);ctx.strokeStyle=ORA2;ctx.lineWidth=1.3;for(var i=-2;i<=2;i++){ctx.beginPath();ctx.moveTo(x+i*13*s,y+(i%2?-22:22)*s);ctx.lineTo(x+i*13*s,y+(i%2?2:-2)*s);ctx.stroke();}ctx.strokeStyle=VIOLET;ctx.lineWidth=1.6;ctx.beginPath();ctx.arc(x+10*s,y-8*s,6*s,0,7);ctx.stroke();}
   var s=Math.min(W/330,H/200);mt(W*.24,H*.4,s*1.3);b4bact(W*.76,H*.4,W*.3,H*.2,0,{nonuc:true});ctx.strokeStyle=VIOLET;ctx.lineWidth=1.8;ctx.beginPath();ctx.arc(W*.76,H*.4,W*.03,0,7);ctx.stroke();
   TB('mitochondrie',W*.24,H*.72,DRED,15);TB('bactérie',W*.76,H*.72,BLUE_D,15);TB('?',W*.5,H*.42,GREY,40);
-  if(p>0){var tr=['2 membranes','ADN circulaire','petits ribosomes','division en deux'];tr.forEach(function(s2,i){b4al(b4r(p,i*.18,i*.18+.25));TB('✓ '+s2,W*.5,H*.12+i*H*.075,DGREEN,14);b4al(1);});b4ans(p,'endosymbiose',GREEN,H-20);}},
+  if(p>0){var tr=['2 membranes','ADN circulaire','petits ribosomes','division en deux'];tr.forEach(function(s2,i){b4al(b4r(p,i*.18,i*.18+.25));TB('✓ '+s2,W*.53,H*.12+i*H*.075,DGREEN,14);b4al(1);});b4ans(p,'endosymbiose',GREEN,H-20);}},
  /* 8 maladie mito */
  function(p){var M=b4ax(W*.12,H*.78,W*.78,H*.62,[0,100],[0,100],'effort (%)','ATP');M.xl=W*.12;M.yb=H*.78;b4tick(M,[0,25,50,75,100],[0,25,50,75,100]);
   b4curve(M,function(e){return 10+.9*e;},0,100,BLUE,3.2,50);LN(M.x(0),M.y(42),M.x(100),M.y(42),GREEN,2.4,[6,4]);TB('aérobie 42',M.x(2),M.y(42)+18,DGREEN,14,'left');

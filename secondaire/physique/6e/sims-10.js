@@ -2,33 +2,78 @@
 SFA.sim({
   id: "p6-c10-echographie", ch: "c10", tag: "Imagerie",
   titre: "Échographie : temps d'écho, fréquence et profondeur",
-  resume: "Un ultrason part, se réfléchit sur une interface et revient : t = 2d/v. Fréquence plus haute = image plus fine, mais portée plus courte.",
-  but: "La sonde envoie une impulsion. Règle la profondeur de l'interface, la nature de ce qu'elle sépare, la fréquence et le gel de contact. Lis le temps d'écho, le niveau de l'écho (dB) et la finesse de l'image.",
+  resume: "Un ultrason part, se réfléchit sur une interface et revient : t = 2d/v. Fréquence plus haute = image plus fine, mais portée plus courte. Défi : la fréquence maximale.",
+  but: "Une impulsion descend sous la sonde, se réfléchit sur l'interface et remonte. Glisse l'interface pour changer sa profondeur, choisis ce qui est derrière, la fréquence et le gel de contact. Lis le temps d'écho, le niveau de l'écho (dB) et regarde l'image obtenue.",
   aRetenir: "L'échographie utilise des ultrasons (f > 20 kHz, typiquement 2 à 15 MHz), pas des rayons. La profondeur se déduit du temps d'écho : d = v·t/2, avec v ≈ 1 540 m/s dans les tissus mous. Une interface réfléchit d'autant plus que les impédances acoustiques Z = ρ·v diffèrent. La résolution est de l'ordre de λ = v/f : une fréquence plus élevée donne une image plus fine, mais l'atténuation (≈ 0,5 dB par cm et par MHz dans chaque sens) limite la profondeur.",
   piege: "L'échographie n'utilise ni rayons X ni rayonnement ionisant : ce sont des ondes mécaniques. Sans gel, l'air entre la sonde et la peau réfléchit presque tout : on ne voit rien. L'os et les poumons (air) bloquent les ultrasons. Valeurs d'ordre de grandeur (milieu homogène, interface plane).",
   build: function(k, S){
-    var c = k.canvas(260), P = S.draw.palette, V = 1540, Z1 = 1.63;
+    var c = k.canvas(320), g = k.canvas(200), P = S.draw.palette, Pm = window.PH6, V = 1540, Z1 = 1.63;
     var d = k.slider("Profondeur de l'interface", 1, 20, 0.5, 8, "cm");
     var tg = k.select("Ce qui est derrière l'interface", [["gr", "Graisse (Z = 1,38)"], ["mu", "Muscle (Z = 1,70)"], ["os", "Os (Z = 7,8)"], ["ai", "Air / poumon (Z = 0,0004)"]], "gr");
     var f = k.slider("Fréquence de la sonde", 1, 15, 0.5, 5, "MHz");
     var gel = k.toggle("Gel de contact", true);
+    var goal = false, clock = 0, geo = {}, noise = [];
+    for (var q = 0; q < 700; q++) noise.push([Math.random(), Math.random(), Math.random()]);
+    k.button("Défi : la fréquence la plus haute qui voit encore l'interface", function(){
+      goal = true; d.set(6 + Math.round(Math.random() * 24) / 2); tg.set(["gr", "mu", "os"][Math.floor(Math.random() * 3)]); gel.set(true); f.set(2);
+    }, true);
     var ro = k.readouts(["Temps d'écho t = 2d/v", "Longueur d'onde (≈ résolution)", "Réflexion R de l'interface", "Niveau de l'écho reçu"]);
     var nt = k.note("", "ok");
-    var Zs = {gr: 1.38, mu: 1.70, os: 7.8, ai: 0.0004};
+    var Zs = {gr: 1.38, mu: 1.70, os: 7.8, ai: 0.0004}, THR = -90;
+    var lp = k.loop(function(dt){ clock += dt; k.redraw(); }); lp.play();
+    c.cv.style.touchAction = "none"; c.cv.style.cursor = "ns-resize";
+    c.pointer(function(tp, p){ if ((tp === "down" || tp === "drag") && geo.y0 !== undefined){ d.set(Math.round(Math.max(1, Math.min(20, (p.y - geo.y0) / geo.sc)) * 2) / 2); } });
+    function levelOf(dd, ff, tgv, gl){ var Z2 = Zs[tgv], R = Math.pow((Z2 - Z1) / (Z2 + Z1), 2); return 10 * Math.log10(R) - ff * dd - (gl ? 0 : 60); }
     k.draw(function(){
-      c.clear(); var W = c.W, H = c.H, t = 2 * (d.value / 100) / V * 1e6, Z2 = Zs[tg.value], R = Math.pow((Z2 - Z1) / (Z2 + Z1), 2);
-      var att = f.value * d.value, gelLoss = gel.value ? 0 : 60, lev = 10 * Math.log10(R) - att - gelLoss, lam = V / (f.value * 1e6) * 1000;
-      var ax = S.draw.axes(c, {x0: 0, x1: 320, y0: -110, y1: -0.001, xl: "temps (µs)", yl: "niveau (dB)", l: 52, t: 22, stepX: 50, stepY: 25});
-      /* émission */
-      S.draw.line(c, ax.X(0), ax.Y(-110), ax.X(0), ax.Y(0), P.acc, 4); S.draw.text(c, "émission", ax.X(0) + 6, ax.T + 10, {size: 12, align: "left", color: P.acc});
-      var thr = -90; S.draw.line(c, ax.L, ax.Y(thr), ax.R, ax.Y(thr), P.red, 1.5, [6, 4]); S.draw.text(c, "seuil de détection ≈ −90 dB", ax.R - 4, ax.Y(thr) - 9, {size: 12, align: "right", color: P.red});
-      var tt = Math.min(t, 320), y = Math.max(-110, lev);
-      S.draw.line(c, ax.X(tt), ax.Y(-110), ax.X(tt), ax.Y(y), lev > thr ? P.green : P.grey, 6);
-      S.draw.text(c, "écho", ax.X(tt), ax.Y(y) - 12, {size: 12, color: lev > thr ? P.green : P.grey});
-      /* échelle de profondeur */
-      S.draw.text(c, "profondeur ≈ " + S.fmt(d.value, 1) + " cm", ax.R - 4, ax.T + 10, {size: 12, align: "right"});
+      c.clear(); g.clear(); var ctx = c.ctx, W = c.W, H = c.H, t = 2 * (d.value / 100) / V * 1e6, Z2 = Zs[tg.value], R = Math.pow((Z2 - Z1) / (Z2 + Z1), 2);
+      var lev = levelOf(d.value, f.value, tg.value, gel.value), lam = V / (f.value * 1e6) * 1000, seen = lev > THR;
+      /* scène : coupe de tissus sous la sonde */
+      var y0 = 62, sc = (H - y0 - 20) / 20, sw = W - 124, x0 = 40; geo.y0 = y0; geo.sc = sc;
+      Pm.bg(c, "#f7f9fc", "#eef2f8");
+      var yi = y0 + d.value * sc;
+      var below = {gr: ["#f3dc8a", "#e8c860"], mu: ["#d9777a", "#b8545a"], os: ["#f4f1e8", "#cfc8b6"], ai: ["#dff0fb", "#bcdcf0"]}[tg.value];
+      var gt = ctx.createLinearGradient(0, y0, 0, yi); gt.addColorStop(0, "#f6c9b8"); gt.addColorStop(1, "#e8a894"); ctx.fillStyle = gt; ctx.fillRect(x0, y0, sw, yi - y0);
+      var gb = ctx.createLinearGradient(0, yi, 0, H); gb.addColorStop(0, below[0]); gb.addColorStop(1, below[1]); ctx.fillStyle = gb; ctx.fillRect(x0, yi, sw, H - yi - 8);
+      ctx.strokeStyle = "rgba(19,35,58,.5)"; ctx.lineWidth = 1.2; ctx.strokeRect(x0, y0, sw, H - y0 - 8);
+      for (var dd = 0; dd <= 20; dd += 5){ S.draw.line(c, x0 - 5, y0 + dd * sc, x0, y0 + dd * sc, P.grey, 1.2); S.draw.text(c, dd + " cm", x0 - 8, y0 + dd * sc + (dd === 0 ? 8 : 0), {size: 10.5, color: P.grey, align: "right", weight: 600}); }
+      /* sonde et gel */
+      var px = x0 + sw / 2;
+      if (gel.value){ ctx.fillStyle = "rgba(140,200,235,.7)"; ctx.fillRect(px - 30, y0 - 7, 60, 7); } else { ctx.fillStyle = "#fff"; ctx.fillRect(px - 30, y0 - 7, 60, 7); S.draw.text(c, "air", px + 44, y0 - 4, {size: 10.5, color: P.red}); }
+      Pm.metal(c, px - 30, y0 - 38, 60, 31, 6, "#3d4a60"); ctx.strokeStyle = "#3d4a60"; ctx.lineWidth = 5; ctx.beginPath(); ctx.moveTo(px, y0 - 38); ctx.lineTo(px, 14); ctx.stroke();
+      S.draw.text(c, "sonde", px - 42, y0 - 24, {size: 11, color: P.grey, align: "right"});
+      /* impulsion : descend, se réfléchit, remonte (ralenti) */
+      var cyc = 3.6, u = (clock % cyc) / 2.8, z = u <= 1 ? u * d.value * 2 : -1;   /* z : trajet parcouru en cm (aller-retour = 2d) */
+      if (z >= 0){
+        var depthNow = z <= d.value ? z : 2 * d.value - z, going = z <= d.value, alpha = going ? (gel.value ? 1 : 0.35) : (seen ? Math.max(0.3, (lev + 110) / 110) : 0.1);
+        var nW = 4, lamPx = Math.max(5, lam * 2.4);
+        for (var w = 0; w < nW; w++){ var yy = y0 + (depthNow - (going ? 1 : -1) * w * lamPx / sc * 0.5) * sc; if (yy < y0 || yy > yi + 1) continue; ctx.beginPath(); ctx.ellipse(px, yy, 18 + yy * 0.12, 6, 0, going ? 0 : Math.PI, going ? Math.PI : 2 * Math.PI); ctx.strokeStyle = (going ? "rgba(31,75,158," : "rgba(36,119,90,") + (alpha * (1 - w * 0.22)) + ")"; ctx.lineWidth = 3; ctx.stroke(); }
+      }
+      /* interface : poignée */
+      S.draw.line(c, x0, yi, x0 + sw, yi, "#13233a", 1.6, [6, 4]); S.draw.dot(c, x0 + sw - 6, yi, 7, P.red);
+      S.draw.label(c, "d = " + S.fmt(d.value, 1) + " cm — glisse", x0 + 6, yi - 9, {align: "left", color: P.red, size: 11.5});
+      /* image échographique (mode B simulé) */
+      var bx = x0 + sw + 12, bw = 64, bh = H - y0 - 8;
+      S.draw.text(c, "image", bx + bw / 2, y0 - 14, {size: 11.5, color: P.ink});
+      ctx.fillStyle = "#0b1220"; ctx.fillRect(bx, y0, bw, bh);
+      var gain = Math.max(0, (lev + 110) / 110), blur = Math.max(1.2, Math.min(9, lam * 1.1));
+      ctx.save(); ctx.beginPath(); ctx.rect(bx, y0, bw, bh); ctx.clip();
+      for (var s = 0; s < noise.length; s++){ var nx = noise[s][0], ny = noise[s][1], inten = noise[s][2], yd = y0 + ny * bh, depthCm = (yd - y0) / sc, tiss = Math.pow(10, -(f.value * depthCm * 0.5) / 20) * (gel.value ? 1 : 0.04) * (depthCm < d.value ? 0.45 : (tg.value === "ai" || tg.value === "os" ? 0.03 : 0.25)); ctx.fillStyle = "rgba(210,220,235," + Math.min(0.6, tiss * inten * 0.9) + ")"; ctx.fillRect(bx + nx * bw, yd, Math.max(1, 2.4 - lam * 0.5), Math.max(1, 3 - lam * 0.5)); }
+      if (seen){ var lg = ctx.createLinearGradient(0, yi - blur, 0, yi + blur); lg.addColorStop(0, "rgba(255,255,255,0)"); lg.addColorStop(0.5, "rgba(255,255,255," + Math.min(1, 0.35 + gain * 0.9) + ")"); lg.addColorStop(1, "rgba(255,255,255,0)"); ctx.fillStyle = lg; ctx.fillRect(bx, yi - blur, bw, 2 * blur); }
+      ctx.restore(); ctx.strokeStyle = "#13233a"; ctx.lineWidth = 2; ctx.strokeRect(bx, y0, bw, bh);
+      S.draw.label(c, seen ? "visible" : "invisible", bx + bw / 2, y0 + 12, {color: seen ? P.green : P.red, size: 10.5});
+      /* A-mode */
+      var ax = S.draw.axes(g, {x0: 0, x1: 320, y0: -110, y1: -0.001, xl: "t (µs)", yl: "dB", l: 52, t: 22, stepX: 50, stepY: 25});
+      S.draw.line(g, ax.X(0), ax.Y(-110), ax.X(0), ax.Y(0), P.acc, 4); S.draw.label(g, "émission", ax.X(0) + 12, ax.T + 14, {align: "left", color: P.acc, size: 11});
+      S.draw.line(g, ax.L, ax.Y(THR), ax.R, ax.Y(THR), P.red, 1.5, [6, 4]); S.draw.label(g, "seuil de détection ≈ −90 dB", ax.R - 4, ax.Y(THR) - 12, {align: "right", color: P.red, size: 11});
+      var tt = Math.min(t, 320), yv = Math.max(-110, lev);
+      S.draw.line(g, ax.X(tt), ax.Y(-110), ax.X(tt), ax.Y(yv), seen ? P.green : P.grey, 6);
+      S.draw.label(g, "écho " + S.fmt(t, 0) + " µs", ax.X(tt), Math.max(ax.T + 28, ax.Y(yv) - 14), {color: seen ? P.green : P.grey, size: 11.5});
+      /* curseur de temps */
+      var tcur = z >= 0 ? (z / (2 * d.value)) * t : -1; if (tcur >= 0 && tcur <= 320) S.draw.line(g, ax.X(tcur), ax.T, ax.X(tcur), ax.B, "rgba(31,75,158,.5)", 1.5);
       ro.set(0, S.fmt(t, 1) + " µs"); ro.set(1, S.fmt(lam, 2) + " mm"); ro.set(2, R > 0.01 ? S.fmt(R * 100, 1) + " %" : S.fmt(R * 100, 2) + " %"); ro.set(3, S.fmt(lev, 1) + " dB");
-      nt.set(!gel.value ? "Sans gel : l'air coincé entre la sonde et la peau réfléchit presque tout, l'écho est perdu dans le bruit." : lev <= thr ? "Écho trop faible : diminue la fréquence (moins d'atténuation) ou rapproche l'interface." : tg.value === "ai" ? "Presque tout est réfléchi : l'air et les poumons empêchent de voir derrière. " : tg.value === "os" ? "L'os réfléchit fortement (~43 %) : écho net, mais on ne voit pas derrière lui." : "Interface visible. Une fréquence plus haute affine l'image mais l'écho s'affaiblit.", (!gel.value || lev <= thr) ? "warn" : "ok");
+      if (goal){ var okG = seen && levelOf(d.value, f.value + 0.5, tg.value, true) <= THR; var maxF = (10 * Math.log10(R) - THR) / d.value;
+        nt.set("<b>Défi :</b> règle la fréquence la plus haute (par pas de 0,5 MHz) pour voir encore l'interface. " + (okG ? "Réussi : " + S.fmt(f.value, 1) + " MHz, et à " + S.fmt(f.value + 0.5, 1) + " MHz l'écho passerait sous le seuil." : (seen ? "Tu peux encore monter la fréquence : l'image sera plus fine." : "Trop haut : l'écho est sous le seuil. Baisse la fréquence.")), okG ? "ok" : "warn"); }
+      else nt.set(!gel.value ? "Sans gel : l'air coincé entre la sonde et la peau réfléchit presque tout, l'écho est perdu dans le bruit." : !seen ? "Écho trop faible : diminue la fréquence (moins d'atténuation) ou rapproche l'interface." : tg.value === "ai" ? "Presque tout est réfléchi : l'air et les poumons empêchent de voir derrière. " : tg.value === "os" ? "L'os réfléchit fortement (~43 %) : écho net, mais on ne voit pas derrière lui." : "Interface visible. Une fréquence plus haute affine l'image mais l'écho s'affaiblit.", (!gel.value || !seen) ? "warn" : "ok");
     });
   }
 });

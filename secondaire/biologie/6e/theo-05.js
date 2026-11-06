@@ -205,7 +205,7 @@ SFA.figs("c05", [
   cell(220,130,44,BLUE,GREEN);TB('embryon',220,190,GREY,12);
   A(268,130,50,0,GREY,'',2.4);TB('mère porteuse',350,96,GREY,12);ell(350,120,26,18,'#f6f9fc',INK,2);
   A(350,146,0,34,GREY,'',2.4);cell(350,210,32,BLUE,GREEN);TB('Dolly',350,262,INK,14);
-  var a=sg(p,.2,.9);ga(a);TB('noyau : donneuse',420,60,BLUE_D,12);TB('mitochondries : ovocyte',415,160,DGREEN,12);g1();
+  var a=sg(p,.2,.9);ga(a);TB('noyau : donneuse',220,76,BLUE_D,12);TB('mitochondries : ovocyte',220,206,DGREEN,12);g1();
   ga(a);TB('clone très proche, pas strictement identique, ni OGM',230,276,INK,12);g1();
  }),
  F(function(p){ /* 9 cycles pour un signal */
@@ -216,7 +216,7 @@ SFA.figs("c05", [
   var a=sg(p,0,.8);
   [[2,30,RED],[1.9,33,BLUE]].forEach(function(q){var n1=q[1]*a;ctx.strokeStyle=q[2];ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(gx,Y(10));ctx.lineTo(gx+n1/35*gw,Y(10*Math.pow(q[0],n1)));ctx.stroke();});
   ga(sg(p,.7,1));DOT(gx+30/35*gw,Y(1e10),5,RED);DOT(gx+33/35*gw,Y(1e10),5,BLUE);TB('30 cycles',gx+30/35*gw-4,Y(1e10)+22,DRED,13,'right');TB('33 cycles',gx+33/35*gw+10,Y(1e10)+38,BLUE_D,13,'right');
-  TB('10¹⁰ copies × 800 pb ≈ 8,6 ng',gx+gw*.5,Y(1e7)+0,DGREEN,14);g1();
+  TB('10¹⁰ copies × 800 pb ≈ 8,6 ng',gx+gw*.68,gy-40,DGREEN,13);g1();
   TB('100 %',gx+80,Y(1e5)-20,DRED,13);TB('90 %',gx+gw*.55,Y(1e3)+10,BLUE_D,13);
  }),
  F(function(p){ /* 10 13 marqueurs */

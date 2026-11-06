@@ -45,45 +45,70 @@ SFA.sim({
 SFA.sim({
   id: "p6-c07-doppler", ch: "c07", tag: "Animation · Doppler",
   titre: "Effet Doppler et mur du son",
-  resume: "Une source qui se déplace : fronts d'onde serrés devant, étirés derrière ; au-delà de 340 m/s, cône de Mach.",
-  but: "La source (ambulance, avion) émet toujours la même fréquence f₀. Règle sa vitesse : compare la fréquence perçue devant et derrière. Dépasse la vitesse du son pour voir le cône de Mach.",
+  resume: "Une source qui se déplace : fronts d'onde serrés devant, étirés derrière ; au-delà de 340 m/s, cône de Mach. Déplace l'ambulance toi-même.",
+  but: "La source (ambulance, avion) émet toujours la même fréquence f₀. Règle sa vitesse ou attrape-la et déplace-la : chaque observateur s'illumine quand un front d'onde l'atteint, et son afficheur donne la fréquence perçue. Dépasse la vitesse du son pour voir le cône de Mach.",
   aRetenir: "Si la source s'approche de l'observateur à la vitesse v_s (< v), il perçoit f' = f₀·v/(v − v_s), plus aiguë ; si elle s'éloigne, f' = f₀·v/(v + v_s), plus grave. La fréquence émise par la source, elle, ne change pas : ce sont les fronts d'onde qui se serrent ou s'étirent. À v_s > v apparaît un cône de Mach, d'angle sin α = v/v_s, avec une onde de choc (le « bang »).",
   piege: "L'ambulance ne change pas de note : elle émet toujours f₀. C'est la perception qui change. Et la formule de Doppler ne s'applique pas à v_s ≥ v : devant la source, il n'y a plus de son avant son arrivée. Dessin : fréquence d'émission très ralentie pour qu'on voie les fronts.",
   build: function(k, S){
-    var c = k.canvas(280), P = S.draw.palette;
+    var c = k.canvas(340), P = S.draw.palette, Pm = window.PH6;
     var f0 = k.slider("Fréquence émise f₀", 200, 1000, 10, 500, "Hz");
-    var vs = k.slider("Vitesse de la source v_s", 0, 600, 10, 100, "m/s", function(){ reset(); });
+    var vs = k.slider("Vitesse de la source v_s", 0, 600, 10, 100, "m/s", function(){ man = false; });
     var ro = k.readouts(["Mach (v_s/v)", "Perçue devant (observateur à droite)", "Perçue derrière (à gauche)", "Angle du cône"]);
     var nt = k.note("", "ok");
-    var VS = 340, cv = 90, t = 0, ems = [], nextE = 0;
-    function reset(){ t = 0; ems = []; nextE = 0; }
+    var VS = 340, cv = 90, t = 0, ems = [], nextE = 0, xs = 40, man = false, vman = 0, lastX = 0, lastT = 0, dirS = 1, flash = [0, 0], hits = [0, 0], geo = {};
+    k.button("Repartir de la gauche", function(){ reset(); }, true);
+    function reset(){ t = 0; ems = []; nextE = 0; xs = 40; dirS = 1; man = false; vman = 0; }
+    function Msig(){ return man ? Math.max(-3, Math.min(3, vman / cv)) : dirS * vs.value / VS; }
     var lp = k.loop(function(dt){
-      var M = vs.value / VS, spd = M * cv, x0 = 40, W = c.W;
-      t += dt; var xs = x0 + spd * t;
-      if (xs > W - 40){ reset(); return; }
-      while (nextE <= t){ ems.push({x: x0 + spd * nextE, t: nextE}); nextE += 0.22; }
-      ems = ems.filter(function(e){ return cv * (t - e.t) < c.W * 1.5; });   /* fronts devenus trop grands : inutile de les garder (source immobile) */
+      var W = c.W, M = Msig(), Te = 110 / f0.value;
+      if (!man){ xs += M * cv * dt; if (xs > W - 40 || xs < 40){ if (xs > W - 40) reset(); else xs = 40; } } else vman *= Math.pow(0.02, dt);
+      t += dt;
+      while (nextE <= t){ ems.push({x: xs, t: nextE}); nextE += Te; }
+      var ox = [26, W - 26];
+      ems.forEach(function(e){ var rp = cv * (t - dt - e.t), rn = cv * (t - e.t); for (var o = 0; o < 2; o++){ var dd = Math.abs(ox[o] - e.x); if (rp < dd && rn >= dd){ flash[o] = 1; hits[o] = t; } } });
+      flash[0] *= Math.pow(0.02, dt); flash[1] *= Math.pow(0.02, dt);
+      ems = ems.filter(function(e){ return cv * (t - e.t) < W * 1.3; });
       k.redraw();
     });
     lp.play();
+    c.cv.style.touchAction = "none"; c.cv.style.cursor = "grab";
+    c.pointer(function(tp, p){
+      if (tp === "down"){ man = true; lastX = xs; lastT = performance.now(); vman = 0; }
+      if ((tp === "down" || tp === "drag") && man){ var nx = Math.max(40, Math.min(c.W - 40, p.x)), now = performance.now(), dtt = Math.max(0.012, (now - lastT) / 1000); vman = 0.6 * vman + 0.4 * (nx - xs) / dtt; xs = nx; lastT = now; }
+      if (tp === "up"){ if (Math.abs(vman) < 8) vman = 0; man = false; if (vman !== 0) dirS = vman > 0 ? 1 : -1; }
+    });
     k.draw(function(){
-      c.clear(); var ctx = c.ctx, W = c.W, H = c.H, cy = H / 2, M = vs.value / VS, spd = M * cv, xs = 40 + spd * t;
-      ctx.fillStyle = "#f3f5f9"; ctx.fillRect(0, cy + 40, W, 6);
-      ems.forEach(function(e){
-        var r = cv * (t - e.t); if (r <= 0) return;
-        ctx.beginPath(); ctx.arc(e.x, cy, r, 0, 7); ctx.strokeStyle = "rgba(30,63,143,.5)"; ctx.lineWidth = 1.6; ctx.stroke();
-      });
-      if (M > 1){ var al = Math.asin(1 / M), L = 400; ctx.strokeStyle = P.red; ctx.lineWidth = 2.4;
-        [1, -1].forEach(function(s){ ctx.beginPath(); ctx.moveTo(xs, cy); ctx.lineTo(xs - L * Math.cos(al), cy - s * L * Math.sin(al)); ctx.stroke(); }); }
-      /* source */
-      ctx.fillStyle = P.red; ctx.fillRect(xs - 16, cy - 10, 32, 20); S.draw.dot(c, xs + 8, cy + 11, 4, P.ink); S.draw.dot(c, xs - 8, cy + 11, 4, P.ink);
-      S.draw.arrow(c, xs + 24, cy - 24, xs + 24 + Math.min(70, 20 + spd * 0.5), cy - 24, P.ink, 2.5);
+      c.clear(); Pm.bg(c, "#f4f7fb", "#e6ecf4"); var ctx = c.ctx, W = c.W, H = c.H, cy = H * 0.42, M = Msig(), aM = Math.abs(M);
+      /* route */
+      ctx.fillStyle = "#cfd6e0"; ctx.fillRect(0, cy + 18, W, 30); ctx.strokeStyle = "#fff"; ctx.lineWidth = 2; ctx.setLineDash([14, 12]); ctx.beginPath(); ctx.moveTo(0, cy + 33); ctx.lineTo(W, cy + 33); ctx.stroke(); ctx.setLineDash([]);
+      ems.forEach(function(e){ var r = cv * (t - e.t); if (r <= 0) return; ctx.beginPath(); ctx.arc(e.x, cy, r, 0, 7); ctx.strokeStyle = "rgba(31,75,158," + Math.max(0.12, 0.6 - r / (W * 1.6)) + ")"; ctx.lineWidth = 1.7; ctx.stroke(); });
+      if (aM > 1){ var al = Math.asin(1 / aM), L = W * 1.2, sgn = M > 0 ? 1 : -1; ctx.strokeStyle = P.red; ctx.lineWidth = 2.6;
+        [1, -1].forEach(function(s2){ ctx.beginPath(); ctx.moveTo(xs, cy); ctx.lineTo(xs - sgn * L * Math.cos(al), cy - s2 * L * Math.sin(al)); ctx.stroke(); }); }
+      /* ambulance */
+      var dsg = M < 0 ? -1 : 1; ctx.save(); ctx.translate(xs, cy + 22); ctx.scale(dsg, 1);
+      Pm.metal(c, -24, -14, 48, 26, 5, "#f6f7f9"); ctx.fillStyle = P.red; ctx.fillRect(-24, -2, 48, 4); ctx.fillStyle = "#9cc3e8"; ctx.fillRect(10, -11, 11, 9);
+      var blink = Math.floor(t * 6) % 2; ctx.fillStyle = blink ? P.red : P.blue; ctx.fillRect(-12, -18, 12, 5);
+      S.draw.text({ctx: ctx}, "+", -8, -4, {size: 12, color: P.red}); ctx.restore();
+      [-13, 13].forEach(function(dx){ S.draw.dot(c, xs + dx, cy + 36, 5.2, "#2a3444"); });
+      Pm.glow = Pm.glow; S.draw.glow(c, xs, cy + 8, 26, blink ? P.red : P.blue, 0.3);
+      S.draw.arrow(c, xs - dsg * 6, cy - 22, xs + dsg * (6 + Math.min(70, 14 + aM * 90)), cy - 22, P.ink, 2.6);
+      if (!man && vs.value === 0) S.draw.label(c, "attrape l'ambulance et déplace-la", W / 2, 16, {color: P.grey, size: 11.5});
       /* observateurs */
-      function obs(x, lab, val){ S.draw.dot(c, x, cy + 70, 8, P.green); S.draw.text(c, lab, x, cy + 90, {size: 12, color: P.green}); S.draw.text(c, val, x, cy + 108, {size: 13, color: P.ink}); }
       var fd = M < 1 ? f0.value / (1 - M) : null, fb = f0.value / (1 + M);
-      obs(34, "derrière", S.fmt(fb, 0) + " Hz"); obs(W - 40, "devant", M < 1 ? S.fmt(fd, 0) + " Hz" : (M >= 0.97 ? "choc" : ""));
-      ro.set(0, S.fmt(M, 2)); ro.set(1, M < 0.97 ? S.fmt(fd, 0) + " Hz" : M < 1 ? S.fmt(fd, 0) + " Hz (très aigu)" : "pas de son avant le passage"); ro.set(2, S.fmt(fb, 0) + " Hz"); ro.set(3, M > 1 ? S.fmt(Math.asin(1 / M) * 180 / Math.PI, 1) + " °" : "—");
-      nt.set(M < 0.97 ? (M === 0 ? "Source immobile : fronts concentriques, f perçue = f₀." : "Source subsonique : devant, les fronts se rapprochent (son plus aigu) ; derrière, ils s'écartent (son plus grave).") : M < 1 ? "On approche du mur du son : les fronts s'accumulent devant la source." : M === 1 ? "Mach 1 : les fronts s'empilent devant la source (mur du son)." : "Supersonique : la source dépasse ses propres ondes, le cône de Mach se forme.", M >= 1 ? "warn" : "ok");
+      if (M < 0){ fd = f0.value / (1 - M); fb = aM < 1 ? f0.value / (1 + M) : null; }
+      var ox = [26, W - 26], vals = [fb, fd], names = ["derrière", "devant"];
+      for (var o = 0; o < 2; o++){
+        var xo = ox[o], yo = cy + 78;
+        if (flash[o] > 0.05) S.draw.glow(c, xo, cy + 4, 22 + 14 * flash[o], P.green, 0.55 * flash[o]);
+        S.draw.dot(c, xo, cy, 8, P.green); S.draw.line(c, xo, cy + 8, xo, cy + 52, "rgba(36,119,90,.35)", 1.5, [3, 3]);
+        var txt = vals[o] === null ? "choc" : S.fmt(vals[o], 0);
+        S.draw.display(c, txt, Math.max(52, Math.min(W - 52, xo + (o ? -24 : 24))), yo + 6, {w: 94, h: 46, caption: names[o] + " · Hz", size: 20});
+      }
+      /* f₀ source */
+      S.draw.label(c, "f₀ = " + S.fmt(f0.value, 0) + " Hz (inchangée)", xs, cy - 40, {color: P.red, size: 11.5});
+      var Mt = aM;
+      ro.set(0, S.fmt(Mt, 2)); ro.set(1, fd === null ? "pas de son avant le passage" : S.fmt(fd, 0) + " Hz" + (M > 0.97 ? " (très aigu)" : "")); ro.set(2, fb === null ? "pas de son avant le passage" : S.fmt(fb, 0) + " Hz"); ro.set(3, Mt > 1 ? S.fmt(Math.asin(1 / Mt) * 180 / Math.PI, 1) + " °" : "—");
+      nt.set(Mt < 0.97 ? (Mt < 0.01 ? "Source immobile : fronts concentriques, f perçue = f₀." : "Source subsonique : devant, les fronts se rapprochent (son plus aigu) ; derrière, ils s'écartent (son plus grave).") : Mt < 1 ? "On approche du mur du son : les fronts s'accumulent devant la source." : Mt === 1 ? "Mach 1 : les fronts s'empilent devant la source (mur du son)." : "Supersonique : la source dépasse ses propres ondes, le cône de Mach se forme.", Mt >= 1 ? "warn" : "ok");
     });
   }
 });
@@ -129,40 +154,64 @@ SFA.sim({
 SFA.sim({
   id: "p6-c07-tuyau", ch: "c07", tag: "Instruments",
   titre: "Tuyau sonore : ouvert ou fermé, fondamental et harmoniques",
-  resume: "Flûte, orgue, clarinette : f = n·v/(2L) pour un tuyau ouvert ; f = (2k−1)·v/(4L) pour un tuyau fermé.",
-  but: "Choisis le type de tuyau, sa longueur, la température de l'air et le mode. L'onde stationnaire de déplacement de l'air est dessinée : ventres aux extrémités ouvertes, nœud à l'extrémité fermée.",
+  resume: "Flûte, orgue, clarinette : f = n·v/(2L) pour un tuyau ouvert ; f = (2k−1)·v/(4L) pour un tuyau fermé. Étire le tuyau à la main et accorde-le.",
+  but: "Choisis le type de tuyau et le mode, puis tire la poignée rouge pour changer la longueur L. Les particules d'air vibrent : ventres de déplacement aux extrémités ouvertes, nœud à l'extrémité fermée. Lance le défi pour accorder le tuyau sur une note.",
   aRetenir: "L'air du tuyau vibre en onde stationnaire. Tuyau ouvert aux deux bouts : ventre de déplacement aux deux bouts, f_n = n·v/(2L), tous les harmoniques. Tuyau fermé à un bout : nœud au bout fermé, f = (2k−1)·v/(4L), harmoniques impairs seulement, fondamental une octave plus bas. La vitesse du son dépend de la température : v ≈ 331 + 0,6·θ (m/s, θ en °C).",
   piege: "À longueur égale, le tuyau fermé est une octave plus grave que l'ouvert. Et un instrument à vent se désaccorde quand il chauffe : v augmente donc f aussi. Modèle : correction de bout négligée (en réalité l'extrémité ouverte se comporte comme un tuyau un peu plus long).",
   build: function(k, S){
-    var c = k.canvas(220), P = S.draw.palette;
+    var c = k.canvas(300), P = S.draw.palette, Pm = window.PH6;
     var typ = k.seg("Tuyau", [["o", "Ouvert aux 2 bouts"], ["f", "Fermé à un bout"]], "o");
-    var L = k.slider("Longueur L", 0.1, 2, 0.05, 0.5, "m");
+    var L = k.slider("Longueur L", 0.1, 2, 0.05, 1, "m");
     var th = k.slider("Température de l'air", -10, 40, 1, 20, "°C");
     var md = k.seg("Mode", [["1", "1er"], ["2", "2e"], ["3", "3e"]], "1");
+    var goal = null, t = 0, geo = {}, NOTES = [["do₄", 261.63], ["mi₄", 329.63], ["sol₄", 392], ["la₄", 440], ["do₅", 523.25]];
+    k.button("Défi : accorde le tuyau sur une note", function(){ goal = NOTES[Math.floor(Math.random() * NOTES.length)]; }, true);
     var ro = k.readouts(["Vitesse du son v", "Fréquence du mode", "Longueur d'onde du mode", "Fondamental"]);
     var nt = k.note("", "ok");
-    var t = 0;
     var lp = k.loop(function(dt){ t += dt; k.redraw(); }); lp.play();
+    function noteName(f){ var NN = ["do", "do♯", "ré", "ré♯", "mi", "fa", "fa♯", "sol", "sol♯", "la", "la♯", "si"], m = Math.round(69 + 12 * Math.log(f / 440) / Math.LN2), cents = Math.round(1200 * Math.log(f / (440 * Math.pow(2, (m - 69) / 12))) / Math.LN2); return NN[((m % 12) + 12) % 12] + (Math.floor(m / 12) - 1) + (cents ? " " + (cents > 0 ? "+" : "−") + Math.abs(cents) + "¢" : ""); }
+    c.cv.style.touchAction = "none"; c.cv.style.cursor = "ew-resize";
+    c.pointer(function(tp, p){ if ((tp === "down" || tp === "drag") && geo.u){ L.set(Math.round(Math.max(0.1, Math.min(2, (p.x - geo.x0) / geo.u)) / 0.05) * 0.05); } });
     k.draw(function(){
-      c.clear(); var ctx = c.ctx, W = c.W, H = c.H, v = 331.3 + 0.606 * th.value, open = typ.value === "o", j = parseInt(md.value, 10);
+      c.clear(); Pm.bg(c); var ctx = c.ctx, W = c.W, H = c.H, v = 331.3 + 0.606 * th.value, open = typ.value === "o", j = parseInt(md.value, 10);
       var n = open ? j : 2 * j - 1, f = open ? n * v / (2 * L.value) : n * v / (4 * L.value), lam = v / f, f1 = open ? v / (2 * L.value) : v / (4 * L.value);
-      var x0 = 50, x1 = W - 50, cy = H / 2 - 4, h = 46, w = 2 * Math.PI * 0.8 * t;
-      ctx.fillStyle = "#e9eef6"; ctx.fillRect(x0, cy - h, x1 - x0, 2 * h);
-      ctx.strokeStyle = P.ink; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(x0, cy - h); ctx.lineTo(x1, cy - h); ctx.moveTo(x0, cy + h); ctx.lineTo(x1, cy + h); ctx.stroke();
-      if (!open){ ctx.fillStyle = P.ink; ctx.fillRect(x0 - 8, cy - h, 8, 2 * h); }
-      /* particules d'air : déplacement ξ(x) */
-      var amp = 16;
-      function xi(u){ return open ? Math.cos(n * Math.PI * u) : Math.sin(n * Math.PI * u / 2); }   /* u = x/L ∈ [0,1] ; fermé : nœud en u = 0 */
-      for (var a = 0; a <= 40; a++){ var u = a / 40; for (var b = -3; b <= 3; b++){         var px = x0 + u * (x1 - x0) + amp * xi(u) * Math.cos(w), py = cy + b * 14; ctx.fillStyle = "rgba(30,63,143,.55)"; ctx.fillRect(px - 1.5, py - 1.5, 3, 3); } }
+      var x0 = 30, uMax = W - 78, u = uMax / 2.0; geo.u = u; geo.x0 = x0;   /* px par mètre : échelle fixe pour voir la longueur changer */
+      var x1 = x0 + L.value * u, cy = 84, h = 30, w = 2 * Math.PI * 0.8 * t;
+      /* tube : paroi métallique et intérieur */
+      var gi = ctx.createLinearGradient(0, cy - h, 0, cy + h); gi.addColorStop(0, "#eef3fb"); gi.addColorStop(1, "#dbe5f3");
+      ctx.fillStyle = gi; ctx.fillRect(x0, cy - h, x1 - x0, 2 * h);
+      /* densité (pression) : bandes colorées sous le tube */
+      var amp = 13;
+      function xi(uu){ return open ? Math.cos(n * Math.PI * uu) : Math.sin(n * Math.PI * uu / 2); }
+      function dxi(uu){ return open ? -n * Math.PI * Math.sin(n * Math.PI * uu) : n * Math.PI / 2 * Math.cos(n * Math.PI * uu / 2); }
+      var nb = 90; for (var a = 0; a < nb; a++){ var u0 = a / nb, pr = -dxi(u0) * Math.cos(w) * 0.34, al = Math.min(0.55, Math.abs(pr) * 0.55); ctx.fillStyle = pr > 0 ? "rgba(192,50,29," + al + ")" : "rgba(31,75,158," + al + ")"; ctx.fillRect(x0 + u0 * (x1 - x0), cy - h, (x1 - x0) / nb + 0.6, 2 * h); }
+      Pm.metal(c, x0 - 2, cy - h - 7, x1 - x0 + 4, 8, 3, "#9aa6b8"); Pm.metal(c, x0 - 2, cy + h - 1, x1 - x0 + 4, 8, 3, "#9aa6b8");
+      if (!open) Pm.metal(c, x0 - 10, cy - h - 7, 12, 2 * h + 16, 4, "#6b7686");
+      /* particules d'air */
+      for (var q = 0; q <= 44; q++){ var uq = q / 44; for (var b = -1; b <= 1; b++){ var px = x0 + uq * (x1 - x0) + amp * xi(uq) * Math.cos(w), py = cy + b * 18; ctx.fillStyle = "rgba(19,35,58,.6)"; ctx.beginPath(); ctx.arc(px, py, 2, 0, 7); ctx.fill(); } }
       /* enveloppe du déplacement */
-      ctx.strokeStyle = P.red; ctx.lineWidth = 1.8; ctx.setLineDash([5, 4]);
-      ctx.beginPath(); for (var i = 0; i <= 200; i++){ var uu = i / 200, yy = cy - h - 12 - 12 * Math.abs(xi(uu)); if (i) ctx.lineTo(x0 + uu * (x1 - x0), yy); else ctx.moveTo(x0 + uu * (x1 - x0), yy); } ctx.stroke(); ctx.setLineDash([]);
-      S.draw.text(c, open ? "ventre" : "nœud (bout fermé)", x0, cy + h + 20, {size: 12, color: open ? P.green : P.red, align: "center"});
-      S.draw.text(c, "ventre", x1, cy + h + 20, {size: 12, color: P.green});
-      S.draw.text(c, "L = " + S.fmt(L.value, 2) + " m", (x0 + x1) / 2, cy + h + 20, {size: 12});
-      var harm = []; for (var q = 1; q <= 4; q++) harm.push(S.fmt(open ? q * f1 : (2 * q - 1) * f1, 0));
+      ctx.strokeStyle = P.green; ctx.lineWidth = 2; ctx.setLineDash([5, 4]); ctx.beginPath();
+      for (var i = 0; i <= 200; i++){ var uu = i / 200, yy = cy + h + 26 - 18 * Math.abs(xi(uu)); if (i) ctx.lineTo(x0 + uu * (x1 - x0), yy); else ctx.moveTo(x0 + uu * (x1 - x0), yy); } ctx.stroke(); ctx.setLineDash([]);
+      S.draw.line(c, x0, cy + h + 26, x1, cy + h + 26, "#d5dce6", 1);
+      /* ventres et nœuds */
+      for (var m2 = 0; m2 <= (open ? n : n); m2++){ /* repères selon le mode */ }
+      var marks = []; for (var s2 = 0; s2 <= 2 * n + 0.001; s2++){ var uu2 = open ? s2 / (2 * n) * 1 : s2 / (2 * n) * 1; if (uu2 > 1.0001) break; var isV = Math.abs(xi(uu2)) > 0.99; marks.push([uu2, isV]); }
+      marks.forEach(function(mk){ S.draw.dot(c, x0 + mk[0] * (x1 - x0), cy + h + 26 - (mk[1] ? 18 : 0), 3.6, mk[1] ? P.green : P.red); });
+      /* poignée de longueur */
+      S.draw.arrow(c, x1 + 4, cy, x1 + 26, cy, P.red, 3); S.draw.arrow(c, x1 - 4, cy, x1 - 26, cy, P.red, 3);
+      S.draw.dot(c, x1, cy, 8, P.red);
+      S.draw.line(c, x0, cy - h - 20, x1, cy - h - 20, P.ink, 1.5); S.draw.line(c, x0, cy - h - 25, x0, cy - h - 15, P.ink, 1.5); S.draw.line(c, x1, cy - h - 25, x1, cy - h - 15, P.ink, 1.5);
+      S.draw.label(c, "L = " + S.fmt(L.value, 2) + " m", (x0 + x1) / 2, cy - h - 20, {color: P.ink, size: 12});
+      S.draw.text(c, open ? "ventre" : "nœud (fermé)", x0 + (open ? 0 : 0), cy + h + 54, {size: 11.5, color: open ? P.green : P.red, align: "left"});
+      S.draw.text(c, "● ventre de déplacement   ● nœud", W - 10, cy + h + 54, {size: 11, color: P.grey, align: "right"});
+      /* afficheur */
+      S.draw.display(c, S.fmt(f, 0) + " Hz", 78, H - 50, {w: 128, h: 54, caption: "FRÉQUENCE · " + noteName(f), size: 22});
+      if (goal){ var ok = Math.abs(f / goal[1] - 1) < 0.015; S.draw.display(c, S.fmt(goal[1], 0) + " Hz", W - 78, H - 50, {w: 128, h: 54, caption: "CIBLE · " + goal[0], size: 22, color: ok ? P.green : P.ink}); }
+      var harm = []; for (var qq = 1; qq <= 4; qq++) harm.push(S.fmt(open ? qq * f1 : (2 * qq - 1) * f1, 0));
       ro.set(0, S.fmt(v, 1) + " m/s"); ro.set(1, S.fmt(f, 1) + " Hz (n = " + n + ")"); ro.set(2, S.fmt(lam, 3) + " m"); ro.set(3, S.fmt(f1, 1) + " Hz");
-      nt.set("Quatre premiers modes de ce tuyau : " + harm.join(" ; ") + " Hz." + (open ? "" : " (harmoniques impairs seulement)"), "ok");
+      if (goal){ var ok2 = Math.abs(f / goal[1] - 1) < 0.015; nt.set("<b>Défi :</b> joue " + goal[0] + " (" + S.fmt(goal[1], 0) + " Hz) à 1,5 % près. " + (ok2 ? "Accordé : L = " + S.fmt(L.value, 2) + " m en " + (open ? "tuyau ouvert" : "tuyau fermé") + ", mode " + md.value + "." : "Pour l'instant : " + S.fmt(f, 0) + " Hz. Astuce : f = n·v/(2L) (ouvert) ou n·v/(4L) (fermé)."), ok2 ? "ok" : "warn"); }
+      else nt.set("Quatre premiers modes de ce tuyau : " + harm.join(" ; ") + " Hz." + (open ? "" : " (harmoniques impairs seulement)"), "ok");
     });
   }
 });
+

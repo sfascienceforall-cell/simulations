@@ -1,5 +1,46 @@
 (function(){
 var P = SFA.draw.palette, F = SFA.fmt, R2 = Math.SQRT2;
+/*@@H:m5-c07-plan*/
+var TVD = {
+  a:{x:["−∞", "−1", "1", "+∞"], s:["+", "−", "+"], v:["−∞", "2", "−2", "+∞"], z:[0, 1, 1, 0]},
+  b:{x:["−∞", "−1", "1", "+∞"], s:["−", "+", "−"], v:["0", "−1/2", "1/2", "0"], z:[0, 1, 1, 0]},
+  c:{x:["−∞", "1 − √2", "1", "1 + √2", "+∞"], s:["+", "−", "−", "+"], v:["−∞", "−0,83", "‖", "4,83", "+∞"], z:[0, 1, 2, 1, 0]},
+  d:{x:["−2", "−√2", "√2", "2"], s:["−", "+", "−"], v:["0", "−2", "2", "0"], z:[0, 1, 1, 0]}
+};
+function plTable(c, S, y0, d, s){
+  var P = S.draw.palette, ctx = c.ctx, n = d.x.length, lw = 46, W = c.W - 16 - lw, x0 = 8 + lw, cw = W / (n - 1), rows = [y0, y0 + 34, y0 + 66], rh = [34, 32, 74], i;
+  S.draw.panel(c, 4, y0 - 6, c.W - 8, 34 + 32 + 74 + 16, {fill:"#fff", stroke:"#e3e7ed", radius:10, shadow:false});
+  ctx.save(); ctx.strokeStyle = "#cfd6df"; ctx.lineWidth = 1.2;
+  ctx.beginPath(); ctx.moveTo(8, y0 + 28); ctx.lineTo(c.W - 8, y0 + 28); ctx.moveTo(8, y0 + 62); ctx.lineTo(c.W - 8, y0 + 62); ctx.moveTo(x0 - 6, y0 - 4); ctx.lineTo(x0 - 6, y0 + 144); ctx.stroke(); ctx.restore();
+  S.draw.text(c, "x", 8 + lw / 2 - 4, y0 + 12, {size:13, math:true, weight:700, italic:true}); S.draw.text(c, "f′(x)", 8 + lw / 2 - 4, y0 + 46, {size:13, math:true}); S.draw.text(c, "f(x)", 8 + lw / 2 - 4, y0 + 100, {size:13, math:true});
+  var X = function(j){ return x0 + 6 + j * (W - 12) / (n - 1); };
+  for (i = 0; i < n; i++){
+    var isVA = d.z[i] === 2, edge = i === 0 || i === n - 1;
+    S.draw.text(c, d.x[i], X(i), y0 + 12, {size:12, math:true, color:edge ? P.grey : P.ink, weight:700});
+    if (s >= 4 && d.z[i] === 1) S.draw.text(c, "0", X(i), y0 + 46, {size:13, mono:true, color:P.amber, weight:700});
+    if (s >= 4 && isVA){ S.draw.line(c, X(i) - 2, y0 + 30, X(i) - 2, y0 + 142, P.red, 1.4); S.draw.line(c, X(i) + 2, y0 + 30, X(i) + 2, y0 + 142, P.red, 1.4); }
+  }
+  if (s < 5) return;
+  var hi = y0 + 76, lo = y0 + 142, ys = [];
+  for (i = 0; i < n; i++){
+    var l = d.s[i - 1], r = d.s[i], top;
+    if (d.z[i] === 2) { ys.push([lo, hi]); continue; }
+    if (i === 0) top = r === "−"; else if (i === n - 1) top = l === "+"; else top = l === "+" && r === "−";
+    ys.push([top ? hi : lo, top ? hi : lo]);
+  }
+  for (i = 0; i < n - 1; i++){
+    var sg = d.s[i], mx = (X(i) + X(i + 1)) / 2;
+    S.draw.text(c, sg, mx, y0 + 46, {size:17, color:sg === "+" ? P.green : P.red, weight:800});
+    var ya = ys[i][1], yb = ys[i + 1][0], ax1 = X(i) + 20, ax2 = X(i + 1) - 20;
+    if (i === 0 || d.z[i] !== 2) ax1 = X(i) + 22; if (d.z[i + 1] === 2) ax2 = X(i + 1) - 20;
+    S.draw.arrow(c, ax1, ya + (ya < yb ? 8 : -8), ax2, yb + (ya < yb ? -8 : 8), sg === "+" ? P.green : P.red, 2);
+  }
+  for (i = 0; i < n; i++){
+    if (d.z[i] === 2){ S.draw.text(c, "−∞", X(i) - 18, lo, {size:12, math:true}); S.draw.text(c, "+∞", X(i) + 18, hi, {size:12, math:true}); continue; }
+    S.draw.text(c, d.v[i], X(i), ys[i][0] + (ys[i][0] === hi ? -2 : 2), {size:12, math:true, weight:700, color:i && i < n - 1 ? (ys[i][0] === hi ? P.red : P.green) : P.ink, bg:"#fff"});
+  }
+}
+/*@@E:m5-c07-plan*/
 function clipped(c, ax, fn){ var ctx = c.ctx; ctx.save(); ctx.beginPath(); ctx.rect(ax.L, ax.T, ax.R - ax.L, ax.B - ax.T); ctx.clip(); fn(); ctx.restore(); }
 function tbl(rows){ var h = "<table style='border-collapse:collapse;font-size:13px;margin-top:6px'>"; rows.forEach(function(r){ h += "<tr>" + r.map(function(c, i){ return "<td style='border:1px solid #ccd;padding:3px 7px;" + (i === 0 ? "font-weight:800" : "") + "'>" + c + "</td>"; }).join("") + "</tr>"; }); return h + "</table>"; }
 
@@ -46,19 +87,32 @@ SFA.sim({
   id:"m5-c07-plan", ch:"c07", tag:"Méthode",
   titre:"Le plan d'étude : la courbe se construit étape par étape",
   resume:"Domaine, zéros, limites, dérivée, tableau : chaque étape ajoute un morceau du dessin.",
-  but:"Avance avec le curseur « étape ». À chaque étape, regarde ce qui apparaît sur le graphique. Seule la dernière étape trace la courbe complète.",
+  but:"Avance étape par étape (boutons, curseur ou pastilles en haut du dessin). À chaque étape, regarde ce qui apparaît sur le graphique et dans le tableau de variations. Seule la dernière étape trace la courbe complète.",
   aRetenir:"Plan : 1) domaine et parité ; 2) zéros et signe ; 3) limites et asymptotes ; 4) dérivée ; 5) signe de f′ et tableau de variations ; 6) points de repère ; 7) tracé. Le tableau et la courbe doivent raconter la même histoire.",
   piege:"Ne place pas une asymptote verticale sans calculer les limites de chaque côté, et n'oublie pas un zéro de f′ : chaque oubli fausse le tableau et donc la courbe.",
   build:function(k, S){
-    var c = k.canvas(340);
+    var c = k.canvas(535);
     var sel = k.select("Fonction", Object.keys(PL).map(function(q){ return [q, PL[q].n]; }), "a");
     var st = k.slider("Étape", 1, 7, 1, 1, "/ 7");
+    var auto = k.loop(function(dt, t){ if (!auto._acc) auto._acc = 0; auto._acc += dt; if (auto._acc > 1.4){ auto._acc = 0; if (st.value >= 7){ auto.pause(); } else st.set(st.value + 1); k.redraw(); } });
+    k.button("◀ Précédente", function(){ auto.pause(); st.set(Math.max(1, st.value - 1)); });
+    k.button("Suivante ▶", function(){ auto.pause(); st.set(Math.min(7, st.value + 1)); }, true);
+    k.button("↻ Dérouler", function(){ st.set(1); auto._acc = 0; auto.play(); });
     var nt = k.note("", "ok");
+    var NAMES = ["Domaine", "Zéros", "Limites", "Dérivée", "Variations", "Repères", "Tracé"], pills = [];
+    c.pointer(function(type, p){ if (type === "down"){ pills.forEach(function(q){ if (p.x >= q.x && p.x <= q.x + q.w && p.y >= 4 && p.y <= 34){ auto.pause(); st.set(q.i); k.redraw(); } }); } });
+    sel.el.addEventListener("change", function(){ st.set(1); });
     k.draw(function(){
       var d = PL[sel.value], s = st.value, w = d.win; c.clear();
-      var ax = S.draw.axes(c, {x0:w[0], x1:w[1], y0:w[2], y1:w[3], xl:"x", yl:"y"});
-      var ctx = c.ctx;
-      /* s>=1 : domaine, parite */
+      /* pastilles d'étapes */
+      pills = []; var pw = (c.W - 8) / 7, ctx = c.ctx;
+      NAMES.forEach(function(nm, i){
+        var on = i + 1 === s, done = i + 1 < s, px = 4 + i * pw;
+        pills.push({x:px, w:pw, i:i + 1});
+        S.draw.panel(c, px + 1.5, 5, pw - 3, 28, {fill:on ? P.acc : done ? S.draw.tint(P.acc, 0.12) : "#f3f5f8", stroke:on ? P.acc : "#e3e7ed", radius:8, shadow:false});
+        S.draw.text(c, pw > 56 ? (i + 1) + " " + nm : String(i + 1), px + pw / 2, 20, {size:pw > 56 ? 11 : 13, color:on ? "#fff" : done ? P.acc : P.grey, weight:800});
+      });
+      var gb = 332, ax = S.draw.axes(c, {x0:w[0], x1:w[1], y0:w[2], y1:w[3], xl:"x", yl:"y", t:46, b:c.H - gb, l:40});
       var lo = w[0], inD = d.dom;
       ctx.save(); ctx.fillStyle = "rgba(138,149,163,.22)"; var cur = lo;
       inD.slice().sort(function(a, b){ return a[0] - b[0]; }).forEach(function(iv){ if (iv[0] > cur) ctx.fillRect(ax.X(cur), ax.T, ax.X(Math.min(iv[0], w[1])) - ax.X(cur), ax.B - ax.T); cur = Math.max(cur, iv[1]); });
@@ -71,13 +125,14 @@ SFA.sim({
       if (s >= 5) d.crit.forEach(function(q){ S.draw.dot(c, ax.X(q[0]), ax.Y(q[1]), 6, q[2] === "max" ? P.red : P.green); clipped(c, ax, function(){ S.draw.line(c, ax.X(q[0]) - 18, ax.Y(q[1]), ax.X(q[0]) + 18, ax.Y(q[1]), q[2] === "max" ? P.red : P.green, 2); }); });
       if (s === 6){
         var pts = d.zeros.map(function(z){ return [z, 0]; }).concat(d.crit.map(function(q){ return [q[0], q[1]]; })).sort(function(a, b){ return a[0] - b[0]; });
-        c.ctx.save(); c.ctx.setLineDash([4, 4]); c.ctx.strokeStyle = P.grey; c.ctx.beginPath(); pts.forEach(function(p, i){ var cut = i && d.va.some(function(v){ return v > pts[i - 1][0] && v < p[0]; }); if (i && !cut) c.ctx.lineTo(ax.X(p[0]), ax.Y(p[1])); else c.ctx.moveTo(ax.X(p[0]), ax.Y(p[1])); }); c.ctx.stroke(); c.ctx.restore();
+        ctx.save(); ctx.setLineDash([4, 4]); ctx.strokeStyle = P.grey; ctx.beginPath(); pts.forEach(function(p, i){ var cut = i && d.va.some(function(v){ return v > pts[i - 1][0] && v < p[0]; }); if (i && !cut) ctx.lineTo(ax.X(p[0]), ax.Y(p[1])); else ctx.moveTo(ax.X(p[0]), ax.Y(p[1])); }); ctx.stroke(); ctx.restore();
       }
-      if (s === 7){ S.draw.fn(c, ax, d.f, P.acc, 2.8); }
-      var txt = ""; for (var i = 0; i < Math.min(s, 6); i++) txt += d.st[i] + "<br>";
-      if (s >= 5) txt += tbl(d.tab);
-      if (s === 7) txt += "<br><b>Tracé :</b> on relie les points de repère par une courbe lisse qui respecte les variations et les asymptotes. Contrôle : les extrema du tableau sont bien aux sommets de la courbe.";
-      nt.set(txt, "ok");
+      if (s === 7){ S.draw.fn(c, ax, d.f, P.acc, 3); }
+      var leg = [];
+      if (s >= 2) leg.push([P.amber, "zéros"]); if (s >= 3 && (d.va.length || d.lines.length)) leg.push([P.red, "asymptotes", true]); if (s >= 5) leg.push([P.green, "extrema"]);
+      if (leg.length) S.draw.legend(c, leg, ax.R - 118, ax.T + 4);
+      plTable(c, S, gb + 22, TVD[sel.value], s);
+      nt.set("<b>Étape " + s + " / 7.</b> " + (s <= 6 ? d.st[s - 1] : "<b>Tracé :</b> on relie les points de repère par une courbe lisse qui respecte les variations et les asymptotes. Contrôle : les extrema du tableau sont bien aux sommets de la courbe."), "ok");
     });
   }
 });
@@ -93,7 +148,7 @@ SFA.sim({
   aRetenir:"Là où f′ > 0, f monte ; là où f′ < 0, f descend ; un extremum de f est un zéro de f′ <b>où le signe change</b>. Si f′ touche l'axe sans le traverser, il n'y a pas d'extremum.",
   piege:"La courbe de f′ n'est pas la courbe de f : un point haut de f′ n'est pas un maximum de f. Seul le signe de f′ commande les variations de f.",
   build:function(k, S){
-    var c1 = k.canvas(200), c2 = k.canvas(210);
+    var c1 = k.canvas(220), c2 = k.canvas(240);
     var ys = PRE.B.slice(), ax1, ax2, drag = -1;
     k.seg("Départ", [["A", "Un maximum"], ["B", "Deux extrema"], ["C", "Toujours croissante"], ["D", "Touche l'axe"]], "B", function(v){ ys = PRE[v].slice(); });
     var nt = k.note("", "ok");
@@ -198,7 +253,7 @@ SFA.sim({
   aRetenir:"f′(x) = 1 − m/x². Si m > 0 : f′ s'annule en x = ±√m, extrema f(±√m) = ±2√m (maximum local à gauche, minimum local à droite). Si m < 0 : f′ > 0, aucun extremum. Pour m ≠ 0 : asymptote verticale x = 0 et oblique y = x (pour m = 0, f(x) = x).",
   piege:"Pour une famille, on discute selon la valeur du paramètre : le nombre de solutions de f′(x) = 0 dépend de m. Ne suppose pas « les mêmes extrema » pour tout m.",
   build:function(k, S){
-    var c = k.canvas(340);
+    var c = k.canvas(430);
     var m = k.slider("m", -4, 4, 0.5, 2, "");
     var ro = k.readouts(["Extrema", "Valeurs extrêmes", "Asympt. verticale", "Asympt. oblique"]);
     var nt = k.note("", "ok");

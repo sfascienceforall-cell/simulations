@@ -6,39 +6,69 @@ SFA.sim({
   id:"p4-c06-rebonds", ch:"c06", tag:"Animation",
   titre:"Une balle qui rebondit : où va l'énergie ?",
   resume:"À chaque rebond, la hauteur diminue : l'énergie mécanique devient chaleur, mais le total reste le même.",
-  but:"Choisis la hauteur de départ, la masse et la part d'énergie conservée à chaque rebond. Regarde les barres : mécanique + thermique = constante.",
+  but:"Attrape la balle pour choisir la hauteur de départ (ou utilise les curseurs), la masse et la part d'énergie conservée à chaque rebond. La barre du bas montre mécanique + thermique = constante.",
   aRetenir:"L'énergie totale se conserve. À chaque rebond, une partie de l'énergie mécanique est transformée en énergie thermique (balle, sol, air) : on dit que l'énergie se dégrade. La hauteur du n-ième rebond est h<sub>n</sub> = h₀·f<sup>n</sup>.",
   piege:"« La balle perd de l'énergie » : non, elle la cède à l'environnement sous forme de chaleur (très faible ici, mais bien réelle). C'est l'énergie MÉCANIQUE qui diminue, pas l'énergie totale.",
   build:function(k,S){
-    var c = k.canvas(280), b = k.canvas(80), st = {t:0};
-    var h0 = k.slider("Hauteur de départ", 0.5, 3, 0.5, 2, "m", function(){ st.t = 0; });
+    var P = S.draw.palette, c = PX.canvas(k, 0.82, 1.1), st = {t:0, hint:true}, geo = {};
+    var h0 = k.slider("Hauteur de départ", 0.5, 3, 0.5, 2, "m", function(){ st.t = 0; st.hint = false; });
     var m = k.slider("Masse de la balle", 0.05, 1, 0.05, 0.2, "kg");
     var f = k.slider("Énergie conservée à chaque rebond", 30, 95, 5, 70, "%", function(){ st.t = 0; });
     var ro = k.readouts(["Énergie totale m·g·h₀", "Énergie mécanique", "Énergie thermique", "Rebonds avant < 1 cm"]);
     var nt = k.note("", "");
     var lp = k.loop(function(dt){ st.t += dt; k.redraw(); });
-    k.button("▶ Lâcher", function(){ st.t = 0; lp.play(); }, true);
+    k.button("▶ Lâcher", function(){ st.t = 0; st.hint = false; lp.play(); }, true);
     k.button("❚❚ Pause", function(){ lp.pause(); });
     function state(t){
       var H = h0.value, F = f.value / 100, t0 = Math.sqrt(2 * H / G);
-      if (t < t0) return {y:H - 0.5 * G * t * t, ap:H, n:0};
+      if (t < t0) return {y:H - 0.5 * G * t * t, ap:H, n:0, ph:t / t0};
       var s = t - t0, n = 1, hn = H * F, Tn;
       while (n < 400){
-        if (hn < 0.005) return {y:0, ap:0, n:n, rest:true};
+        if (hn < 0.005) return {y:0, ap:0, n:n, rest:true, ph:1};
         Tn = 2 * Math.sqrt(2 * hn / G);
-        if (s < Tn){ var v = Math.sqrt(2 * G * hn); return {y:v * s - 0.5 * G * s * s, ap:hn, n:n}; }
+        if (s < Tn){ var v = Math.sqrt(2 * G * hn); return {y:v * s - 0.5 * G * s * s, ap:hn, n:n, ph:s / Tn}; }
         s -= Tn; n++; hn *= F;
       }
-      return {y:0, ap:0, n:n, rest:true};
+      return {y:0, ap:0, n:n, rest:true, ph:1};
     }
+    PX.drag(k, c, function(){ return [{x:geo.bx0, y:geo.by0, r:14, set:function(px, py){ lp.pause(); st.t = 0; st.hint = false; h0.set(Math.max(0.5, Math.min(3, Math.round((geo.gnd - py) / geo.sc * 2) / 2))); }}]; });
     k.draw(function(){
-      var P = SFA.draw.palette, H = h0.value, M = m.value, F = f.value / 100, s = state(st.t);
-      var gnd = c.H - 24, top = 22, sc = (gnd - top) / H;
-      c.clear(); var ctx = c.ctx; ctx.fillStyle = "#e3e7ed"; ctx.fillRect(0, gnd, c.W, 10);
-      for (var n = 0; n <= 6; n++){ var hn = H * Math.pow(F, n); S.draw.line(c, 20, gnd - hn * sc, c.W - 20, gnd - hn * sc, n === s.n ? P.red : "#c9d1dc", 1.2, [4, 4]); if (hn * sc > 14 || n === 0) P4.label(c, n === 0 ? "départ" : "h" + n + " = " + S.fmt(hn, 2) + " m", c.W - 24, gnd - hn * sc - 8, "#5f6b7a", "right"); }
-      S.draw.dot(c, c.W / 2, gnd - s.y * sc - 8, 8, P.red);
-      var E0 = M * G * H, Em = M * G * s.ap, Et = E0 - Em;
-      P4.bars(b, [{n:"Méc.", v:Em, col:P.acc}, {n:"Therm.", v:Et, col:P.red}], {lo:0, hi:E0, unit:"J", fmt:function(q){ return S.fmt(q, 2); }});
+      var H = h0.value, M = m.value, F = f.value / 100, s = state(st.t), ph = PX.phone(c);
+      var gnd = c.H - 62, top = 34, sc = (gnd - top) / (H * 1.02), x0 = 70, nShow = 7, wb = Math.min(58, (c.W - x0 - 24) / nShow);
+      geo.gnd = gnd; geo.sc = sc;
+      c.clear(); var ctx = c.ctx;
+      PX.bg(c, "#eef3fa", "#dde6f2"); PX.ground(c, gnd, "#b9c3d1", c.H - gnd);
+      ctx.fillStyle = "#6b7787"; ctx.fillRect(0, gnd, c.W, 5);
+      var Y = PX.vruler(c, 38, gnd, top, 0, H * 1.02, P4.nice(H / 4), "m");
+      /* hauteurs successives */
+      var xAt = function(n, ph2){ return x0 + Math.min(n - 1 + ph2, nShow) * wb + (n >= 1 ? 0 : 0); };
+      ctx.save(); ctx.lineWidth = 1.6; var xx = x0 - 0;
+      for (var n = 0; n <= nShow; n++){
+        var hn = H * Math.pow(F, n); if (hn * sc < 1.5) break;
+        var done = (s.n > n) || (s.rest && s.n >= n) || (s.n === n && s.ph >= 1);
+        if (n === 0){
+          ctx.strokeStyle = "rgba(95,107,122,.35)"; ctx.setLineDash([4, 4]); ctx.beginPath(); ctx.moveTo(x0, gnd - H * sc); ctx.lineTo(x0, gnd); ctx.stroke();
+        } else {
+          var xa = x0 + (n - 1) * wb, xb = x0 + n * wb;
+          ctx.setLineDash(done ? [] : [3, 5]); ctx.strokeStyle = done ? "rgba(192,50,29,.75)" : "rgba(95,107,122,.35)";
+          ctx.beginPath(); for (var q = 0; q <= 24; q++){ var u = q / 24, yy = 4 * hn * u * (1 - u); q ? ctx.lineTo(xa + (xb - xa) * u, gnd - yy * sc) : ctx.moveTo(xa, gnd - yy * sc); } ctx.stroke();
+          if (hn * sc > 16) S.draw.label(c, "h" + n + " = " + S.fmt(hn, 2) + " m", (xa + xb) / 2, gnd - hn * sc - 12, {color:done ? P.red : P.grey, size:ph ? 9.5 : 10.5});
+        }
+      }
+      ctx.restore();
+      S.draw.line(c, 42, gnd - H * sc, x0 + 6, gnd - H * sc, P.green, 1.2, [4, 3]); S.draw.label(c, "départ " + S.fmt(H, 1) + " m", x0 + 10, gnd - H * sc - 12, {color:P.green, align:"left", size:11});
+      /* balle */
+      var bxr = s.n === 0 ? x0 : x0 + Math.min(s.n - 1 + s.ph, nShow) * wb, byr = gnd - s.y * sc, r = 8 + M * 12;
+      var sq = s.y * sc < 4 && s.n > 0 ? 0.78 : 1;
+      ctx.save(); ctx.translate(bxr, byr - r * sq); ctx.scale(1 / sq, sq); PX.ball(c, 0, 0, r, "#e8622d", {}); ctx.restore();
+      geo.bx0 = x0; geo.by0 = gnd - H * sc - r;
+      if (st.t === 0){ PX.grip(c, x0, gnd - H * sc - r, P.red, st.hint ? "attrape-moi" : null, 7); }
+      /* barre d'énergie : mécanique + thermique = total */
+      var E0 = M * G * H, Em = M * G * s.ap, Et = E0 - Em, bw2 = c.W - 40, bx2 = 20, by2 = c.H - 36;
+      ctx.fillStyle = "#e3e7ed"; PX.rr(ctx, bx2, by2, bw2, 22, 7); ctx.fill();
+      ctx.save(); PX.rr(ctx, bx2, by2, bw2, 22, 7); ctx.clip(); ctx.fillStyle = P.acc; ctx.fillRect(bx2, by2, bw2 * Em / E0, 22); ctx.fillStyle = P.red; ctx.fillRect(bx2 + bw2 * Em / E0, by2, bw2 * Et / E0, 22); ctx.restore();
+      S.draw.label(c, "mécanique " + S.fmt(Em, 2) + " J", bx2 + 4, by2 - 11, {color:P.acc, align:"left", size:11}); S.draw.label(c, "thermique " + S.fmt(Et, 2) + " J", bx2 + bw2 - 4, by2 - 11, {color:P.red, align:"right", size:11});
+      S.draw.text(c, "total = " + S.fmt(E0, 2) + " J (constant)", c.W / 2, by2 + 11, {size:11, color:"#fff", bg:"rgba(15,27,45,.55)"});
       var n1 = H > 0.01 ? Math.ceil(Math.log(0.01 / H) / Math.log(F)) : 0;
       ro.set(0, S.fmt(E0, 2) + " J"); ro.set(1, S.fmt(Em, 2) + " J"); ro.set(2, S.fmt(Et, 2) + " J"); ro.set(3, n1 + " rebonds");
       nt.set(s.rest ? "La balle est immobile : toute l'énergie de départ (" + S.fmt(E0, 2) + " J) est devenue énergie thermique." : "Mécanique + thermique = " + S.fmt(Em + Et, 2) + " J à tout instant. Rebond n° " + s.n + " : hauteur max. " + S.fmt(s.ap, 2) + " m.", "");
@@ -50,14 +80,14 @@ SFA.sim({
   id:"p4-c06-pendule-frottement", ch:"c06", tag:"Bilan",
   titre:"Pendule avec frottements : le bilan d'énergie",
   resume:"L'énergie mécanique décroît, l'énergie thermique croît, et leur somme est constante.",
-  but:"Règle l'amplitude et le frottement de l'air. Suis les courbes d'énergie au cours du temps. Avec 0 frottement, l'énergie mécanique reste constante.",
+  but:"Attrape la boule pour choisir l'amplitude, règle le frottement de l'air. Suis les courbes d'énergie au cours du temps et le thermomètre. Avec 0 frottement, l'énergie mécanique reste constante.",
   aRetenir:"Avec frottements, E<sub>mécanique</sub> diminue et E<sub>thermique</sub> = E<sub>départ</sub> − E<sub>mécanique</sub> augmente : l'énergie totale est constante. L'énergie thermique dispersée est difficile à récupérer : l'énergie se dégrade.",
   piege:"Quand le pendule s'arrête, son énergie n'a pas « disparu » : l'air, le fil et le support se sont légèrement réchauffés. La conservation concerne l'énergie totale, pas l'énergie mécanique seule.",
   build:function(k,S){
-    var c = k.canvas(190), g1 = k.canvas(220), st = {th:0, w:0, t:0, hist:[]};
+    var P = S.draw.palette, c = PX.canvas(k, 0.55, 0.85), g1 = PX.canvas(k, 0.5, 0.65), st = {th:0, w:0, t:0, hist:[], hint:true}, geo = {};
     var th0, lam, sp;
     function reset(){ st.th = (th0 ? th0.value : 50) * Math.PI / 180; st.w = 0; st.t = 0; st.hist = []; }
-    th0 = k.slider("Amplitude de départ", 20, 80, 5, 50, "°", reset);
+    th0 = k.slider("Amplitude de départ", 20, 80, 5, 50, "°", function(){ st.hint = false; reset(); });
     lam = k.slider("Frottement de l'air", 0, 1, 0.05, 0.15, "s⁻¹", reset);
     sp = k.seg("Vitesse", [[1,"×1"],[4,"×4"]], 4);
     var ro = k.readouts(["E départ (m = 0,5 kg, L = 1 m)", "E mécanique", "E thermique", "Somme"]);
@@ -74,17 +104,37 @@ SFA.sim({
     k.button("▶ / ❚❚", function(){ if (lp.running) lp.pause(); else lp.play(); }, true);
     k.button("↺ Relâcher", function(){ reset(); lp.play(); });
     reset(); lp.play();
+    PX.drag(k, c, function(){ return [{x:geo.bx, y:geo.by, r:16, set:function(px, py){ st.hint = false; lp.pause(); var a = Math.abs(Math.atan2(px - geo.px, py - geo.py)) * 180 / Math.PI; th0.set(Math.max(20, Math.min(80, Math.round(a / 5) * 5))); reset(); }}]; }, function(){ lp.play(); });
     k.draw(function(){
-      var P = SFA.draw.palette, T0 = th0.value * Math.PI / 180, E0 = M * G * L * (1 - Math.cos(T0));
-      var Em = Math.min(E0, 0.5 * M * L * L * st.w * st.w + M * G * L * (1 - Math.cos(st.th))), Et = Math.max(0, E0 - Em);
-      c.clear(); var px = c.W / 2, py = 16, r = (c.H - 40), bx = px + r * Math.sin(st.th), by = py + r * Math.cos(st.th);
-      S.draw.line(c, px - 50, py, px + 50, py, "#5f6b7a", 4); S.draw.line(c, px, py, bx, by, "#5f6b7a", 2); S.draw.dot(c, bx, by, 11, P.red);
+      var T0 = th0.value * Math.PI / 180, E0 = M * G * L * (1 - Math.cos(T0)), ph = PX.phone(c);
+      var Em = Math.min(E0, 0.5 * M * L * L * st.w * st.w + M * G * L * (1 - Math.cos(st.th))), Et = Math.max(0, E0 - Em), fr = E0 > 0 ? Et / E0 : 0;
+      var aw = c.W * 0.74, px = aw * 0.5, py = 22, r = Math.min(c.H - 52, aw * 0.5 / Math.max(0.3, Math.sin(T0)) - 10), bx = px + r * Math.sin(st.th), by = py + r * Math.cos(st.th);
+      geo.bx = bx; geo.by = by; geo.px = px; geo.py = py;
+      c.clear(); var ctx = c.ctx;
+      PX.bg(c, "#f6f3ef", "#ece6de");
+      S.draw.glow(c, px, py, 70, "#e0562f", 0.1 + 0.5 * fr);
+      ctx.fillStyle = "#6b7787"; ctx.fillRect(px - 46, py - 12, 92, 9);
+      ctx.save(); ctx.strokeStyle = "rgba(36,119,90,.5)"; ctx.lineWidth = 1.4; ctx.setLineDash([5, 4]); ctx.beginPath(); ctx.arc(px, py, r, Math.PI / 2 - T0, Math.PI / 2 + T0); ctx.stroke(); ctx.restore();
+      S.draw.line(c, px, py, px, py + r + 14, "#d3cbbf", 1.3, [4, 4]);
+      var ex = Em > 0 ? Math.max(0.02, Em / E0) : 0.02;
+      S.draw.line(c, px, py, bx, by, "#46515f", 2.2);
+      PX.ball(c, bx, by, 13, "rgb(" + Math.round(192) + "," + Math.round(50 + 120 * fr) + "," + Math.round(29 + 120 * fr) + ")", {shadowY:py + r + 16, shadowA:0.15});
+      S.draw.label(c, "amplitude " + S.fmt(Math.abs(Math.acos(Math.max(-1, Math.min(1, 1 - Em / (M * G * L)))) * 180 / Math.PI), 0) + "°", px, c.H - 12, {color:P.grey, size:11});
+      if (st.hint) PX.grip(c, bx, by, P.red, "attrape", 11);
+      /* thermomètre : énergie thermique accumulée */
+      var tx = aw + (c.W - aw) / 2, ty0 = 36, ty1 = c.H - 40;
+      S.draw.panel(c, aw + 4, 6, c.W - aw - 10, c.H - 12, {title:ph ? "Chaleur" : "Chaleur dégagée", shadow:false});
+      ctx.fillStyle = "#e3e7ed"; PX.rr(ctx, tx - 8, ty0, 16, ty1 - ty0, 8); ctx.fill();
+      ctx.fillStyle = PX.lin(c, 0, ty1, 0, ty0, [[0, "#e0562f"], [1, "#f4a23a"]]); var hh = (ty1 - ty0) * fr; PX.rr(ctx, tx - 8, ty1 - hh, 16, Math.max(hh, 0.1), 8); ctx.fill();
+      ctx.beginPath(); ctx.arc(tx, ty1 + 6, 12, 0, 6.2832); ctx.fillStyle = "#e0562f"; ctx.fill();
+      S.draw.label(c, S.fmt(fr * 100, 0) + " %", tx, ty0 - 4 + 0 > ty1 - hh - 10 ? ty1 - hh + 10 : ty1 - hh - 12, {color:P.red, size:11.5});
       g1.clear(); var ax = S.draw.axes(g1, {x0:0, x1:30, y0:0, y1:E0 * 1.15, xl:"t (s)", yl:"E (J)", stepX:5});
-      S.draw.line(g1, ax.X(0), ax.Y(E0), ax.X(30), ax.Y(E0), "#13233a", 2, [6, 4]); P4.label(g1, "total", ax.X(29), ax.Y(E0) - 10, "#13233a", "right");
-      var ctx = g1.ctx, i; ctx.save(); ctx.lineWidth = 3;
-      ctx.strokeStyle = P.acc; ctx.beginPath(); st.hist.forEach(function(p, j){ if (j) ctx.lineTo(ax.X(p[0]), ax.Y(Math.min(E0, p[1]))); else ctx.moveTo(ax.X(p[0]), ax.Y(Math.min(E0, p[1]))); }); ctx.stroke();
-      ctx.strokeStyle = P.red; ctx.beginPath(); st.hist.forEach(function(p, j){ var q = Math.max(0, E0 - p[1]); if (j) ctx.lineTo(ax.X(p[0]), ax.Y(q)); else ctx.moveTo(ax.X(p[0]), ax.Y(q)); }); ctx.stroke(); ctx.restore();
-      P4.label(g1, "mécanique", ax.X(1), ax.Y(E0 * 0.88), P.acc, "left"); P4.label(g1, "thermique", ax.X(29), ax.Y(E0 * 0.1), P.red, "right");
+      S.draw.line(g1, ax.X(0), ax.Y(E0), ax.X(30), ax.Y(E0), "#13233a", 2, [6, 4]); S.draw.label(g1, "total", ax.X(29), ax.Y(E0) - 12, {color:"#13233a", align:"right", size:11.5});
+      var ctx2 = g1.ctx; ctx2.save(); ctx2.lineWidth = 3;
+      if (st.hist.length > 1){ ctx2.beginPath(); st.hist.forEach(function(p, j){ var q = Math.max(0, E0 - p[1]); j ? ctx2.lineTo(ax.X(p[0]), ax.Y(q)) : ctx2.moveTo(ax.X(p[0]), ax.Y(q)); }); ctx2.lineTo(ax.X(st.hist[st.hist.length - 1][0]), ax.Y(0)); ctx2.lineTo(ax.X(0), ax.Y(0)); ctx2.closePath(); ctx2.fillStyle = "rgba(192,50,29,.10)"; ctx2.fill(); }
+      ctx2.strokeStyle = P.acc; ctx2.beginPath(); st.hist.forEach(function(p, j){ j ? ctx2.lineTo(ax.X(p[0]), ax.Y(Math.min(E0, p[1]))) : ctx2.moveTo(ax.X(p[0]), ax.Y(Math.min(E0, p[1]))); }); ctx2.stroke();
+      ctx2.strokeStyle = P.red; ctx2.beginPath(); st.hist.forEach(function(p, j){ var q = Math.max(0, E0 - p[1]); j ? ctx2.lineTo(ax.X(p[0]), ax.Y(q)) : ctx2.moveTo(ax.X(p[0]), ax.Y(q)); }); ctx2.stroke(); ctx2.restore();
+      S.draw.label(g1, "mécanique", ax.X(1), ax.Y(E0 * 0.86), {color:P.acc, align:"left", size:11.5}); S.draw.label(g1, "thermique", ax.X(29), ax.Y(E0 * 0.1), {color:P.red, align:"right", size:11.5});
       ro.set(0, S.fmt(E0, 2) + " J"); ro.set(1, S.fmt(Em, 2) + " J"); ro.set(2, S.fmt(Et, 2) + " J"); ro.set(3, S.fmt(Em + Et, 2) + " J");
       nt.set(lam.value === 0 ? "Frottement nul : l'énergie mécanique reste (pratiquement) constante, aucune chaleur n'apparaît." : "t = " + S.fmt(st.t, 1) + " s : " + S.fmt(Et / E0 * 100, 0) + " % de l'énergie de départ est devenue énergie thermique.", "");
     });

@@ -51,31 +51,48 @@ SFA.sim({
 /* ---------- valeur extrême ---------- */
 var BASE=[1.8,2.0,2.1,2.2,2.3,2.4,2.6,2.8,3.0];
 SFA.sim({
-  id:"m4-c10-extreme", ch:"c10", tag:"Classique",
+  id:"m4-c10-extreme", ch:"c10", tag:"Manipuler",
   titre:"Une valeur extrême : qui bouge, moyenne ou médiane ?",
   resume:"Neuf salaires mensuels (en milliers d'euros) et un dixième qui s'envole : compare moyenne et médiane.",
-  but:"Fais glisser la valeur du 10e salaire. Observe comment la moyenne (rouge) se laisse entraîner alors que la médiane (verte) bouge à peine. Que deviennent l'étendue et l'écart-type ?",
+  but:"Fais glisser le 10e salaire (le point orange, ou le curseur). Observe comment la moyenne (rouge) se laisse entraîner alors que la médiane (verte) bouge à peine. Que deviennent l'étendue et l'écart-type ?",
   aRetenir:"La moyenne est sensible aux valeurs extrêmes ; la médiane est « robuste ». Pour une série avec une valeur aberrante, la médiane décrit mieux la valeur typique. L'écart-type et l'étendue, eux, explosent.",
   piege:"Une moyenne n'est pas un « individu typique » : avec un 10e salaire de 30 k€, la moyenne (5,12 k€) dépasse 9 des 10 salaires. Compare toujours moyenne et médiane avant de conclure.",
   build:function(k,S){
-    var c=k.canvas(0,{ratio:.5});
+    var M=window.M4, P=S.draw.palette, F=S.fmt;
+    var c=k.canvas(0,{ratio:.56});
     var xv=k.slider("Valeur du 10e salaire (k€)",1.5,30,0.5,3.5,"k€");
     var ad=k.toggle("Inclure ce 10e salaire",true);
     var ro=k.readouts(["Moyenne","Médiane","Étendue","Écart-type σ"]);
     var nt=k.note("","");
+    var geo={};
+    M.grab(c,function(){ return geo.X&&ad.value?[{id:"x",x:geo.X(xv.value),y:geo.y0-16,r:34}]:[]; },
+      function(id,px){ xv.set(M.clamp(Math.round(((px-geo.L)/(geo.W-geo.L-geo.R)*32)*2)/2,1.5,30)); k.redraw(); });
     k.draw(function(){
-      c.clear(); var W=c.W,H=c.H,L=24,R=14, X=function(v){return L+v/32*(W-L-R);}, y0=H*0.62;
+      M.adapt(c,.78,.56,520);
+      c.clear(); var W=c.W,H=c.H,L=26,R=16, X=function(v){return L+v/32*(W-L-R);}, y0=H*0.7, ctx=c.ctx;
+      geo={X:X,y0:y0,L:L,R:R,W:W};
+      var data=BASE.slice(); if(ad.value) data.push(xv.value);
+      var s=sorted(data), m=mean(s), md=med(s), m0=mean(BASE), md0=med(sorted(BASE));
+      /* axe */
       S.draw.line(c,L,y0,W-R,y0,P.ink,2);
-      for(var v=0;v<=30;v+=5){ S.draw.line(c,X(v),y0-4,X(v),y0+4,P.ink,1); S.draw.text(c,String(v),X(v),y0+16,{size:12,color:P.grey}); }
-            var data=BASE.slice(); if(ad.value) data.push(xv.value);
-      var s=sorted(data);
-      data.forEach(function(v,i){ var isNew=(ad.value&&i===data.length-1); S.draw.dot(c,X(v),y0-10-(i%3)*13,isNew?8:5,isNew?P.amber:P.acc); });
-      var m=mean(s), md=med(s);
-      S.draw.line(c,X(m),H*0.12,X(m),y0,P.red,2.5); S.draw.line(c,X(md),H*0.12,X(md),y0,P.green,2.5,[6,4]);
-      S.draw.text(c,"moyenne "+F(m,2),Math.min(X(m)+6,W-90),H*0.08,{size:12,color:P.red,align:"left"});
-      S.draw.text(c,"médiane "+F(md,2),Math.min(X(md)+6,W-90),H*0.22,{size:12,color:P.green,align:"left"});
+      for(var v=0;v<=30;v+=5){ S.draw.line(c,X(v),y0,X(v),y0+5,P.ink,1.4); S.draw.text(c,String(v),X(v),y0+18,{size:11.5,color:P.grey}); }
+      S.draw.text(c,"salaire (k€)",W-R,y0+34,{size:11,color:P.grey,align:"right"});
+      for(var v2=1;v2<32;v2++) if(v2%5) S.draw.line(c,X(v2),y0,X(v2),y0+3,P.axis,1);
+      /* points empilés par valeur */
+      var placed=[]; data.forEach(function(v,i){ var isNew=ad.value&&i===data.length-1, lvl=0;
+        if(!isNew){ var near=placed.filter(function(q){ return Math.abs(X(q.v)-X(v))<13; }).length; lvl=near; placed.push({v:v}); }
+        if(isNew) M.handle(c,X(v),y0-18,P.amber,8); else S.draw.dot(c,X(v),y0-11-lvl*13,5.5,P.acc); });
+      /* moyenne et médiane : repères et bulles */
+      var top=H*.14;
+      S.draw.line(c,X(m),top+24,X(m),y0,P.red,2.6); S.draw.line(c,X(md),top+8,X(md),y0,P.green,2.6,[6,4]);
+      var tri=function(x,col){ ctx.save(); ctx.fillStyle=col; ctx.beginPath(); ctx.moveTo(x,y0+1); ctx.lineTo(x-6,y0+12); ctx.lineTo(x+6,y0+12); ctx.closePath(); ctx.fill(); ctx.restore(); };
+      var lx=function(x,w){ return Math.max(w/2+4,Math.min(W-w/2-4,x)); };
+      var medL=X(md)<=X(m);
+      M.lab(c,"médiane "+F(md,2),medL?X(md)-62:X(md)+62,top,P.green,{size:11.5});
+      M.lab(c,"moyenne "+F(m,2),medL?X(m)+62:X(m)-62,top+24,P.red,{size:11.5});
+      /* écart de la moyenne à sa valeur sans le 10e salaire */
+      if(ad.value&&Math.abs(X(m)-X(m0))>46){ var yb=y0-100; S.draw.line(c,X(m0),yb,X(m),yb,P.red,1.6); S.draw.dot(c,X(m0),yb,3.5,P.red); M.lab(c,"+"+F(m-m0,2)+" k€ avec le 10e salaire",Math.max(70,(X(m0)+X(m))/2+40),yb-12,P.red,{size:10.5}); }
       ro.set(0,F(m,2)+" k€"); ro.set(1,F(md,2)+" k€"); ro.set(2,F(s[s.length-1]-s[0],2)+" k€"); ro.set(3,F(sd(s),2)+" k€");
-      var m0=mean(BASE), md0=med(sorted(BASE));
       nt.set(ad.value?"Sans le 10e salaire : moyenne "+F(m0,2)+" et médiane "+F(md0,2)+". Avec lui : la moyenne varie de "+F(m-m0,2)+" k€, la médiane de "+F(md-md0,2)+" k€.":"Série de 9 salaires : moyenne "+F(m0,2)+" et médiane "+F(md0,2)+" (proches).","");
     });
   }

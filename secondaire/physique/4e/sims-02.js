@@ -101,33 +101,53 @@ SFA.sim({
   id:"p4-c02-freinage", ch:"c02", tag:"Sécurité routière",
   titre:"Distance de freinage et d'arrêt",
   resume:"Réaction + freinage : pourquoi doubler la vitesse multiplie le freinage par 4.",
-  but:"Choisis la vitesse, l'état de la route et le temps de réaction. Un obstacle est placé devant toi : évite-le, ou vois à quelle vitesse tu le heurtes.",
+  but:"Choisis la vitesse, l'état de la route et le temps de réaction. Un obstacle est placé devant toi (glisse-le pour le déplacer) : évite-le, ou vois à quelle vitesse tu le heurtes. Lance la simulation pour freiner !",
   aRetenir:"Distance d'arrêt = distance de réaction (v·t<sub>r</sub>) + distance de freinage (v²/2a). La distance de freinage est proportionnelle à v² : vitesse ×2, freinage ×4.",
   piege:"On croit que « 10 km/h de plus » est sans conséquence. Mais la distance de freinage grandit avec le carré de la vitesse. Les valeurs de a sont des ordres de grandeur (modèle simplifié, freinage constant).",
   build:function(k,S){
-    var g = k.canvas(230), road = k.canvas(120);
-    var kmh = k.slider("Vitesse initiale", 30, 130, 5, 50, "km/h");
-    var surf = k.seg("Route", [[7,"Sèche"],[4,"Mouillée"],[2,"Neige"],[1,"Verglas"]], 7);
-    var tr = k.slider("Temps de réaction", 0.2, 2, 0.1, 1, "s");
-    var ob = k.slider("Obstacle à", 10, 300, 5, 60, "m");
+    var P = S.draw.palette, g = PX.canvas(k, 0.46, 0.62), road = PX.canvas(k, 0.52, 0.7), st = {t:-1, hint:true}, geo = {};
+    var kmh = k.slider("Vitesse initiale", 30, 130, 5, 50, "km/h", function(){ st.t = -1; });
+    var surf = k.seg("Route", [[7,"Sèche"],[4,"Mouillée"],[2,"Neige"],[1,"Verglas"]], 7, function(){ st.t = -1; });
+    var tr = k.slider("Temps de réaction", 0.2, 2, 0.1, 1, "s", function(){ st.t = -1; });
+    var ob = k.slider("Obstacle à", 10, 300, 5, 60, "m", function(){ st.hint = false; st.t = -1; });
     var ro = k.readouts(["Distance de réaction", "Distance de freinage", "Distance d'arrêt", "Résultat"]);
     var nt = k.note("", "");
+    var lp = k.loop(function(dt){ st.t += dt; k.redraw(); });
+    k.button("▶ Freiner !", function(){ st.t = 0; st.hint = false; lp.play(); }, true);
+    k.button("↺ Départ", function(){ lp.pause(); st.t = -1; });
+    PX.drag(k, road, function(){ return [{x:geo.ox, y:geo.oy, r:22, set:function(px){ st.hint = false; st.t = -1; ob.set(Math.max(10, Math.min(300, Math.round((px - geo.x0) / geo.sx / 5) * 5))); }}]; });
     k.draw(function(){
-      var P = SFA.draw.palette, v = kmh.value / 3.6, a = +surf.value, t = tr.value, O = ob.value;
+      var v = kmh.value / 3.6, a = +surf.value, t = tr.value, O = ob.value, ph = PX.phone(road);
       var dr = v * t, db = v * v / (2 * a), dtot = dr + db, tb = v / a, T = t + tb;
+      var xmax = Math.max(dtot, O) * 1.12, x0 = 44, sx = (road.W - x0 - 30) / xmax, RX = function(m){ return x0 + m * sx; };
+      geo.x0 = x0; geo.sx = sx;
+      /* animation : position de la voiture */
+      var tt = Math.max(0, st.t), xc = tt <= t ? v * tt : (tt - t <= tb ? dr + v * (tt - t) - 0.5 * a * (tt - t) * (tt - t) : dtot), hit = xc >= O && dtot > O, xcar = Math.min(xc, O);
+      var vNow = tt <= t ? v : Math.max(0, v - a * (tt - t));
+      if (st.t > T + 1.5) lp.pause();
+      var rh = 54, ry = road.H - rh - 52;
+      road.clear(); var cx = road.ctx;
+      PX.road(road, ry, rh, -xcar * sx);
+      cx.fillStyle = "rgba(224,86,47,.9)"; PX.rr(cx, RX(0), ry + rh + 8, Math.max(2, RX(dr) - RX(0)), 20, 5); cx.fill(); cx.fillStyle = "rgba(47,92,174,.95)"; PX.rr(cx, RX(dr), ry + rh + 8, Math.max(2, RX(dtot) - RX(dr)), 20, 5); cx.fill();
+      if (RX(dr) - RX(0) > 56) S.draw.text(road, "réaction", (RX(0) + RX(dr)) / 2, ry + rh + 18, {size:11, color:"#fff"});
+      if (RX(dtot) - RX(dr) > 56) S.draw.text(road, "freinage", (RX(dr) + RX(dtot)) / 2, ry + rh + 18, {size:11, color:"#fff"});
+      /* obstacle : mur rouge et blanc */
+      var ox = RX(O); geo.ox = ox; geo.oy = ry + rh / 2;
+      for (var i = 0; i < 6; i++){ cx.fillStyle = i % 2 ? "#fff" : "#c0321d"; cx.fillRect(ox - 6, ry - 16 + i * ((rh + 16) / 6), 12, (rh + 16) / 6); }
+      cx.strokeStyle = "#13233a"; cx.lineWidth = 1.2; cx.strokeRect(ox - 6, ry - 16, 12, rh + 16);
+      S.draw.label(road, "obstacle à " + O + " m", Math.min(road.W - 60, ox), ry - 28, {color:P.red, size:PX.fs(road, 11.5)});
+      var cw = ph ? 62 : 80; P4.car(road, RX(xcar) + 6, ry + rh * 0.82, cw, P.acc, 1);
+      if (hit && st.t > 0){ S.draw.glow(road, ox, ry + rh * 0.5, 50, P.red, 0.8); S.draw.label(road, "CHOC !", ox - 40, ry + 6, {color:"#fff", fill:P.red, size:13}); }
+      if (st.t > 0 && vNow > 0 && !hit) S.draw.label(road, S.fmt(vNow * 3.6, 0) + " km/h", RX(xcar) + 6, ry - 6, {color:P.ink, size:11.5});
+      if (st.hint) PX.grip(road, ox, ry + rh / 2, P.red, "tire", 7);
+      S.draw.label(road, "arrêt à " + S.fmt(dtot, 0) + " m", Math.min(road.W - 60, Math.max(60, RX(dtot))), ry + rh + 44, {color:"#13233a", size:PX.fs(road, 11.5)});
       g.clear(); var ax = S.draw.axes(g, {x0:0, x1:T * 1.05, y0:0, y1:v * 1.12, xl:"t (s)", yl:"v (m/s)"});
       var vf = function(s){ return s <= t ? v : Math.max(0, v - a * (s - t)); };
-      P4.area(g, ax, function(s){ return s <= t ? v : 0; }, 0, t, "rgba(180,83,9,.30)");
-      P4.area(g, ax, vf, t, T, "rgba(30,63,143,.22)");
+      P4.area(g, ax, function(s){ return s <= t ? v : 0; }, 0, t, "rgba(224,86,47,.30)");
+      P4.area(g, ax, vf, t, T, "rgba(47,92,174,.22)");
       S.draw.fn(g, ax, vf, P.acc, 3);
       P4.label(g, "réaction", ax.X(t / 2), ax.Y(v / 2), P.amber); P4.label(g, "freinage", ax.X(t + tb / 2), ax.Y(v / 3), P.acc);
-      var xmax = Math.max(dtot, O) * 1.12, pad = 24, RX = function(m){ return pad + m / xmax * (road.W - 2 * pad); };
-      road.clear(); var cx = road.ctx; cx.fillStyle = "#e3e7ed"; cx.fillRect(0, 70, road.W, 14);
-      cx.fillStyle = "rgba(180,83,9,.45)"; cx.fillRect(RX(0), 56, RX(dr) - RX(0), 12);
-      cx.fillStyle = "rgba(30,63,143,.45)"; cx.fillRect(RX(dr), 56, RX(dtot) - RX(dr), 12);
-      cx.fillStyle = "#b42318"; cx.fillRect(RX(O) - 4, 38, 8, 44); P4.label(road, "obstacle " + O + " m", Math.min(road.W - 50, RX(O)), 26, P.red);
-      P4.car(road, RX(0) + 16, 70, 30, P.acc, 1);
-      P4.label(road, "arrêt à " + S.fmt(dtot, 0) + " m", Math.min(road.W - 40, Math.max(40, RX(dtot))), 104, "#2c3a4e");
+      if (st.t >= 0) S.draw.dot(g, ax.X(Math.min(tt, T)), ax.Y(vf(tt)), 6, P.red);
       ro.set(0, S.fmt(dr, 1) + " m"); ro.set(1, S.fmt(db, 1) + " m"); ro.set(2, S.fmt(dtot, 1) + " m");
       if (dtot <= O){ ro.set(3, "Arrêt à " + S.fmt(O - dtot, 1) + " m de l'obstacle"); nt.set("Tu t'arrêtes avant l'obstacle (il reste " + S.fmt(O - dtot, 1) + " m).", ""); }
       else {
@@ -142,36 +162,55 @@ SFA.sim({
   id:"p4-c02-dragsters", ch:"c02", tag:"Comparaison",
   titre:"Course de dragsters : qui gagne dépend de la distance",
   resume:"Une voiture démarre fort, l'autre va plus vite à fond : l'ordre d'arrivée change avec la longueur de la course.",
-  but:"Chaque voiture accélère uniformément jusqu'à sa vitesse maximale, puis garde cette vitesse. Change la longueur de la course et regarde le vainqueur.",
+  but:"Chaque voiture accélère uniformément jusqu'à sa vitesse maximale, puis garde cette vitesse. Change la longueur de la course (glisse le drapeau d'arrivée) et regarde le vainqueur.",
   aRetenir:"Une forte accélération gagne les courses courtes ; une grande vitesse maximale gagne les courses longues. Le graphique x(t) montre les courbes qui se croisent.",
   piege:"Avoir la plus grande accélération ne garantit pas de gagner, et la plus grande vitesse maximale non plus. Il faut comparer les durées pour une distance donnée.",
   build:function(k,S){
-    var road = k.canvas(120), g = k.canvas(260), st = {t:0};
+    var P = S.draw.palette, road = PX.canvas(k, 0.4, 0.58), g = PX.canvas(k, 0.5, 0.66), st = {t:0, hint:true}, geo = {};
     var aA = k.slider("Voiture A : accélération", 2, 10, 0.5, 8, "m/s²");
     var vA = k.slider("Voiture A : vitesse max.", 20, 60, 5, 30, "m/s");
     var aB = k.slider("Voiture B : accélération", 2, 10, 0.5, 4, "m/s²");
     var vB = k.slider("Voiture B : vitesse max.", 20, 60, 5, 50, "m/s");
-    var L = k.slider("Longueur de la course", 50, 1000, 10, 100, "m");
+    var L = k.slider("Longueur de la course", 50, 1000, 10, 100, "m", function(){ st.hint = false; });
     var ro = k.readouts(["Temps de A", "Temps de B", "Vainqueur"]);
     var nt = k.note("", "");
     var lp = k.loop(function(dt){ st.t += dt * 2; k.redraw(); });
-    k.button("▶ Départ", function(){ st.t = 0; lp.play(); }, true);
+    k.button("▶ Départ", function(){ st.t = 0; st.hint = false; lp.play(); }, true);
     k.button("↺ Remise à zéro", function(){ lp.pause(); st.t = 0; });
     function pos(a, vm, t){ var ta = vm / a; return t <= ta ? 0.5 * a * t * t : vm * vm / (2 * a) + vm * (t - ta); }
     function dur(a, vm, D){ var da = vm * vm / (2 * a); return D <= da ? Math.sqrt(2 * D / a) : vm / a + (D - da) / vm; }
+    PX.drag(k, road, function(){ return [{x:geo.fx, y:geo.fy, r:14, set:function(px){ st.hint = false; L.set(Math.max(50, Math.min(1000, Math.round((px - geo.x0) / geo.sx / 10) * 10))); }}]; });
     k.draw(function(){
-      var P = SFA.draw.palette, D = L.value, tA = dur(aA.value, vA.value, D), tB = dur(aB.value, vB.value, D), tm = Math.max(tA, tB) * 1.1, T = Math.min(st.t, Math.max(tA, tB) + 1);
+      var D = L.value, tA = dur(aA.value, vA.value, D), tB = dur(aB.value, vB.value, D), tm = Math.max(tA, tB) * 1.1, T = Math.min(st.t, Math.max(tA, tB) + 1), ph = PX.phone(road);
       if (st.t > Math.max(tA, tB) + 3) lp.pause();
-      var xa = Math.min(D, pos(aA.value, vA.value, T)), xb = Math.min(D, pos(aB.value, vB.value, T)), pad = 30;
-      var RX = function(m){ return pad + m / D * (road.W - 2 * pad - 20); };
-      road.clear(); road.ctx.fillStyle = "#e3e7ed"; road.ctx.fillRect(0, 40, road.W, 12); road.ctx.fillRect(0, 88, road.W, 12);
-      S.draw.line(road, RX(D) + 10, 20, RX(D) + 10, 104, P.green, 3, [4, 3]); P4.label(road, "arrivée " + D + " m", road.W - 50, 12, P.green);
-      P4.car(road, RX(xa), 52, 34, P.red, 1); P4.car(road, RX(xb), 100, 34, P.acc, 1);
-      P4.label(road, "A", 12, 32, P.red); P4.label(road, "B", 12, 80, P.acc);
+      var xa = Math.min(D, pos(aA.value, vA.value, T)), xb = Math.min(D, pos(aB.value, vB.value, T)), pad = 30, x0 = 44, xr = road.W - 36;
+      var RX = function(m){ return x0 + m / 1000 * (xr - x0) * (1000 / Math.max(D, 1)) * (D / 1000) ; };
+      var sx = (xr - x0) / D; RX = function(m){ return x0 + m * sx; };
+      geo.x0 = x0; geo.sx = sx;
+      var rh = 80, ry = road.H - rh - 12;
+      road.clear(); var cx = road.ctx;
+      PX.road(road, ry, rh, 0, {nodash:true});
+      cx.fillStyle = "rgba(255,255,255,.7)"; cx.fillRect(0, ry + rh / 2 - 1, road.W, 2);
+      /* départ et arrivée à damier */
+      cx.fillStyle = "#fff"; cx.fillRect(x0 - 2, ry, 4, rh);
+      var fx = xr; geo.fx = fx; geo.fy = ry - 14;
+      for (var r = 0; r < 8; r++){ for (var cc = 0; cc < 2; cc++){ cx.fillStyle = (r + cc) % 2 ? "#13233a" : "#fff"; cx.fillRect(fx - 6 + cc * 6, ry + r * (rh / 8), 6, rh / 8); } }
+      cx.fillStyle = "#13233a"; cx.fillRect(fx - 1, ry - 22, 3, 22); cx.fillStyle = P.green; cx.fillRect(fx + 2, ry - 22, 22, 9);
+      S.draw.label(road, "arrivée " + D + " m", fx - 6, ry - 34, {color:P.green, size:11.5, align:"right"});
+      var cw = ph ? 62 : 82, ya = ry + rh * 0.34, yb = ry + rh * 0.8, vAnow = T < vA.value / aA.value ? aA.value * T : vA.value, vBnow = T < vB.value / aB.value ? aB.value * T : vB.value;
+      var carx = function(xm){ return Math.min(RX(xm), xr - 6) - cw * 0.35 + 0; };
+      [[xa, ya, P.red, "A", vAnow, xa >= D], [xb, yb, P.acc, "B", vBnow, xb >= D]].forEach(function(q){
+        var cxp = Math.max(x0 + cw * 0.5, RX(q[0]) - cw * 0.1);
+        if (q[4] > 1 && q[0] < D){ cx.strokeStyle = "rgba(255,255,255," + Math.min(0.7, q[4] / 50) + ")"; cx.lineWidth = 2; for (var s = 0; s < 3; s++){ cx.beginPath(); cx.moveTo(cxp - cw * 0.5 - 4, q[1] - 6 - s * 7); cx.lineTo(cxp - cw * 0.5 - 8 - q[4], q[1] - 6 - s * 7); cx.stroke(); } }
+        P4.car(road, cxp, q[1], cw, q[2], 1);
+        S.draw.label(road, q[3], cxp, q[1] - cw * 0.46 - 6, {color:"#fff", fill:q[2], size:11.5});
+      });
+      PX.grip(road, fx - 2, ry - 8, P.green, st.hint ? "tire" : null, 6);
       g.clear(); var ax = S.draw.axes(g, {x0:0, x1:tm, y0:0, y1:D * 1.08, xl:"t (s)", yl:"x (m)"});
       S.draw.fn(g, ax, function(t){ return pos(aA.value, vA.value, t); }, P.red, 3); S.draw.fn(g, ax, function(t){ return pos(aB.value, vB.value, t); }, P.acc, 3);
       S.draw.line(g, ax.X(0), ax.Y(D), ax.X(tm), ax.Y(D), P.green, 1.5, [5, 4]);
-      S.draw.dot(g, ax.X(tA), ax.Y(D), 5, P.red); S.draw.dot(g, ax.X(tB), ax.Y(D), 5, P.acc);
+      S.draw.dot(g, ax.X(tA), ax.Y(D), 5.5, P.red); S.draw.dot(g, ax.X(tB), ax.Y(D), 5.5, P.acc);
+      S.draw.line(g, ax.X(T), ax.B, ax.X(T), ax.T, "#b8c0cc", 1, [3, 3]);
       ro.set(0, S.fmt(tA, 2) + " s"); ro.set(1, S.fmt(tB, 2) + " s");
       var diff = Math.abs(tA - tB); ro.set(2, diff < 0.005 ? "égalité" : (tA < tB ? "A de " : "B de ") + S.fmt(diff, 2) + " s");
       nt.set(diff < 0.005 ? "Égalité parfaite." : (tA < tB ? "A" : "B") + " gagne. Change la longueur : le classement peut s'inverser. (Modèle simplifié : accélération constante puis vitesse constante.)", "");

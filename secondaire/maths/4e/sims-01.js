@@ -1,3 +1,66 @@
+/* Aides communes du cours de maths 4e (chargées avec le chapitre 1, utilisées par les autres chapitres) */
+window.M4 = window.M4 || (function(){
+  var S = window.SFA, P = S.draw.palette, M = {};
+  M.D = Math.PI / 180;
+  /* ratio du canevas selon la largeur (téléphone / ordinateur) */
+  M.adapt = function(c, narrow, wide, bp){
+    var want = c.W < (bp || 520) ? narrow : wide;
+    if (c.ratio !== want){ c.ratio = want; c.resize(); return true; }
+    return false;
+  };
+  /* repère orthonormé qui remplit le canevas : x dans [−R ; R], y selon la forme du canevas */
+  M.plane = function(c, R, o){
+    o = o || {};
+    var L = o.l == null ? 10 : o.l, Rr = o.r == null ? 10 : o.r, T = o.t == null ? 10 : o.t, B = o.b == null ? 10 : o.b;
+    var wpx = c.W - L - Rr, hpx = c.H - T - B, asp = hpx / wpx, cy = o.cy || 0;
+    if (o.fit){ var need = 0; o.fit.forEach(function(q){ need = Math.max(need, Math.abs(q[0]), Math.abs(q[1] - cy) / asp); }); R = Math.max(R, Math.ceil(need + (o.pad == null ? 1.5 : o.pad))); }
+    var ax = S.draw.axes(c, {x0:-R, x1:R, y0:-R * asp + cy, y1:R * asp + cy, l:L, r:Rr, t:T, b:B, stepX:o.step || (R > 9 ? 2 : 1), stepY:o.step || (R > 9 ? 2 : 1), grid:o.grid, hideZero:true, xl:o.xl, yl:o.yl, arrows:o.arrows});
+    return ax;
+  };
+  /* poignées déplaçables : get() → [{id,x,y,r}] en pixels ; move(id, px, py) */
+  M.grab = function(c, get, move, end){
+    var cv = c.cv, cur = null;
+    function pick(p){ var hs = get(), b = null, bd = 1e9; hs.forEach(function(h){ var d = Math.hypot(h.x - p.x, h.y - p.y); if (d < (h.r || 24) && d < bd){ bd = d; b = h; } }); return b; }
+    c.pointer(function(t, p){
+      if (t === "down"){ cur = pick(p); if (cur){ cv.style.cursor = "grabbing"; move(cur.id, p.x, p.y, true); } }
+      else if (t === "drag"){ if (cur) move(cur.id, p.x, p.y, false); }
+      else if (t === "move"){ cv.style.cursor = pick(p) ? "grab" : "default"; }
+      else if (t === "up"){ if (end && cur) end(cur.id); cur = null; cv.style.cursor = pick(p) ? "grab" : "default"; }
+    });
+  };
+  /* poignée : point plein avec anneau d'invitation */
+  M.handle = function(c, x, y, col, r){
+    var ctx = c.ctx; r = r || 8;
+    ctx.save(); ctx.beginPath(); ctx.arc(x, y, r + 7, 0, 2 * Math.PI); ctx.strokeStyle = S.draw.tint(col, .35); ctx.lineWidth = 1.5; ctx.setLineDash([3, 3]); ctx.stroke(); ctx.restore();
+    S.draw.dot(c, x, y, r, col);
+  };
+  /* étiquette qui reste dans le canevas */
+  M.lab = function(c, s, x, y, col, o){
+    o = o || {}; var w = String(s).length * 6.6 + 14, h = (o.size || 11.5) + 8;
+    var cx = Math.max(w / 2 + 4, Math.min(c.W - w / 2 - 4, x)), cy = Math.max(h / 2 + 3, Math.min(c.H - h / 2 - 3, y));
+    S.draw.label(c, s, cx, cy, {color:col, size:o.size, math:o.math});
+  };
+  /* arc d'angles mathématiques (sens antihoraire, y vers le haut) */
+  M.arc = function(c, cx, cy, r, a0, a1, col, w){
+    var ctx = c.ctx; ctx.save(); ctx.strokeStyle = col; ctx.lineWidth = w || 2.2; ctx.lineCap = "round";
+    ctx.beginPath(); ctx.arc(cx, cy, r, -a0, -a1, a1 > a0); ctx.stroke(); ctx.restore();
+  };
+  M.sector = function(c, cx, cy, r, a0, a1, col, alpha){
+    var ctx = c.ctx; ctx.save(); ctx.fillStyle = S.draw.tint(col, alpha == null ? .18 : alpha);
+    ctx.beginPath(); ctx.moveTo(cx, cy); ctx.arc(cx, cy, r, -a0, -a1, a1 > a0); ctx.closePath(); ctx.fill(); ctx.restore();
+  };
+  M.poly = function(c, pts, fill, stroke, w){
+    var ctx = c.ctx; ctx.save(); ctx.beginPath(); pts.forEach(function(p, i){ i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1]); }); ctx.closePath();
+    if (fill){ ctx.fillStyle = fill; ctx.fill(); } if (stroke){ ctx.strokeStyle = stroke; ctx.lineWidth = w || 2; ctx.lineJoin = "round"; ctx.stroke(); } ctx.restore();
+  };
+  M.hint = function(c, s){ S.draw.text(c, s, 10, c.H - 11, {size:11, weight:700, color:P.grey, align:"left"}); };
+  /* alignement d'un entier sur la grille */
+  M.snap = function(v, lo, hi){ return Math.max(lo, Math.min(hi, Math.round(v))); };
+  M.clamp = function(v, lo, hi){ return Math.max(lo, Math.min(hi, v)); };
+  M.comp = function(x, y){ return "(" + S.fmt(x, 2) + " ; " + S.fmt(y, 2) + ")"; };
+  return M;
+})();
+
 (function(){
 var P = SFA.draw.palette;
 var BASE = {

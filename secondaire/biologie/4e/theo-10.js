@@ -31,7 +31,7 @@ SFA.theo("c10",{
 SFA.figs("c10",[
  /* 0 ordre des phases */
  function(p){var order=[['anaphase',5,3],['prophase',3,1],['télophase',6,4],['métaphase',4,2]],r=Math.min(H*.26,W*.11);
-  order.forEach(function(o,i){var x=W*(.14+i*.24);b4cellS(x,H*.45,r,o[1],o[1]===5?.7:o[1]===6?.8:0);TB(o[0],x,H*.8,INK,15);if(p>0){b4al(b4r(p,o[2]*.12,o[2]*.12+.3));DOT(x,H*.12,14,GREEN);TB(String(o[2]),x,H*.12+6,'#fff',18);b4al(1);}});
+  order.forEach(function(o,i){var x=W*(.14+i*.24);b4cellS(x,H*.45,o[1]===6?r*.7:r,o[1],o[1]===5?.7:o[1]===6?.8:0);TB(o[0],x,H*.8,INK,15);if(p>0){b4al(b4r(p,o[2]*.12,o[2]*.12+.3));DOT(x,H*.12,14,GREEN);TB(String(o[2]),x,H*.12+6,'#fff',18);b4al(1);}});
   if(p<=0)TB('dans quel ordre ?',W*.5,H*.08,GREY,18);
   b4ans(p,'prophase, métaphase, anaphase, télophase · ADN : phase S',GREEN,H-20);},
  /* 1 cellules filles */

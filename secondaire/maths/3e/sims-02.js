@@ -19,20 +19,24 @@ SFA.sim({
     var tb=k.toggle("Montrer le tableau",false);
     var ro=k.readouts(["x","Image f(x)","Antécédents de y"]);
     var nt=k.note("");
+    var M3=window.M3, geo={h:[]};
+    M3.drag(c,function(){return geo.h;},function(id,p){ if(id==="x") x.set(M3.snap(geo.ax.ix(p.x),0.5,-6,6)); else y.set(M3.snap(geo.ax.iy(p.y),0.5,-8,8)); k.redraw(); });
     k.draw(function(){
-      c.clear(); var o=F[+fs.value], X=x.value, Y=o.f(X), ctx=c.ctx;
+      c.clear(); var o=F[+fs.value], X=x.value, Y=o.f(X), ctx=c.ctx; geo.h=[];
       var top=tb.value?58:16;
       var ax=S.draw.axes(c,{x0:-6,x1:6,y0:-8,y1:8,xl:"x",yl:"y",stepX:1,stepY:2,t:top});
-      S.draw.fn(c,ax,o.f,P.acc,2.6);
+      geo.ax=ax; S.draw.fn(c,ax,o.f,P.acc,2.6);
       if(isFinite(Y)){
         S.draw.line(c,ax.X(X),ax.Y(0),ax.X(X),ax.Y(Y),P.amber,1.5,[4,4]);
         S.draw.line(c,ax.X(0),ax.Y(Y),ax.X(X),ax.Y(Y),P.amber,1.5,[4,4]);
-        S.draw.dot(c,ax.X(X),ax.Y(Y),6,P.red);
+        S.draw.label(c,"f("+S.fmt(X,1)+") = "+S.fmt(Y,2),ax.X(X)+(X>2?-10:10),ax.Y(Y)+(Y>0?-24:24),{color:P.red,size:12.5,align:X>2?"right":"left"});
+        M3.handle(c,ax.X(X),ax.Y(Y),P.red,false,8); geo.h.push({id:"x",x:ax.X(X),y:ax.Y(Y),r:28});
       }
       var A=o.ant(y.value), as="—";
       if(tg.value){
         S.draw.line(c,ax.L,ax.Y(y.value),ax.R,ax.Y(y.value),P.green,1.5,[6,4]);
         A.forEach(function(a){ if(a>=-6&&a<=6){ S.draw.dot(c,ax.X(a),ax.Y(y.value),6,P.green); S.draw.line(c,ax.X(a),ax.Y(y.value),ax.X(a),ax.Y(0),P.green,1.5,[3,3]); } });
+        M3.handle(c,ax.R-14,ax.Y(y.value),P.green,false,7); geo.h.push({id:"y",x:ax.R-14,y:ax.Y(y.value),r:24});
         as=A.length?A.map(function(a){return S.fmt(a,2);}).join(" ; "):"aucun";
       }
       if(tb.value){
@@ -104,6 +108,8 @@ SFA.sim({
     k.button("Balayer / pause",function(){ if(lp.running) lp.pause(); else lp.play(); },true);
     var ro=k.readouts(["Valeur de x","Points d'intersection"]);
     var nt=k.note("");
+    var M3=window.M3, geo={};
+    M3.drag(c,function(){return geo.ax?[{id:"v",x:geo.ax.X(x0.value),y:geo.ax.T+14,r:9999}]:[];},function(id,p){ lp.pause(); x0.set(M3.snap(geo.ax.ix(p.x),0.5,-5,5)); k.redraw(); });
     k.draw(function(){
       c.clear(); var o=C[+cs.value], X=x0.value;
       var ax=S.draw.axes(c,{x0:-5,x1:5,y0:-5,y1:5,xl:"x",yl:"y",stepX:1,stepY:1}), ctx=c.ctx;
@@ -113,7 +119,7 @@ SFA.sim({
       if(i===2){ ctx.strokeStyle=P.acc; ctx.lineWidth=2.6; ctx.beginPath(); for(var y=-5;y<=5.001;y+=0.05){ var px=ax.X(y*y/2-2),py=ax.Y(y); if(y===-5) ctx.moveTo(px,py); else ctx.lineTo(px,py);} ctx.stroke(); }
       if(i===3) S.draw.fn(c,ax,function(x){return Math.abs(x)-1;},P.acc,2.6);
       if(i===4) S.draw.fn(c,ax,function(x){return x===0?NaN:4/x;},P.acc,2.6);
-      S.draw.line(c,ax.X(X),ax.T,ax.X(X),ax.B,P.red,2,[6,4]);
+      geo.ax=ax; S.draw.line(c,ax.X(X),ax.T,ax.X(X),ax.B,P.red,2,[6,4]); M3.handle(c,ax.X(X),ax.T+14,P.red,false,8);
       var Y=o.ys(X); Y.forEach(function(y){ if(y>=-5&&y<=5) S.draw.dot(c,ax.X(X),ax.Y(y),6,P.red); });
       var inside=Y.filter(function(y){return y>=-5&&y<=5;}).length;
       ro.set(0,S.fmt(X,1)); ro.set(1,Y.length+(Y.length&&inside<Y.length?" (certains hors du cadre)":""));

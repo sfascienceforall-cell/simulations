@@ -20,7 +20,7 @@ SFA.sim({
   aRetenir:"Amplitude |a| · période T = 2π/|b| · décalage horizontal −c/b (déphasage) · valeur moyenne d (la courbe oscille entre d − |a| et d + |a|). Un b plus grand resserre la courbe.",
   piege:"La période de sin(bx) est 2π/b, pas 2π·b. Et le décalage de sin(bx + c) est c/b vers la gauche, pas c.",
   build:function(k, S){
-    var c = k.canvas(340);
+    var c = k.canvas(420);
     var mode = k.seg("Mode", [["L", "Libre"], ["D", "Défi"]], "L");
     var a = k.slider("a (amplitude)", -3, 3, 0.5, 2, ""), b = k.slider("b (fréquence)", 0.5, 4, 0.5, 1, ""), cc = k.slider("c (phase)", -3, 3, 0.5, 0, ""), d = k.slider("d (valeur moyenne)", -2, 2, 0.5, 0, "");
     var ro = k.readouts(["Amplitude |a|", "Période 2π/|b|", "Décalage −c/b", "Max / min"]);
@@ -53,7 +53,7 @@ SFA.sim({
   aRetenir:"sin(2πf₁t) + sin(2πf₂t) = 2·cos(π(f₁ − f₂)t)·sin(π(f₁ + f₂)t). Le facteur cos donne l'enveloppe lente : la fréquence de battement vaut |f₁ − f₂|. Accorder une corde, c'est faire disparaître ce battement.",
   piege:"Additionner deux sinusoïdes de fréquences différentes ne donne pas une sinusoïde de fréquence f₁ + f₂ : la somme n'est pas périodique à f₁ + f₂, l'enveloppe se module.",
   build:function(k, S){
-    var c1 = k.canvas(170), c2 = k.canvas(220);
+    var c1 = k.canvas(190), c2 = k.canvas(240);
     var f1 = k.slider("f₁", 2, 12, 0.5, 8, "Hz"), f2 = k.slider("f₂", 2, 12, 0.5, 9, "Hz");
     var a1 = k.slider("A₁", 0.5, 1.5, 0.5, 1, ""), a2 = k.slider("A₂", 0.5, 1.5, 0.5, 1, "");
     var ro = k.readouts(["Fréquence de battement", "Période de battement", "Amplitude max", "Amplitude min"]);
@@ -83,21 +83,28 @@ SFA.sim({
   aRetenir:"sin(a + b) = sin a cos b + cos a sin b · cos(a + b) = cos a cos b − sin a sin b. Duplication (b = a) : sin 2a = 2 sin a cos a, cos 2a = cos²a − sin²a = 1 − 2sin²a = 2cos²a − 1.",
   piege:"sin(a + b) ≠ sin a + sin b : pour a = b = 90°, sin(a + b) = sin 180° = 0 alors que sin a + sin b = 2. Et sin 2a ≠ 2 sin a.",
   build:function(k, S){
-    var c = k.canvas(370);
+    var c = k.canvas(430);
     var a = k.slider("a", 0, 180, 5, 50, "°"), b = k.slider("b", 0, 180, 5, 35, "°");
     var dup = k.toggle("b = a (formules de duplication)", false);
     var ro = k.readouts(["sin(a + b) directement", "sin a cos b + cos a sin b", "sin a + sin b (FAUX)", "cos(a + b)"]);
-    var nt = k.note("", "ok");
+    var nt = k.note("", "ok"), axc = null, pa = [0, 0], pb = [0, 0], which = "";
+    c.pointer(function(t, p){ if (!axc) return;
+      if (t === "down"){ var da = Math.hypot(p.x - pa[0], p.y - pa[1]), db = Math.hypot(p.x - pb[0], p.y - pb[1]); which = Math.min(da, db) > 40 ? "" : (da <= db ? "a" : "b"); }
+      if ((t === "down" || t === "drag") && which){ var ang = Math.atan2(axc.iy(p.y), axc.ix(p.x)) * 180 / PI; if (ang < 0) ang += 360;
+        if (which === "a"){ a.set(Math.max(0, Math.min(180, Math.round(ang / 5) * 5))); }
+        else if (!dup.value){ var bv = ang - a.value; if (bv < 0) bv += 360; if (bv > 180) bv = bv > 270 ? 0 : 180; b.set(Math.round(bv / 5) * 5); }
+        k.redraw(); }
+      if (t === "up") which = ""; });
     k.draw(function(){
       c.clear(); var A = a.value * PI / 180, B = (dup.value ? a.value : b.value) * PI / 180;
-      var ax = sqAxes(c, 1.35, 0.5); circle(c, ax, 1);
+      var ax = axc = sqAxes(c, 1.35, 0.5); circle(c, ax, 1);
       var u = [Math.cos(A), Math.sin(A)], v = [-Math.sin(A), Math.cos(A)], p1 = [Math.cos(B) * u[0], Math.cos(B) * u[1]], bb = [p1[0] + Math.sin(B) * v[0], p1[1] + Math.sin(B) * v[1]];
       S.draw.arrow(c, ax.X(0), ax.Y(0), ax.X(u[0]), ax.Y(u[1]), P.red, 2.2);
       S.draw.line(c, ax.X(0), ax.Y(0), ax.X(p1[0]), ax.Y(p1[1]), P.amber, 4);
       S.draw.line(c, ax.X(p1[0]), ax.Y(p1[1]), ax.X(bb[0]), ax.Y(bb[1]), P.violet, 4);
       S.draw.arrow(c, ax.X(0), ax.Y(0), ax.X(bb[0]), ax.Y(bb[1]), P.acc, 2.4);
       S.draw.line(c, ax.X(bb[0]), ax.Y(bb[1]), ax.X(bb[0]), ax.Y(0), P.acc, 1.2, [3, 3]); S.draw.line(c, ax.X(bb[0]), ax.Y(0), ax.X(0), ax.Y(0), P.acc, 1.2, [3, 3]);
-      S.draw.dot(c, ax.X(u[0]), ax.Y(u[1]), 5, P.red); S.draw.dot(c, ax.X(bb[0]), ax.Y(bb[1]), 6, P.acc);
+      pa = [ax.X(u[0]), ax.Y(u[1])]; pb = [ax.X(bb[0]), ax.Y(bb[1])]; S.draw.glow(c, pa[0], pa[1], 14, P.red, 0.4); S.draw.glow(c, pb[0], pb[1], 14, P.acc, 0.4); S.draw.dot(c, pa[0], pa[1], 7, P.red); S.draw.dot(c, pb[0], pb[1], 7, P.acc);
       S.draw.text(c, "A (angle a)", ax.X(u[0]) + 8, ax.Y(u[1]) + 14, {align:"left", size:12, color:P.red}); S.draw.text(c, "B (angle a + b)", ax.X(bb[0]) - 8, ax.Y(bb[1]) - 12, {align:"right", size:12, color:P.acc});
       var direct = Math.sin(A + B), formula = Math.sin(A) * Math.cos(B) + Math.cos(A) * Math.sin(B), faux = Math.sin(A) + Math.sin(B);
       ro.set(0, F(direct, 4)); ro.set(1, F(formula, 4)); ro.set(2, F(faux, 4)); ro.set(3, F(Math.cos(A + B), 4));
@@ -115,23 +122,26 @@ SFA.sim({
   aRetenir:"sin x = k : x = α + 2nπ ou x = π − α + 2nπ (α = arcsin k). cos x = k : x = ±α + 2nπ. tan x = k : x = α + nπ. Il y a une infinité de solutions, qu'on donne en précisant l'intervalle demandé.",
   piege:"La calculatrice ne donne qu'une solution (α). Oublier π − α pour le sinus, ou −α pour le cosinus, fait perdre la moitié des solutions.",
   build:function(k, S){
-    var c1 = k.canvas(230), c2 = k.canvas(230);
+    var c1 = k.canvas(260), c2 = k.canvas(250);
     var fn = k.seg("Fonction", [["s", "sin x = k"], ["c", "cos x = k"], ["t", "tan x = k"]], "s");
     var kk = k.slider("k", -1.5, 1.5, 0.05, 0.5, "");
     var ro = k.readouts(["α (valeur principale)", "Solutions dans [0 ; 2π["]);
-    var nt = k.note("", "ok");
+    var nt = k.note("", "ok"), A1 = null, A2 = null;
+    function setK(v){ kk.set(Math.round(Math.max(-1.5, Math.min(1.5, v)) * 20) / 20); k.redraw(); }
+    c1.pointer(function(t, p){ if ((t === "down" || t === "drag") && A1){ if (fn.value === "s") setK(A1.iy(p.y)); else if (fn.value === "c") setK(A1.ix(p.x)); else setK(A1.iy(p.y)); } });
+    c2.pointer(function(t, p){ if ((t === "down" || t === "drag") && A2) setK(A2.iy(p.y)); });
     k.draw(function(){
       c1.clear(); c2.clear(); var K = kk.value, t = fn.value, sols = [], alpha, i;
       var ok = t === "t" || Math.abs(K) <= 1 + 1e-12;
       if (ok){ if (t === "s"){ alpha = Math.asin(Math.max(-1, Math.min(1, K))); sols = [alpha, PI - alpha]; } else if (t === "c"){ alpha = Math.acos(Math.max(-1, Math.min(1, K))); sols = [alpha, -alpha]; } else { alpha = Math.atan(K); sols = [alpha, alpha + PI]; } }
       var norm = function(x){ x = x % (2 * PI); return x < 0 ? x + 2 * PI : x; };
       var base = ok ? sols.map(norm).sort(function(p, q){ return p - q; }).filter(function(v, j, arr){ return j === 0 || Math.abs(v - arr[j - 1]) > 1e-9; }) : [];
-      var ax1 = sqAxes(c1, 1.4, 0.5); circle(c1, ax1, 1);
+      var ax1 = A1 = sqAxes(c1, 1.4, 0.5); circle(c1, ax1, 1);
       if (t === "s") S.draw.line(c1, ax1.L, ax1.Y(K), ax1.R, ax1.Y(K), P.amber, 1.6, [5, 4]); else if (t === "c") S.draw.line(c1, ax1.X(K), ax1.T, ax1.X(K), ax1.B, P.amber, 1.6, [5, 4]);
       else { S.draw.line(c1, ax1.X(1), ax1.T, ax1.X(1), ax1.B, P.light, 1.4); c1.ctx.save(); c1.ctx.beginPath(); c1.ctx.rect(ax1.L, ax1.T, ax1.R - ax1.L, ax1.B - ax1.T); c1.ctx.clip(); S.draw.line(c1, ax1.X(-3), ax1.Y(-3 * K), ax1.X(3), ax1.Y(3 * K), P.amber, 1.6, [5, 4]); c1.ctx.restore(); S.draw.dot(c1, ax1.X(1), ax1.Y(K), 5, P.amber); }
       base.forEach(function(x){ S.draw.line(c1, ax1.X(0), ax1.Y(0), ax1.X(Math.cos(x)), ax1.Y(Math.sin(x)), P.light, 1.2); S.draw.dot(c1, ax1.X(Math.cos(x)), ax1.Y(Math.sin(x)), 6, P.red); });
       var fun = t === "s" ? Math.sin : t === "c" ? Math.cos : Math.tan, ya = t === "t" ? 4 : 1.6;
-      var ax2 = piAxes(c2, S, -2 * PI, 2 * PI, -ya, ya, "x");
+      var ax2 = A2 = piAxes(c2, S, -2 * PI, 2 * PI, -ya, ya, "x");
       S.draw.fn(c2, ax2, fun, P.acc, 2.6); S.draw.line(c2, ax2.L, ax2.Y(K), ax2.R, ax2.Y(K), P.amber, 1.6, [5, 4]);
       var cnt = 0; if (ok) for (var n = -2; n <= 2; n++){ sols.forEach(function(s0){ var x = s0 + (t === "t" ? PI : 2 * PI) * n; if (x >= -2 * PI - 1e-9 && x <= 2 * PI + 1e-9){ S.draw.dot(c2, ax2.X(x), ax2.Y(K), 5, P.red); } }); }
       var base2 = base.map(toPi);

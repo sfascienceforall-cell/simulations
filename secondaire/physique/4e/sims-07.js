@@ -49,27 +49,55 @@ SFA.sim({
   id:"p4-c07-eclairement", ch:"c07", tag:"Loi en 1/d²",
   titre:"Éclairement : pourquoi 1/d² ?",
   resume:"Éloigne la lampe : la lumière se répartit sur une surface qui grandit avec le carré de la distance.",
-  but:"Choisis l'intensité de la source et déplace le luxmètre. Compare l'éclairement à d et à 2d.",
+  but:"Choisis l'intensité de la source et déplace le luxmètre (glisse-le à la souris ou au doigt). Compare l'éclairement à d, 2d et 3d : la même lumière se répartit sur 1, 4, 9 carreaux.",
   aRetenir:"L'éclairement E (en lux) d'une petite source d'intensité I à la distance d est E = I/d² (surface perpendiculaire aux rayons). Distance × 2 : surface × 4, éclairement ÷ 4. Distance × 3 : éclairement ÷ 9.",
   piege:"L'éclairement ne diminue pas proportionnellement à la distance (1/d) mais au carré (1/d²). Ce modèle vaut pour une source quasi ponctuelle et une surface perpendiculaire aux rayons.",
   build:function(k,S){
-    var c = k.canvas(170), g1 = k.canvas(230);
+    var P = S.draw.palette, c = PX.canvas(k, 0.82, 1.15), g1 = PX.canvas(k, 0.42, 0.6), st = {hint:true}, geo = {}, A = {};
     var I = k.slider("Intensité de la source", 10, 300, 10, 100, "cd");
-    var d = k.slider("Distance du luxmètre", 0.5, 4, 0.1, 1, "m");
+    var d = k.slider("Distance du luxmètre", 0.5, 4, 0.1, 1, "m", function(){ st.hint = false; });
     var ro = k.readouts(["Éclairement à d", "Éclairement à 2d", "Rapport E(d)/E(2d)"]);
     var nt = k.note("Repères : pleine lune ≈ 0,3 lx ; rue éclairée ≈ 10 lx ; lecture confortable ≈ 500 lx ; plein soleil ≈ 100 000 lx.", "");
+    PX.drag(k, c, function(){ return [{x:geo.mx, y:geo.my, r:22, set:function(px){ st.hint = false; d.set(Math.max(0.5, Math.min(4, Math.round((px - geo.x0) / geo.sx * 10) / 10))); }}]; });
+    g1.pointer(function(type, p){ if (type === "up" || type === "move" || !A.ax) return; st.hint = false; d.set(Math.max(0.5, Math.min(4, Math.round(A.ax.ix(p.x) * 10) / 10))); k.redraw(); });
     k.draw(function(){
-      var P = SFA.draw.palette, Ii = I.value, dd = d.value, E = Ii / (dd * dd), E2 = Ii / (4 * dd * dd);
-      c.clear(); var ctx = c.ctx, cy = 85, x0 = 24, sx = (c.W - 40 - x0) / 4, xp = x0 + dd * sx, half = Math.tan(14 * D2R);
-      ctx.fillStyle = "rgba(244,197,66,.22)"; ctx.beginPath(); ctx.moveTo(x0, cy); ctx.lineTo(c.W - 16, cy - (c.W - 16 - x0) * half); ctx.lineTo(c.W - 16, cy + (c.W - 16 - x0) * half); ctx.closePath(); ctx.fill();
-      S.draw.dot(c, x0, cy, 8, P.yellow);
-      var side = (xp - x0) * half;
-      ctx.fillStyle = "rgba(180,83,9,.45)"; ctx.fillRect(xp - 2, cy - side, 4, 2 * side);
-      var x2 = x0 + 2 * dd * sx; if (x2 < c.W - 16){ var s2 = (x2 - x0) * half; ctx.fillStyle = "rgba(95,107,122,.35)"; ctx.fillRect(x2 - 2, cy - s2, 4, 2 * s2); P4.label(c, "2d : surface ×4", x2, cy + s2 + 14, "#5f6b7a"); }
-      P4.label(c, "d", xp, cy + side + 14, P.amber); P4.label(c, "lampe", x0 + 8, 20, "#5f6b7a", "left");
-      g1.clear(); var ymax = Ii / 0.25 * 1.05, ax = S.draw.axes(g1, {x0:0.5, x1:4, y0:0, y1:ymax, xl:"d (m)", yl:"E (lx)", stepX:0.5});
+      var Ii = I.value, dd = d.value, E = Ii / (dd * dd), E2 = Ii / (4 * dd * dd), ph = PX.phone(c);
+      c.clear(); var ctx = c.ctx, x0 = 36, cy = c.H * 0.3, sx = (c.W - x0 - 22) / 4, half = Math.tan(14 * D2R), stripY = c.H * 0.56;
+      geo.x0 = x0; geo.sx = sx;
+      PX.bg(c, "#2a2f45", "#161a2b");
+      /* faisceau */
+      var xe = c.W - 10, g = ctx.createLinearGradient(x0, 0, xe, 0); g.addColorStop(0, "rgba(255,220,120,.55)"); g.addColorStop(1, "rgba(255,220,120,.06)");
+      ctx.fillStyle = g; ctx.beginPath(); ctx.moveTo(x0, cy); ctx.lineTo(xe, cy - (xe - x0) * half); ctx.lineTo(xe, cy + (xe - x0) * half); ctx.closePath(); ctx.fill();
+      ctx.strokeStyle = "rgba(255,230,150,.35)"; ctx.lineWidth = 1; [-1, -0.5, 0, 0.5, 1].forEach(function(q){ ctx.beginPath(); ctx.moveTo(x0, cy); ctx.lineTo(xe, cy + q * (xe - x0) * half); ctx.stroke(); });
+      /* règle en mètres */
+      ctx.strokeStyle = "rgba(255,255,255,.3)"; ctx.fillStyle = "rgba(255,255,255,.65)"; ctx.font = "700 10px Mulish, sans-serif"; ctx.textAlign = "center";
+      for (var m = 0; m <= 4; m++){ ctx.beginPath(); ctx.moveTo(x0 + m * sx, stripY - 14); ctx.lineTo(x0 + m * sx, stripY - 8); ctx.stroke(); ctx.fillText(m + " m", x0 + m * sx, stripY - 1 + 0); }
+      /* écrans à d, 2d, 3d */
+      [1, 2, 3].forEach(function(q){
+        var xp = x0 + q * dd * sx; if (xp > c.W - 12) return; var side = (xp - x0) * half, on = q === 1;
+        ctx.fillStyle = on ? "rgba(244,197,66,.95)" : "rgba(214,222,235," + (0.75 - 0.15 * q) + ")"; PX.rr(ctx, xp - 3, cy - side, 6, 2 * side, 3); ctx.fill();
+        S.draw.label(c, q === 1 ? "d" : q + "d", xp, cy - side - 12, {color:on ? P.yellow : "#d6deeb", fill:"rgba(255,255,255,.1)", size:11.5});
+      });
+      /* lampe */
+      S.draw.glow(c, x0, cy, 46, "#ffd24a", 0.7); PX.ball(c, x0, cy, 8, "#fff3b0");
+      ctx.fillStyle = "#8a95a3"; ctx.fillRect(x0 - 12, cy - 4, 6, 8);
+      /* luxmètre */
+      var mx = x0 + dd * sx, my = cy + Math.min((mx - x0) * half, c.H * 0.2) + 20 + (ph ? 4 : 0); geo.mx = mx; geo.my = cy;
+      S.draw.display(c, S.fmt(E, E < 10 ? 1 : 0) + " lx", mx, cy + (mx - x0) * half + 38 > stripY - 30 ? cy - 0 : cy + (mx - x0) * half + 34, {w:ph ? 84 : 96, h:ph ? 36 : 42, caption:"LUXMÈTRE", size:ph ? 14 : 17});
+      PX.grip(c, mx, cy, P.yellow, st.hint ? "glisse" : null, 7);
+      /* vue de face : la même lumière sur 1, 4, 9 carreaux */
+      var u = Math.min(ph ? 22 : 30, (c.H - stripY - 44) / 3.1), xs = [0.2, 0.5, 0.8].map(function(f){ return c.W * f; });
+      [1, 2, 3].forEach(function(q, j){
+        var side = q * u, x = xs[j] - side / 2, y = stripY + 8, a = 0.95 / (q * q);
+        ctx.fillStyle = "rgba(255,226,120," + a + ")"; ctx.fillRect(x, y, side, side);
+        ctx.strokeStyle = "rgba(255,255,255,.45)"; ctx.lineWidth = 1; for (var i = 0; i <= q; i++){ ctx.beginPath(); ctx.moveTo(x + i * u, y); ctx.lineTo(x + i * u, y + side); ctx.moveTo(x, y + i * u); ctx.lineTo(x + side, y + i * u); ctx.stroke(); }
+        S.draw.label(c, q * q + (q === 1 ? " carreau" : " carreaux"), xs[j], y + 3 * u + 14, {color:"#d6deeb", fill:"rgba(255,255,255,.1)", size:PX.fs(c, 11)});
+        S.draw.label(c, "E = " + S.fmt(Ii / (q * dd * q * dd), 1) + " lx", xs[j], y + 3 * u + 34, {color:P.yellow, fill:"rgba(255,255,255,.1)", size:PX.fs(c, 11)});
+      });
+      g1.clear(); var ymax = Ii / 0.25 * 1.05, ax = S.draw.axes(g1, {x0:0.5, x1:4, y0:0, y1:ymax, xl:"d (m)", yl:"E (lx)", stepX:0.5}); A.ax = ax;
+      S.draw.area(g1, ax, function(x){ return Ii / (x * x); }, 0.5, 4, P.acc, 0.08);
       S.draw.fn(g1, ax, function(x){ return Ii / (x * x); }, P.acc, 3);
-      if (500 < ymax){ S.draw.line(g1, ax.L, ax.Y(500), ax.R, ax.Y(500), P.green, 1.5, [5, 4]); P4.label(g1, "500 lx : lecture", ax.R - 4, ax.Y(500) - 9, P.green, "right"); }
+      if (500 < ymax){ S.draw.line(g1, ax.L, ax.Y(500), ax.R, ax.Y(500), P.green, 1.5, [5, 4]); S.draw.label(g1, "500 lx : lecture", ax.R - 4, ax.Y(500) - 12, {color:P.green, align:"right", size:11}); }
       S.draw.dot(g1, ax.X(dd), ax.Y(E), 6, P.red); if (2 * dd <= 4) S.draw.dot(g1, ax.X(2 * dd), ax.Y(E2), 6, "#5f6b7a");
       ro.set(0, S.fmt(E, E < 10 ? 1 : 0) + " lx"); ro.set(1, 2 * dd <= 4 ? S.fmt(E2, E2 < 10 ? 1 : 0) + " lx" : S.fmt(E2, 1) + " lx (hors graphique)"); ro.set(2, "4");
     });

@@ -24,19 +24,22 @@ SFA.sim({
     var cc=k.slider("c",-8,8,0.5,-3,"");
     var ro=k.readouts(["Équation","Δ = b² − 4ac","Nombre de solutions","Solutions"]);
     var nt=k.note("","");
+    var M=window.M4, geo={};
+    M.grab(c,function(){ return geo.ax?[{id:"c",x:geo.ax.X(0),y:geo.ax.Y(cc.value),r:30}]:[]; },
+      function(id,px,py){ cc.set(M.clamp(Math.round(geo.ax.iy(py)*2)/2,-8,8)); k.redraw(); });
     k.draw(function(){
       var A=a.value,B=b.value,C=cc.value;
       c.clear();
-      var ax=S.draw.axes(c,{x0:-8,x1:8,y0:-8,y1:8,xl:"x",yl:"y",stepX:2,stepY:2});
+      var ax=geo.ax=S.draw.axes(c,{x0:-8,x1:8,y0:-8,y1:8,xl:"x",yl:"y",stepX:2,stepY:2});
       var f=function(x){return A*x*x+B*x+C;};
-      S.draw.fn(c,ax,f,P.acc,3);
+      S.draw.fn(c,ax,f,P.acc,3); M.handle(c,ax.X(0),ax.Y(C),P.amber,6); M.lab(c,"c = "+S.fmt(C,1),ax.X(0)+34,ax.Y(C)+(A>0?-16:16),P.amber,{size:10.5});
       ro.set(0,"y = "+eq(A,B,C).replace(" = 0",""));
       if(A===0){ ro.set(1,"—"); ro.set(2,"—"); ro.set(3,"a = 0 : équation du 1er degré"); nt.set("Pour a = 0, on n'a plus une équation du 2e degré : bx + c = 0.","warn"); return; }
       var D=B*B-4*A*C;
       ro.set(1,S.fmt(D,2));
-      if(D>0){ var r=Math.sqrt(D), x1=(-B-r)/(2*A), x2=(-B+r)/(2*A); [x1,x2].forEach(function(x){ if(Math.abs(x)<=8) S.draw.dot(c,ax.X(x),ax.Y(0),7,P.green); });
+      if(D>0){ var r=Math.sqrt(D), x1=(-B-r)/(2*A), x2=(-B+r)/(2*A); [x1,x2].forEach(function(x){ if(Math.abs(x)<=8){ S.draw.dot(c,ax.X(x),ax.Y(0),7,P.green); M.lab(c,S.fmt(x,2),ax.X(x),ax.Y(0)+(A>0?17:-17),P.green,{size:10.5}); } });
         ro.set(2,"2 (Δ > 0)"); ro.set(3,S.fmt(Math.min(x1,x2),3)+" et "+S.fmt(Math.max(x1,x2),3)); nt.set("Δ > 0 : la parabole coupe l'axe x en deux points."+(Math.abs(x1)>8||Math.abs(x2)>8?" (Un des points est hors du cadre du graphique.)":""),"ok"); }
-      else if(D===0){ var x0=-B/(2*A); if(Math.abs(x0)<=8) S.draw.dot(c,ax.X(x0),ax.Y(0),8,P.amber); ro.set(2,"1 (solution double)"); ro.set(3,"x = "+S.fmt(x0,3)); nt.set("Δ = 0 : la parabole touche l'axe x en son sommet.","warn"); }
+      else if(D===0){ var x0=-B/(2*A); if(Math.abs(x0)<=8){ S.draw.dot(c,ax.X(x0),ax.Y(0),8,P.amber); M.lab(c,"Δ = 0 : "+S.fmt(x0,2),ax.X(x0),ax.Y(0)+(A>0?-18:18),P.amber,{size:10.5}); } ro.set(2,"1 (solution double)"); ro.set(3,"x = "+S.fmt(x0,3)); nt.set("Δ = 0 : la parabole touche l'axe x en son sommet.","warn"); }
       else { ro.set(2,"0 (Δ < 0)"); ro.set(3,"aucune dans ℝ"); nt.set("Δ < 0 : la parabole ne rencontre pas l'axe x.","warn"); }
     });
   }
@@ -109,7 +112,7 @@ SFA.sim({
       ax=S.draw.axes(c,{x0:-8,x1:8,y0:-10,y1:20,xl:"x",yl:"y",stepX:2,stepY:5});
       S.draw.fn(c,ax,function(x){return A*(x-R1)*(x-R2);},P.acc,3);
       S.draw.dot(c,ax.X(R1),ax.Y(0),8,P.red); S.draw.dot(c,ax.X(R2),ax.Y(0),8,P.green);
-      S.draw.text(c,"r₁",ax.X(R1),ax.Y(0)+16,{color:P.red,size:12}); S.draw.text(c,"r₂",ax.X(R2),ax.Y(0)+16,{color:P.green,size:12});
+      window.M4.lab(c,"r₁ = "+S.fmt(R1,1),ax.X(R1)-(R1<=R2?20:-20),ax.Y(0)+(A>0?18:-18),P.red,{size:11}); window.M4.lab(c,"r₂ = "+S.fmt(R2,1),ax.X(R2)+(R1<=R2?20:-20),ax.Y(0)+(A>0?18:-18),P.green,{size:11});
       ro.set(0,S.fmt(Ss,2)+" = −b/a = "+S.fmt(-(-A*Ss)/A,2)); ro.set(1,S.fmt(Pp,2)+" = c/a = "+S.fmt(A*Pp/A,2));
       ro.set(2,eq(A,-A*Ss,A*Pp));
       nt.set(Ss===5&&Pp===6?"Défi réussi : S = 5 et P = 6 donnent x² − 5x + 6 = 0, de racines 2 et 3.":"Défi : trouve deux nombres de somme 5 et de produit 6.",Ss===5&&Pp===6?"ok":"");
@@ -153,37 +156,53 @@ SFA.sim({
 
 /* ---------- rectangle d'or ---------- */
 SFA.sim({
-  id:"m4-c04-nombre-or", ch:"c04", tag:"Niche",
+  id:"m4-c04-nombre-or", ch:"c04", tag:"Manipuler",
   titre:"Le rectangle d'or et une équation du 2e degré",
   resume:"Retire un carré d'un rectangle : à quel rapport a/b le petit rectangle restant est-il semblable au grand ?",
-  but:"Règle le rapport r = a/b. On retire un carré de côté b : il reste un rectangle de rapport 1/(r − 1). Cherche r pour que ce rapport soit égal à r (rectangle d'or).",
+  but:"Règle le rapport r = a/b (curseur, ou tire le bord droit du rectangle, ou le repère de la règle). On retire un carré de côté b : il reste un rectangle de rapport 1/(r − 1). Cherche r pour que ce rapport soit égal à r (rectangle d'or).",
   aRetenir:"Le rectangle restant est semblable au premier si r = 1/(r − 1), soit r² − r − 1 = 0. Δ = 5 et r = (1 + √5)/2 ≈ 1,618 (nombre d'or φ). L'autre solution (1 − √5)/2 ≈ −0,618 est négative : rejetée pour un rapport de longueurs.",
   piege:"Une équation du 2e degré peut avoir une solution sans signification géométrique : un rapport de longueurs est positif, donc on rejette (1 − √5)/2.",
   build:function(k,S){
-    var c=k.canvas(0,{ratio:.66});
+    var M=window.M4, P=S.draw.palette, F=S.fmt;
+    var c=k.canvas(0,{ratio:.7});
     var r=k.slider("Rapport r = a/b",1.2,2.2,0.001,1.4,"");
     var ro=k.readouts(["Rapport du petit rectangle","r² − r − 1","Écart"]);
     var nt=k.note("","");
-    var PHI=(1+Math.sqrt(5))/2;
+    var PHI=(1+Math.sqrt(5))/2, geo={};
+    M.grab(c,function(){ return geo.h?[{id:"e",x:geo.x+geo.w,y:geo.y+geo.h/2,r:30},{id:"g",x:geo.G(r.value),y:geo.gy,r:26}]:[]; },
+      function(id,px,py){ var v=id==="e"?(px-geo.x)/geo.h:geo.iG(px); r.set(M.clamp(Math.round(v*1000)/1000,1.2,2.2)); k.redraw(); });
     k.draw(function(){
-      var R=r.value; c.clear();
-      var W=c.W,H=c.H, ctx=c.ctx;
-      var w=Math.min(W-20,(H-20)*R), h=w/R;
-      var x=(W-w)/2, y=(H-h)/2, cw=w, ch=h;
-      var cols=["rgba(30,63,143,.22)","rgba(180,83,9,.22)","rgba(46,107,85,.22)","rgba(91,33,182,.20)"];
-      var X=x,Y=y,Wd=cw,Ht=ch;
-      ctx.strokeStyle=P.ink; ctx.lineWidth=2; ctx.strokeRect(x,y,cw,ch);
-      for(var i=0;i<7;i++){
-        var s=Math.min(Wd,Ht); if(s<4) break;
-        var sx,sy;
-        if(Wd>=Ht){ if(i%4===0){ sx=X; sy=Y; X+=s; } else { sx=X+Wd-s; sy=Y; } Wd-=s; if(i%4!==0){} }
-        else { if(i%4===1){ sx=X; sy=Y; Y+=s; } else { sx=X; sy=Y+Ht-s; } Ht-=s; }
-        ctx.fillStyle=cols[i%4]; ctx.fillRect(sx,sy,s,s); ctx.strokeStyle=P.ink; ctx.lineWidth=1.2; ctx.strokeRect(sx,sy,s,s);
+      M.adapt(c,.9,.7,520);
+      var R=r.value, W=c.W,H=c.H, ctx=c.ctx; c.clear();
+      var stripH=80, h=Math.min((H-stripH-30)*.98,(W-40)/2.2), w=h*R, x=(W-w)/2-0, y=14+((H-stripH-30)-h)/2;
+      var ok=Math.abs(R-PHI)<0.0015, rp=1/(R-1), g=R*R-R-1;
+      geo.h=h; geo.w=w; geo.x=x; geo.y=y;
+      /* carrés retirés successivement */
+      var cols=[P.acc,P.amber,P.green,P.violet], X=x,Y=y,Wd=w,Ht=h;
+      for(var i=0;i<6;i++){
+        var s=Math.min(Wd,Ht); if(s<5) break; var sx,sy,k4=i%4;
+        if(k4===0){ sx=X; sy=Y; X+=s; Wd-=s; } else if(k4===1){ sx=X; sy=Y; Y+=s; Ht-=s; } else if(k4===2){ sx=X+Wd-s; sy=Y; Wd-=s; } else { sx=X; sy=Y+Ht-s; Ht-=s; }
+        ctx.fillStyle=S.draw.tint(cols[k4],i===0?.20:.22); ctx.fillRect(sx,sy,s,s); ctx.strokeStyle=P.ink; ctx.lineWidth=1.1; ctx.strokeRect(sx,sy,s,s);
+        if(i===0) S.draw.text(c,"carré b × b",sx+s/2,sy+s/2,{size:Math.max(11,Math.min(15,s/8)),color:P.ink,weight:700});
       }
-      ctx.strokeStyle=P.red; ctx.lineWidth=3; ctx.setLineDash([6,4]); ctx.strokeRect(x+ch,y,cw-ch,ch); ctx.setLineDash([]);
-      var rp=1/(R-1), g=R*R-R-1;
-      ro.set(0,S.fmt(rp,3)+" (grand : "+S.fmt(R,3)+")"); ro.set(1,S.fmt(g,4)); ro.set(2,S.fmt(Math.abs(R-PHI),4));
-      nt.set(Math.abs(R-PHI)<0.0015 ? "Rectangle d'or : r ≈ 1,618 ! Le petit rectangle (pointillés) est semblable au grand, et le motif se répète à l'infini." : (R<PHI?"r trop petit : le petit rectangle est trop allongé (son rapport dépasse r).":"r trop grand : le petit rectangle est trop trapu (son rapport est inférieur à r)."), Math.abs(R-PHI)<0.0015?"ok":"");
+      /* petit rectangle restant (pointillés) */
+      ctx.save(); ctx.strokeStyle=ok?P.green:P.red; ctx.lineWidth=3; ctx.setLineDash([7,5]); ctx.strokeRect(x+h,y,w-h,h); ctx.restore();
+      ctx.strokeStyle=P.ink; ctx.lineWidth=2.2; ctx.strokeRect(x,y,w,h);
+      M.lab(c,"a = "+F(R,3)+" b",x+w/2,y-12,P.ink,{size:11.5}); M.lab(c,"b",x-14,y+h/2,P.ink,{size:11.5});
+      M.lab(c,"b × (a − b)",x+h+(w-h)/2,y+h+14,ok?P.green:P.red,{size:11});
+      M.handle(c,x+w,y+h/2,P.acc,7);
+      if(ok) S.draw.glow(c,x+w/2,y+h/2,Math.max(w,h)*.7,P.yellow,.28);
+      /* règle du rapport */
+      var gx0=26,gx1=W-26,gy=H-26, G=function(v){return gx0+(v-1.2)/1.0*(gx1-gx0);}; geo.G=G; geo.gy=gy; geo.iG=function(px){return 1.2+(px-gx0)/(gx1-gx0)*1.0;};
+      S.draw.panel(c,6,H-stripH+6,W-12,stripH-10,{shadow:false});
+      S.draw.text(c,"r (rapport a/b)  —  rapport du petit rectangle = "+F(rp,3),14,H-stripH+19,{size:11,color:P.grey,align:"left"});
+      S.draw.line(c,gx0,gy,gx1,gy,P.axis,2);
+      for(var v=1.2;v<=2.2001;v+=0.2){ S.draw.line(c,G(v),gy-4,G(v),gy+4,P.axis,1); S.draw.text(c,F(v,1),G(v),gy+15,{size:10.5,color:P.grey}); }
+      ctx.save(); ctx.fillStyle=P.amber; ctx.beginPath(); ctx.moveTo(G(PHI),gy-9); ctx.lineTo(G(PHI)+7,gy); ctx.lineTo(G(PHI),gy+9); ctx.lineTo(G(PHI)-7,gy); ctx.closePath(); ctx.fill(); ctx.restore();
+      S.draw.text(c,"φ",G(PHI),gy-19,{size:12,color:P.amber,math:true});
+      M.handle(c,G(R),gy,ok?P.green:P.red,6.5);
+      ro.set(0,F(rp,3)+" (grand : "+F(R,3)+")"); ro.set(1,F(g,4)); ro.set(2,F(Math.abs(R-PHI),4));
+      nt.set(ok ? "Rectangle d'or : r ≈ 1,618 ! Le petit rectangle (pointillés) est semblable au grand, et le motif se répète à l'infini." : (R<PHI?"r trop petit : le petit rectangle est trop allongé (son rapport dépasse r).":"r trop grand : le petit rectangle est trop trapu (son rapport est inférieur à r)."), ok?"ok":"");
     });
   }
 });

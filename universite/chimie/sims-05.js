@@ -1,6 +1,29 @@
 /* Chimie BA1 · c05 · Thermochimie et spontanéité — contenu SFA original */
 (function(){
 var R = 8.314;
+function sciT(x, d){ if (!isFinite(x) || x === 0) return "0"; var e = Math.floor(Math.log(Math.abs(x)) / Math.LN10), m = x / Math.pow(10, e), sup = "⁰¹²³⁴⁵⁶⁷⁸⁹", es = String(Math.abs(e)).replace(/\d/g, function(q){ return sup[q]; }); if (Math.abs(+m.toFixed(d)) >= 10){ m /= 10; e++; es = String(Math.abs(e)).replace(/\d/g, function(q){ return sup[q]; }); } return (+m.toFixed(d)).toString().replace(".", ",") + "·10" + (e < 0 ? "⁻" : "") + es; }
+/* diagramme en cascade (waterfall) : steps = [{l:"étiquette", v:valeur, col, tot:true pour une barre depuis 0, s:"sous-texte"}] */
+function waterfall(c, S, x0, y0, w, h, steps, opt){
+  opt = opt || {}; var ctx = c.ctx, P = S.draw.palette, cum = [0], i, lo = 0, hi = 0;
+  steps.forEach(function(s, j){ var a = j ? cum[j] : 0; var nx = s.tot ? s.v : a + s.v; cum.push(nx); lo = Math.min(lo, a, nx); hi = Math.max(hi, a, nx); });
+  var pad = (hi - lo) * 0.14 + 1; lo -= pad; hi += pad; var labH = opt.labH || 44, top = y0 + 8, bot = y0 + h - labH;
+  function Y(v){ return bot - (v - lo) / (hi - lo) * (bot - top); }
+  var n = steps.length, slot = (w - 40) / n, bw = Math.min(opt.bw || 70, slot - 12), base = x0 + 36;
+  S.draw.line(c, base - 6, Y(0), x0 + w - 4, Y(0), "#94a3b8", 1.4, [4, 3]); S.draw.text(c, "0", base - 12, Y(0), {size:10, color:P.grey, align:"right", weight:700});
+  steps.forEach(function(s, j){
+    var a = j && !s.tot ? cum[j] : 0, b = cum[j + 1], x = base + j * slot + (slot - bw) / 2, ya = Y(a), yb = Y(b), up = b >= a;
+    var col = s.col || (s.v >= 0 ? P.amber : P.green);
+    if (j < n - 1 && !steps[j + 1].tot){ S.draw.line(c, x + bw, yb, x + slot + (slot - bw) / 2 - 0, yb, "#cbd5e1", 1.4, [3, 3]); }
+    ctx.save(); ctx.fillStyle = col; ctx.globalAlpha = s.tot ? 0.95 : 0.88; S.draw.rrect(c, x, Math.min(ya, yb), bw, Math.max(Math.abs(yb - ya), 3), 5); ctx.fill(); ctx.restore();
+    var txt = (s.v > 0 && !s.tot ? "+" : "") + S.fmt(s.v, s.d == null ? 0 : s.d).replace(/^-/, "−");
+    S.draw.label(c, txt, x + bw / 2, up ? Math.min(ya, yb) - 12 : Math.max(ya, yb) + 12, {color:col, size:opt.fs || 11.5});
+    var lines = String(s.l).split("|"); lines.forEach(function(t, q){ S.draw.text(c, t, x + bw / 2, y0 + h - labH + 14 + q * 12.5, {size:opt.ls || 10, color:q ? P.grey : "#1e293b", weight:q ? 600 : 800}); });
+    if (s.s) S.draw.text(c, s.s, x + bw / 2, y0 + h - 6, {size:9, color:P.grey, weight:600});
+    if (s.in && Math.abs(yb - ya) > 34){ String(s.in).split("|").forEach(function(t, q, arr){ S.draw.text(c, t, x + bw / 2, (ya + yb) / 2 + q * 13 - (arr.length - 1) * 6.5, {size:10.5, color:"#fff", weight:800}); }); }
+  });
+  return {Y:Y, base:base, slot:slot, lo:lo, hi:hi};
+}
+
 
 /* ---------- 1. Cycle de Born–Haber ---------- */
 var MET = {Li:{sub:159.4, ie:520.2, r:76}, Na:{sub:107.5, ie:495.8, r:102}, K:{sub:89.0, ie:418.8, r:138}, Cs:{sub:76.5, ie:375.7, r:167}};
@@ -11,48 +34,44 @@ SFA.sim({
   id:"uc-c05-born-haber", ch:"c05", tag:"Thermochimie",
   titre:"Cycle de Born–Haber : l'énergie réticulaire des halogénures alcalins",
   resume:"Construis le cycle de formation d'un sel MX et déduis l'énergie réticulaire ; observe qu'elle suit environ 1/(r₊ + r₋).",
-  but:"Choisis un métal alcalin et un halogène. Le diagramme additionne sublimation, ionisation, atomisation de l'halogène et affinité électronique, puis la formation du réseau ramène à ΔfH°. Le graphique de droite compare les 16 sels.",
+  but:"Choisis un métal alcalin et un halogène. La cascade additionne sublimation, ionisation, atomisation de l'halogène et affinité électronique, puis la formation du réseau ramène à ΔfH°. En dessous, les 16 sels sont comparés : clique sur un point pour le choisir.",
   aRetenir:"Loi de Hess : ΔfH°(MX) = ΔsubH(M) + I₁(M) + ΔatH(X) + ΔH<sub>ea</sub>(X) + ΔH<sub>réseau</sub>. L'énergie réticulaire U = −ΔH<sub>réseau</sub> se déduit par différence. Elle croît quand les ions sont petits : U est ≈ proportionnelle à 1/(r₊ + r₋) (loi de Coulomb), d'où LiF &gt; NaF &gt; … &gt; CsI.",
   piege:"Chaque étape a son signe : sublimation, ionisation et atomisation sont endothermiques ; l'affinité électronique du chlore est exothermique (−349 kJ/mol) ; la formation du réseau l'est très fortement. Si ΔfH° d'un sel est très négative, ce n'est pas seulement le réseau : c'est le bilan de tout le cycle. Les valeurs sont des moyennes de tables à 298 K.",
   build:function(k, S){
-    var c = k.canvas(400);
+    var c = k.canvas(560);
     var ms = k.select("Métal alcalin M", [["Li","Li"],["Na","Na"],["K","K"],["Cs","Cs"]], "Na");
     var hs = k.select("Halogène X", [["F","F"],["Cl","Cl"],["Br","Br"],["I","I"]], "Cl");
     var ro = k.readouts(["ΔfH°(MX, s)", "Somme des étapes avant réseau", "Énergie réticulaire U", "r₊ + r₋"]);
     var nt = k.note("", "ok");
+    var pts = [];
+    c.pointer(function(type, p){ if (type !== "down") return; var best = null, bd = 22; pts.forEach(function(q){ var d = Math.hypot(p.x - q.x, p.y - q.y); if (d < bd){ bd = d; best = q; } }); if (best){ ms.set(best.m); hs.set(best.xx); k.redraw(); } });
     k.draw(function(){
-      var P = S.draw.palette, ctx = c.ctx, W = c.W, H = c.H, m = ms.value, x = hs.value, a = MET[m], b = HAL[x], key = m + x;
-      c.clear();
-      var split = Math.min(W * 0.58, 420);
-      var steps = [["M(s) + ½X₂", 0], ["M(g)", a.sub], ["M⁺(g)", a.ie], ["X(g)", b.at], ["X⁻(g)", b.ea], ["MX(s)", 0]];
-      var E = [0]; E.push(E[0] + a.sub); E.push(E[1] + a.ie); E.push(E[2] + b.at); E.push(E[3] + b.ea); var Uv = lat(m, x); E.push(E[4] - Uv);
-      var emin = Math.min.apply(null, E) - 80, emax = Math.max.apply(null, E) + 80, top = 24, bot = H - 24;
-      function Y(e){ return bot - (e - emin) / (emax - emin) * (bot - top); }
-      var labels = ["M(s)+½X₂(g)", "M(g)+½X₂", "M⁺(g)+e⁻+½X₂", "M⁺(g)+e⁻+X(g)", "M⁺(g)+X⁻(g)", "MX(s)"];
-      var desc = ["", "+ " + S.fmt(a.sub, 1) + " (sublimation)", "+ " + S.fmt(a.ie, 1) + " (I₁)", "+ " + S.fmt(b.at, 1) + " (atomisation X)", S.fmt(b.ea, 1) + " (affinité él.)", "− " + S.fmt(Uv, 0) + " (réseau)"];
-      var cw = (split - 40) / 6;
-      for (var i = 0; i < 6; i++){
-        var x0 = 30 + i * cw, y = Y(E[i]);
-        S.draw.line(c, x0, y, x0 + cw - 8, y, i === 5 ? P.red : P.ink, 3);
-        S.draw.text(c, labels[i].replace(/M|X/g, function(q){ return q === "M" ? m : x; }), x0 + (cw - 8) / 2, y + (i === 5 ? 14 : -12), {size:9, color:P.grey});
-        if (i > 0){
-          var prev = Y(E[i - 1]);
-          S.draw.arrow(c, x0 - 4, prev, x0 - 4, y, i === 5 ? P.red : (E[i] > E[i - 1] ? P.amber : P.green), 2.4);
-          S.draw.text(c, desc[i], x0 - 2, (prev + y) / 2, {size:9, color:P.ink, align:"left"});
-        }
-      }
-      S.draw.text(c, "énergie (kJ/mol)", 40, 10, {size:10, color:P.grey, align:"left"});
-      /* nuage U contre 1/d */
-      var sx0 = split + 30, sx1 = W - 12, sy0 = 40, sy1 = H - 36;
-      S.draw.text(c, "U en fonction de 1/(r₊ + r₋)", (sx0 + sx1) / 2, 16, {size:11, color:P.grey});
+      var P = S.draw.palette, ctx = c.ctx, W = c.W, H = c.H, m = ms.value, x = hs.value, a = MET[m], b = HAL[x], key = m + x, ph = W < 420;
+      UC.bg(c, "#f6f9fc", "#ffffff");
+      var Uv = lat(m, x), wfH = 280;
+      S.draw.text(c, "Cascade des enthalpies (kJ/mol) : M(s) + ½X₂ → MX(s)".replace(/M/g, "M").replace("M(s)", m + "(s)").replace("½X₂", "½" + x + "₂").replace("MX(s)", m + x + "(s)"), 12, 14, {size:ph ? 10.5 : 12, align:"left", color:P.ink, weight:800});
+      waterfall(c, S, 6, 22, W - 12, wfH, [
+        {l:(ph ? "sublim.|" : "sublimation|") + m, v:a.sub, d:1, col:P.amber, s:""},
+        {l:(ph ? "ionis.|" : "1ʳᵉ ionisation|") + m, v:a.ie, d:1, col:P.amber},
+        {l:(ph ? "atomis.|½" : "atomisation|½") + x + "₂", v:b.at, d:1, col:P.amber},
+        {l:(ph ? "aff. él.|" : "affinité él.|") + x, v:b.ea, d:1, col:P.green},
+        {l:(ph ? "réseau|" + m + x : "réseau|" + m + "⁺ + " + x + "⁻"), v:-Uv, d:0, col:P.red},
+        {l:"ΔfH°|" + m + x + "(s)", v:DF[key], d:1, col:P.mat, tot:true}
+      ], {labH:48, fs:ph ? 10.5 : 11.5, ls:ph ? 9 : 10, bw:62});
+      /* nuage U contre 1/(r₊ + r₋) : on clique pour choisir un autre sel */
+      var sx0 = 54, sx1 = W - 16, sy0 = wfH + 66, sy1 = H - 40;
+      S.draw.text(c, (ph ? "U selon 1000/(r₊+r₋) : clique un point" : "Énergie réticulaire U (kJ/mol) selon 1000/(r₊ + r₋) : clique un point"), 12, wfH + 40, {size:ph ? 10.5 : 11.5, align:"left", color:P.ink, weight:800});
       var inv = function(mm, xx){ return 1000 / (MET[mm].r + HAL[xx].r); };
-      /* 1000/(r₊ + r₋) va de 2,58 (CsI) à 4,78 nm⁻¹ (LiF) : axe de 2,5 à 5 */
       function X2(v){ return sx0 + (v - 2.5) / (5 - 2.5) * (sx1 - sx0); } function Y2(u){ return sy1 - (u - 550) / (1100 - 550) * (sy1 - sy0); }
-      S.draw.line(c, sx0, sy1, sx1, sy1, P.grey, 1); S.draw.line(c, sx0, sy0, sx0, sy1, P.grey, 1);
-      [2.5, 3, 3.5, 4, 4.5, 5].forEach(function(t){ S.draw.text(c, S.fmt(t, 1), X2(t), sy1 + 10, {size:9, color:P.grey}); });
-      [600, 800, 1000].forEach(function(u){ S.draw.text(c, String(u), sx0 - 4, Y2(u), {size:9, color:P.grey, align:"right"}); });
-      S.draw.text(c, "1000/(r₊+r₋) (nm⁻¹)", (sx0 + sx1) / 2, sy1 + 24, {size:10, color:P.grey});
-      Object.keys(MET).forEach(function(mm){ Object.keys(HAL).forEach(function(xx){ var on = mm === m && xx === x; S.draw.dot(c, X2(inv(mm, xx)), Y2(lat(mm, xx)), on ? 7 : 3.5, on ? P.red : P.acc); if (on) S.draw.text(c, mm + xx, X2(inv(mm, xx)) - 6, Y2(lat(mm, xx)) - 12, {size:11, color:P.red, align:"right"}); }); });
+      S.draw.line(c, sx0, sy1, sx1, sy1, "#94a3b8", 1.4); S.draw.line(c, sx0, sy0, sx0, sy1, "#94a3b8", 1.4);
+      [2.5, 3, 3.5, 4, 4.5, 5].forEach(function(t){ S.draw.text(c, S.fmt(t, 1), X2(t), sy1 + 11, {size:9.5, color:P.grey}); S.draw.line(c, X2(t), sy1, X2(t), sy0, "#eef1f5", 1); });
+      [600, 800, 1000].forEach(function(u){ S.draw.text(c, String(u), sx0 - 6, Y2(u), {size:9.5, color:P.grey, align:"right"}); S.draw.line(c, sx0, Y2(u), sx1, Y2(u), "#eef1f5", 1); });
+      S.draw.text(c, "1000/(r₊+r₋) (nm⁻¹)", sx1, sy1 + 26, {size:10, color:P.grey, align:"right", weight:700});
+      /* droite de tendance (moindres carrés simples sur les 16 sels) */
+      var sxx = 0, sxy = 0, sx = 0, sy = 0, nn = 0; Object.keys(MET).forEach(function(mm){ Object.keys(HAL).forEach(function(xx){ var xv = inv(mm, xx), yv = lat(mm, xx); sx += xv; sy += yv; sxx += xv * xv; sxy += xv * yv; nn++; }); });
+      var sl = (nn * sxy - sx * sy) / (nn * sxx - sx * sx), ic = (sy - sl * sx) / nn; S.draw.line(c, X2(2.5), Y2(ic + sl * 2.5), X2(5), Y2(ic + sl * 5), "#94a3b8", 1.5, [5, 4]);
+      pts = [];
+      Object.keys(MET).forEach(function(mm){ Object.keys(HAL).forEach(function(xx){ var on = mm === m && xx === x, px = X2(inv(mm, xx)), py = Y2(lat(mm, xx)); pts.push({x:px, y:py, m:mm, xx:xx}); S.draw.dot(c, px, py, on ? 8 : 4, on ? P.red : P.acc); if (on) S.draw.label(c, mm + xx, px - 10, py - 14, {color:P.red, size:11.5, align:"right"}); }); });
       var sumSteps = a.sub + a.ie + b.at + b.ea;
       ro.set(0, S.fmt(DF[key], 1) + " kJ/mol"); ro.set(1, S.fmt(sumSteps, 1) + " kJ/mol"); ro.set(2, S.fmt(Uv, 0) + " kJ/mol"); ro.set(3, (MET[m].r + HAL[x].r) + " pm");
       nt.set("U = " + S.fmt(a.sub, 1) + " + " + S.fmt(a.ie, 1) + " + " + S.fmt(b.at, 1) + " + (" + S.fmt(b.ea, 1) + ") − (" + S.fmt(DF[key], 1) + ") = " + S.fmt(Uv, 0) + " kJ/mol. Le sel est stable car le gain de réseau (" + S.fmt(Uv, 0) + ") dépasse nettement le coût de formation des ions gazeux (" + S.fmt(sumSteps, 0) + ").", "ok");
@@ -117,36 +136,36 @@ SFA.sim({
   id:"uc-c05-energies-liaison", ch:"c05", tag:"Thermochimie",
   titre:"Estimer ΔH par les énergies de liaison",
   resume:"ΔH ≈ Σ liaisons rompues − Σ liaisons formées. Compare l'estimation à la valeur mesurée et mesure l'erreur.",
-  but:"Choisis une réaction : les liaisons rompues et formées sont listées avec leur énergie moyenne. Teste l'effet de la valeur de l'énergie C=O et de l'état de l'eau (gaz ou liquide).",
+  but:"Choisis une réaction : la cascade monte de l'énergie des liaisons rompues puis redescend de celle des liaisons formées. Teste l'effet de la valeur de l'énergie C=O et de l'état de l'eau (gaz ou liquide) sur l'écart avec la mesure.",
   aRetenir:"ΔH ≈ Σ E(liaisons rompues) − Σ E(liaisons formées) en phase gazeuse. Rompre coûte de l'énergie (+), former en libère (−). C'est une estimation : les énergies sont des moyennes sur de nombreuses molécules.",
   piege:"Les liaisons formées s'écrivent en négatif : ne les additionne pas avec le même signe. Valable en phase gazeuse : si l'eau est liquide, ajoute −44 kJ par mole d'eau condensée. Les énergies de C=O varient : 799 kJ/mol dans CO₂, ≈ 745 dans un aldéhyde ou une cétone ; choisir la mauvaise valeur fausse le résultat de ≈ 100 kJ.",
   build:function(k, S){
-    var c = k.canvas(340);
+    var c = k.canvas(400);
     var rs = k.select("Réaction", REAC.map(function(r){ return [r[0], r[1]]; }), "ch4");
     var co = k.seg("E(C=O) retenue", [[799,"799 (dans CO₂)"],[745,"745 (carbonyle)"]], 799);
     var lq = k.toggle("H₂O formée à l'état liquide (−44 kJ/mol)", false);
     var ro = k.readouts(["Σ liaisons rompues", "Σ liaisons formées", "ΔH estimé", "ΔH mesuré", "Écart"]);
     var nt = k.note("", "ok");
     k.draw(function(){
-      var P = S.draw.palette, ctx = c.ctx, W = c.W, H = c.H, r = REAC.filter(function(x){ return x[0] === rs.value; })[0];
+      var P = S.draw.palette, ctx = c.ctx, W = c.W, H = c.H, ph = W < 420, r = REAC.filter(function(x){ return x[0] === rs.value; })[0];
+      UC.bg(c, "#f6f9fc", "#ffffff");
       function en(key){ return key === "CO2" ? +co.value : EB[key]; }
-      var sb = 0, sf = 0;
-      r[2].forEach(function(b){ sb += en(b[0]) * b[1]; }); r[3].forEach(function(b){ sf += en(b[0]) * b[1]; });
-      var dH = sb - sf - (lq.value ? 44 * r[5] : 0), exp = r[4] - (lq.value ? 44 * r[5] : 0);
-      c.clear();
-      var max = Math.max(sb, sf) * 1.1, bx = 50, bw = Math.min(110, W * 0.2), yb = H - 40, yt = 36, Hh = yb - yt;
-      function Yv(v){ return yb - v / max * Hh; }
-      /* barre rompues */
-      var acc = 0; var cols = [P.amber, "#d89a3f", "#e7b86b"];
-      r[2].forEach(function(b, i){ var v = en(b[0]) * b[1]; ctx.fillStyle = cols[i % 3]; ctx.fillRect(bx, Yv(acc + v), bw, Yv(acc) - Yv(acc + v)); S.draw.text(c, b[1] + " × " + NAMES[b[0]] + (b[0] === "CO2" ? "" : ""), bx + bw / 2, (Yv(acc) + Yv(acc + v)) / 2, {size:11, color:"#fff"}); acc += v; });
-      S.draw.text(c, "Rompues : + " + sb, bx + bw / 2, yt - 12, {size:12, color:P.amber});
-      var bx2 = bx + bw + 60; acc = 0; var cols2 = [P.green, "#4c8b73", "#7ab5a0"];
-      r[3].forEach(function(b, i){ var v = en(b[0]) * b[1]; ctx.fillStyle = cols2[i % 3]; ctx.fillRect(bx2, Yv(acc + v), bw, Yv(acc) - Yv(acc + v)); S.draw.text(c, b[1] + " × " + NAMES[b[0]], bx2 + bw / 2, (Yv(acc) + Yv(acc + v)) / 2, {size:11, color:"#fff"}); acc += v; });
-      S.draw.text(c, "Formées : − " + sf, bx2 + bw / 2, yt - 12, {size:12, color:P.green});
-      var xr = bx2 + bw + 40;
-      S.draw.text(c, "ΔH ≈ " + S.fmt(dH, 0) + " kJ/mol", xr, H / 2 - 20, {size:16, color:dH < 0 ? P.acc : P.red, align:"left"});
-      S.draw.text(c, "mesuré : " + S.fmt(exp, 0), xr, H / 2 + 6, {size:13, color:P.grey, align:"left"});
-      S.draw.text(c, dH < 0 ? "réaction exothermique" : "réaction endothermique", xr, H / 2 + 28, {size:12, color:P.ink, align:"left"});
+      var sb = 0, sf = 0, lb = [], lf = [];
+      r[2].forEach(function(b){ sb += en(b[0]) * b[1]; lb.push(b[1] + "×" + NAMES[b[0]].replace(" (dans CO₂)", "")); }); r[3].forEach(function(b){ sf += en(b[0]) * b[1]; lf.push(b[1] + "×" + NAMES[b[0]].replace(" (dans CO₂)", "")); });
+      var cond = lq.value ? 44 * r[5] : 0, dH = sb - sf - cond, exp = r[4] - cond;
+      var steps = [
+        {l:"liaisons rompues|" + lb.join(" + "), v:sb, col:P.amber, in:lb.join("|")},
+        {l:"liaisons formées|" + lf.join(" + "), v:-sf, col:P.green, in:lf.join("|")}
+      ];
+      if (cond) steps.push({l:"H₂O(g) → H₂O(l)|" + r[5] + " × (−44)", v:-cond, col:P.teal});
+      steps.push({l:"ΔH estimé|", v:dH, col:P.mat, tot:true});
+      var wfw = ph ? W - 12 : Math.min(W - 12, 430);
+      waterfall(c, S, 6, 8, W - 12, H - 100, steps, {labH:50, bw:ph ? 64 : 78, fs:ph ? 10.5 : 12, ls:ph ? 9 : 10});
+      /* comparaison estimé / mesuré */
+      var by = H - 76, mx = Math.max(Math.abs(dH), Math.abs(exp), 1) * 1.05, neg = dH < 0 && exp < 0, pos = dH >= 0 && exp >= 0, cx0 = neg ? W - 26 : pos ? 26 : W / 2, av = neg ? cx0 - 150 : pos ? W - 26 - cx0 - 150 : W / 2 - 150;
+      S.draw.panel(c, 8, by - 14, W - 16, 74, {shadow:false, title:"Estimé · mesuré"});
+      [[dH, "estimé", P.mat, by + 18], [exp, "mesuré", P.grey, by + 42]].forEach(function(q){ var w = q[0] / mx * av; ctx.save(); ctx.fillStyle = q[2]; S.draw.rrect(c, q[0] < 0 ? cx0 + w : cx0, q[3] - 8, Math.max(Math.abs(w), 2), 16, 4); ctx.fill(); ctx.restore(); S.draw.text(c, q[1] + " " + S.fmt(q[0], 0) + " kJ/mol", q[0] < 0 ? cx0 + w - 8 : cx0 + w + 8, q[3], {size:11.5, color:q[2], align:q[0] < 0 ? "right" : "left", weight:800}); });
+      S.draw.line(c, cx0, by + 4, cx0, by + 52, "#94a3b8", 1.2);
       ro.set(0, "+" + sb + " kJ"); ro.set(1, "−" + sf + " kJ"); ro.set(2, S.fmt(dH, 0) + " kJ/mol"); ro.set(3, S.fmt(exp, 0) + " kJ/mol"); ro.set(4, S.fmt(dH - exp, 0) + " kJ/mol (" + S.fmt(Math.abs(dH - exp) / Math.abs(exp) * 100, 0) + " %)");
       var warn = Math.abs(dH - exp) / Math.abs(exp) > 0.08;
       nt.set("ΔH ≈ " + sb + " − " + sf + (lq.value && r[5] ? " − " + (44 * r[5]) : "") + " = " + S.fmt(dH, 0) + " kJ/mol, mesure " + S.fmt(exp, 1) + " kJ/mol. " + (warn ? "Écart supérieur à 8 % : valeurs moyennes d'énergie de liaison peu adaptées à cette réaction ou mauvais choix de la liaison C=O / de l'état de l'eau." : "Estimation correcte pour une méthode aussi simple."), warn ? "warn" : "ok");
@@ -160,12 +179,12 @@ SFA.sim({
   id:"uc-c05-calorimetrie", ch:"c05", tag:"Thermochimie",
   titre:"Calorimétrie : mélange thermique et neutralisation",
   resume:"Q = m·c·ΔT, bilan de chaleur nul dans un calorimètre : trouve la température finale d'un mélange ou la ΔT d'une neutralisation HCl/NaOH.",
-  but:"Mode mélange : plonge un métal chaud dans de l'eau et trouve T<sub>f</sub>. Mode neutralisation : mélange un acide et une base fortes et lis l'élévation de température ; la quantité limitante fixe la chaleur dégagée.",
+  but:"Mode mélange : plonge un métal chaud dans de l'eau et regarde les deux températures se rejoindre en T<sub>f</sub>. Mode neutralisation : mélange un acide et une base fortes et lis l'élévation de température ; la quantité limitante fixe la chaleur dégagée. Le bouton « Rejouer » relance l'expérience.",
   aRetenir:"Σ Q = 0 dans un système isolé : m₁c₁(T<sub>f</sub> − T₁) + m₂c₂(T<sub>f</sub> − T₂) + C<sub>cal</sub>(T<sub>f</sub> − T₂) = 0. Pour une réaction : q = −n·ΔH, absorbée par la solution : ΔT = q/(m·c + C<sub>cal</sub>). ΔH<sub>neutralisation</sub> ≈ −55,8 kJ/mol de H₂O formée, acide fort + base forte.",
   piege:"Le calorimètre absorbe aussi de la chaleur (capacité C<sub>cal</sub>) : l'ignorer fait sous-estimer la chaleur dégagée. La réaction est limitée par le réactif en défaut. Modèle : solution diluée de masse volumique 1,00 g/mL et capacité thermique massique 4,18 J/(g·K), pertes de chaleur négligées.",
   build:function(k, S){
-    var c = k.canvas(300);
-    var md = k.seg("Mode", [["mix","Mélange eau + métal"],["neu","Neutralisation HCl + NaOH"]], "mix");
+    var c = k.canvas(470);
+    var md = k.seg("Mode", [["mix","Mélange eau + métal"],["neu","Neutralisation HCl + NaOH"]], "mix", function(){ tt = 0; });
     var mt = k.select("Métal (mélange)", METAUX.map(function(m){ return [m[0], m[1] + " (c = " + S.fmt(m[2], 3) + " J/(g·K))"]; }), "Cu");
     var m1 = k.slider("Masse du métal", 10, 500, 5, 100, "g");
     var t1 = k.slider("Température du métal", 30, 300, 5, 150, "°C");
@@ -175,37 +194,87 @@ SFA.sim({
     var ca = k.slider("Concentration HCl", 0.2, 2, 0.1, 1, "mol/L");
     var cb = k.slider("Concentration NaOH", 0.2, 2, 0.1, 1, "mol/L");
     var vv = k.slider("Volume de chaque solution", 25, 100, 5, 50, "mL");
+    k.button("Rejouer l'expérience", function(){ tt = 0; }, true);
     var ro = k.readouts(["Résultat", "Chaleur échangée", "Détail"]);
     var nt = k.note("", "ok");
+    var tt = 0;
+    var MC = {Cu:"#c9803f", Al:"#b9c2cc", Fe:"#6b7280", Zn:"#9aa5b1", Ag:"#d8dee6", Pb:"#566070"};
+    var lp = k.loop(function(dt){ if (tt < 9){ tt += dt; k.redraw(); } }); lp.play();
+    function lerp(a, b, u){ return a + (b - a) * u; }
+    function waterCol(T){ var f = Math.max(0, Math.min(1, (T - 5) / 70)); return "rgb(" + Math.round(lerp(150, 242, f)) + "," + Math.round(lerp(200, 170, f)) + "," + Math.round(lerp(242, 140, f)) + ")"; }
+    function beaker(x, y, w, h, level, col, label){
+      var ctx = c.ctx; ctx.save();
+      ctx.fillStyle = col; ctx.globalAlpha = 0.85; S.draw.rrect(c, x + 3, y + h * (1 - level), w - 6, h * level - 3, 8); ctx.fill(); ctx.globalAlpha = 1;
+      ctx.strokeStyle = "#7c8a9c"; ctx.lineWidth = 3; ctx.lineJoin = "round"; ctx.beginPath(); ctx.moveTo(x - 4, y - 6); ctx.lineTo(x, y); ctx.lineTo(x, y + h - 10); ctx.quadraticCurveTo(x, y + h, x + 10, y + h); ctx.lineTo(x + w - 10, y + h); ctx.quadraticCurveTo(x + w, y + h, x + w, y + h - 10); ctx.lineTo(x + w, y); ctx.lineTo(x + w + 4, y - 6); ctx.stroke();
+      ctx.strokeStyle = "rgba(255,255,255,.7)"; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(x + 8, y + 12); ctx.lineTo(x + 8, y + h - 24); ctx.stroke();
+      ctx.restore(); if (label) S.draw.text(c, label, x + w / 2, y + h + 16, {size:11.5, color:"#334155", weight:700});
+    }
+    function thermo(x, y, h, T, lo, hi){
+      var ctx = c.ctx, f = Math.max(0, Math.min(1, (T - lo) / (hi - lo)));
+      ctx.save(); ctx.fillStyle = "#fff"; ctx.strokeStyle = "#7c8a9c"; ctx.lineWidth = 2; S.draw.rrect(c, x - 6, y, 12, h, 6); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = "#d6392f"; S.draw.rrect(c, x - 2.5, y + h - 6 - f * (h - 18), 5, f * (h - 18) + 6, 2.5); ctx.fill();
+      ctx.beginPath(); ctx.arc(x, y + h + 4, 9, 0, 7); ctx.fillStyle = "#d6392f"; ctx.fill(); ctx.strokeStyle = "#7c8a9c"; ctx.stroke();
+      for (var i = 0; i <= 4; i++){ var yy = y + h - 6 - i / 4 * (h - 18); S.draw.line(c, x + 7, yy, x + 12, yy, "#94a3b8", 1.2); S.draw.text(c, Math.round(lo + (hi - lo) * i / 4) + "", x + 16, yy, {size:9, color:"#64748b", align:"left"}); }
+      ctx.restore();
+    }
     k.draw(function(){
-      var P = S.draw.palette, ctx = c.ctx, W = c.W, H = c.H;
-      c.clear();
-      if (md.value === "mix"){
-        var M = METAUX.filter(function(x){ return x[0] === mt.value; })[0], cm = M[2], cw = 4.184;
-        var Tf = (m1.value * cm * t1.value + (m2.value * cw + cc.value) * t2.value) / (m1.value * cm + m2.value * cw + cc.value);
-        var q = m1.value * cm * (t1.value - Tf);
-        function col(T){ var f = Math.max(0, Math.min(1, (T - 5) / 295)); return "rgb(" + Math.round(60 + 195 * f) + "," + Math.round(120 - 80 * f) + "," + Math.round(230 - 190 * f) + ")"; }
-        [["avant", t1.value, t2.value, W * 0.28], ["après", Tf, Tf, W * 0.72]].forEach(function(b){
-          ctx.fillStyle = col(b[2]); ctx.fillRect(b[3] - 60, 100, 120, 110); ctx.strokeStyle = P.ink; ctx.lineWidth = 2; ctx.strokeRect(b[3] - 60, 60, 120, 150);
-          ctx.fillStyle = col(b[1]); ctx.fillRect(b[3] - 20, 160, 40, 36);
-          S.draw.text(c, b[0] === "avant" ? "eau " + S.fmt(t2.value, 0) + " °C ; métal " + S.fmt(t1.value, 0) + " °C" : "Tf = " + S.fmt(Tf, 1) + " °C", b[3], 232, {size:12});
-          S.draw.text(c, b[0], b[3], 44, {size:12, color:P.grey});
-        });
-        S.draw.arrow(c, W * 0.42, 140, W * 0.58, 140, P.red, 3);
-        S.draw.text(c, "Q = " + S.fmt(q / 1000, 2) + " kJ", W / 2, 120, {size:12, color:P.red});
+      var Pl = S.draw.palette, ctx = c.ctx, W = c.W, H = c.H, ph = W < 420, mixm = md.value === "mix";
+      [mt, m1, t1, m2, t2].forEach(function(q){ q.el.parentNode.style.display = mixm ? "" : "none"; });
+      [ca, cb, vv].forEach(function(q){ q.el.parentNode.style.display = mixm ? "none" : ""; });
+      UC.bg(c, "#f6f9fc", "#ffffff");
+      var g = 1 - Math.exp(-tt / 1.8), cwv = 4.184, sceneH = 230;
+      var Tm, Tw, Tf, q, curves, tmax = 9, ylo, yhi;
+      if (mixm){
+        var M = METAUX.filter(function(x){ return x[0] === mt.value; })[0], cm = M[2];
+        Tf = (m1.value * cm * t1.value + (m2.value * cwv + cc.value) * t2.value) / (m1.value * cm + m2.value * cwv + cc.value);
+        q = m1.value * cm * (t1.value - Tf); Tm = lerp(t1.value, Tf, g); Tw = lerp(t2.value, Tf, g);
+        ylo = Math.min(t2.value, Tf) - 8; yhi = t1.value + 12;
+        var bw = Math.min(150, W * 0.4), bx = W / 2 - bw / 2 - (ph ? 10 : 20), by = 40, bh = 150, lev = Math.min(0.85, 0.4 + m2.value / 800);
+        beaker(bx, by, bw, bh, lev, waterCol(Tw), "eau : " + S.fmt(Tw, 1) + " °C");
+        /* bloc métallique chauffé */
+        var mw = 26 + m1.value / 14, mx = bx + bw / 2 - mw / 2, my = by + bh - mw - 8;
+        var hot = Math.max(0, Math.min(1, (Tm - 40) / 240));
+        S.draw.glow(c, mx + mw / 2, my + mw / 2, mw * 1.6, "#ff7a2f", 0.1 + 0.65 * hot);
+        var gr = ctx.createLinearGradient(mx, my, mx + mw, my + mw); gr.addColorStop(0, UC.shade(MC[mt.value] || "#9aa5b1", 0.4)); gr.addColorStop(1, UC.shade(MC[mt.value] || "#9aa5b1", -0.3));
+        ctx.save(); ctx.fillStyle = gr; S.draw.rrect(c, mx, my, mw, mw, 4); ctx.fill(); ctx.fillStyle = "rgba(255,90,20," + (0.5 * hot) + ")"; S.draw.rrect(c, mx, my, mw, mw, 4); ctx.fill(); ctx.restore();
+        S.draw.text(c, mt.value, mx + mw / 2, my + mw / 2, {size:12, color:"#fff", weight:800});
+        S.draw.label(c, "métal : " + S.fmt(Tm, 0) + " °C", bx + bw / 2, by - 16, {color:"#9a3412", size:11.5});
+        /* flux de chaleur */
+        var flow = (1 - g) * Math.min(1, Math.abs(q) / 20000 + 0.35);
+        for (var i = 0; i < 4; i++){ var u = ((tt * 0.9) + i / 4) % 1, ang = -Math.PI / 2 + (i - 1.5) * 0.7, rr = 18 + u * 38; ctx.save(); ctx.globalAlpha = flow * (1 - u); S.draw.arrow(c, mx + mw / 2 + Math.cos(ang) * (mw / 2 + 4), my + mw / 2 + Math.sin(ang) * (mw / 2 + 4), mx + mw / 2 + Math.cos(ang) * (mw / 2 + rr), my + mw / 2 + Math.sin(ang) * (mw / 2 + rr), "#e0452f", 2.6); ctx.restore(); }
+        thermo(W - (ph ? 54 : 70), 40, 140, Tw, Math.floor(Math.min(t2.value, Tf) / 10) * 10, Math.ceil(Math.max(Tf, t2.value + 5) / 10) * 10);
+        S.draw.text(c, "thermomètre (eau)", W - (ph ? 54 : 70), 26, {size:10, color:Pl.grey, weight:700});
         ro.set(0, "T<sub>f</sub> = " + S.fmt(Tf, 1) + " °C"); ro.set(1, S.fmt(q, 0) + " J cédés par le métal"); ro.set(2, "ΔT eau = " + S.fmt(Tf - t2.value, 1) + " K");
         nt.set("T<sub>f</sub> = (" + m1.value + " × " + S.fmt(cm, 3) + " × " + t1.value + " + (" + m2.value + " × 4,184 + " + cc.value + ") × " + t2.value + ") / (" + m1.value + " × " + S.fmt(cm, 3) + " + " + m2.value + " × 4,184 + " + cc.value + ") = " + S.fmt(Tf, 1) + " °C." + (Tf > 95 ? " Attention : eau proche de l'ébullition, la vaporisation (non modélisée) fausserait le résultat." : ""), Tf > 95 ? "warn" : "ok");
+        curves = [[Tm, t1.value, Pl.red, "métal"], [Tw, t2.value, Pl.acc, "eau"]];
       } else {
-        var na = ca.value * vv.value / 1000, nb = cb.value * vv.value / 1000, nr = Math.min(na, nb), qq = nr * 55.8e3, mtot = 2 * vv.value * 1.0;
-        var dT = qq / (mtot * 4.18 + cc.value);
-        var lim = Math.abs(na - nb) < 1e-9 ? "mélange stœchiométrique" : (na < nb ? "HCl en défaut : NaOH en excès" : "NaOH en défaut : HCl en excès");
-        ctx.fillStyle = "#f6d7cf"; ctx.fillRect(W / 2 - 70, 80, 140, 120); ctx.strokeStyle = P.ink; ctx.lineWidth = 2; ctx.strokeRect(W / 2 - 70, 50, 140, 150);
-        S.draw.text(c, "ΔT = + " + S.fmt(dT, 2) + " K", W / 2, 140, {size:16, color:P.red});
-        S.draw.text(c, "n(HCl) = " + S.fmt(na, 3) + " mol ; n(NaOH) = " + S.fmt(nb, 3) + " mol", W / 2, 230, {size:12});
-        S.draw.text(c, lim, W / 2, 252, {size:12, color:P.amber});
+        var na = ca.value * vv.value / 1000, nb = cb.value * vv.value / 1000, nr = Math.min(na, nb), qq = nr * 55.8e3, mtot = 2 * vv.value * 1.0, T0 = 20;
+        var dT = qq / (mtot * 4.18 + cc.value), lim = Math.abs(na - nb) < 1e-9 ? "mélange stœchiométrique" : (na < nb ? "HCl en défaut : NaOH en excès" : "NaOH en défaut : HCl en excès");
+        Tf = T0 + dT; Tw = lerp(T0, Tf, g); ylo = T0 - 3; yhi = Math.max(T0 + 8, Tf + 4); q = qq;
+        var bw2 = Math.min(90, W * 0.24), lev1 = 0.35 + vv.value / 400, pour = Math.min(1, tt / 1.6);
+        beaker(14, 70, bw2, 120, lev1 * (1 - pour * 0.9), "#d9e6f8", "HCl " + S.fmt(ca.value, 1) + " mol/L");
+        beaker(W / 2 - bw2 / 2 - (ph ? 24 : 6), 70, bw2, 120, lev1 * (1 - pour * 0.9), "#f1dcec", "NaOH " + S.fmt(cb.value, 1) + " mol/L");
+        var rx = W - bw2 - (ph ? 54 : 84); beaker(rx, 60, bw2 + 20, 140, Math.min(0.85, 0.15 + pour * (lev1 * 1.3)), waterCol(Tw), "mélange : " + S.fmt(Tw, 1) + " °C");
+        S.draw.arrow(c, 14 + bw2 + 6, 110, rx - 4, 110, Pl.red, 2.6 * pour + 0.5);
+        thermo(W - (ph ? 28 : 40), 40, 140, Tw, Math.floor(ylo / 5) * 5, Math.ceil(yhi / 5) * 5);
         ro.set(0, "ΔT = " + S.fmt(dT, 2) + " K"); ro.set(1, S.fmt(qq, 0) + " J"); ro.set(2, "n limitant = " + S.fmt(nr, 3) + " mol");
-        nt.set("q = n·|ΔH| = " + S.fmt(nr, 3) + " × 55,8·10³ = " + S.fmt(qq, 0) + " J ; ΔT = q/(m·c + C<sub>cal</sub>) = " + S.fmt(qq, 0) + " / (" + S.fmt(mtot, 0) + " × 4,18 + " + cc.value + ") = " + S.fmt(dT, 2) + " K. " + lim + ".", "ok");
+        nt.set("q = n·|ΔH| = " + S.fmt(nr, 3) + " × 55,8·10³ = " + S.fmt(qq, 0) + " J ; ΔT = q/(m·c + C<sub>cal</sub>) = " + S.fmt(qq, 0) + " / (" + S.fmt(mtot, 0) + " × 4,18 + " + cc.value + ") = " + S.fmt(dT, 2) + " K. " + lim + ". (n(HCl) = " + S.fmt(na, 3) + " mol ; n(NaOH) = " + S.fmt(nb, 3) + " mol)", "ok");
+        curves = [[Tw, T0, Pl.red, "mélange"]];
       }
+      /* graphe T(t) : l'expérience se déroule dans le temps */
+      var gx0 = 52, gx1 = W - 14, gy0 = sceneH + 24, gy1 = H - 36;
+      S.draw.panel(c, 8, sceneH + 6, W - 16, H - sceneH - 14, {shadow:false, title:"Température en fonction du temps"});
+      function X(t){ return gx0 + t / tmax * (gx1 - gx0); } function Y(T){ return gy1 - (T - ylo) / (yhi - ylo) * (gy1 - gy0 - 10); }
+      S.draw.line(c, gx0, gy1, gx1, gy1, "#94a3b8", 1.4); S.draw.line(c, gx0, gy0, gx0, gy1, "#94a3b8", 1.4);
+      var step = (yhi - ylo) > 150 ? 50 : (yhi - ylo) > 60 ? 20 : (yhi - ylo) > 20 ? 10 : 5;
+      for (var v = Math.ceil(ylo / step) * step; v <= yhi; v += step){ S.draw.line(c, gx0, Y(v), gx1, Y(v), "#eef1f5", 1); S.draw.text(c, v + "", gx0 - 6, Y(v), {size:9.5, color:Pl.grey, align:"right"}); }
+      S.draw.text(c, "t", gx1, gy1 + 14, {size:10.5, color:Pl.grey, align:"right", weight:700});
+      S.draw.line(c, gx0, Y(Tf), gx1, Y(Tf), Pl.green, 1.6, [5, 4]); S.draw.label(c, "T f = " + S.fmt(Tf, 1) + " °C", gx1 - 4, Y(Tf) - 11, {color:Pl.green, size:11, align:"right"});
+      curves.forEach(function(cv){
+        var T1 = cv[1], Tfin = Tf;
+        ctx.save(); ctx.strokeStyle = cv[2]; ctx.lineWidth = 3; ctx.beginPath(); for (var s = 0; s <= 60; s++){ var t = Math.min(tt, tmax) * s / 60, gg = 1 - Math.exp(-t / 1.8), T = lerp(T1, Tfin, gg); s ? ctx.lineTo(X(t), Y(T)) : ctx.moveTo(X(t), Y(T)); } ctx.stroke(); ctx.restore();
+        S.draw.dot(c, X(Math.min(tt, tmax)), Y(cv[0]), 5.5, cv[2]); S.draw.text(c, cv[3], gx0 + 6, Y(cv[1]) + (cv[1] > Tf ? -10 : 12), {size:10.5, color:cv[2], align:"left", weight:800});
+      });
     });
   }
 });
@@ -215,33 +284,57 @@ SFA.sim({
   id:"uc-c05-couplage-atp", ch:"c05", tag:"Biologie",
   titre:"Couplage à l'ATP : rendre possible une réaction défavorable",
   resume:"ΔG = ΔG°′ + RT ln([ADP][Pi]/[ATP]) : avec les concentrations cellulaires, l'hydrolyse de l'ATP libère ≈ −50 kJ/mol et déplace l'équilibre de millions de fois.",
-  but:"Choisis une réaction A → B défavorable (ΔG°′ &gt; 0). Règle les concentrations d'ATP, d'ADP et de Pi : compare le rapport [B]/[A] à l'équilibre sans et avec couplage.",
+  but:"Choisis une réaction A → B défavorable (ΔG°′ &gt; 0) : tu peux aussi faire glisser la poignée en haut de la 1ʳᵉ barre. Règle les concentrations d'ATP, d'ADP et de Pi : compare le rapport [B]/[A] à l'équilibre sans et avec couplage sur l'échelle logarithmique.",
   aRetenir:"ATP + H₂O → ADP + Pi : ΔG°′ = −30,5 kJ/mol (pH 7), mais ΔG réel = ΔG°′ + RT ln([ADP][Pi]/[ATP]) ≈ −50 kJ/mol dans la cellule, car le rapport ATP/ADP est maintenu très élevé. Pour une réaction couplée, les ΔG s'additionnent : le rapport [B]/[A] à l'équilibre est multiplié par exp(−ΔG<sub>ATP</sub>/RT).",
   piege:"Le couplage exige un intermédiaire commun (ou un transfert de groupe phosphoryle), pas seulement deux réactions « en même temps ». Le simulateur suppose 310 K, pH 7, Mg²⁺ ignoré, états standard de 1 mol/L pour ADP, Pi et ATP : il donne l'ordre de grandeur. Le rapport ATP/ADP cellulaire est maintenu loin de l'équilibre par le métabolisme.",
   build:function(k, S){
-    var c = k.canvas(330);
+    var c = k.canvas(470);
     var dga = k.slider("ΔG°′ de A → B", -10, 40, 0.5, 13.8, "kJ/mol");
     var atp = k.slider("[ATP]", 0.5, 10, 0.1, 3, "mmol/L");
     var adp = k.slider("[ADP]", 0.01, 2, 0.01, 0.3, "mmol/L");
     var pi = k.slider("[Pi]", 0.5, 10, 0.1, 3, "mmol/L");
     var ro = k.readouts(["ΔG réel de l'hydrolyse de l'ATP", "[B]/[A] sans couplage", "[B]/[A] avec couplage", "Facteur gagné"]);
     var nt = k.note("", "ok");
+    var geo = {}, drag = false;
+    c.pointer(function(type, p){
+      if (type === "down" && geo.hx != null && Math.hypot(p.x - geo.hx, p.y - geo.hy) < 22) drag = true;
+      if (type === "up") drag = false;
+      if (drag && geo.zero != null && (type === "drag" || type === "down")){ dga.set(Math.round((geo.zero - p.y) / geo.sc * 2) / 2); k.redraw(); }
+    });
     k.draw(function(){
-      var P = S.draw.palette, ctx = c.ctx, W = c.W, H = c.H, T = 310.15, RT = R * T / 1000;
+      var P = S.draw.palette, ctx = c.ctx, W = c.W, H = c.H, ph = W < 480, T = 310.15, RT = R * T / 1000;
       var q = (adp.value / 1000) * (pi.value / 1000) / (atp.value / 1000);
       var dgatp = -30.5 + RT * Math.log(q), A = dga.value, tot = A + dgatp;
       var K0 = Math.exp(-A / RT), K1 = Math.exp(-tot / RT);
-      c.clear();
-      var bars = [["A → B", A, P.red], ["Hydrolyse ATP", dgatp, P.green], ["Réaction couplée", tot, P.acc]];
-      var zero = H * 0.5, sc = (H * 0.4) / 80, bw = Math.min(100, W * 0.2);
-      S.draw.line(c, 30, zero, W - 30, zero, P.grey, 1.5); S.draw.text(c, "ΔG = 0", 36, zero - 10, {size:10, color:P.grey, align:"left"});
+      UC.bg(c, "#f6f9fc", "#ffffff");
+      var chH = ph ? 290 : 300, zero = 44 + (chH - 70) * 0.42, sc = (chH - 70) * 0.5 / 55;
+      S.draw.text(c, "ΔG (kJ/mol)", 12, 16, {size:11, align:"left", color:P.grey, weight:700});
+      S.draw.line(c, 24, zero, W - 14, zero, "#94a3b8", 1.6, [5, 3]); S.draw.text(c, "0", 18, zero, {size:10, color:P.grey, align:"right", weight:700});
+      var bars = [["A → B", A, P.red, "défavorable"], ["hydrolyse de l'ATP", dgatp, P.green, "favorable"], ["réaction couplée", tot, tot < 0 ? P.acc : P.amber, tot < 0 ? "favorable" : "encore défavorable"]];
+      var bw = Math.min(100, (W - 90) / 3.3), gap = (W - 50 - 3 * bw) / 2;
       bars.forEach(function(b, i){
-        var x = W * 0.12 + i * (bw + 40), y = zero - b[1] * sc;
-        ctx.fillStyle = b[2]; ctx.fillRect(x, Math.min(zero, y), bw, Math.abs(y - zero));
-        S.draw.text(c, S.fmt(b[1], 1), x + bw / 2, b[1] > 0 ? y - 12 : y + 12, {size:12, color:P.ink});
-        S.draw.text(c, b[0], x + bw / 2, b[1] > 0 ? zero + 16 : zero - 16, {size:11, color:P.grey});
+        var x = 32 + i * (bw + gap), y = zero - Math.max(-60, Math.min(60, b[1])) * sc;
+        var bg = ctx.createLinearGradient(x, 0, x + bw, 0); bg.addColorStop(0, UC.shade(b[2], 0.25)); bg.addColorStop(1, b[2]);
+        ctx.save(); ctx.fillStyle = bg; S.draw.rrect(c, x, Math.min(zero, y), bw, Math.max(Math.abs(y - zero), 3), 6); ctx.fill(); ctx.restore();
+        S.draw.label(c, S.fmt(b[1], 1), x + bw / 2, b[1] > 0 ? y - 13 : y + 13, {color:b[2], size:12.5});
+        S.draw.text(c, b[0], x + bw / 2, chH - 26, {size:ph ? 10.5 : 11.5, color:P.ink, weight:800}); S.draw.text(c, b[3], x + bw / 2, chH - 12, {size:10, color:P.grey, weight:700});
+        if (i === 0){ geo.hx = x + bw / 2; geo.hy = y; S.draw.dot(c, x + bw / 2, y, 9, P.red); S.draw.text(c, "↕", x + bw / 2, y + 0.5, {size:10, color:"#fff", weight:800}); }
       });
-      S.draw.text(c, "kJ/mol", W - 40, 16, {size:10, color:P.grey});
+      /* « + » et « = » entre les barres */
+      var xs = [32 + bw + gap / 2, 32 + 2 * bw + 1.5 * gap]; S.draw.text(c, "+", xs[0], zero - 40, {size:22, color:P.grey, weight:800}); S.draw.text(c, "=", xs[1], zero - 40, {size:22, color:P.grey, weight:800});
+      geo.zero = zero; geo.sc = sc;
+      /* échelle logarithmique de [B]/[A] à l'équilibre */
+      var gy = chH + 24, gx0 = 40, gx1 = W - 24, lo = -9, hi = 11;
+      S.draw.panel(c, 8, chH + 4, W - 16, H - chH - 12, {title:"Rapport [B]/[A] à l'équilibre (échelle logarithmique)", shadow:false});
+      function X(lg){ return gx0 + (lg - lo) / (hi - lo) * (gx1 - gx0); }
+      var ay = gy + 44;
+      S.draw.line(c, gx0, ay, gx1, ay, "#94a3b8", 2);
+      for (var e = lo; e <= hi; e += 2){ S.draw.line(c, X(e), ay - 4, X(e), ay + 4, "#94a3b8", 1.4); S.draw.text(c, "10" + String(e).replace("-", "⁻").replace(/\d/g, function(d){ return "⁰¹²³⁴⁵⁶⁷⁸⁹"[d]; }), X(e), ay + 16, {size:9.5, color:P.grey}); }
+      S.draw.line(c, X(0), ay - 10, X(0), ay + 10, P.ink, 1.6); S.draw.text(c, "1", X(0), ay - 18, {size:9.5, color:P.ink, weight:800});
+      var l0 = Math.max(lo, Math.min(hi, Math.log(K0) / Math.LN10)), l1 = Math.max(lo, Math.min(hi, Math.log(K1) / Math.LN10));
+      S.draw.arrow(c, X(l0), ay - 26, X(l1), ay - 26, P.green, 3);
+      S.draw.dot(c, X(l0), ay, 7, P.red); S.draw.dot(c, X(l1), ay, 7, P.acc);
+      S.draw.label(c, "sans : " + sciT(K0, 1), X(l0), ay + 38, {color:P.red, size:11, align:l0 < l1 ? "right" : "left"}); S.draw.label(c, "avec : " + sciT(K1, 1), X(l1), ay + 38, {color:P.acc, size:11, align:l0 < l1 ? "left" : "right"});
       ro.set(0, S.fmt(dgatp, 1) + " kJ/mol"); ro.set(1, S.sci(K0, 2)); ro.set(2, S.sci(K1, 2)); ro.set(3, "× " + S.sci(K1 / K0, 2));
       nt.set("ΔG(ATP) = −30,5 + 2,579 × ln[(" + S.fmt(adp.value, 2) + "·10⁻³ × " + S.fmt(pi.value, 1) + "·10⁻³)/(" + S.fmt(atp.value, 1) + "·10⁻³)] = " + S.fmt(dgatp, 1) + " kJ/mol. Couplée à A → B : ΔG = " + S.fmt(A, 1) + " + (" + S.fmt(dgatp, 1) + ") = " + S.fmt(tot, 1) + " kJ/mol, " + (tot < 0 ? "réaction globale favorable." : "encore défavorable : il faut un ATP/ADP plus élevé ou un couplage à plusieurs ATP.") , tot < 0 ? "ok" : "warn");
     });

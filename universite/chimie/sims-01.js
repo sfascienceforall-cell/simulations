@@ -1,3 +1,76 @@
+/* Chimie BA1 · aides graphiques communes (3D maison, sphères ombrées, orbitales) — utilisées par plusieurs chapitres */
+(function(){
+if (window.UC) return;
+var UC = window.UC = {};
+UC.COL = {H:"#e6ebf2", C:"#4b5563", N:"#2f5fb3", O:"#d6392f", F:"#5fb85a", Cl:"#2fa84f", Br:"#9a2a1c", I:"#7b3fb0", B:"#d08a3c", S:"#d9b61c", P:"#e08a2a", Xe:"#7b5cb8", A:"#1f4b9e", X:"#2a9d6f", Na:"#7b5cb8", Ag:"#9aa5b1"};
+UC.shade = function(hex, f){
+  var n = parseInt(String(hex).replace("#", ""), 16), r = n >> 16, g = (n >> 8) & 255, b = n & 255;
+  function q(v){ v = f < 0 ? v * (1 + f) : v + (255 - v) * f; return Math.max(0, Math.min(255, Math.round(v))); }
+  return "rgb(" + q(r) + "," + q(g) + "," + q(b) + ")";
+};
+/* sphère ombrée (reflet en haut à gauche) */
+UC.ball = function(ctx, x, y, r, hex, alpha){
+  ctx.save(); ctx.globalAlpha = alpha == null ? 1 : alpha;
+  var g = ctx.createRadialGradient(x - r * 0.38, y - r * 0.42, r * 0.05, x, y, r * 1.05);
+  g.addColorStop(0, UC.shade(hex, 0.78)); g.addColorStop(0.45, hex); g.addColorStop(1, UC.shade(hex, -0.45));
+  ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, Math.max(r, 0.5), 0, 7); ctx.fill(); ctx.restore();
+};
+/* ombre portée douce sous un objet */
+UC.floor = function(c, cx, cy, rx, ry){
+  var ctx = c.ctx; ctx.save(); ctx.translate(cx, cy); ctx.scale(1, ry / rx);
+  var g = ctx.createRadialGradient(0, 0, 0, 0, 0, rx); g.addColorStop(0, "rgba(15,27,45,.16)"); g.addColorStop(1, "rgba(15,27,45,0)");
+  ctx.fillStyle = g; ctx.beginPath(); ctx.arc(0, 0, rx, 0, 7); ctx.fill(); ctx.restore();
+};
+/* liaison en bâtonnet (liseré sombre + reflet) */
+UC.stick = function(ctx, x1, y1, x2, y2, w, col, alpha){
+  ctx.save(); ctx.globalAlpha = alpha == null ? 1 : alpha; ctx.lineCap = "round";
+  col = col || "#8a95a3";
+  ctx.strokeStyle = UC.shade(col, -0.35); ctx.lineWidth = w; ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+  ctx.strokeStyle = col; ctx.lineWidth = w * 0.62; ctx.stroke();
+  ctx.strokeStyle = UC.shade(col, 0.65); ctx.lineWidth = Math.max(1, w * 0.18); ctx.beginPath(); ctx.moveTo(x1 - w * 0.12, y1 - w * 0.12); ctx.lineTo(x2 - w * 0.12, y2 - w * 0.12); ctx.stroke();
+  ctx.restore();
+};
+UC.rot = function(p, a, b){
+  var x = p[0] * Math.cos(a) + p[2] * Math.sin(a), z = -p[0] * Math.sin(a) + p[2] * Math.cos(a), y = p[1];
+  return [x, y * Math.cos(b) - z * Math.sin(b), y * Math.sin(b) + z * Math.cos(b)];
+};
+/* projection en perspective : st = {a, b} ; renvoie {x, y, z, s} (s = facteur d'échelle de perspective) */
+UC.proj = function(p, st, sc, cx, cy){
+  var r = UC.rot(p, st.a, st.b), s = 1 / (1 - r[2] * 0.11);
+  return {x:cx + r[0] * sc * s, y:cy - r[1] * sc * s, z:r[2], s:s};
+};
+/* glisser = tourner ; le dessin reprend aussitôt. st = {a, b} ; rotation lente automatique tant qu'on ne touche pas */
+UC.view = function(k, c, st, auto){
+  st.auto = auto !== false;
+  c.pointer(function(type, p){
+    if (type === "down"){ st.lx = p.x; st.ly = p.y; st.drag = true; st.auto = false; }
+    if (type === "drag" && st.lx != null){ st.a += (p.x - st.lx) * 0.012; st.b = Math.max(-1.5, Math.min(1.5, st.b + (p.y - st.ly) * 0.012)); st.lx = p.x; st.ly = p.y; k.redraw(); }
+    if (type === "up"){ st.lx = null; st.drag = false; }
+  });
+  var lp = k.loop(function(dt){ if (st.auto && !st.drag){ st.a += dt * 0.35; k.redraw(); } });
+  lp.play(); return lp;
+};
+/* lobe d'orbitale (goutte) partant de (x, y) dans la direction ang, longueur L, largeur W */
+UC.lobe = function(ctx, x, y, ang, L, W, col, alpha, stroke){
+  ctx.save(); ctx.translate(x, y); ctx.rotate(ang);
+  ctx.beginPath(); ctx.moveTo(0, 0); ctx.bezierCurveTo(L * 0.25, -W * 0.9, L * 0.95, -W * 0.9, L, 0); ctx.bezierCurveTo(L * 0.95, W * 0.9, L * 0.25, W * 0.9, 0, 0); ctx.closePath();
+  var g = ctx.createLinearGradient(0, 0, L, 0); g.addColorStop(0, UC.rgba(col, alpha * 0.9)); g.addColorStop(1, UC.rgba(col, alpha * 0.35));
+  ctx.fillStyle = g; ctx.fill(); ctx.lineWidth = 1.3; ctx.strokeStyle = stroke || UC.rgba(col, Math.min(1, alpha + 0.35)); ctx.stroke(); ctx.restore();
+};
+UC.rgba = function(hex, a){
+  var n = parseInt(String(hex).replace("#", ""), 16); return "rgba(" + (n >> 16) + "," + ((n >> 8) & 255) + "," + (n & 255) + "," + a + ")";
+};
+/* bulle de texte sur canvas (vignette d'étiquette) */
+UC.tag = function(S, c, s, x, y, col, o){ o = o || {}; S.draw.label(c, s, x, y, {color:col, size:o.size || 12, align:o.align, base:o.base, math:o.math}); };
+/* dégradé de fond pour une scène (ciel de laboratoire) */
+UC.bg = function(c, top, bot){
+  var ctx = c.ctx, g = ctx.createLinearGradient(0, 0, 0, c.H); g.addColorStop(0, top || "#f6f9fc"); g.addColorStop(1, bot || "#ffffff");
+  ctx.fillStyle = g; ctx.fillRect(0, 0, c.W, c.H);
+};
+/* taille de police adaptée à la largeur du canvas (téléphone) */
+UC.fs = function(c, base){ return c.W < 420 ? Math.max(10, base - 1) : base; };
+})();
+
 /* Chimie BA1 · c01 · Atome, spectre et radioactivité — contenu SFA original */
 (function(){
 var HC_EV_NM = 1239.84;      /* h·c en eV·nm */

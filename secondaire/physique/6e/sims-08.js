@@ -141,39 +141,75 @@ SFA.sim({
 SFA.sim({
   id: "p6-c08-polariseurs", ch: "c08", tag: "Polarisation",
   titre: "Polariseurs : la loi de Malus et le troisième polariseur",
-  resume: "I = I₀·cos²θ : deux polariseurs croisés éteignent la lumière, un troisième entre eux la rallume.",
-  but: "La lumière traverse un polariseur P₁ (axe vertical), éventuellement un polariseur intermédiaire, puis un analyseur dont tu règles l'angle. Observe l'intensité transmise et la courbe en fonction de l'angle.",
+  resume: "I = I₀·cos²θ : deux polariseurs croisés éteignent la lumière, un troisième entre eux la rallume. Tourne les filtres à la main.",
+  but: "La lumière traverse un polariseur P₁ (axe vertical), éventuellement un polariseur intermédiaire, puis un analyseur. Attrape un filtre et fais-le tourner avec la souris ou le doigt (ou règle l'angle au curseur). Les flèches indiquent la direction de polarisation du champ électrique ; l'écran affiche l'intensité.",
   aRetenir: "La lumière est une onde transversale : elle peut être polarisée. Un polariseur ne laisse passer que la composante du champ parallèle à son axe. Loi de Malus : une lumière polarisée traverse un analyseur à l'angle θ avec l'intensité I = I₀·cos²θ. Une lumière naturelle perd la moitié de son intensité au premier polariseur. Les écrans LCD utilisent des cristaux liquides qui tournent la polarisation entre deux polariseurs croisés.",
   piege: "Deux polariseurs croisés (90°) arrêtent tout, mais en intercalant un troisième à 45° entre eux, la lumière repasse (jusqu'à 12,5 % de l'intensité naturelle) : un polariseur ne « filtre » pas, il projette la polarisation sur son axe. La loi de Malus est cos² (pas cos).",
   build: function(k, S){
-    var c = k.canvas(170), g = k.canvas(200), P = S.draw.palette;
+    var c = k.canvas(260), g = k.canvas(190), P = S.draw.palette, Pm = window.PH6;
     var src = k.seg("Lumière incidente", [["n", "Naturelle"], ["p", "Polarisée verticalement"]], "n");
     var al = k.slider("Angle de l'analyseur (par rapport à P₁)", 0, 180, 5, 90, "°");
     var mid = k.toggle("Insérer un polariseur intermédiaire", false);
     var be = k.slider("Angle du polariseur intermédiaire", 0, 90, 5, 45, "°");
     var ro = k.readouts(["Après P₁", "Après l'intermédiaire", "Après l'analyseur"]);
-    var nt = k.note("", "ok");
+    var nt = k.note("", "ok"), geo = {}, sel = null, t = 0;
+    var lp = k.loop(function(dt){ t += dt; if (src.value === "n") k.redraw(); }); lp.play();
     function chain(a, b, useMid, natural){
       var r = natural ? 0.5 : 1, i1 = r, i2 = i1, ar = a * Math.PI / 180, br = b * Math.PI / 180;
       if (useMid){ i2 = i1 * Math.pow(Math.cos(br), 2); return {i1: i1, i2: i2, i3: i2 * Math.pow(Math.cos(ar - br), 2)}; }
       return {i1: i1, i2: i1, i3: i1 * Math.pow(Math.cos(ar), 2)};
     }
+    c.cv.style.touchAction = "none"; c.cv.style.cursor = "grab";
+    c.pointer(function(tp, p){
+      if (!geo.xs) return;
+      if (tp === "down"){ var best = null, bd = 1e9; [["a", geo.xs[3]], ["m", geo.xs[2]]].forEach(function(q){ if (q[0] === "m" && !mid.value) return; var dd = Math.abs(p.x - q[1]); if (dd < bd){ bd = dd; best = q; } }); sel = best ? best[0] : null; }
+      if ((tp === "down" || tp === "drag") && sel){
+        var cx = sel === "a" ? geo.xs[3] : geo.xs[2], ang = Math.atan2(p.x - cx, -(p.y - geo.cy)) * 180 / Math.PI; ang = ((ang % 180) + 180) % 180; ang = Math.round(ang / 5) * 5; if (ang >= 180) ang = 0;
+        if (sel === "a") al.set(ang); else { be.set(ang > 135 ? 0 : Math.min(90, ang)); }
+      }
+      if (tp === "up") sel = null;
+    });
     k.draw(function(){
-      c.clear(); g.clear(); var ctx = c.ctx, W = c.W, cy = 70, nat = src.value === "n", u = chain(al.value, be.value, mid.value, nat);
-      var xs = [W * 0.12, W * 0.32, W * 0.52, W * 0.74];
-      function beam(xa, xb, I, col){ ctx.fillStyle = "rgba(244,197,66," + Math.max(0.04, Math.min(1, I)) + ")"; ctx.fillRect(xa, cy - 16, xb - xa, 32); }
-      beam(4, xs[0], 1, ""); beam(xs[0], xs[1], u.i1, ""); beam(xs[1], xs[2], u.i2, ""); beam(xs[2], W - 4, u.i3, "");
-      function pol(x, ang, label, col){ ctx.save(); ctx.translate(x, cy); ctx.strokeStyle = col; ctx.lineWidth = 3; ctx.strokeRect(-9, -44, 18, 88); ctx.rotate(-ang * Math.PI / 180); S.draw.line(c, 0, -34, 0, 34, col, 3); ctx.restore(); S.draw.text(c, label, x, cy + 62, {size: 12, color: col}); }
-      pol(xs[0] + 0, 0, "P₁ (0°)", P.acc);
-      if (mid.value) pol(xs[1] + 0, be.value, "intermédiaire", P.green);
-      pol(xs[2] + 0, al.value, "analyseur", P.red);
-      S.draw.text(c, nat ? "naturelle" : "polarisée", 36, cy - 28, {size: 12, color: P.grey});
-      S.draw.text(c, S.fmt(u.i3 * 100, 1) + " %", W - 34, cy - 28, {size: 14, color: P.ink});
+      c.clear(); g.clear(); Pm.bg(c); var ctx = c.ctx, W = c.W, H = c.H, cy = 98, nat = src.value === "n", u = chain(al.value, be.value, mid.value, nat), R = Math.min(34, W * 0.085);
+      var xs = [W * 0.1, W * 0.3, W * 0.5, W * 0.7, W * 0.9]; geo.xs = xs; geo.cy = cy;
+      function beam(xa, xb, I){ var gr = ctx.createLinearGradient(0, cy - R, 0, cy + R); var a = Math.max(0.05, Math.min(1, I)); gr.addColorStop(0, "rgba(244,197,66," + a * 0.55 + ")"); gr.addColorStop(0.5, "rgba(255,226,120," + a + ")"); gr.addColorStop(1, "rgba(244,197,66," + a * 0.55 + ")"); ctx.fillStyle = gr; ctx.fillRect(xa, cy - R * 0.8, xb - xa, R * 1.6); }
+      var I1 = nat ? 1 : 1;
+      beam(xs[0], xs[1], 1); beam(xs[1], xs[2], u.i1); beam(xs[2], xs[3], u.i2); beam(xs[3], xs[4], u.i3);
+      /* source */
+      Pm.bulb(c, xs[0], cy, 15, 1, ""); S.draw.text(c, "source", xs[0], cy + R + 14, {size: 11, color: P.grey});
+      function disc(x, ang, label, col, faded, hot){
+        ctx.save(); ctx.translate(x, cy); ctx.globalAlpha = faded ? 0.35 : 1;
+        ctx.beginPath(); ctx.arc(0, 0, R, 0, 7); ctx.fillStyle = "rgba(255,255,255,.55)"; ctx.fill(); ctx.lineWidth = hot ? 4 : 3; ctx.strokeStyle = col; ctx.setLineDash(faded ? [4, 4] : []); ctx.stroke(); ctx.setLineDash([]);
+        ctx.rotate(ang * Math.PI / 180); ctx.beginPath(); ctx.rect(-R, -R, 2 * R, 2 * R); ctx.save(); ctx.beginPath(); ctx.arc(0, 0, R - 2, 0, 7); ctx.clip();
+        ctx.strokeStyle = col; ctx.lineWidth = 1.6; for (var q = -R + 5; q < R; q += 7){ ctx.beginPath(); ctx.moveTo(q, -R); ctx.lineTo(q, R); ctx.stroke(); } ctx.restore();
+        S.draw.arrow({ctx: ctx}, 0, 10, 0, -R - 10, col, 2.6); ctx.restore();
+        S.draw.text(c, label, x, cy + R + 14, {size: 11, color: faded ? P.grey : col});
+      }
+      disc(xs[1], 0, "P₁ (0°)", P.acc, false, false);
+      disc(xs[2], be.value, mid.value ? "inter. " + be.value + "°" : "(absent)", P.green, !mid.value, sel === "m");
+      disc(xs[3], al.value, "analyseur " + al.value + "°", P.red, false, sel === "a");
+      /* écran */
+      var lum = u.i3; S.draw.glow(c, xs[4], cy, R * (1.2 + 1.3 * lum), "#ffe27a", 0.7 * lum + 0.05);
+      ctx.beginPath(); ctx.arc(xs[4], cy, R * 0.8, 0, 7); var sg = Math.round(235 * Math.min(1, lum * 1.8) + 20); ctx.fillStyle = "rgb(" + sg + "," + sg + "," + Math.round(sg * 0.9) + ")"; ctx.fill(); ctx.strokeStyle = "#13233a"; ctx.lineWidth = 2; ctx.stroke();
+      S.draw.text(c, "écran", xs[4], cy + R + 14, {size: 11, color: P.grey});
+      S.draw.label(c, S.fmt(u.i3 * 100, 1) + " %", xs[4], cy - R - 14, {color: P.ink, size: 13});
+      /* indicateurs de polarisation du champ électrique */
+      function efield(x, I, angDeg, natural){
+        var ry = cy + R + 50, rr = 19; ctx.beginPath(); ctx.arc(x, ry, rr, 0, 7); ctx.fillStyle = "rgba(255,255,255,.8)"; ctx.fill(); ctx.strokeStyle = "#cfd6e1"; ctx.lineWidth = 1.2; ctx.stroke();
+        if (natural){ for (var q = 0; q < 6; q++){ var an = q * Math.PI / 6 + Math.floor(t * 9 + q * 3.1) * 1.7, a = an; S.draw.line(c, x - Math.sin(a) * rr * 0.8, ry + Math.cos(a) * rr * 0.8, x + Math.sin(a) * rr * 0.8, ry - Math.cos(a) * rr * 0.8, "rgba(194,106,12,.5)", 1.6); } }
+        else if (I > 0.002){ var a2 = angDeg * Math.PI / 180, L = rr * 0.9 * Math.sqrt(I) * (src.value === "p" ? 1 : 1.41); L = Math.min(rr * 0.92, L); S.draw.line(c, x - Math.sin(a2) * L, ry + Math.cos(a2) * L, x + Math.sin(a2) * L, ry - Math.cos(a2) * L, P.amber, 3); S.draw.arrow(c, x, ry, x + Math.sin(a2) * L, ry - Math.cos(a2) * L, P.amber, 3); S.draw.arrow(c, x, ry, x - Math.sin(a2) * L, ry + Math.cos(a2) * L, P.amber, 3); }
+        else S.draw.text(c, "0", x, ry, {size: 13, color: P.grey});
+      }
+      efield((xs[0] + xs[1]) / 2, 1, 0, nat); if (!nat) {} 
+      efield((xs[1] + xs[2]) / 2, u.i1, 0, false); efield((xs[2] + xs[3]) / 2, u.i2, mid.value ? be.value : 0, false); efield((xs[3] + xs[4]) / 2, u.i3, al.value, false);
+      S.draw.text(c, "champ électrique E (vue de face)", W / 2, H - 12, {size: 11, color: P.grey, weight: 600});
+      S.draw.label(c, "tourne les filtres rouge et vert à la main", W / 2, 14, {color: P.ink, size: 11});
       var f = function(a){ return chain(a, be.value, mid.value, nat).i3; };
       var ax = S.draw.axes(g, {x0: 0, x1: 180, y0: 0, y1: 1, xl: "angle de l'analyseur (°)", yl: "I / I₀", l: 46, t: 16, stepX: 30, stepY: 0.25});
-      S.draw.fn(g, ax, function(a){ return f(a); }, P.red, 2.6); S.draw.dot(g, ax.X(al.value), ax.Y(u.i3), 6, P.ink);
+      S.draw.fn(g, ax, function(a){ return f(a); }, P.red, 2.8); S.draw.dot(g, ax.X(al.value), ax.Y(u.i3), 7, P.ink);
       ro.set(0, S.fmt(u.i1 * 100, 1) + " % de I₀"); ro.set(1, mid.value ? S.fmt(u.i2 * 100, 1) + " % de I₀" : "(absent)"); ro.set(2, S.fmt(u.i3 * 100, 1) + " % de I₀");
       nt.set(al.value === 90 && !mid.value ? "Polariseurs croisés : plus de lumière. Insère maintenant le polariseur intermédiaire à 45°." : u.i3 < 0.001 ? "Extinction (analyseur ⟂ à la polarisation entrante)." : "Loi de Malus appliquée à chaque polariseur successif.", "ok");
     });
   }
 });
+

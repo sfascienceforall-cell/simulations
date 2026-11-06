@@ -1,3 +1,97 @@
+/* Aides de dessin partagées par les simulations de physique 5e (scènes, objets ombrés, poignées à glisser) */
+window.P5x = (function(){
+  var S = window.SFA, TAU = 2 * Math.PI;
+  function hex(c){ var h = String(c).replace("#", ""); if (h.length === 3) h = h[0] + h[0] + h[1] + h[1] + h[2] + h[2]; return [parseInt(h.substr(0, 2), 16), parseInt(h.substr(2, 2), 16), parseInt(h.substr(4, 2), 16)]; }
+  /* éclaircit (f>0) ou assombrit (f<0) une couleur #rrggbb */
+  function shade(c, f){ var r = hex(c); return "rgb(" + r.map(function(v){ return Math.round(f >= 0 ? v + (255 - v) * f : v * (1 + f)); }).join(",") + ")"; }
+  function lin(ctx, x0, y0, x1, y1, st){ var g = ctx.createLinearGradient(x0, y0, x1, y1); st.forEach(function(s){ g.addColorStop(s[0], s[1]); }); return g; }
+  function rr(ctx, x, y, w, h, r){ S.draw.rrect({ctx: ctx}, x, y, w, h, r); }
+  var P = {
+    shade: shade, lin: lin, rr: rr,
+    /* fond de scène en dégradé */
+    sky: function(c, top, bot){ var ctx = c.ctx; ctx.fillStyle = lin(ctx, 0, 0, 0, c.H, [[0, top || "#eaf3fc"], [1, bot || "#f8fbff"]]); ctx.fillRect(0, 0, c.W, c.H); },
+    /* sol : bande de y à la base ; ticks = décalage des repères (px), pas = écart */
+    ground: function(c, y, o){ o = o || {}; var ctx = c.ctx, col = o.col || "#cfd8e3";
+      ctx.fillStyle = lin(ctx, 0, y, 0, c.H, [[0, col], [1, shade(col, -0.12)]]); ctx.fillRect(0, y, c.W, c.H - y);
+      ctx.fillStyle = "rgba(255,255,255,.55)"; ctx.fillRect(0, y, c.W, 2);
+      if (o.pas){ var off = ((o.off || 0) % o.pas + o.pas) % o.pas; ctx.fillStyle = "rgba(15,27,45,.28)";
+        for (var x = -off; x < c.W + o.pas; x += o.pas) ctx.fillRect(Math.round(x), y + 6, 2, 7); } },
+    /* bloc ombré : cx = centre, by = bas */
+    box: function(c, cx, by, w, h, col, label, o){ o = o || {}; var ctx = c.ctx; ctx.save();
+      ctx.shadowColor = "rgba(15,27,45,.22)"; ctx.shadowBlur = 8; ctx.shadowOffsetY = 3;
+      rr(ctx, cx - w / 2, by - h, w, h, o.r == null ? 5 : o.r); ctx.fillStyle = lin(ctx, 0, by - h, 0, by, [[0, shade(col, 0.28)], [1, shade(col, -0.08)]]); ctx.fill();
+      ctx.shadowColor = "transparent"; ctx.lineWidth = 1.5; ctx.strokeStyle = shade(col, -0.35); ctx.stroke();
+      ctx.fillStyle = "rgba(255,255,255,.28)"; rr(ctx, cx - w / 2 + 3, by - h + 3, w - 6, Math.min(8, h / 4), 3); ctx.fill(); ctx.restore();
+      if (label) S.draw.text(c, label, cx, by - h / 2 + 2, {size: o.size || 12.5, color: o.tc || "#fff"}); },
+    /* bloc incliné (rotation ang autour de son centre) */
+    tilted: function(c, cx, cy, w, h, ang, col, label, o){ var ctx = c.ctx; ctx.save(); ctx.translate(cx, cy); ctx.rotate(ang);
+      ctx.shadowColor = "rgba(15,27,45,.22)"; ctx.shadowBlur = 7; ctx.shadowOffsetY = 3;
+      rr(ctx, -w / 2, -h / 2, w, h, 4); ctx.fillStyle = lin(ctx, 0, -h / 2, 0, h / 2, [[0, shade(col, 0.3)], [1, shade(col, -0.1)]]); ctx.fill(); ctx.shadowColor = "transparent";
+      ctx.lineWidth = 1.5; ctx.strokeStyle = shade(col, -0.35); ctx.stroke(); ctx.restore();
+      if (label) S.draw.text(c, label, cx, cy, {size: (o && o.size) || 11.5, color: "#fff"}); },
+    /* polygone dégradé (pente, colline) */
+    slope: function(c, pts, c0, c1, y0, y1){ var ctx = c.ctx; ctx.beginPath(); pts.forEach(function(p, i){ if (i) ctx.lineTo(p[0], p[1]); else ctx.moveTo(p[0], p[1]); }); ctx.closePath();
+      ctx.fillStyle = lin(ctx, 0, y0, 0, y1, [[0, c0 || "#eef2f7"], [1, c1 || "#cdd6e2"]]); ctx.fill(); ctx.strokeStyle = "#8a95a3"; ctx.lineWidth = 2; ctx.lineJoin = "round"; ctx.stroke(); },
+    /* chariot à roues */
+    cart: function(c, cx, by, w, h, col, label, o){ var ctx = c.ctx, rw = Math.max(4, h * 0.15);
+      P.box(c, cx, by - rw, w, h - rw, col, label, o);
+      [-0.3, 0.3].forEach(function(f){ ctx.fillStyle = "#13233a"; ctx.beginPath(); ctx.arc(cx + f * w, by - rw, rw, 0, TAU); ctx.fill(); ctx.fillStyle = "#9aa6b6"; ctx.beginPath(); ctx.arc(cx + f * w, by - rw, rw * 0.4, 0, TAU); ctx.fill(); }); },
+    /* sphère ombrée */
+    ball: function(c, x, y, r, col){ var ctx = c.ctx; ctx.save();
+      ctx.shadowColor = "rgba(15,27,45,.25)"; ctx.shadowBlur = r * 0.6; ctx.shadowOffsetY = r * 0.25;
+      var g = ctx.createRadialGradient(x - r * 0.35, y - r * 0.4, r * 0.1, x, y, r); g.addColorStop(0, shade(col, 0.55)); g.addColorStop(0.55, col); g.addColorStop(1, shade(col, -0.4));
+      ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, r, 0, TAU); ctx.fill(); ctx.restore(); },
+    /* astre avec reflet (sans ombre portée) */
+    planet: function(c, x, y, r, col, atmo){ var ctx = c.ctx; ctx.save();
+      if (atmo){ var g0 = ctx.createRadialGradient(x, y, r * 0.95, x, y, r * 1.18); g0.addColorStop(0, S.draw.tint(atmo, 0.5)); g0.addColorStop(1, S.draw.tint(atmo, 0)); ctx.fillStyle = g0; ctx.beginPath(); ctx.arc(x, y, r * 1.18, 0, TAU); ctx.fill(); }
+      var g = ctx.createRadialGradient(x - r * 0.4, y - r * 0.4, r * 0.1, x, y, r * 1.05); g.addColorStop(0, shade(col, 0.45)); g.addColorStop(0.6, col); g.addColorStop(1, shade(col, -0.5));
+      ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, r, 0, TAU); ctx.fill(); ctx.restore(); },
+    /* bonhomme simple : cx, by (pieds), h */
+    person: function(c, cx, by, h, col, o){ o = o || {}; var ctx = c.ctx; ctx.save(); ctx.lineCap = "round"; ctx.strokeStyle = col; ctx.fillStyle = col;
+      var hd = h * 0.13, ty = by - h + hd * 2.2, hy = by - h * 0.42, lean = (o.lean || 0) * h;
+      ctx.lineWidth = Math.max(4, h * 0.11); ctx.beginPath(); ctx.moveTo(cx + lean, ty); ctx.lineTo(cx, hy); ctx.stroke();
+      ctx.lineWidth = Math.max(3, h * 0.08); ctx.beginPath(); ctx.moveTo(cx, hy); ctx.lineTo(cx - h * 0.12, by); ctx.moveTo(cx, hy); ctx.lineTo(cx + h * 0.12, by); ctx.stroke();
+      var ax = o.arm == null ? 0.18 : o.arm; ctx.beginPath(); ctx.moveTo(cx + lean * 0.8, ty + h * 0.08); ctx.lineTo(cx + lean * 0.8 + h * ax * (o.dir || 1), ty + h * 0.2); ctx.stroke();
+      ctx.beginPath(); ctx.arc(cx + lean * 1.2, by - h + hd, hd, 0, TAU); ctx.fill(); ctx.restore();
+      if (o.label) S.draw.text(c, o.label, cx + lean * 0.5, ty + h * 0.16, {size: Math.max(10, h * 0.16), color: "#fff"}); },
+    /* ressort / câble en zigzag entre deux points */
+    coil: function(c, x1, y1, x2, y2, n, amp, col, w){ var ctx = c.ctx, dx = x2 - x1, dy = y2 - y1, L = Math.hypot(dx, dy) || 1, ux = dx / L, uy = dy / L, nx = -uy, ny = ux;
+      ctx.save(); ctx.strokeStyle = col || "#6b7685"; ctx.lineWidth = w || 2; ctx.lineJoin = "round"; ctx.beginPath(); ctx.moveTo(x1, y1);
+      for (var i = 1; i < n * 2; i++){ var t = i / (n * 2), s = (i % 2 ? 1 : -1) * amp; ctx.lineTo(x1 + dx * t + nx * s, y1 + dy * t + ny * s); }
+      ctx.lineTo(x2, y2); ctx.stroke(); ctx.restore(); },
+    /* poignée à saisir (cercle blanc cerclé de couleur, avec halo) */
+    handle: function(c, x, y, col, r, on){ var ctx = c.ctx; r = r || 9; ctx.save();
+      ctx.fillStyle = S.draw.tint(col, on ? 0.3 : 0.16); ctx.beginPath(); ctx.arc(x, y, r + 6, 0, TAU); ctx.fill();
+      ctx.fillStyle = "#fff"; ctx.strokeStyle = col; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(x, y, r, 0, TAU); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = col; ctx.beginPath(); ctx.arc(x, y, r * 0.35, 0, TAU); ctx.fill(); ctx.restore(); },
+    /* manipulation directe : handles() → [{x, y, set(px, py), r}] ; renvoie l'indice saisi via st.i */
+    drag: function(c, k, handles, onEnd){ var st = {i: -1, hover: -1};
+      c.pointer(function(type, p){
+        var hs = handles(); if (!hs) return;
+        if (type === "down" || type === "move" || type === "drag"){
+          if (type === "down"){ var best = -1, bd = 1e9; hs.forEach(function(h, i){ var d = Math.hypot(p.x - h.x, p.y - h.y); if (d < (h.r || 26) && d < bd){ bd = d; best = i; } }); st.i = best; }
+          if (type !== "down" && st.i < 0){ var hv = -1; hs.forEach(function(h, i){ if (Math.hypot(p.x - h.x, p.y - h.y) < (h.r || 26)) hv = i; }); if (hv !== st.hover){ st.hover = hv; c.cv.style.cursor = hv >= 0 ? "grab" : ""; } }
+          if (st.i >= 0 && type !== "move"){ hs[st.i].set(p.x, p.y); c.cv.style.cursor = "grabbing"; k.redraw(); }
+        } else if (type === "up"){ if (st.i >= 0 && onEnd) onEnd(st.i); st.i = -1; c.cv.style.cursor = st.hover >= 0 ? "grab" : ""; }
+      }); c.cv.style.touchAction = "none"; return st; },
+    /* petit encart d'instruction en haut à gauche */
+    hint: function(c, s, o){ o = o || {}; S.draw.text(c, s, o.x == null ? 12 : o.x, o.y == null ? 14 : o.y, {align: o.align || "left", size: o.size || 12, color: o.color || "#6b7685", weight: 700}); },
+    /* bandeau de résultat centré (succès / alerte) */
+    banner: function(c, s, col, y, o){ S.draw.label(c, s, c.W / 2, y == null ? 22 : y, Object.assign({color: col, size: 13}, o || {})); },
+    /* texte en pastille (taille lisible sur téléphone) */
+    tag: function(c, s, x, y, col, o){ S.draw.label(c, s, x, y, Object.assign({color: col, size: 12}, o || {})); },
+    /* palette de la matière (physique) */
+    ice: "#e3f0fa", wood: "#c9a77c"
+  };
+  /* fond d'espace étoilé (positions pseudo-aléatoires fixes) */
+  P.space = function(c, a){
+    var ctx = c.ctx; ctx.fillStyle = P5x.lin(ctx, 0, 0, 0, c.H, [[0, "#0b1530"], [1, "#16254d"]]); ctx.fillRect(0, 0, c.W, c.H);
+    var s = 7; for (var i = 0; i < 70; i++){ s = (s * 9301 + 49297) % 233280; var x = s / 233280 * c.W; s = (s * 9301 + 49297) % 233280; var y = s / 233280 * c.H; s = (s * 9301 + 49297) % 233280;
+      ctx.fillStyle = "rgba(255,255,255," + (0.25 + 0.5 * s / 233280).toFixed(2) + ")"; ctx.fillRect(x, y, 1.6, 1.6); }
+  };
+  return P;
+})();
+
 /* Chapitre 1 · Vecteurs, composition et décomposition des forces */
 SFA.sim({
   id: "p5-c01-somme", ch: "c01", tag: "Vecteurs",
@@ -74,16 +168,21 @@ SFA.sim({
     var dfi = 0, defis = [["la composante P∥ vaut la moitié du poids", "par", 0.5], ["la composante P⊥ vaut la moitié du poids", "perp", 0.5], ["P∥ et P⊥ sont égales", "egal", 1]];
     var tgt = k.note("", "");
     k.button("Nouveau défi", function(){ dfi = (dfi + 1) % defis.length; });
+    var G = {x: 0, y: 0, bx: 0, by: 0};
+    /* manipulation directe : on tire le sommet du plan pour changer l'angle */
+    P5x.drag(c, k, function(){ return [{x: G.x, y: G.y, r: 34, set: function(px, py){ a.set(Math.round(P5.clamp(Math.atan2(G.by - py, px - G.bx) * 180 / Math.PI, 0, 90))); }}]; });
     k.draw(function(){
-      c.clear();
+      P5x.sky(c, "#f5f9fd", "#e8eff7");
       var al = a.value * Math.PI / 180, P = m.value * P5.g, pal = S.draw.palette, ctx = c.ctx;
       var bx = 30, by = c.H - 40, L = Math.min(c.W - 70, 420), Hh = Math.min(L * Math.tan(al), c.H - 100);
       var Lx = Hh === L * Math.tan(al) ? L : Hh / Math.tan(al);
       if (a.value >= 89.5){ Lx = 0.001; Hh = c.H - 100; }
       /* triangle */
-      ctx.beginPath(); ctx.moveTo(bx, by); ctx.lineTo(bx + Lx, by); ctx.lineTo(bx + Lx, by - Hh); ctx.closePath();
-      ctx.fillStyle = "#e9edf3"; ctx.fill(); ctx.strokeStyle = "#8a95a3"; ctx.lineWidth = 2; ctx.stroke();
-      S.draw.text(c, "α", bx + 38, by - 8, {color: pal.ink});
+      G.bx = bx; G.by = by; G.x = bx + Lx; G.y = by - Hh;
+      P5x.slope(c, [[bx, by], [bx + Lx, by], [bx + Lx, by - Hh]], "#e9eef5", "#c4cedc", by - Hh, by);
+      ctx.strokeStyle = pal.ink; ctx.lineWidth = 1.3; ctx.beginPath(); ctx.arc(bx, by, 34, -al, 0); ctx.stroke();
+      S.draw.text(c, "α = " + S.fmt(a.value, 0) + " °", bx + 66, by - 11, {color: pal.ink, size: 12.5});
+      P5x.handle(c, G.x, G.y, pal.acc, 8);
       /* bloc au milieu de la pente */
       var s = Math.hypot(Lx, Hh), ux = Lx / s, uy = -Hh / s;    /* vecteur unitaire le long de la pente (monte) */
       var px0 = bx + Lx * 0.55, py0 = by - Hh * 0.55; if (s < 1) { px0 = bx; py0 = by; }
@@ -91,8 +190,8 @@ SFA.sim({
       if (a.value >= 89.5){ ux = 0; uy = -1; nx = -1; ny = 0; px0 = bx; py0 = by - Hh * 0.55; }
       if (a.value === 0){ ux = 1; uy = 0; nx = 0; ny = -1; px0 = bx + L * 0.5; py0 = by; }
       var cx = px0 + nx * 15, cy = py0 + ny * 15;                /* centre du bloc */
-      ctx.save(); ctx.translate(cx, cy); ctx.rotate(Math.atan2(uy, ux) * (a.value >= 89.5 ? 0 : 1)); ctx.fillStyle = "#c9d6f2"; ctx.strokeStyle = pal.acc; ctx.lineWidth = 2; ctx.fillRect(-18, -15, 36, 30); ctx.strokeRect(-18, -15, 36, 30); ctx.restore();
-      var sc = 105 / 98.1;                                       /* px par newton */
+      P5x.tilted(c, cx, cy, 40, 32, Math.atan2(uy, ux) * (a.value >= 89.5 ? 0 : 1), "#3f6fc6", "", {});
+      var sc = 95 / P;                                           /* px par newton : P garde une longueur fixe */
       var Lp = P * sc, Lpar = P * Math.sin(al) * sc, Lper = P * Math.cos(al) * sc;
       P5.vec(c, cx, cy, cx, cy + Lp, pal.ink, "P");
       /* P// vers le bas de la pente (-u), P⊥ vers l'intérieur (-n) */

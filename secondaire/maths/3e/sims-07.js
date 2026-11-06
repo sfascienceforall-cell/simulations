@@ -46,7 +46,7 @@ SFA.sim({
   aRetenir:"Dans tout triangle, la somme des angles vaut 180°. Les trois coins mis côte à côte forment un angle plat.",
   piege:"Ne mesure pas à l'œil : une figure dessinée n'est jamais une preuve. C'est la propriété qui donne 180°, pas le dessin.",
   build:function(k,S){
-    var c=k.canvas(0,{ratio:1.15}), P=S.draw.palette;
+    var c=k.canvas(0,{ratio:.95}), P=S.draw.palette;
     var V=[[0.2,0.3],[0.82,0.22],[0.45,0.04]]; V[2]=[0.5,0.05]; var sel=-1;
     var tt=k.slider("Réaligner les coins",0,1,0.05,0,"");
     k.button("Triangle quelconque",function(){ V[0]=[0.15,0.28];V[1]=[0.85,0.2];V[2]=[0.4,0.04]; });
@@ -74,7 +74,7 @@ SFA.sim({
         M3.wedge(c,cx,cy,st,a2.sweep,r,cols[i],"#fff");
         var mid=(st+a2.sweep/2)*Math.PI/180; S.draw.text(c,names[i],cx+Math.cos(mid)*(r+12),cy-Math.sin(mid)*(r+12),{size:13,color:cols[i]});
         cum+=a2.sweep; }
-      ps.forEach(function(q,i){ S.draw.dot(c,q[0],q[1],5,P.ink); });
+      ps.forEach(function(q,i){ if(t<0.02) window.M3.handle(c,q[0],q[1],cols[i],false,8); else S.draw.dot(c,q[0],q[1],4,P.ink); });
       if(t<0.01) S.draw.text(c,"Glisse les sommets",c.W/2,16,{size:12,color:P.grey});
       var flat=false; for(i=0;i<3;i++){ var q1=ps[i], q2=ps[(i+1)%3]; if(Math.hypot(q1[0]-q2[0],q1[1]-q2[1])<4) flat=true; }
       var area2=Math.abs((ps[1][0]-ps[0][0])*(ps[2][1]-ps[0][1])-(ps[2][0]-ps[0][0])*(ps[1][1]-ps[0][1])); if(area2<6) flat=true;
@@ -88,49 +88,90 @@ SFA.sim({
 SFA.sim({
   id:"m3-c07-construction", ch:"c07", tag:"Isométrie", titre:"Constructeur de triangles : combien de triangles possibles ?",
   resume:"CCC, CAC, ACA : un seul triangle. AAA et CCA (côté, côté, angle non compris) : pas toujours !",
-  but:"Choisis un cas, règle les données (la note dit quelles données sont utilisées) et regarde combien de triangles existent.",
+  but:"Choisis un cas, règle les données (les données utilisées sont affichées sur la figure) et regarde combien de triangles existent. En CCA, le cercle de rayon u autour de B coupe le rayon en 0, 1 ou 2 points.",
   aRetenir:"Deux triangles sont isométriques (superposables) si CCC, CAC ou ACA. Trois angles (AAA) ne suffisent pas : on obtient des triangles semblables de tailles différentes.",
   piege:"Deux côtés et un angle NON compris entre eux (CCA) peuvent donner 0, 1 ou 2 triangles : ce n'est pas un cas d'isométrie.",
   build:function(k,S){
-    var c=k.canvas(0,{ratio:.7}), P=S.draw.palette;
+    var M3=window.M3, c=k.canvas(0,{ratio:.8}), P=S.draw.palette, T=S.draw.tint;
     var md=k.seg("Cas",[["ccc","CCC"],["cac","CAC"],["aca","ACA"],["aaa","AAA"],["ssa","CCA"]],"ccc");
     var u=k.slider("Longueur u",1,10,0.5,6,""), v=k.slider("Longueur v",1,10,0.5,5,""), w=k.slider("Longueur w",1,10,0.5,4,"");
     var al=k.slider("Angle α",20,150,1,50,"°"), be=k.slider("Angle β",20,150,1,60,"°");
     var ro=k.readouts(["Données utilisées","Triangles possibles"]); var nt=k.note("");
     var HELP={ccc:"u, v, w : les trois côtés.",cac:"u et v : deux côtés ; α : l'angle compris entre eux.",aca:"α et β : deux angles ; u : le côté entre eux.",aaa:"α et β : deux angles (le 3e se déduit) ; u : taille choisie.",ssa:"u : côté opposé à α ; v : côté adjacent à α ; α : angle non compris entre u et v."};
-    function tri(){
-      var m=md.value, U=u.value,Vv=v.value,Wd=w.value,A=al.value*Math.PI/180,B=be.value*Math.PI/180,res=[];
-      if(m==="ccc"){ if(U+Vv>Wd&&U+Wd>Vv&&Vv+Wd>U){ var a=U,b=Vv,cc=Wd, x=(a*a+cc*cc-b*b)/(2*a), y=Math.sqrt(Math.max(0,cc*cc-x*x)); res.push([[0,0],[a,0],[x,y]]); } }
-      if(m==="cac"){ res.push([[0,0],[Vv,0],[U*Math.cos(A),U*Math.sin(A)]]); }
-      if(m==="aca"){ if(al.value+be.value<180){ var sA=Math.sin(Math.PI-A-B); var ab=U*Math.sin(B)/sA; res.push([[0,0],[U,0],[ab*Math.cos(A),ab*Math.sin(A)]]); } }
-      if(m==="aaa"){ if(al.value+be.value<180){ [U,U*1.6].forEach(function(sc){ var sA=Math.sin(Math.PI-A-B), ab=sc*Math.sin(B)/sA; res.push([[0,0],[sc,0],[ab*Math.cos(A),ab*Math.sin(A)]]); }); } }
-      if(m==="ssa"){ var disc=U*U-Vv*Vv*Math.sin(A)*Math.sin(A), h=Vv*Math.sin(A);
-        if(Math.abs(U-h)<1e-9){ if(Vv*Math.cos(A)>1e-9) res.push([[0,0],[Vv,0],[Vv*Math.cos(A)*Math.cos(A)/1*1,Vv*Math.cos(A)*Math.sin(A)]]); }
-        else if(disc>0){ [1,-1].forEach(function(sg){ var t=Vv*Math.cos(A)+sg*Math.sqrt(disc); if(t>1e-9) res.push([[0,0],[Vv,0],[t*Math.cos(A),t*Math.sin(A)]]); }); } }
-      return res;
+    function build(){
+      var m=md.value, U=u.value, V=v.value, W=w.value, A=al.value*Math.PI/180, B=be.value*Math.PI/180, g={tris:[],arcs:[],ext:[[0,0]],rays:[]};
+      if(m==="ccc"){ /* AB = w, AC = v, BC = u */
+        if(U+V>W&&U+W>V&&V+W>U){ var x=(V*V+W*W-U*U)/(2*W), y=Math.sqrt(Math.max(0,V*V-x*x)); g.tris.push([[0,0],[W,0],[x,y]]);
+          var a1=Math.atan2(y,x), a2=Math.atan2(y,x-W); g.arcs.push({cx:0,cy:0,r:V,a0:a1-0.45,a1:a1+0.45,col:P.acc}); g.arcs.push({cx:W,cy:0,r:U,a0:a2-0.45,a1:a2+0.45,col:P.amber}); }
+        else { g.ext.push([W,0]); g.arcs.push({cx:0,cy:0,r:V,a0:0,a1:Math.PI/2,col:P.acc}); g.arcs.push({cx:W,cy:0,r:U,a0:Math.PI/2,a1:Math.PI,col:P.amber}); } }
+      if(m==="cac"){ g.tris.push([[0,0],[V,0],[U*Math.cos(A),U*Math.sin(A)]]); }
+      if(m==="aca"){ if(al.value+be.value<180){ var ab=U*Math.sin(B)/Math.sin(A+B); g.tris.push([[0,0],[U,0],[ab*Math.cos(A),ab*Math.sin(A)]]); } else { g.ext.push([U,0]); g.rays.push([0,0,A,U*1.3]); g.rays.push([U,0,Math.PI-B,U*1.3]); } }
+      if(m==="aaa"){ if(al.value+be.value<180){ [U,U*1.6].forEach(function(sc){ var ab=sc*Math.sin(B)/Math.sin(A+B); g.tris.push([[0,0],[sc,0],[ab*Math.cos(A),ab*Math.sin(A)]]); }); } }
+      if(m==="ssa"){ /* AB = v, angle α en A, BC = u */
+        var h=V*Math.sin(A), disc=U*U-h*h, ts=[];
+        if(Math.abs(disc)<1e-9){ ts=[V*Math.cos(A)]; } else if(disc>0){ ts=[V*Math.cos(A)+Math.sqrt(disc),V*Math.cos(A)-Math.sqrt(disc)]; }
+        ts.forEach(function(t){ if(t>1e-9) g.tris.push([[0,0],[V,0],[t*Math.cos(A),t*Math.sin(A)]]); });
+        g.arcs.push({cx:V,cy:0,r:U,a0:0,a1:Math.PI,col:P.amber}); g.ext.push([V,0]); g.rays.push([0,0,A,Math.max(V,U,V*Math.cos(A)+Math.sqrt(Math.max(0,disc)))*1.12]); g.h=h; g.V=V; g.A=A; }
+      return g;
     }
     k.draw(function(){
-      c.clear(); var T=tri(), m=md.value, ctx=c.ctx, names=["A","B","C"];
-      var all=[]; T.forEach(function(t){ t.forEach(function(p){all.push(p);}); });
-      if(m==="ssa"&&T.length){ all.push([0,0]); }
-      var sc;
-      if(all.length){ var mx=Math.max.apply(null,all.map(function(p){return p[0];})), mn=Math.min.apply(null,all.map(function(p){return p[0];})), my=Math.max.apply(null,all.map(function(p){return p[1];}));
-        sc=Math.min((c.W-50)/Math.max(0.1,mx-mn),(c.H-60)/Math.max(0.1,my)); var ox=25-mn*sc, oy=c.H-28;
-        T.forEach(function(t,i){ ctx.beginPath(); t.forEach(function(p,j){ var X=ox+p[0]*sc,Y=oy-p[1]*sc; if(j===0) ctx.moveTo(X,Y); else ctx.lineTo(X,Y); }); ctx.closePath();
-          ctx.fillStyle=i===0?"rgba(30,63,143,.18)":"rgba(180,35,24,.14)"; ctx.fill(); ctx.strokeStyle=i===0?P.acc:P.red; ctx.lineWidth=2.4; ctx.stroke();
-          if(i===0) t.forEach(function(p,j){ S.draw.text(c,names[j],ox+p[0]*sc+(j===0?-12:j===1?12:0),oy-p[1]*sc+(j===2?-12:12),{size:13}); }); });
-      } else S.draw.text(c,"Aucun triangle ne convient",c.W/2,c.H/2,{size:15,color:P.red});
-      ro.set(0,HELP[m]); 
-      var n=T.length, txt;
+      c.clear(); var ctx=c.ctx, g=build(), m=md.value, fs=M3.sz(c,14), names=["A","B","C"];
+      /* cadre de la figure : tous les points utiles */
+      var pts=g.ext.slice(); g.tris.forEach(function(t){ t.forEach(function(q){pts.push(q);}); });
+      g.arcs.forEach(function(a){ [a.a0,a.a1,(a.a0+a.a1)/2].forEach(function(an){ pts.push([a.cx+a.r*Math.cos(an),a.cy+a.r*Math.sin(an)]); }); });
+      g.rays.forEach(function(r){ pts.push([r[0]+r[3]*Math.cos(r[2]),r[1]+r[3]*Math.sin(r[2])]); });
+      var xs=pts.map(function(q){return q[0];}), ys=pts.map(function(q){return q[1];});
+      var mnx=Math.min.apply(null,xs), mxx=Math.max.apply(null,xs), mny=Math.min.apply(null,ys.concat([0])), mxy=Math.max.apply(null,ys.concat([1]));
+      var sc=Math.min((c.W-70)/Math.max(0.5,mxx-mnx),(c.H-120)/Math.max(0.5,mxy-mny)), ox=(c.W-(mxx-mnx)*sc)/2-mnx*sc, oy=c.H-52+mny*sc;
+      function X(p){ return ox+p[0]*sc; } function Y(p){ return oy-p[1]*sc; }
+      /* sol */
+      S.draw.line(c,18,oy,c.W-18,oy,"#e3e7ed",1.5);
+      /* arcs de compas et rayons */
+      g.arcs.forEach(function(a){ ctx.save(); ctx.strokeStyle=T(a.col,0.7); ctx.lineWidth=2; ctx.setLineDash([6,5]); ctx.beginPath(); ctx.arc(ox+a.cx*sc,oy-a.cy*sc,a.r*sc,-a.a1,-a.a0); ctx.stroke(); ctx.restore(); });
+      g.rays.forEach(function(r){ S.draw.line(c,ox+r[0]*sc,oy-r[1]*sc,ox+(r[0]+r[3]*Math.cos(r[2]))*sc,oy-(r[1]+r[3]*Math.sin(r[2]))*sc,T(P.grey,0.9),1.8,[3,4]); });
+      /* hauteur en CCA */
+      if(m==="ssa"){ var A0=g.A, fx=g.V*Math.cos(A0)*Math.cos(A0)*0, hx=(g.V*Math.cos(A0)), hy=(g.V*Math.sin(A0)*0);
+        var fpx=g.V*Math.cos(A0)*Math.cos(A0), fpy=g.V*Math.cos(A0)*Math.sin(A0);   /* pied de la perpendiculaire issue de B */
+        S.draw.line(c,X([g.V,0]),Y([0,0]),X([fpx,fpy]),Y([fpx,fpy]),T(P.green,0.8),2,[2,4]);
+        S.draw.label(c,"h = "+S.fmt(g.h,2),(X([g.V,0])+X([fpx,fpy]))/2+14,(Y([0,0])+Y([fpx,fpy]))/2,{color:P.green,size:fs-2}); }
+      /* triangles */
+      g.tris.forEach(function(t,i){
+        ctx.beginPath(); t.forEach(function(p,j){ j?ctx.lineTo(X(p),Y(p)):ctx.moveTo(X(p),Y(p)); }); ctx.closePath();
+        var col=(m==="aaa"||i===1)?P.red:P.acc; ctx.fillStyle=T(col,i===1&&m!=="aaa"?0.12:0.16); ctx.fill();
+        ctx.save(); ctx.lineWidth=2.8; ctx.strokeStyle=col; ctx.lineJoin="round"; if(i===1) ctx.setLineDash([8,5]); ctx.stroke(); ctx.restore();
+        t.forEach(function(p,j){ S.draw.dot(c,X(p),Y(p),4.5,col); });
+        if(i===0||m==="aaa"&&i===1){ t.forEach(function(p,j){ if(i===1&&m==="aaa"&&j!==2) return; var dx=j===0?-14:j===1?14:0, dy=j===2?-16:16; S.draw.text(c,j===2&&g.tris.length===2&&m==="ssa"?"C₁":names[j],X(p)+dx,Y(p)+dy,{size:fs,color:col,math:true}); }); }
+        if(i===1&&m==="ssa") S.draw.text(c,"C₂",X(t[2])+(t[2][0]<g.tris[0][2][0]?-16:16),Y(t[2])-12,{size:fs,color:col,math:true});
+      });
+      /* données affichées sur la figure */
+      var t0=g.tris[0];
+      function sideLab(p,q,txt,col,off){ var mx=(X(p)+X(q))/2, my=(Y(p)+Y(q))/2, dx=Y(q)-Y(p), dy=-(X(q)-X(p)), L=Math.hypot(dx,dy)||1; S.draw.label(c,txt,mx+dx/L*off,my+dy/L*off,{color:col,size:fs-2}); }
+      function angLab(p,a0,a1,txt,col){ var r=Math.min(34,0.2*sc*3); ctx.save(); ctx.strokeStyle=col; ctx.lineWidth=2.4; ctx.beginPath(); ctx.arc(X(p),Y(p),r,-a1,-a0); ctx.stroke(); ctx.restore();
+        var mid=(a0+a1)/2; S.draw.text(c,txt,X(p)+Math.cos(mid)*(r+17),Y(p)-Math.sin(mid)*(r+17),{size:fs-2,color:col}); }
+      if(t0&&m!=="aaa"){
+        var Aa=al.value*Math.PI/180;
+        if(m==="ccc"){ sideLab(t0[0],t0[1],"w = "+S.fmt(w.value,1),P.ink,-18); sideLab(t0[0],t0[2],"v = "+S.fmt(v.value,1),P.acc,18); sideLab(t0[1],t0[2],"u = "+S.fmt(u.value,1),P.amber,-18); }
+        if(m==="cac"){ sideLab(t0[0],t0[1],"v = "+S.fmt(v.value,1),P.ink,-18); sideLab(t0[0],t0[2],"u = "+S.fmt(u.value,1),P.amber,18); angLab(t0[0],0,Aa,"α = "+S.fmt(al.value,0)+"°",P.red); }
+        if(m==="aca"){ sideLab(t0[0],t0[1],"u = "+S.fmt(u.value,1),P.ink,-18); angLab(t0[0],0,Aa,"α = "+S.fmt(al.value,0)+"°",P.red); angLab(t0[1],Math.PI-be.value*Math.PI/180,Math.PI,"β = "+S.fmt(be.value,0)+"°",P.acc); }
+        if(m==="ssa"){ sideLab(t0[0],t0[1],"v = "+S.fmt(v.value,1),P.ink,-18); angLab(t0[0],0,Aa,"α = "+S.fmt(al.value,0)+"°",P.red); S.draw.line(c,X(t0[1]),Y(t0[1]),X(t0[2]),Y(t0[2]),P.amber,3); sideLab(t0[1],t0[2],"u = "+S.fmt(u.value,1),P.amber,18); }
+      } else if(m==="ssa"){ S.draw.line(c,X([0,0]),Y([0,0]),X([g.V,0]),Y([0,0]),P.ink,3); angLab([0,0],0,g.A,"α = "+S.fmt(al.value,0)+"°",P.red); S.draw.text(c,"A",X([0,0])-14,Y([0,0])+16,{size:fs,math:true}); S.draw.text(c,"B",X([g.V,0])+14,Y([0,0])+16,{size:fs,math:true}); }
+      else if(m==="ccc"){ S.draw.line(c,X([0,0]),Y([0,0]),X([w.value,0]),Y([0,0]),P.ink,3); S.draw.text(c,"A",X([0,0])-14,Y([0,0])+16,{size:fs,math:true}); S.draw.text(c,"B",X([w.value,0])+14,Y([0,0])+16,{size:fs,math:true}); }
+      else if(m==="aca"){ S.draw.line(c,X([0,0]),Y([0,0]),X([u.value,0]),Y([0,0]),P.ink,3); }
+      if(m==="aaa"&&g.tris.length){ angLab(g.tris[0][0],0,al.value*Math.PI/180,"α",P.red); angLab(g.tris[0][1],Math.PI-be.value*Math.PI/180,Math.PI,"β",P.acc);
+        S.draw.label(c,"2 tailles, mêmes angles",c.W/2,18,{color:P.red,size:fs-1}); }
+      var n=g.tris.length, txt, col;
       if(m==="aaa") txt=al.value+be.value<180?"une infinité (tailles différentes)":"aucun (α + β ≥ 180°)";
       else txt=n===0?"aucun":n===1?"un seul":"deux";
-      ro.set(1,txt);
-      if(m==="ccc") nt.set(n?"Un seul triangle (à isométrie près).":"Impossible : il faut que chaque côté soit plus petit que la somme des deux autres.",n?"ok":"warn");
+      col=m==="aaa"?P.red:(n===1?P.green:n===2?P.amber:P.red);
+      if(m!=="aaa") S.draw.label(c,n===0?"Aucun triangle":n===1?"1 triangle":"2 triangles",c.W/2,18,{color:col,size:fs+2});
+      ro.set(0,HELP[m]); ro.set(1,txt);
+      var nn=g.tris.length;
+      if(m==="ccc") nt.set(nn?"Un seul triangle (à isométrie près) : les deux arcs de compas se coupent en C.":"Impossible : les deux arcs ne se coupent pas. Chaque côté doit être plus petit que la somme des deux autres.",nn?"ok":"warn");
       else if(m==="cac") nt.set("Toujours un seul triangle : l'angle est compris entre les deux côtés.","ok");
-      else if(m==="aca") nt.set(n?"Un seul triangle : le côté est compris entre les deux angles.":"Impossible : α + β doit être inférieur à 180°.",n?"ok":"warn");
+      else if(m==="aca") nt.set(nn?"Un seul triangle : le côté est compris entre les deux angles.":"Impossible : α + β doit être inférieur à 180°, les deux rayons ne se rejoignent pas.",nn?"ok":"warn");
       else if(m==="aaa") nt.set(al.value+be.value<180?"Les deux triangles ont les mêmes angles mais pas les mêmes côtés : ils sont semblables, pas isométriques.":"Impossible : α + β doit être inférieur à 180°.","warn");
-      else if(al.value>=90) nt.set("α est droit ou obtus : il n'y a un triangle que si u > v ("+S.fmt(u.value,1)+(u.value>v.value?" > ":" ≤ ")+S.fmt(v.value,1)+" : "+(n?"un seul triangle":"aucun triangle")+"). Pour α aigu, on peut en avoir deux : CCA n'est donc pas un cas d'isométrie.","warn");
-      else nt.set("Hauteur de v : "+S.fmt(v.value*Math.sin(al.value*Math.PI/180),2)+". Si u est plus petit que la hauteur : aucun triangle ; si u est égal à la hauteur : un seul (rectangle) ; entre la hauteur et v : deux triangles ; si u ≥ v : un seul. CCA n'est donc pas un cas d'isométrie.",n===2?"warn":"ok");
+      else if(al.value>=90) nt.set("α est droit ou obtus : il y a un triangle seulement si u > v ("+S.fmt(u.value,1)+(u.value>v.value?" > ":" ≤ ")+S.fmt(v.value,1)+" : "+(nn?"un seul triangle":"aucun triangle")+"). Pour α aigu, on peut en avoir deux : CCA n'est donc pas un cas d'isométrie.","warn");
+      else nt.set("Hauteur issue de B : h = v sin α = "+S.fmt(v.value*Math.sin(al.value*Math.PI/180),2)+". Si u < h : aucun triangle ; u = h : un seul (rectangle) ; h < u < v : deux triangles ; u ≥ v : un seul. CCA n'est donc pas un cas d'isométrie.",nn===2?"warn":"ok");
     });
   }
 });

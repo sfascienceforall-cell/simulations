@@ -22,19 +22,22 @@ SFA.sim({
     var cc=k.slider("c",-6,6,0.5,-3,"");
     var ro=k.readouts(["Équation","Sommet","Axe de symétrie","Zéros (Δ = b² − 4ac)"]);
     var nt=k.note("","");
+    var M=window.M4, geo={};
+    M.grab(c,function(){ if(!geo.ax||a.value===0) return []; var A=a.value,B=b.value,C=cc.value, xs=-B/(2*A); return [{id:"s",x:geo.ax.X(xs),y:geo.ax.Y(A*xs*xs+B*xs+C),r:24},{id:"c",x:geo.ax.X(0),y:geo.ax.Y(C),r:20}]; },
+      function(id,px,py){ var ax=geo.ax; if(id==="c") cc.set(M.clamp(Math.round(ax.iy(py)*2)/2,-6,6)); else b.set(M.clamp(Math.round(-2*a.value*ax.ix(px)*2)/2,-6,6)); k.redraw(); });
     k.draw(function(){
       var A=a.value,B=b.value,C=cc.value;
       c.clear();
-      var ax=S.draw.axes(c,{x0:-8,x1:8,y0:-8,y1:8,xl:"x",yl:"y",stepX:2,stepY:2});
+      var ax=geo.ax=S.draw.axes(c,{x0:-8,x1:8,y0:-8,y1:8,xl:"x",yl:"y",stepX:2,stepY:2});
       var f=function(x){return A*x*x+B*x+C;};
       if(A!==0){
         var xs=-B/(2*A), ys=f(xs);
         S.draw.line(c,ax.X(xs),ax.T,ax.X(xs),ax.B,P.grey,1.5,[5,4]);
         S.draw.fn(c,ax,f,P.acc,3);
-        if(Math.abs(xs)<=8&&Math.abs(ys)<=8) S.draw.dot(c,ax.X(xs),ax.Y(ys),7,P.red);
+        if(Math.abs(xs)<=8&&Math.abs(ys)<=8){ M.handle(c,ax.X(xs),ax.Y(ys),P.red,6.5); M.lab(c,"S ("+S.fmt(xs,2)+" ; "+S.fmt(ys,2)+")",ax.X(xs)+(xs>3?-52:52),ax.Y(ys)+(A>0?20:-20),P.red,{size:11}); }
         var D=B*B-4*A*C;
-        if(D>=0){ var r=Math.sqrt(D); [(-B-r)/(2*A),(-B+r)/(2*A)].forEach(function(x){ if(Math.abs(x)<=8) S.draw.dot(c,ax.X(x),ax.Y(0),5,P.green); }); }
-        S.draw.dot(c,ax.X(0),ax.Y(C),5,P.amber);
+        if(D>=0){ var r=Math.sqrt(D); [(-B-r)/(2*A),(-B+r)/(2*A)].forEach(function(x){ if(Math.abs(x)<=8){ S.draw.dot(c,ax.X(x),ax.Y(0),5.5,P.green); M.lab(c,S.fmt(x,2),ax.X(x),ax.Y(0)+(A>0?17:-17),P.green,{size:10.5}); } }); }
+        M.handle(c,ax.X(0),ax.Y(C),P.amber,5.5); M.lab(c,"c = "+S.fmt(C,1),ax.X(0)+(xs>0?-34:34),ax.Y(C)+(C>ys?-14:14),P.amber,{size:10.5});
         ro.set(1,"("+S.fmt(xs,2)+" ; "+S.fmt(ys,2)+")");
         ro.set(2,"x = "+S.fmt(xs,2));
         ro.set(3, D<0 ? "aucun (Δ = "+S.fmt(D,2)+" < 0)" : (D===0 ? "un seul : x = "+S.fmt(xs,2)+" (Δ = 0)" : S.fmt((-B-Math.sqrt(D))/(2*A),2)+" et "+S.fmt((-B+Math.sqrt(D))/(2*A),2)+" (Δ = "+S.fmt(D,2)+")"));
@@ -64,15 +67,18 @@ SFA.sim({
     var kk=k.slider("k (ordonnée du sommet)",-6,6,0.5,-1,"");
     var ro=k.readouts(["Forme canonique","Forme développée","b = −2ah","c = ah² + k"]);
     var nt=k.note("","");
+    var M=window.M4, geo={};
+    M.grab(c,function(){ return geo.ax?[{id:"v",x:geo.ax.X(h.value),y:geo.ax.Y(kk.value),r:26}]:[]; },
+      function(id,px,py){ h.set(M.clamp(Math.round(geo.ax.ix(px)*2)/2,-5,5)); kk.set(M.clamp(Math.round(geo.ax.iy(py)*2)/2,-6,6)); k.redraw(); });
     k.draw(function(){
       var A=a.value,H=h.value,K=kk.value;
       c.clear();
-      var ax=S.draw.axes(c,{x0:-8,x1:8,y0:-8,y1:8,xl:"x",yl:"y",stepX:2,stepY:2});
+      var ax=geo.ax=S.draw.axes(c,{x0:-8,x1:8,y0:-8,y1:8,xl:"x",yl:"y",stepX:2,stepY:2});
       if(A===0){ ro.set(0,"y = "+S.fmt(K)); ro.set(1,"droite horizontale"); ro.set(2,"—"); ro.set(3,"—"); nt.set("a = 0 : plus de parabole.","warn"); S.draw.fn(c,ax,function(){return K;},P.acc,3); return; }
       var f=function(x){return A*(x-H)*(x-H)+K;};
       S.draw.line(c,ax.X(H),ax.T,ax.X(H),ax.B,P.grey,1.5,[5,4]);
       S.draw.fn(c,ax,f,P.acc,3);
-      S.draw.dot(c,ax.X(H),ax.Y(K),7,P.red);
+      M.handle(c,ax.X(H),ax.Y(K),P.red,6.5); M.lab(c,"sommet ("+S.fmt(H,1)+" ; "+S.fmt(K,1)+")",ax.X(H)+(H>3?-62:62),ax.Y(K)+(A>0?20:-20),P.red,{size:11});
       var B=-2*A*H, C=A*H*H+K;
       var ca=(A===1?"":(A===-1?"−":S.fmt(A)))+"(x "+(H<0?"+ "+S.fmt(-H):(H>0?"− "+S.fmt(H):""))+")²"; if(H===0) ca=(A===1?"":(A===-1?"−":S.fmt(A)))+"x²";
       ro.set(0,"y = "+ca+(K===0?"":(K<0?" − "+S.fmt(-K):" + "+S.fmt(K))));
@@ -135,6 +141,9 @@ SFA.sim({
     var x=k.slider("Largeur x",0,60,0.5,10,"m");
     var ro=k.readouts(["Longueur F − 2x","Aire A(x)","Aire maximale","Largeur optimale"]);
     var nt=k.note("","");
+    var M=window.M4, geo={};
+    M.grab(c,function(){ if(!geo.ax) return []; var Fv=F.value, X=Math.min(x.value,Fv/2); return [{id:"p",x:geo.ax.X(X),y:geo.ax.Y(X*(Fv-2*X)),r:30}]; },
+      function(id,px){ x.set(M.clamp(Math.round(geo.ax.ix(px)*2)/2,0,Math.min(60,F.value/2))); k.redraw(); });
     k.draw(function(){
       var Fv=F.value, X=Math.min(x.value,Fv/2), L=Fv-2*X, A=X*L, Amax=Fv*Fv/8, xo=Fv/4;
       c.clear();
@@ -149,11 +158,11 @@ SFA.sim({
       S.draw.text(c,"x = "+S.fmt(X,1),ox-4,oy+rh/2,{size:12,color:P.green,align:"right"});
       /* graphe A(x) */
       var sub={W:W,H:H,ctx:ctx}; 
-      var ax=S.draw.axes(c,{x0:0,x1:Fv/2,y0:0,y1:Amax*1.1,xl:"x (m)",yl:"A (m²)",l:52,t:top+10,b:30,stepX:Fv/8});
+      var ax=geo.ax=S.draw.axes(c,{x0:0,x1:Fv/2,y0:0,y1:Amax*1.1,xl:"x (m)",yl:"A (m²)",l:52,t:top+10,b:30,stepX:Fv/8});
       S.draw.fn(c,ax,function(t){return t*(Fv-2*t);},P.acc,3);
-      S.draw.dot(c,ax.X(xo),ax.Y(Amax),6,P.red);
+      S.draw.dot(c,ax.X(xo),ax.Y(Amax),6,P.red); M.lab(c,"maximum "+S.fmt(Amax,0)+" m²",ax.X(xo)+(xo>Fv/4*0.9?0:0),ax.Y(Amax)-18,P.red,{size:11});
       S.draw.line(c,ax.X(X),ax.Y(0),ax.X(X),ax.Y(A),P.amber,1.5,[4,3]);
-      S.draw.dot(c,ax.X(X),ax.Y(A),7,P.amber);
+      M.handle(c,ax.X(X),ax.Y(A),P.amber,7);
       ro.set(0,S.fmt(L,1)+" m"); ro.set(1,S.fmt(A,1)+" m²"); ro.set(2,S.fmt(Amax,1)+" m²"); ro.set(3,S.fmt(xo,1)+" m");
       if(x.value>Fv/2) nt.set("Avec ce grillage, la largeur ne peut pas dépasser F/2 = "+S.fmt(Fv/2,1)+" m : on limite x.","warn");
       else if(Math.abs(X-xo)<1e-9) nt.set("Maximum atteint ! Largeur "+S.fmt(xo,1)+" m, longueur "+S.fmt(L,1)+" m (le double), aire "+S.fmt(Amax,1)+" m².","ok");
@@ -176,19 +185,23 @@ SFA.sim({
     var th=k.slider("Angle de lancer θ",10,80,1,45,"°");
     var tg=k.toggle("Montrer aussi l'angle complémentaire (90° − θ)",true);
     var ro=k.readouts(["Équation y(x)","Portée","Hauteur maximale","Durée du vol"]);
-    var g=9.81, tt=0;
+    var g=9.81, tt=0, M=window.M4, geo={};
     var lp=k.loop(function(dt){ tt+=dt; k.redraw(); });
-    k.button("Lancer / pause",function(){ if(lp.running) lp.pause(); else { tt=0; lp.play(); } },true);
+    M.grab(c,function(){ if(!geo.ax) return []; var r=th.value*Math.PI/180; return [{id:"v",x:geo.ax.X(v.value*Math.cos(r)*1.1),y:geo.ax.Y(v.value*Math.sin(r)*1.1),r:28}]; },
+      function(id,px,py){ var x=geo.ax.ix(px)/1.1, y=geo.ax.iy(py)/1.1; th.set(M.clamp(Math.round(Math.atan2(y,x)*180/Math.PI),10,80)); v.set(M.clamp(Math.round(Math.hypot(x,y)),5,25)); tt=0; if(!lp.running) lp.play(); k.redraw(); });
+    k.button("Lancer / pause",function(){ if(lp.running) lp.pause(); else { tt=0; lp.play(); } },true); lp.play();
     function traj(V,T){ var r=T*Math.PI/180; return function(x){ return x*Math.tan(r)-g*x*x/(2*V*V*Math.cos(r)*Math.cos(r)); }; }
     k.draw(function(){
       var V=v.value, T=th.value, r=T*Math.PI/180;
       var R=V*V*Math.sin(2*r)/g, Hm=V*V*Math.sin(r)*Math.sin(r)/(2*g), Tf=2*V*Math.sin(r)/g;
       c.clear();
-      var ax=S.draw.axes(c,{x0:0,x1:70,y0:0,y1:35,xl:"x (m)",yl:"y (m)",stepX:10,stepY:10});
+      var ax=geo.ax=S.draw.axes(c,{x0:0,x1:70,y0:0,y1:35,xl:"x (m)",yl:"y (m)",stepX:10,stepY:10});
+      c.ctx.save(); c.ctx.fillStyle="rgba(36,119,90,.14)"; c.ctx.fillRect(ax.L,ax.Y(0),ax.R-ax.L,5); c.ctx.restore();
       if(tg.value && T!==45){ S.draw.fn(c,ax,function(x){var y=traj(V,90-T)(x); return y<0?NaN:y;},P.amber,2.2,[6,4]); }
       S.draw.fn(c,ax,function(x){var y=traj(V,T)(x); return y<0?NaN:y;},P.acc,3);
-      S.draw.dot(c,ax.X(R/2),ax.Y(Hm),5,P.red);
-      S.draw.dot(c,ax.X(R),ax.Y(0),5,P.green);
+      S.draw.dot(c,ax.X(R/2),ax.Y(Hm),5,P.red); M.lab(c,"sommet "+S.fmt(Hm,1)+" m",ax.X(R/2),ax.Y(Hm)-17,P.red,{size:11});
+      S.draw.dot(c,ax.X(R),ax.Y(0),5,P.green); M.lab(c,"portée "+S.fmt(R,1)+" m",ax.X(R),ax.Y(0)-17,P.green,{size:11});
+      S.draw.arrow(c,ax.X(0),ax.Y(0),ax.X(V*Math.cos(r)*1.1),ax.Y(V*Math.sin(r)*1.1),P.red,2.4); M.handle(c,ax.X(V*Math.cos(r)*1.1),ax.Y(V*Math.sin(r)*1.1),P.red,6.5); M.lab(c,"v = "+S.fmt(V,0)+" m/s ; "+S.fmt(T,0)+"°",ax.R-62,ax.T+14,P.red,{size:11});
       if(lp.running||tt>0){ var tp=tt%(Tf+0.6); if(tp<=Tf){ var bx=V*Math.cos(r)*tp, by=V*Math.sin(r)*tp-g*tp*tp/2; S.draw.dot(c,ax.X(bx),ax.Y(Math.max(0,by)),8,P.red); } }
       var a=-g/(2*V*V*Math.cos(r)*Math.cos(r)), b=Math.tan(r);
       ro.set(0,"y = "+S.fmt(a,4)+"x² + "+S.fmt(b,3)+"x");

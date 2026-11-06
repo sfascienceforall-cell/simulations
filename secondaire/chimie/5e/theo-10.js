@@ -33,9 +33,9 @@ SFA.theo("c10", {
   var nb=Math.min(n,Math.floor(u*18)+1);
   skel(ox,oy,dx,dy,P.slice(0,nb),chainB(0,nb-1),BLUE_D,5,6);
   TB('C'+sub(n)+'H'+sub(2*n+2)+'  ·  '+NAMES[n-1],W*.06,H*.12,INK,22,'left');
-  TB('M = '+(14*n+2)+' g/mol',W*.06,H*.85,GREY,17,'left');
-  TB('T éb = '+TEB[n-1]+' °C',W*.06,H*.95,TEB[n-1]>20?DGREEN:DRED,17,'left');
-  TB(TEB[n-1]>20?'liquide à 20 °C':'gaz à 20 °C',W*.30,H*.95,TEB[n-1]>20?DGREEN:DRED,17,'left');
+  TB('M = '+(14*n+2)+' g/mol',W*.06,H*.77,GREY,17,'left');
+  TB('T éb = '+String(TEB[n-1]).replace('-','−')+' °C',W*.06,H*.86,TEB[n-1]>20?DGREEN:DRED,17,'left');
+  TB(TEB[n-1]>20?'liquide à 20 °C':'gaz à 20 °C',W*.06,H*.95,TEB[n-1]>20?DGREEN:DRED,17,'left');
   var bx=W*.62,bw=W*.34,by=H*.18,bh=H*.62,bb=by+bh;
   LN(bx,bb,bx+bw,bb,AX,1.6);
   for(i=0;i<8;i++){var h=(TEB[i]+170)/300*bh,x=bx+i*bw/8+3;ctx.fillStyle=i+1==n?ORANGE:'#d4d9de';ctx.fillRect(x,bb-h,bw/8-6,h);}
@@ -75,7 +75,7 @@ SFA.figs("c10", [
   TB('CH₃–CH(CH₃)–CH₂–CH₂–CH₃',230,28,INK,16);
   skel(80,100,70,34,P,B,INK,5,0);
   if(p>0){skel(80,100,70,34,P,chainB(0,4),BLUE,6,0);skel(80,100,70,34,P,[[1,5]],RED,6,0);
-   ga(sg(p,0,.5));for(var i=0;i<5;i++)cnum(80,100,70,34,P,i,String(i+1),BLUE_D,i%2?24:-12);TB('chaîne la plus longue : 5 C → pentane',230,206,BLUE_D,15);TB('CH₃ en position 2',330,166,DRED,15);g1();
+   ga(sg(p,0,.5));for(var i=0;i<5;i++)cnum(80,100,70,34,P,i,String(i+1),BLUE_D,i%2?24:-12);TB('chaîne la plus longue : 5 C → pentane',230,206,BLUE_D,15);TB('CH₃ en position 2',175,186,DRED,15,'left');g1();
    ga(sg(p,.5,1));box(80,222,300,44,DGREEN,'#e3f5ee',10);TB('2-méthylpentane',230,252,DGREEN,22);g1();}
   else {TB('2-méthylpentane ? 4-méthylpentane ?',230,214,GREY,15);TB('2-méthylbutane ? hexane ?',230,238,GREY,15);}
  }),
@@ -84,7 +84,7 @@ SFA.figs("c10", [
   var P1=zz(4),P2=[[0,0],[1,1],[2,0],[1,2]];
   skel(30,90,48,32,P1,chainB(0,3),INK,5,6);TB('butane',102,190,INK,16);TB('T éb ≈ −1 °C',102,212,BLUE_D,15);
   skel(270,76,48,32,P2,[[0,1],[1,2],[1,3]],INK,5,6);TB('2-méthylpropane',318,190,INK,16);TB('T éb ≈ −12 °C',318,212,BLUE_D,15);
-  TB('C₄H₁₀ ?',230,36,GREY,18);
+  if(!(p>0))TB('C₄H₁₀ ?',230,36,GREY,18);
   if(p>0){ga(sg(p,0,.4));TB('C₄H₁₀ : isomères de chaîne',230,36,DGREEN,18);g1();ga(sg(p,.4,1));box(30,226,400,44,DGREEN,'#e3f5ee',10);TB('ramifié = plus compact : T éb plus basse',230,254,DGREEN,16);g1();}
  }),
  // 4 combustion heptane
@@ -103,7 +103,7 @@ SFA.figs("c10", [
   TB('CH₃–CH₂–CH(CH₂–CH₃)–CH₂–CH₃',230,24,INK,15);
   skel(80,150,70,30,P,B,INK,5,0);
   if(p>0){skel(80,150,70,30,P,chainB(0,4),BLUE,6,0);skel(80,150,70,30,P,[[2,5],[5,6]],RED,6,0);
-   ga(sg(p,0,.5));TB('chaîne de 5 C : pentane',230,224,BLUE_D,15);TB('éthyle en 3',330,98,DRED,15);g1();
+   ga(sg(p,0,.5));TB('chaîne de 5 C : pentane',230,224,BLUE_D,15);TB('éthyle en 3',304,84,DRED,15,'left');g1();
    ga(sg(p,.5,1));box(80,236,300,36,DGREEN,'#e3f5ee',10);TB('3-éthylpentane',230,262,DGREEN,20);g1();}
   else {TB('3-éthylpentane ? 2-éthylpentane ?',230,232,GREY,15);TB('3-méthylhexane ? heptane ?',230,256,GREY,15);}
  }),
@@ -122,19 +122,19 @@ SFA.figs("c10", [
  // 7 combustion incomplète du propane
  F(function(p){
   var Q=[['C₃H₈ + 5 O₂ → 3 CO₂ + 4 H₂O','complète : donne du CO₂',0],['C₃H₈ + 7/2 O₂ → 3 CO + 4 H₂O','équilibrée : CO et H₂O',1],['C₃H₈ + 3 O₂ → 3 CO + 4 H₂O','non équilibrée (O : 6 ≠ 7)',0],['C₃H₈ + 7/2 O₂ → 3 CO₂ + 4 H₂O','non équilibrée (O : 7 ≠ 10)',0]];
-  Q.forEach(function(q,i){var y=8+i*68,ok=q[2]==1,on=p>0?sg(p,i*.15,i*.15+.3):0;
+  Q.forEach(function(q,i){var y=8+i*66,ok=q[2]==1,on=p>0?sg(p,i*.15,i*.15+.3):0;
    box(8,y,444,60,on>.5?(ok?DGREEN:AX):AX,on>.5&&ok?'#e3f5ee':'#fff',10);DOT(30,y+30,13,on>.5?(ok?DGREEN:GREY):GREY);TB(String.fromCharCode(65+i),30,y+36,'#fff',15);
    TB(q[0],54,y+26,INK,16,'left');if(p>0){ga(on);TB(q[1],54,y+49,ok?DGREEN:DRED,13,'left');g1();}});
-  if(!(p>0))TB('laquelle est la bonne ?',230,278,GREY,13);
+  if(!(p>0))TB('laquelle est la bonne ?',230,279,GREY,13);
  }),
  // 8 chauffe-eau mal ventilé
  F(function(p){
   var k=52,x0=60;TB('1 mol de C₄H₁₀ : C₄H₁₀ + 13/2 O₂ → 4 CO₂ + 5 H₂O',230,20,INK,14);
-  TB('O₂',30,56,GREY,14);ctx.strokeStyle=INK;ctx.lineWidth=2;ctx.strokeRect(x0,40,6.5*k,26);ctx.fillStyle=CA();ctx.fillRect(x0,40,4.875*k,26);
-  TB('4,875 mol (75 %)',x0+2.4*k,58,'#fff',14);TB('6,5 mol (complète)',x0+6.5*k-4,34,GREY,12,'right');
-  if(p>0){ga(sg(p,0,.4));TB('H₂O',30,106,GREY,14);ctx.fillStyle=VIOLET;ctx.fillRect(x0,90,2.5*k,26);TB('2,5',x0+1.25*k,108,'#fff',14);ctx.fillStyle=ORANGE;ctx.fillRect(x0+2.5*k,90,2.375*k,26);TB('2,375 pour C',x0+3.7*k,108,'#fff',14);g1();
-   ga(sg(p,.3,.7));TB('C',30,156,GREY,14);ctx.fillStyle=GREEN;ctx.fillRect(x0,140,.75*k,26);ctx.fillStyle=RED;ctx.fillRect(x0+.75*k,140,3.25*k,26);TB('CO₂ 0,75',x0+.375*k,132,DGREEN,13,'center');TB('CO 3,25 mol',x0+2.4*k,158,'#fff',14);g1();
-   ga(sg(p,.6,1));box(20,186,420,84,DRED,'#fcebeb',10);TB('énergie : 2 877 − 3,25 × 283 ≈ 1 957 kJ (68 %)',230,214,INK,15);TB('100 g de butane → 1,72 mol → 157 g de CO',230,240,DRED,15);TB('CO : toxique, incolore, inodore',230,262,GREY,13);g1();}
+  TB('O₂',30,70,GREY,14);ctx.strokeStyle=INK;ctx.lineWidth=2;ctx.strokeRect(x0,52,6.5*k,26);ctx.fillStyle=CA();ctx.fillRect(x0,52,4.875*k,26);
+  TB('4,875 mol (75 %)',x0+2.4*k,70,'#fff',14);TB('6,5 mol (complète)',x0+6.5*k,46,GREY,13,'right');
+  if(p>0){ga(sg(p,0,.4));TB('H₂O',30,120,GREY,14);ctx.fillStyle=VIOLET;ctx.fillRect(x0,102,2.5*k,26);TB('2,5',x0+1.25*k,120,'#fff',14);ctx.fillStyle=ORANGE;ctx.fillRect(x0+2.5*k,102,2.375*k,26);TB('2,375 pour C',x0+3.7*k,120,'#fff',14);g1();
+   ga(sg(p,.3,.7));TB('C',30,170,GREY,14);ctx.fillStyle=GREEN;ctx.fillRect(x0,152,.75*k,26);ctx.fillStyle=RED;ctx.fillRect(x0+.75*k,152,3.25*k,26);TB('CO₂ 0,75',x0+.375*k+20,146,DGREEN,13,'center');TB('CO 3,25 mol',x0+2.4*k,170,'#fff',14);g1();
+   ga(sg(p,.6,1));box(20,192,420,80,DRED,'#fcebeb',10);TB('énergie : 2 877 − 3,25 × 283 ≈ 1 957 kJ (68 %)',230,218,INK,15);TB('100 g de butane → 1,72 mol → 157 g de CO',230,243,DRED,15);TB('CO : toxique, incolore, inodore',230,264,GREY,13);g1();}
   else TB('combien de CO se forme ?',230,160,GREY,20);
  }),
  // 9 essence ou éthanol
