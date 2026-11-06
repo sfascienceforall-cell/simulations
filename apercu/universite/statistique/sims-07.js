@@ -165,7 +165,7 @@ SFA.sim({
       S.draw.line(c,ax.X(N),ax.Y(pw.value),ax.X(N),ax.B,P.red,1.5,[5,4]); S.draw.dot(c,ax.X(N),ax.Y(power(N,d.value,al.value,pl.value)),8,P.red);
       S.draw.label(c,"n = "+N,ax.X(N)+(ax.X(N)>c.W*0.7?-12:12),ax.Y(pw.value)+18,{align:ax.X(N)>c.W*0.7?"right":"left",size:13,color:P.red});
       if(N2<=xmax){ S.draw.dot(c,ax.X(N2),ax.Y(pw.value),5.5,P.amber); S.draw.label(c,"effet ÷ 2 : n = "+N2,ax.X(N2),ax.Y(pw.value)+18,{align:"right",size:11,color:P.amber}); }
-      S.draw.legend(c,[[P.mat,"effet d = "+S.fmt(d.value,2)],[P.amber,"effet d/2",1],[P.red,"puissance visée",1]],ax.L+8,ax.T+6);
+      S.draw.legend(c,[[P.mat,"effet d = "+S.fmt(d.value,2)],[P.amber,"effet d/2",1],[P.red,"puissance visée",1]],ax.R-4,ax.B-74,{align:"right"});
       UI.hint(c,"glisse le point rouge",ax.L+60,ax.T+78,P.red);
       ro.set(0,N+(pl.value==="2"?" par groupe":"")); ro.set(1,pl.value==="2"?2*N:N); ro.set(2,N2);
     });
@@ -258,7 +258,7 @@ SFA.sim({
       S.draw.label(c,"sans correction",ax.X(100)-4,ax.Y(1-Math.pow(1-al.value,100))+15,{color:P.red,align:"right",size:11.5}); S.draw.label(c,"Bonferroni",ax.X(100)-4,ax.Y(al.value)-14,{color:P.green,align:"right",size:11.5});
       var risk=1-Math.pow(1-th,M); S.draw.dot(c,ax.X(M),ax.Y(risk),7.5,P.ink);
       S.draw.label(c,F100(risk),ax.X(M)+(M>70?-12:12),ax.Y(risk)+(risk>0.5?18:-14),{color:P.ink,align:M>70?"right":"left",size:12});
-      UI.hint(c,"glisse le point (m)",ax.X(60),ax.Y(0.08),P.mat);
+      UI.hint(c,"glisse le point (m)",ax.X(60),ax.Y(0.5),P.mat);
       ro.set(0,S.fmt(th,4)); ro.set(1,np+" sur "+M); ro.set(2,S.fmt(100*risk,1)+" %"); ro.set(3,S.fmt(100*cum.fp/cum.tot,1)+" %");
       nt.set(np>0&&shown>=M?"Un « résultat significatif » est apparu alors qu'aucun critère n'est vraiment associé : c'est un faux positif. "+(bf.value?"":"Active Bonferroni pour voir le risque redescendre."):"Seuil appliqué à chaque test : "+S.fmt(th,4)+". Probabilité d'avoir au moins une « découverte » par hasard : "+S.fmt(100*risk,1)+" %.",np>0&&shown>=M?"warn":"ok");
     });

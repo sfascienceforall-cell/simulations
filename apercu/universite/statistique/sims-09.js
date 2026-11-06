@@ -220,7 +220,7 @@ SFA.sim({
       pf=Math.min(1,pf);
       var E=[R1*C1/N,R1*C2/N,R2*C1/N,R2*C2/N], O=[A,B,C,D], chi=0, chiY=0, minE=Math.min.apply(null,E);
       for(var i=0;i<4;i++){ chi+=Math.pow(O[i]-E[i],2)/E[i]; chiY+=Math.pow(Math.max(0,Math.abs(O[i]-E[i])-0.5),2)/E[i]; }
-      c.clear(); var ax=S.draw.axes(c,{x0:lo-0.5,x1:hi+0.5,y0:0,y1:Math.max.apply(null,probs)*1.2,xl:"nombre de traités guéris possible (marges fixées)",yl:"probabilité",stepX:1,stepY:0.05,t:24});
+      c.clear(); var ax=S.draw.axes(c,{x0:lo-0.5,x1:hi+0.5,y0:0,y1:Math.max.apply(null,probs)*1.6,xl:"nombre de traités guéris possible (marges fixées)",yl:"probabilité",stepX:1,stepY:0.05,t:24});
       var w=(ax.R-ax.L)/(hi-lo+1);
       probs.forEach(function(q,i){ var xx=lo+i, ex=q<=pobs*(1+1e-9); c.ctx.fillStyle=xx===A?S.draw.tint(P.mat,.92):(ex?S.draw.tint(P.red,.6):S.draw.tint(P.grey,.5)); c.ctx.fillRect(ax.X(xx-0.5)+2,ax.Y(q),w-4,ax.B-ax.Y(q)); });
       S.draw.legend(c,[[P.mat,"tableau observé"],[S.draw.tint(P.red,.7),"au plus aussi probable (somme = p de Fisher)"],[S.draw.tint(P.grey,.7),"autres tableaux"]],ax.R-4,ax.T+2,{align:"right"});

@@ -184,30 +184,73 @@ SFA.sim({
   aRetenir: "Une diode ne laisse passer le courant que dans un sens. Avec une diode, on ne garde que les alternances positives (valeur moyenne U_max/π) ; avec un pont de 4 diodes, on garde les deux alternances en valeur absolue (valeur moyenne 2·U_max/π). Un condensateur en parallèle sur la charge se recharge au sommet de chaque alternance et se décharge dans R entre deux sommets : plus R·C est grand devant la période, plus la tension est lisse.",
   piege: "Redressé ne veut pas dire continu : la tension reste pulsée. Et la valeur moyenne d'un signal redressé n'est pas U_eff. Modèle : diodes idéales (en vrai, chute d'environ 0,6 à 0,7 V par diode passante), source de 50 Hz sans résistance interne.",
   build: function(k, S){
-    var c = k.canvas(300), P = S.draw.palette;
+    var c = k.canvas(150), g = k.canvas(280), P = S.draw.palette, H = PH6;
     var Um = k.slider("Tension maximale U_max", 5, 20, 1, 12, "V");
     var type = k.seg("Redressement", [["none", "Aucun"], ["half", "Une diode (simple alternance)"], ["full", "Pont de 4 diodes"]], "full");
     var lis = k.toggle("Condensateur de lissage", true);
     var C = k.slider("Capacité C", 100, 5000, 100, 1000, "µF");
     var R = k.slider("Charge R", 50, 500, 10, 100, "Ω");
     var ro = k.readouts(["Valeur moyenne (sortie)", "Ondulation (max − min)", "Constante R·C", "Période du signal"]);
-    k.draw(function(){
-      c.clear(); var f = 50, Tp = 1 / f, dt = 5e-5, tw = 3 * Tp, tau = R.value * C.value * 1e-6, vc = 0;
+    var nt = k.note("Fais glisser le trait vertical sur le graphe (ou laisse-le balayer) : le schéma montre quelle diode conduit à cet instant.", "");
+    var cur = 0.2, auto = true, geo = {}, data = null, clock = 0, f = 50, Tp = 1 / f, dt = 5e-5, tw = 3 * Tp;
+    var lp = k.loop(function(d){ if (auto){ cur += d / 7; if (cur > 1) cur = 0; } k.redraw(); }); lp.play();
+    g.cv.style.touchAction = "none"; g.cv.style.cursor = "ew-resize";
+    g.pointer(function(t, p){ if (t === "move" || t === "up" || !geo.L) return; auto = false; cur = Math.max(0, Math.min(1, (p.x - geo.L) / (geo.R - geo.L))); k.redraw(); if (t === "up") setTimeout(function(){ auto = true; }, 2500); });
+    function compute(){
+      var tau = R.value * C.value * 1e-6, vc = 0, warm = 12 * Tp, steps = Math.round((warm + tw) / dt), pts = [], ins = [], cd = [], sum = 0, cnt = 0, mn = 1e9, mx = -1e9;
       function rect(u){ return type.value === "half" ? Math.max(u, 0) : type.value === "full" ? Math.abs(u) : u; }
-      var warm = 12 * Tp, steps = Math.round((warm + tw) / dt), pts = [], sum = 0, cnt = 0, mn = 1e9, mx = -1e9, ins = [];
       for (var i = 0; i <= steps; i++){
-        var t = i * dt, u = Um.value * Math.sin(2 * Math.PI * f * t), r = rect(u), out;
-        if (lis.value && type.value !== "none"){ if (r >= vc) vc = r; else vc *= Math.exp(-dt / tau); out = vc; } else out = r;
-        if (t >= warm){ pts.push(out); ins.push(u); if (t >= warm + 2 * Tp){ sum += out; cnt++; mn = Math.min(mn, out); mx = Math.max(mx, out); } }
+        var t = i * dt, u = Um.value * Math.sin(2 * Math.PI * f * t), r = rect(u), out, on;
+        if (lis.value && type.value !== "none"){ if (r >= vc){ vc = r; on = r > 0.01; } else { vc *= Math.exp(-dt / tau); on = false; } out = vc; } else { out = r; on = type.value === "none" ? true : r > 0.01; }
+        if (t >= warm){ pts.push(out); ins.push(u); cd.push(on); if (t >= warm + 2 * Tp){ sum += out; cnt++; mn = Math.min(mn, out); mx = Math.max(mx, out); } }
       }
-      var ax = S.draw.axes(c, {x0: 0, x1: tw * 1000, y0: -Um.value * 1.1, y1: Um.value * 1.1, xl: "t (ms)", yl: "U (V)", l: 46, t: 20, stepX: 10});
-      S.draw.fn(c, ax, function(tm){ var j = Math.min(ins.length - 1, Math.round(tm / 1000 / dt)); return ins[j]; }, "rgba(30,63,143,.55)", 1.8, [5, 4]);
-      S.draw.fn(c, ax, function(tm){ var j = Math.min(pts.length - 1, Math.round(tm / 1000 / dt)); return pts[j]; }, P.red, 2.8);
-      S.draw.text(c, "entrée (pointillés bleus)   sortie (rouge)", ax.R - 4, ax.T + 6, {size: 12, align: "right"});
-      var th = type.value === "half" ? Um.value / Math.PI : type.value === "full" ? 2 * Um.value / Math.PI : 0;
-      var moy = sum / cnt;
-      ro.set(0, S.fmt(moy, 2) + " V" + ((!lis.value || type.value === "none") ? " (théorie : " + S.fmt(th, 2) + " V)" : ""));
-      ro.set(1, S.fmt(mx - mn, 2) + " V"); ro.set(2, S.fmt(tau * 1000, 0) + " ms"); ro.set(3, "20 ms");
+      return {pts: pts, ins: ins, cd: cd, mean: sum / cnt, mn: mn, mx: mx, tau: tau};
+    }
+    function diode(x, y, dir, on, vert){
+      var ctx = c.ctx; ctx.save(); ctx.translate(x, y); ctx.rotate(vert ? (dir > 0 ? Math.PI / 2 : -Math.PI / 2) : (dir > 0 ? 0 : Math.PI));
+      ctx.fillStyle = on ? "#f4c542" : "#e6eaf0"; ctx.strokeStyle = on ? "#b45309" : "#5f6b7a"; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(-7, -8); ctx.lineTo(-7, 8); ctx.lineTo(8, 0); ctx.closePath(); ctx.fill(); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(9, -9); ctx.lineTo(9, 9); ctx.stroke(); ctx.restore();
+    }
+    k.draw(function(){
+      c.clear(); g.clear(); data = compute(); var ctx = c.ctx, W = c.W, Hh = c.H, j = Math.min(data.ins.length - 1, Math.round(cur * tw / dt)), u = data.ins[j], uo = data.pts[j], on = data.cd[j], ty = type.value;
+      H.bg(c, "#f8fafd", "#edf2f8");
+      var yT = 38, yB = Hh - 34, xS = 44, xD = W * 0.34, xC = W * 0.62, xR = W * 0.84, wire = "#5f6b7a";
+      function wr(x1, y1, x2, y2, hot){ S.draw.line(c, x1, y1, x2, y2, hot ? "#e0861a" : wire, hot ? 3.6 : 2.4); }
+      var hot = on && ty !== "none" || ty === "none";
+      /* source */
+      wr(xS, yT, xD - 20, yT, false); wr(xS, yB, xR, yB, false);
+      wr(xS, yT, xS, yB - 0, false);
+      ctx.beginPath(); ctx.arc(xS, (yT + yB) / 2, 17, 0, 7); ctx.fillStyle = "#fff"; ctx.fill(); ctx.strokeStyle = P.acc; ctx.lineWidth = 2.4; ctx.stroke();
+      ctx.beginPath(); ctx.strokeStyle = P.acc; ctx.lineWidth = 2; for (var q = 0; q <= 20; q++){ var xx = xS - 9 + q * 0.9, yy = (yT + yB) / 2 - 5 * Math.sin(q / 20 * 2 * Math.PI); q ? ctx.lineTo(xx, yy) : ctx.moveTo(xx, yy); } ctx.stroke();
+      S.draw.text(c, (u >= 0 ? "+" : "−") + S.fmt(Math.abs(u), 1) + " V", xS, yB + 14, {size: 11.5, color: P.acc});
+      /* diodes */
+      if (ty === "none"){ wr(xD - 20, yT, xC, yT, true); }
+      else if (ty === "half"){ diode(xD, yT, 1, on); wr(xD + 12, yT, xC, yT, on); wr(xD - 20, yT, xD - 8, yT, false); }
+      else { var bx = xD, by = (yT + yB) / 2, r2 = 42; wr(xD - 20, yT, xD - 20, yT, false);
+        ctx.save(); ctx.translate(bx, by); ctx.rotate(Math.PI / 4); ctx.strokeStyle = "rgba(95,107,122,.35)"; ctx.lineWidth = 1.2; ctx.strokeRect(-r2 / 1.9, -r2 / 1.9, r2 / 0.95, r2 / 0.95); ctx.restore();
+        var pos = u >= 0, d1 = pos, d2 = pos, d3 = !pos, d4 = !pos;
+        diode(bx - 18, by - 18, 1, d1 && on, false); diode(bx + 18, by - 18, 1, d3 && on, false); diode(bx - 18, by + 18, -1, d4 && on, false); diode(bx + 18, by + 18, -1, d2 && on, false);
+        S.draw.text(c, "pont", bx, by, {size: 10.5, color: P.grey, weight: 700});
+        wr(bx + 36, yT, xC, yT, on); }
+      /* condensateur, résistance */
+      if (lis.value && ty !== "none"){ wr(xC, yT, xC, (yT + yB) / 2 - 6, false); wr(xC, (yT + yB) / 2 + 6, xC, yB, false); S.draw.line(c, xC - 12, (yT + yB) / 2 - 6, xC + 12, (yT + yB) / 2 - 6, P.ink, 3); S.draw.line(c, xC - 12, (yT + yB) / 2 + 6, xC + 12, (yT + yB) / 2 + 6, P.ink, 3); S.draw.text(c, "C", xC + 22, (yT + yB) / 2, {size: 12, math: true, color: P.ink}); }
+      else wr(xC, yT, xC, yT, false);
+      wr(xC, yT, xR, yT, on); wr(xR, yT, xR, (yT + yB) / 2 - 17, false); wr(xR, (yT + yB) / 2 + 17, xR, yB, false);
+      ctx.fillStyle = "#fff"; S.draw.rrect(c, xR - 8, (yT + yB) / 2 - 17, 16, 34, 3); ctx.fill(); ctx.strokeStyle = P.ink; ctx.lineWidth = 2; ctx.stroke(); S.draw.text(c, "R", xR + 20, (yT + yB) / 2, {size: 12, math: true, color: P.ink});
+      S.draw.display(c, S.fmt(uo, 1) + " V", W - 52, yB + 6, {w: 84, h: 36, size: 15, caption: null, color: uo > 0.05 ? "#13233a" : "#5f6b7a"});
+      S.draw.label(c, ty === "none" ? "aucune diode : la charge reçoit l'alternatif" : on ? "une diode conduit : la charge est alimentée" : "diodes bloquées : le condensateur alimente R seul", W / 2, 14, {color: on ? P.green : P.amber, size: 11.5});
+      /* graphe */
+      var ax = S.draw.axes(g, {x0: 0, x1: tw * 1000, y0: -Um.value * 1.1, y1: Um.value * 1.6, xl: "t (ms)", yl: "U (V)", l: 46, t: 20, stepX: 10}); geo.L = ax.L; geo.R = ax.R;
+      S.draw.area(g, ax, function(tm){ var jj = Math.min(data.pts.length - 1, Math.round(tm / 1000 / dt)); return data.pts[jj]; }, 0, tw * 1000, P.red, 0.1, 0);
+      S.draw.fn(g, ax, function(tm){ var jj = Math.min(data.ins.length - 1, Math.round(tm / 1000 / dt)); return data.ins[jj]; }, "rgba(30,63,143,.55)", 1.8, [5, 4]);
+      S.draw.fn(g, ax, function(tm){ var jj = Math.min(data.pts.length - 1, Math.round(tm / 1000 / dt)); return data.pts[jj]; }, P.red, 2.8);
+      S.draw.line(g, ax.L, ax.Y(data.mean), ax.R, ax.Y(data.mean), P.green, 1.8, [7, 4]); S.draw.label(g, "moyenne " + S.fmt(data.mean, 1) + " V", ax.R - 6, ax.Y(data.mean) + 14, {color: P.green, size: 11, align: "right"});
+      var tx = ax.X(cur * tw * 1000); S.draw.line(g, tx, ax.T, tx, ax.B, "rgba(15,27,45,.5)", 1.6); S.draw.dot(g, tx, ax.Y(u), 5, P.acc); S.draw.dot(g, tx, ax.Y(uo), 6, P.red);
+      S.draw.legend(g, [["rgba(30,63,143,.7)", "entrée", true], [P.red, "sortie"], [P.green, "valeur moyenne", true]], ax.L + 44, ax.T + 4, {});
+      var th = ty === "half" ? Um.value / Math.PI : ty === "full" ? 2 * Um.value / Math.PI : 0;
+      ro.set(0, S.fmt(data.mean, 2) + " V" + ((!lis.value || ty === "none") ? " (théorie : " + S.fmt(th, 2) + " V)" : "")); ro.set(1, S.fmt(data.mx - data.mn, 2) + " V"); ro.set(2, S.fmt(data.tau * 1000, 0) + " ms"); ro.set(3, "20 ms");
     });
   }
 });
+

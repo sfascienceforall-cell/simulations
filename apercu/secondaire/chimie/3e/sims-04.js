@@ -43,7 +43,7 @@ SFA.sim({
   aRetenir:"Le tableau classe les éléments par numéro atomique Z croissant. Les colonnes (groupes) rassemblent des éléments de propriétés voisines et de même nombre d'électrons de valence ; les lignes (périodes) correspondent au remplissage des couches. Les métaux sont à gauche, les non-métaux à droite.",
   piege:"Le tableau n'est pas un classement par masse (c'est par Z). Ne confonds pas période (ligne) et groupe (colonne). Seuls les 36 premiers éléments sont représentés ici.",
   build:function(k,S){
-    var c = k.canvas(0,{ratio:0.52});
+    var c = k.canvas(0,{ratio:0.62});
     var pr = k.select("Colorier selon", Object.keys(PROP).map(function(i){return [i,PROP[i]];}), "cat");
     var zs = k.slider("Élément choisi (Z)", 1, 36, 1, 11, "");
     var ro = k.readouts(["Élément","Période · groupe","Famille","Type","Valence","État (20 °C)"]);
@@ -62,8 +62,17 @@ SFA.sim({
         else { var v = p==="val"?valence(z):(p==="en"?e[3]:(p==="ray"?e[4]:e[2]));
           if(v===null||v===undefined) fill="#e6e9ee"; else { var t=(v-rg[0])/(rg[1]-rg[0]); fill=seqColor(t); dark=t>0.55; } }
         ctx.fillStyle=fill; ctx.fillRect(x+1,y+1,cs-2,cs-2);
-        T(c,e[0],x+cs/2,y+cs/2,{size:Math.max(12,Math.min(15,cs*0.42)),color:dark?"#fff":"#0f1b2d"});
+        T(c,e[0],x+cs/2,y+cs/2,{size:Math.min(15,cs*0.5),color:dark?"#fff":"#0f1b2d"});
         if(z===Z){ ctx.strokeStyle=P.red; ctx.lineWidth=2.5; ctx.strokeRect(x+1.5,y+1.5,cs-3,cs-3); } }
+      /* fiche de l'élément choisi, dans le vide du tableau */
+      var eZ=E[Z], kx=g.x0+2.2*cs, kw=9.6*cs, ky=g.y0+0.1*cs, kh=3*cs-4, big=Math.min(kh*0.62,40);
+      D.panel(c,kx,ky,kw,kh,{shadow:false,fill:"#fff",stroke:CAT[eZ[6]][1]});
+      ctx.fillStyle=CAT[eZ[6]][1]; ctx.fillRect(kx+1,ky+10,4,kh-20);
+      T(c,eZ[0],kx+kw*0.22,ky+kh*0.5,{size:big,color:P.mat,math:true});
+      T(c,String(Z),kx+10,ky+11,{size:11,color:P.grey,align:"left"});
+      T(c,eZ[1],kx+kw*0.42,ky+kh*0.3,{size:Math.max(11,Math.min(16,cs*0.5)),color:P.ink,align:"left"});
+      T(c,F(eZ[2],2)+" u",kx+kw*0.42,ky+kh*0.56,{size:Math.max(11,cs*0.45),color:P.grey,align:"left"});
+      T(c,(cs<26?"P":"période ")+eZ[7]+" · "+(cs<26?"G":"groupe ")+eZ[8],kx+kw*0.42,ky+kh*0.8,{size:Math.max(10,Math.min(13,cs*0.42)),color:P.grey,align:"left"});
       // légende
       var ly=g.y0+4*cs+14;
       if(p==="cat"||p==="met"||p==="etat"){ var items = p==="cat"?Object.keys(CAT).map(function(i){return CAT[i];}):(p==="met"?[["Métal","#8ab6d6"],["Métalloïde","#d4a5c9"],["Non-métal","#e9d985"]]:Object.keys(STATE).map(function(i){return STATE[i];}));
@@ -112,15 +121,17 @@ SFA.sim({
       c.clear(); var W=c.W,H=c.H,g=c.ctx,a=ALC[el.value], dur=Math.max(2.5,5*sz.value*(6-a.rate)/3), prog=Math.min(1,t/dur);
       var bx=W*0.15, bw=W*0.7, by=H*0.28, bh=H*0.62;
       var pink=ph.value?Math.min(1,t/dur):0;
-      g.save(); g.fillStyle="rgba(120,180,230,0.35)"; g.fillRect(bx,by+bh*0.2,bw,bh*0.8); g.fillStyle="rgba(230,70,150,"+(0.38*pink).toFixed(2)+")"; g.fillRect(bx,by+bh*0.2,bw,bh*0.8); g.restore();
-      g.save(); g.strokeStyle="#556"; g.lineWidth=3; g.beginPath(); g.moveTo(bx,by); g.lineTo(bx,by+bh); g.lineTo(bx+bw,by+bh); g.lineTo(bx+bw,by); g.stroke(); g.restore();
+      CH.bg(c,H-18);
+      var wcol=ph.value?"rgb("+Math.round(111+(230-111)*pink)+","+Math.round(177+(70-177)*pink)+","+Math.round(230+(150-230)*pink)+")":"#6fb1e6";
+      CH.glass(c,bx,by,bw,bh,0.8,wcol,{ticks:0,round:10});
       var surf=by+bh*0.2, r0=10+22*sz.value, r=r0*Math.pow(1-prog,1/3);
       var px=bx+bw/2+(a.rate>=2?Math.sin(t*3.1+el.value.length)*bw*0.22*Math.min(1,t):0), py=a.rho<1?surf-r*0.5:surf+bh*0.3+ (a.rho>1?Math.min(1,t*2)*bh*0.3:0);
-      if(prog<1) circ(c,px,py,Math.max(r,1),a.rho<1?"#c9d2de":"#aab3c0","#7b8592",1.5);
+      if(prog<1) CH.ball(c,px,py,Math.max(r,1),a.rho<1?"#b9c3d1":"#9aa6b6","",{lw:1.2,stroke:"#7b8592"});
       parts.forEach(function(p){ var x=px+(p.x-0.5)*(30+r*2), y=py-4-p.y*0.8; if(y>by-60&&x>bx&&x<bx+bw){ circ(c,x,y,2.6,"rgba(255,255,255,"+p.life.toFixed(2)+")","#5f8fbf",1); } });
       if(a.rate>=3&&prog<1){ var fl=a.rate>=4?36:20, sc=(a.rate-2); g.save(); g.fillStyle=a.rate>=4?"rgba(255,190,60,0.85)":"rgba(160,110,220,0.8)"; g.beginPath(); g.moveTo(px-10-sc*3,surf-r*0.4); g.quadraticCurveTo(px,surf-fl*(1+0.4*Math.sin(t*25)),px+10+sc*3,surf-r*0.4); g.closePath(); g.fill(); g.restore(); }
       if(a.rate===5&&t>0.2&&t<0.6) T(c,"EXPLOSION (simulée)",W/2,H*0.12,{size:15,color:P.red});
-      T(c,a.s+" dans l'eau"+(ph.value?" + phénolphtaléine":""),W/2,12,{size:13,color:P.ink});
+      D.label(c,a.s+" dans l'eau"+(ph.value?" + phénolphtaléine":""),W/2,16,{size:12,color:P.mat});
+      D.label(c,"intensité : "+"●".repeat(a.rate)+"○".repeat(5-a.rate),W/2,H-6,{size:11,color:a.rate>=4?P.red:P.amber,base:"bottom"});
       ro.set(0,"1"); ro.set(1,a.r+" pm"); ro.set(2,F(a.en,2)); ro.set(3,String(a.rate)+" / 5");
       nt.set("<b>"+a.n+"</b> (période "+a.per+") : "+a.txt+" Équation : 2 "+a.s+" + 2 H₂O → 2 "+a.s+"OH + H₂."+(ph.value?" La solution rosit : elle devient basique.":""),"");
     });
@@ -152,6 +163,9 @@ SFA.sim({
       var ax=D.axes(c,{x0:0,x1:130,y0:0,y1:9,xl:"masse atomique (u)",yl:"densité (g/cm³)",stepX:20,stepY:2,l:46});
       D.line(c,ax.X(up[1]),ax.Y(up[2]),ax.X(dn[1]),ax.Y(dn[2]),P.grey,2,[6,4]);
       [up,dn].forEach(function(e){ D.dot(c,ax.X(e[1]),ax.Y(e[2]),6,P.acc); T(c,e[0],ax.X(e[1]),ax.Y(e[2])-14,{size:13,color:P.acc}); });
+      var cardx=ax.L+14, cardy=ax.T+6, cw=Math.min(118,c.W*0.3);
+      D.panel(c,cardx,cardy,cw,86,{shadow:false});
+      [[up[0]+" · "+F(up[1],1)+" u",P.acc],["? · "+F(M,0)+" u",P.red],[dn[0]+" · "+F(dn[1],1)+" u",P.acc]].forEach(function(r,i){ D.rrect(c,cardx+8,cardy+6+i*26,cw-16,22,5); c.ctx.fillStyle=D.tint(r[1],0.13); c.ctx.fill(); T(c,r[0],cardx+cw/2,cardy+17+i*26,{size:11.5,color:r[1]}); });
       var inM=Math.max(up[1],Math.min(dn[1],M)), rho=up[2]+(inM-up[1])/(dn[1]-up[1])*(dn[2]-up[2]);
       D.dot(c,ax.X(inM),ax.Y(rho),7,P.red); T(c,"?",ax.X(inM),ax.Y(rho)-16,{size:15,color:P.red});
       if(rv.value){ D.dot(c,ax.X(m.real[1]),ax.Y(m.real[2]),7,P.green); T(c,m.real[0],ax.X(m.real[1]),ax.Y(m.real[2])+16,{size:13,color:P.green}); }
@@ -202,8 +216,8 @@ SFA.sim({
     k.draw(function(){
       c.clear(); var g=geom(), cs=g.cs, ctx=c.ctx, m=MYS[cur];
       for(var z=1;z<=36;z++){ var e=E[z], x=g.x0+(e[8]-1)*cs, y=g.y0+(e[7]-1)*cs, bad=tried.indexOf(z)>=0&&z!==m.z, good=solved&&z===m.z;
-        ctx.fillStyle=good?"#2e6b55":(bad?"#f1c9c5":"#eef2f8"); ctx.fillRect(x+1,y+1,cs-2,cs-2);
-        T(c,e[0],x+cs/2,y+cs/2,{size:Math.max(12,Math.min(15,cs*0.42)),color:good?"#fff":"#0f1b2d"}); }
+        ctx.fillStyle=good?"#2e6b55":(bad?"#f1c9c5":D.tint(CAT[e[6]][1],0.22)); ctx.beginPath(); D.rrect(c,x+1,y+1,cs-2,cs-2,4); ctx.fill();
+        T(c,e[0],x+cs/2,y+cs/2,{size:Math.min(15,cs*0.5),color:good?"#fff":"#0f1b2d"}); }
       T(c,"Clique sur l'élément que tu proposes",c.W/2,g.y0+4*cs+22,{size:13,color:P.grey});
       cl.set("<b>Indices :</b><ol style='margin:4px 0 0 18px;padding:0'>"+m.cl.slice(0,shown).map(function(x){return "<li>"+x+"</li>";}).join("")+"</ol>","");
       ro.set(0,shown+" / 5"); ro.set(1,String(miss)); ro.set(2,solved&&tried.indexOf(m.z)>=0?Math.max(0,100-15*(shown-1)-10*miss)+" / 100":"—");

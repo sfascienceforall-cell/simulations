@@ -56,6 +56,37 @@ C5.beaker = function(c, x, y, w, h, fill, level, opt){
   ctx.restore();
   return {x: x, y: y, w: w, h: h, top: top};
 };
+/* flamme (goutte) : trace le chemin, à remplir ensuite */
+C5.flame = function(ctx, cx, base, h, w, wob){
+  ctx.beginPath(); ctx.moveTo(cx - w, base);
+  ctx.bezierCurveTo(cx - w * 1.15, base - h * 0.4, cx - w * 0.45 + wob * 0.5, base - h * 0.78, cx + wob, base - h);
+  ctx.bezierCurveTo(cx + w * 0.45 + wob * 0.5, base - h * 0.78, cx + w * 1.15, base - h * 0.4, cx + w, base); ctx.closePath();
+};
+/* thermomètre vertical : bulbe en bas, colonne rouge jusqu'à T (échelle Tmin..Tmax) */
+C5.thermo = function(c, x, y, h, T, Tmin, Tmax, label){
+  var ctx = c.ctx, f = Math.max(0, Math.min(1, (T - Tmin) / (Tmax - Tmin)));
+  ctx.save(); ctx.fillStyle = "rgba(255,255,255,.9)"; ctx.strokeStyle = "#51627a"; ctx.lineWidth = 1.6;
+  window.SFA.draw.rrect(c, x - 5, y, 10, h, 5); ctx.fill(); ctx.stroke();
+  ctx.fillStyle = "#d8402e"; ctx.fillRect(x - 2, y + h - 4 - f * (h - 12), 4, f * (h - 12) + 6);
+  ctx.beginPath(); ctx.arc(x, y + h + 4, 8, 0, 2 * Math.PI); ctx.fillStyle = "#d8402e"; ctx.fill(); ctx.strokeStyle = "#51627a"; ctx.stroke();
+  ctx.restore();
+  if (label) window.SFA.draw.label(c, label, x + 14, y + h - f * (h - 12) - 2, {color: "#c0321d", size: 12, align: "left"});
+};
+/* enceinte de gaz : espèces [{n, mol:[[dx,dy,r,couleur],…], r}] ; les particules gardent leur identité quand n varie */
+C5.gasbox = function(c, x, y, w, h, spec, t, opt){
+  var ctx = c.ctx, S = window.SFA; opt = opt || {};
+  ctx.save(); S.draw.rrect(c, x, y, w, h, 10); ctx.fillStyle = opt.fill || "#f6f9fc"; ctx.fill(); ctx.clip();
+  spec.forEach(function(sp, si){
+    var n = Math.round(sp.n), i;
+    for (i = 0; i < n; i++){
+      var r1 = (i * 0.6180339 + si * 0.37) % 1, r2 = (i * 0.7548776 + si * 0.21 + 0.3) % 1, ph = i * 1.7 + si * 2.3, a = t * (0.5 + (i % 3) * 0.2) + ph;
+      var px = x + 14 + ((r1 + Math.sin(t * 0.6 + ph) * 0.05 + 1) % 1) * (w - 28), py = y + 14 + ((r2 + Math.cos(t * 0.5 + ph) * 0.05 + 1) % 1) * (h - 28), cs = Math.cos(a), sn = Math.sin(a);
+      if (sp.mol) sp.mol.forEach(function(m){ C5.atom(c, px + m[0] * cs - m[1] * sn, py + m[0] * sn + m[1] * cs, m[2], m[3], ""); });
+      else C5.atom(c, px, py, sp.r || 6, sp.col, "");
+    }
+  });
+  ctx.restore(); ctx.save(); S.draw.rrect(c, x, y, w, h, 10); ctx.strokeStyle = "#51627a"; ctx.lineWidth = 2.4; ctx.stroke(); ctx.restore();
+};
 C5.rgb = function(nm){   /* longueur d'onde (nm) → couleur approximative */
   var r = 0, g = 0, b = 0, f;
   if (nm >= 380 && nm < 440){ r = -(nm - 440) / 60; b = 1; }
@@ -81,7 +112,7 @@ SFA.sim({
   build: function(k, S){
     var ORDER = [[1,0],[2,0],[2,1],[3,0],[3,1],[4,0],[3,2],[4,1]], LET = "spd";
     var pal = S.draw.palette;
-    var c = k.canvas(340);
+    var c = k.canvas(360);
     var zs = k.slider("Numéro atomique Z", 1, 36, 1, 8, "");
     var ro = k.readouts(["Élément", "Configuration électronique", "Période", "Électrons de valence"]);
     var nt = k.note("", "");
@@ -112,6 +143,7 @@ SFA.sim({
         S.draw.text(c, o[0] + LET[o[1]], 6, y, {size: 13, align: "left", color: o[0] === nmax ? pal.red : pal.ink});
         for (var j = 0; j < nb; j++){
           var x = 50 + j * (bx + 4), up = e > j, dn2 = e > nb + j;
+          if (e > j){ ctx.fillStyle = o[0] === nmax ? "rgba(192,50,29,.10)" : "rgba(31,75,158,.08)"; ctx.fillRect(x, y - 13, bx, 26); }
           ctx.strokeStyle = o[0] === nmax && e > 0 ? pal.red : pal.grey; ctx.lineWidth = 1.5; ctx.strokeRect(x, y - 13, bx, 26);
           if (up) S.draw.text(c, "↑", x + bx / 2 - 6, y, {size: 18, color: pal.acc});
           if (dn2) S.draw.text(c, "↓", x + bx / 2 + 6, y, {size: 18, color: pal.acc});
@@ -119,6 +151,7 @@ SFA.sim({
         if (e > 0) S.draw.text(c, e + " e⁻", 50 + nb * (bx + 4) + 6, y, {size: 12, align: "left", color: pal.grey});
       }
       var str = cf.map(function(q){ return q.n + LET[q.l] + "<sup>" + q.e + "</sup>"; }).join(" ");
+      S.draw.display(c, "Z = " + Z, c.W - 74, 34, {w: 120, h: 50, caption: C5.SYM[Z - 1] + " · " + C5.NOM[Z - 1], size: 17});
       ro.set(0, C5.SYM[Z - 1] + " · " + C5.NOM[Z - 1]); ro.set(1, str); ro.set(2, nmax); ro.set(3, val);
       if (Z === 24 || Z === 29) nt.set("<b>Exception.</b> Une sous-couche d à moitié pleine (d⁵) ou pleine (d¹⁰) est particulièrement stable : un électron passe de 4s vers 3d.", "warn");
       else if (Z === 2 || Z === 10 || Z === 18 || Z === 36) nt.set("Gaz noble : la sous-couche p de la dernière couche est pleine (ou 1s² pour l'hélium). Très peu réactif.", "ok");
@@ -213,6 +246,8 @@ SFA.sim({
       if (!duet && !cat && vi > 8) bad = true;
       if (duet && !cat && vi > 2) bad = true;
       var cx = c.W / 2, cy = c.H / 2, sy = C5.SYM[Z - 1];
+      S.draw.panel(c, 10, 10, 78, 88, {fill: S.draw.tint(C5.CPK[sy] || "#cfe4d8", 0.35), shadow: false});
+      S.draw.text(c, String(Z), 20, 24, {size: 12, align: "left", color: pal.grey}); S.draw.text(c, sy, 49, 52, {size: 28, math: true}); S.draw.text(c, C5.NOM[Z - 1], 49, 84, {size: 11, color: pal.grey});
       var capMax = (duet || (cat && per === 2)) ? 2 : 8;
       if (bad || tot <= 0){
         S.draw.text(c, sy + (ch ? (Math.abs(ch) > 1 ? C5.sup(Math.abs(ch)) : "") + (ch > 0 ? "⁺" : "⁻") : ""), cx, cy, {size: 44, math: true});
@@ -272,41 +307,97 @@ SFA.sim({
       Ba: {n: "baryum (BaCl₂)", l: 524, d: "vert pomme", col: "#8fd24a"},
       Cu: {n: "cuivre (CuCl₂)", l: 520, d: "vert-bleu", col: "#2fc7a0"}
     };
-    var keys = Object.keys(M);
-    var c = k.canvas(300);
+    var keys = Object.keys(M), seg2 = keys.map(function(x){ return [x, x]; });
+    var c = k.canvas(390);
     var mode = k.seg("Mode", [["obs", "Observer"], ["mys", "Mystère"]], "obs");
-    var sel = k.select("Sel dans la flamme", keys.map(function(x){ return [x, M[x].n]; }), "Na");
-    var amount = k.slider("Quantité de sel", 0.2, 1, 0.1, 0.7, "");
-    var guess = k.select("Ma réponse", keys.map(function(x){ return [x, M[x].n]; }), "Li");
-    var mys = "Ca", verdict = "";
-    k.button("Nouveau mystère", function(){ mys = keys[Math.floor(Math.random() * keys.length)]; verdict = ""; mode.set("mys"); }, false);
-    k.button("Vérifier ma réponse", function(){ verdict = guess.value === mys ? "ok" : "warn"; }, true);
-    var ro = k.readouts(["Raie principale", "Énergie du photon", "Couleur"]);
+    var sel = k.seg("Métal du sel (glisse la spatule dans la flamme)", seg2, "Na");
+    var amount = k.slider("Quantité de sel sur la spatule", 0.2, 1, 0.1, 0.7, "");
+    var guess = k.seg("Ma réponse (mode Mystère)", seg2, "Li");
+    var mys = "Ca", verdict = "", score = 0, tries = 0;
+    var sp = {x: 0, y: 0, hold: true, drag: false, inten: 0, init: false};
+    k.toggle("Spatule maintenue dans la flamme", true, function(v){ sp.hold = v; });
+    k.button("Nouveau sel mystère", function(){ mys = keys[Math.floor(Math.random() * keys.length)]; verdict = ""; mode.set("mys"); }, false);
+    k.button("Vérifier ma réponse", function(){ if (mode.value !== "mys") return; tries++; verdict = guess.value === mys ? "ok" : "warn"; if (verdict === "ok") score++; }, true);
+    var ro = k.readouts(["Raie principale", "Énergie du photon ΔE", "Couleur"]);
     var nt = k.note("", "");
-    var t0 = 0, lp = k.loop(function(dt, t){ t0 = t; k.redraw(); });
+    var wide = function(){ return c.W >= 440; };
+    function geo(){ var cx = wide() ? c.W * 0.3 : c.W / 2, base = c.H - 108; return {cx: cx, base: base, tx: cx + 4, ty: base - 108}; }
+    c.pointer(function(type, p){
+      var g = geo();
+      if (type === "down"){ sp.drag = true; sp.x = p.x; sp.y = p.y; }
+      else if (type === "drag" && sp.drag){ sp.x = p.x; sp.y = p.y; }
+      else if (type === "up"){ sp.drag = false; sp.hold = Math.hypot(p.x - g.tx, p.y - g.ty) < 80; }
+    });
+    var T = 0;
+    var lp = k.loop(function(dt, t){
+      T = t; var g = geo();
+      if (!sp.init){ sp.x = g.cx + 90; sp.y = g.base - 20; sp.init = true; }
+      if (!sp.drag){ var tx = sp.hold ? g.tx : g.cx + 110, ty = sp.hold ? g.ty : g.base - 40; sp.x += (tx - sp.x) * Math.min(1, dt * 6); sp.y += (ty - sp.y) * Math.min(1, dt * 6); }
+      var near = Math.max(0, 1 - Math.hypot(sp.x - g.tx, sp.y - g.ty) / 85);
+      sp.inten += (near * amount.value - sp.inten) * Math.min(1, dt * 3.5);
+      k.redraw();
+    });
     lp.play();
+    var flame = C5.flame;
     k.draw(function(){
-      var m = mode.value === "mys" ? mys : sel.value, d = M[m]; c.clear();
-      var ctx = c.ctx, cx = c.W / 2, base = c.H - 40;
-      /* bec */
-      ctx.fillStyle = "#4a5568"; ctx.fillRect(cx - 14, base, 28, 40); ctx.fillStyle = "#2d3748"; ctx.fillRect(cx - 22, base + 34, 44, 6);
-      /* flamme */
-      var a = amount.value;
-      for (var i = 0; i < 26; i++){
-        var ph = t0 * 2.2 + i * 1.7, fx = cx + Math.sin(ph) * (4 + i * 0.5), fy = base - i * 7.5;
-        var r = (26 - i) * 0.95 + 3;
-        ctx.beginPath(); ctx.arc(fx, fy, r, 0, 2 * Math.PI);
-        ctx.fillStyle = i < 5 ? "rgba(70,110,255,.45)" : d.col; ctx.globalAlpha = i < 5 ? 0.45 : (0.1 + 0.28 * a) * (1 - i / 34);
-        ctx.fill(); ctx.globalAlpha = 1;
+      var m = mode.value === "mys" ? mys : sel.value, d = M[m], ctx = c.ctx, g = geo(), I = sp.inten;
+      c.clear(); C5.bench(c, g.base + 46);
+      var cx = g.cx, base = g.base, wob = Math.sin(T * 7) * 3 + Math.sin(T * 13 + 1) * 1.5, H = 170 + Math.sin(T * 9) * 5;
+      /* lueur de la flamme sur la paillasse */
+      S.draw.glow(c, cx, base - 60, 150, I > 0.05 ? d.col : "#6b8cff", 0.12 + 0.28 * I);
+      /* bec Bunsen */
+      var gr = ctx.createLinearGradient(cx - 12, 0, cx + 12, 0); gr.addColorStop(0, "#8e9aab"); gr.addColorStop(0.45, "#e1e7ef"); gr.addColorStop(1, "#7b8798");
+      ctx.fillStyle = gr; ctx.fillRect(cx - 11, base, 22, 56);
+      ctx.fillStyle = "#4a5568"; ctx.fillRect(cx - 14, base + 22, 28, 12); ctx.fillStyle = "#1f2937"; ctx.fillRect(cx - 5, base + 25, 10, 6);
+      S.draw.rrect(c, cx - 30, base + 52, 60, 10, 4); ctx.fillStyle = "#3a4558"; ctx.fill();
+      /* flamme : bleue au départ, teintée par le métal */
+      var oc = I > 0.04 ? d.col : "#7b9bff";
+      var go = ctx.createLinearGradient(0, base, 0, base - H);
+      go.addColorStop(0, "rgba(90,120,255,.55)"); go.addColorStop(0.35, S.draw.tint(oc, 0.25 + 0.55 * I)); go.addColorStop(1, S.draw.tint(oc, 0.05 + 0.5 * I));
+      ctx.save(); ctx.fillStyle = go; flame(ctx, cx, base, H, 24, wob); ctx.fill();
+      ctx.fillStyle = S.draw.tint(oc, 0.2 + 0.45 * I); flame(ctx, cx, base, H * 0.7, 15, wob * 0.7); ctx.fill();
+      ctx.fillStyle = "rgba(60,90,255,.75)"; flame(ctx, cx, base, H * 0.3, 7, wob * 0.3); ctx.fill(); ctx.restore();
+      /* étincelles colorées */
+      var rnd = C5.rng(7);
+      for (var i = 0; i < 16 && I > 0.1; i++){
+        var ph = (T * (0.35 + rnd() * 0.4) + rnd() * 3) % 1, sx = cx + (rnd() - 0.5) * 30 + Math.sin(T * 3 + i) * 8 * ph, sy = base - 20 - ph * (H + 20);
+        S.draw.glow(c, sx, sy, 7, d.col, (1 - ph) * 0.9 * I);
       }
-      S.draw.text(c, mode.value === "mys" ? "Sel mystère" : d.n, cx, 16, {size: 14});
-      var dE = 1240 / d.l;
-      if (mode.value === "mys" && !verdict){
-        ro.set(0, "?"); ro.set(1, "?"); ro.set(2, d.d.split(" (")[0]);
-        nt.set("Regarde la couleur de la flamme, choisis le métal puis appuie sur « Vérifier ».", "");
-      } else {
+      /* spatule : tige + coupelle de sel */
+      ctx.save(); ctx.strokeStyle = "#6b7686"; ctx.lineWidth = 3; ctx.lineCap = "round"; ctx.beginPath(); ctx.moveTo(sp.x + 92, sp.y + 43); ctx.lineTo(sp.x + 6, sp.y + 4); ctx.stroke();
+      ctx.fillStyle = "#c8d0db"; ctx.beginPath(); ctx.ellipse(sp.x, sp.y, 11, 6, -0.3, 0, 2 * Math.PI); ctx.fill(); ctx.strokeStyle = "#7b8798"; ctx.lineWidth = 1.2; ctx.stroke();
+      ctx.fillStyle = "#ffffff"; ctx.beginPath(); ctx.ellipse(sp.x - 1, sp.y - 2, 7 * (0.5 + amount.value * 0.5), 3, -0.3, 0, 2 * Math.PI); ctx.fill(); ctx.restore();
+      S.draw.text(c, sp.drag ? "relâche dans la flamme" : sp.hold ? "" : "glisse la spatule dans la flamme", sp.x + 20, sp.y + 24, {size: 12, color: pal.grey, align: "left"});
+      S.draw.text(c, mode.value === "mys" ? "Sel mystère" : d.n, 12, 16, {size: 14, align: "left"});
+      if (mode.value === "mys") S.draw.text(c, "score : " + score + " / " + tries, c.W - 12, 16, {size: 12, align: "right", color: pal.grey});
+      /* diagramme d'énergie : excitation puis retour avec photon */
+      var hidden = mode.value === "mys" && !verdict, dE = 1240 / d.l;
+      if (wide()){
+        var X0 = c.W * 0.6, X1 = c.W - 22, yE = 60, yG = g.base - 20, midx = (X0 + X1) / 2;
+        S.draw.panel(c, X0 - 18, 34, X1 - X0 + 36, yG - 34 + 56, {title: "Dans la flamme", shadow: false});
+        S.draw.line(c, X0, yG, X1, yG, pal.ink, 3); S.draw.line(c, X0, yE + 22, X1, yE + 22, pal.ink, 3);
+        S.draw.text(c, "état excité", X1, yE + 8, {size: 12, align: "right", color: pal.grey}); S.draw.text(c, "état de base", X1, yG + 14, {size: 12, align: "right", color: pal.grey});
+        S.draw.arrow(c, X0 + 24, yG - 4, X0 + 24, yE + 28, pal.grey, 2.5); S.draw.text(c, "chaleur", X0 + 24, (yG + yE) / 2, {size: 12, color: pal.grey, align: "left", bg: "rgba(255,255,255,.9)", base: "middle"});
+        var px = X0 + 62; S.draw.dot(c, px, yE + 22 + (I > 0.1 ? 0 : 0), 6, d.col);
+        var ctx2 = c.ctx, ph = (T * 1.4) % 1;
+        ctx2.save(); ctx2.strokeStyle = hidden ? pal.grey : d.col; ctx2.lineWidth = 3.2; ctx2.lineCap = "round"; ctx2.beginPath();
+        for (var s = 0; s <= 60; s++){ var u = s / 60, yy = yE + 28 + u * (yG - yE - 34), xx = px + Math.sin(u * 22 - T * 12) * 7 * (0.35 + 0.65 * Math.min(1, u * 3)); s ? ctx2.lineTo(xx, yy) : ctx2.moveTo(xx, yy); }
+        ctx2.stroke(); ctx2.restore();
+        S.draw.arrow(c, px + 30, yE + 40, px + 30, yG - 6, hidden ? pal.grey : d.col, 2);
+        S.draw.label(c, hidden ? "ΔE = ?   λ = ?" : "ΔE = " + S.fmt(dE, 2) + " eV · λ = " + d.l + " nm", midx, yG + 34, {color: hidden ? pal.grey : pal.ink, size: 11});
+      }
+      /* spectre visible + repère */
+      var sx0 = 16, sx1 = c.W - 16, sy = c.H - 34, X = function(l){ return sx0 + (l - 380) / 400 * (sx1 - sx0); };
+      for (var l = 380; l < 780; l += 4){ ctx.fillStyle = C5.rgb(l); ctx.fillRect(X(l), sy, X(l + 4) - X(l) + 1, 16); }
+      ctx.strokeStyle = "rgba(15,27,45,.35)"; ctx.strokeRect(sx0, sy, sx1 - sx0, 16);
+      [400, 500, 600, 700].forEach(function(v){ S.draw.text(c, v + "", X(v), sy + 27, {size: 11, color: pal.grey}); });
+      S.draw.text(c, "nm", sx1, sy - 10, {size: 11, color: pal.grey, align: "right"});
+      if (!hidden){ var mx = X(Math.min(d.l, 780)); ctx.fillStyle = pal.ink; ctx.beginPath(); ctx.moveTo(mx, sy - 2); ctx.lineTo(mx - 6, sy - 12); ctx.lineTo(mx + 6, sy - 12); ctx.closePath(); ctx.fill(); }
+      if (hidden){ ro.set(0, "?"); ro.set(1, "?"); ro.set(2, d.d.split(" (")[0]); nt.set("Plonge la spatule, observe la flamme, choisis le métal puis « Vérifier ma réponse ». Indice : compare avec la couleur de chaque sel en mode Observer.", ""); }
+      else {
         ro.set(0, d.l + " nm"); ro.set(1, S.fmt(dE, 2) + " eV"); ro.set(2, d.d);
         if (mode.value === "mys") nt.set(verdict === "ok" ? "Bravo : c'est " + M[mys].n + ", λ = " + M[mys].l + " nm." : "Ce n'est pas " + M[guess.value].n + ". Compare avec la couleur de sa fiche en mode « Observer ».", verdict);
+        else if (I < 0.15) nt.set("La flamme du bec est bleue. Glisse la spatule dans la flamme pour y chauffer le sel.", "");
         else if (m === "K") nt.set("Potassium : la raie principale (766 nm, " + S.fmt(dE, 2) + " eV) est dans le rouge extrême, que l'œil voit mal ; la teinte lilas vient du mélange avec la faible raie violette à 404 nm (3,07 eV). On l'observe à travers un verre de cobalt pour masquer le jaune du sodium.", "warn");
         else nt.set("Plus l'énergie du photon est grande, plus on va vers le violet : " + S.fmt(dE, 2) + " eV ↔ " + d.l + " nm." + (m === "Ca" || m === "Ba" || m === "Cu" ? " (Ici, longueur d'onde d'une bande moléculaire dans la flamme, pas d'une raie de l'atome seul.)" : ""), "");
       }

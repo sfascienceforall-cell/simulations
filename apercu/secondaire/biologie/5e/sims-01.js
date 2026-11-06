@@ -19,44 +19,86 @@ function trace(I, t){            /* réponse à un stimulus bref d'intensité I 
 SFA.sim({
   id: "b5-c01-seuil", ch: "c01", tag: "Classique",
   titre: "Seuil et loi du tout-ou-rien",
-  resume: "Intensité du stimulus → potentiel d'action ou simple réponse locale.",
-  but: "Augmente l'intensité du stimulus appliqué à l'axone. Observe à partir de quelle valeur un potentiel d'action apparaît, puis compare la hauteur du potentiel d'action pour deux stimuli très différents. En mode « soutenu », observe ce qui change.",
+  resume: "Règle l'intensité du stimulus : réponse locale ou potentiel d'action, toujours de même hauteur.",
+  but: "Glisse la poignée rouge de l'oscilloscope (ou le curseur) pour changer l'intensité du stimulus, puis presse « Stimuler » pour voir l'axone réagir. Trouve le plus petit stimulus qui déclenche un potentiel d'action, puis compare la hauteur du PA pour 16 mV et 40 mV. En mode « soutenu », observe ce qui change.",
   aRetenir: "Sous le seuil (−55 mV ici), la réponse est locale et s'éteint. Au-dessus, le potentiel d'action a toujours la même amplitude (tout-ou-rien). Une stimulation plus forte se traduit par une plus grande fréquence de potentiels d'action, pas par un potentiel plus grand.",
   piege: "« Un stimulus plus fort donne un potentiel plus grand » est faux : l'amplitude est fixe, c'est la fréquence qui code l'intensité.",
   build: function(k, S){
-    var c = k.canvas(300), pal = S.draw.palette;
+    var c = k.canvas(430), pal = S.draw.palette, D = S.draw;
     var mode = k.seg("Stimulus", [["b", "Bref"], ["s", "Soutenu (60 ms)"]], "b");
     var I = k.slider("Intensité du stimulus (dépolarisation)", 0, 40, 1, 8, "mV");
     var ro = k.readouts(["Potentiel atteint", "Potentiel d'action ?", "Amplitude du PA", "Fréquence"]);
     var nt = k.note("", "");
+    var tt = null, best = null, tries = 0;       /* tt : temps de balayage (ms) ou null */
+    var lp = k.loop(function(dt){ tt += dt * (mode.value === "s" ? 40 : 5); if (tt > (mode.value === "s" ? 60 : 8)){ tt = null; lp.pause(); } k.redraw(); });
+    k.button("Stimuler", function(){ tt = 0; tries++; if (I.value >= 15 && (best === null || I.value < best)) best = I.value; lp.play(); }, true);
+    var geo = {};
+    c.cv.style.touchAction = "none";
+    c.pointer(function(type, p){
+      if (type === "down" || type === "drag"){
+        if (type === "down" && Math.abs(p.x - geo.hx) > 36 && p.x > geo.hx + 40) return;
+        if (type === "down" && (Math.abs(p.x - geo.hx) > 40 || p.y < geo.top - 10)) return;
+        var v = geo.ay.iy ? geo.ay.iy(p.y) : 0; I.set(Math.round(Math.max(0, Math.min(40, v - REST)))); k.redraw();
+      }
+    });
     k.draw(function(){
-      c.clear();
-      var soutenu = mode.value === "s", T = soutenu ? 60 : 8, i = I.value;
-      var ax = S.draw.axes(c, {x0: 0, x1: T, y0: -90, y1: 50, xl: "t (ms)", yl: "V (mV)", stepY: 20, stepX: soutenu ? 10 : 1});
-      S.draw.line(c, ax.X(0), ax.Y(THR), ax.X(T), ax.Y(THR), pal.red, 1.5, [6, 4]);
-      S.draw.text(c, "seuil −55", ax.X(T) - 4, ax.Y(THR) - 9, {color: pal.red, size: 12, align: "right"});
-      S.draw.text(c, "repos −70", ax.X(T) - 4, ax.Y(REST) + 10, {color: pal.grey, size: 12, align: "right"});
-      var pts = [], vmax = REST, f = 0, n = 0;
-      if (!soutenu){
-        for (var t = 0; t <= T; t += 0.05){ var v = trace(i, t); pts.push([t, v]); if (v > vmax) vmax = v; }
-        f = i >= 15 ? 1 : 0;
-      } else {
-        f = i < 15 ? 0 : Math.min(400, 20 + 8 * (i - 15));     /* Hz, modèle simplifié */
-        var per = f ? 1000 / f : 1e9;
-        for (var tt = 0; tt <= T; tt += 0.1){
-          var v2 = REST; if (f){ var a1 = ap(tt % per); v2 = a1 === null ? REST : a1; }
-          pts.push([tt, v2]); if (v2 > vmax) vmax = v2;
-        }
+      c.clear(); var ctx = c.ctx, W = c.W, soutenu = mode.value === "s", T = soutenu ? 60 : 8, i = I.value;
+      /* ---- axone ---- */
+      var ay0 = 58, ok = i >= 15, ph = tt === null ? null : (soutenu ? (ok ? 1 : 0) : tt);
+      var x0 = 30, x1 = W - 30, tube = 38;
+      var g = ctx.createLinearGradient(0, ay0 - tube / 2, 0, ay0 + tube / 2); g.addColorStop(0, "#e7defa"); g.addColorStop(1, "#c9b8ea");
+      D.rrect(c, x0, ay0 - tube / 2, x1 - x0, tube, 19); ctx.fillStyle = g; ctx.fill(); ctx.strokeStyle = "#8d77cf"; ctx.lineWidth = 2; ctx.stroke();
+      D.text(c, "axone", (x0 + x1) / 2, ay0 + 2, {size: 11, color: "#6a55a8", weight: 800});
+      /* canaux Na+ : portes sur la membrane */
+      var nch = Math.max(3, Math.min(6, Math.floor((x1 - x0) / 90)));
+      for (var q = 0; q < nch; q++){
+        var cx = x0 + 70 + q * (x1 - x0 - 140) / (nch - 1), open;
+        if (soutenu) open = ok && tt !== null; else { var lag = q * 0.35; open = ok && tt !== null && tt - 0.0 > lag && tt - lag < 1.4 + 0; }
+        [-1, 1].forEach(function(s){
+          var y = ay0 + s * tube / 2;
+          ctx.fillStyle = open ? pal.green : "#7a6aa8"; ctx.fillRect(cx - 9, y - 5, 6, 10); ctx.fillRect(cx + 3, y - 5, 6, 10);
+          if (open){ D.arrow(c, cx, y - s * 22, cx, y + s * 2, pal.green, 2); }
+        });
+        if (open) D.glow(c, cx, ay0, 34, pal.amber, 0.5);
+      }
+      D.label(c, "Na⁺ entre", x1 - 6, ay0 - tube / 2 - 22, {color: pal.green, align: "right", size: 11});
+      /* électrode de stimulation */
+      ctx.strokeStyle = pal.red; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(x0 - 6, ay0 - 40); ctx.lineTo(x0 + 8, ay0 - tube / 2 + 2); ctx.stroke();
+      var pulse = tt !== null && tt < (soutenu ? 60 : 0.6);
+      D.glow(c, x0 + 8, ay0 - tube / 2 + 2, pulse ? 24 : 14, pal.red, pulse ? 0.8 : 0.35);
+      D.dot(c, x0 + 8, ay0 - tube / 2 + 2, 4, pal.red); D.text(c, "stimulus", x0 + 14, ay0 - 40, {align: "left", size: 11, color: pal.red});
+      /* ---- oscilloscope ---- */
+      var top = 118; geo.top = top;
+      D.panel(c, 8, top - 6, W - 16, c.H - top - 2, {shadow: false, fill: "#fbfcfe"});
+      var ax = D.axes(c, {x0: 0, x1: T, y0: -90, y1: 50, xl: "t (ms)", yl: "V (mV)", stepY: 20, stepX: soutenu ? 10 : 1, t: top + 6, b: 36, l: 54});
+      geo.ay = ax; geo.hx = ax.L + 14;
+      D.line(c, ax.L, ax.Y(THR), ax.R, ax.Y(THR), pal.red, 1.5, [6, 4]);
+      D.label(c, "seuil −55 mV", ax.R - 4, ax.Y(THR) - 11, {color: pal.red, align: "right"});
+      D.label(c, "repos −70 mV", ax.R - 4, ax.Y(REST) + 11, {color: pal.grey, align: "right"});
+      var pts = [], vmax = REST, f = 0, n = 0, t, tend = tt === null ? T : tt;
+      if (!soutenu){ for (t = 0; t <= tend + 1e-9; t += 0.05){ var v = trace(i, t); pts.push([t, v]); if (v > vmax) vmax = v; } f = ok ? 1 : 0; }
+      else {
+        f = ok ? Math.min(400, 20 + 8 * (i - 15)) : 0; var per = f ? 1000 / f : 1e9;
+        for (t = 0; t <= tend + 1e-9; t += 0.1){ var v2 = REST; if (f){ var a1 = ap(t % per); v2 = a1 === null ? REST : a1; } pts.push([t, v2]); if (v2 > vmax) vmax = v2; }
         n = f ? Math.floor(T / per + 1e-9) + 1 : 0;
       }
-      B5.poly(c, ax, pts, pal.violet, 2.6);
-      var ok = i >= 15;
-      ro.set(0, S.fmt(soutenu && ok ? 40 : vmax, 0) + " mV");
+      if (ok) D.area(c, ax, function(x){ var vv = soutenu ? REST : trace(i, x); return vv; }, 0, 0, pal.violet, 0);
+      B5.poly(c, ax, pts, pal.violet, 3);
+      if (tt !== null){ var lastp = pts[pts.length - 1]; D.glow(c, ax.X(lastp[0]), ax.Y(lastp[1]), 16, pal.violet, 0.6); D.dot(c, ax.X(lastp[0]), ax.Y(lastp[1]), 4, pal.violet); }
+      /* flèche d'amplitude du PA */
+      if (ok && !soutenu && tt === null){ var tc = 15 * 0.4 / i; D.line(c, ax.X(tc + 0.7) + 14, ax.Y(REST), ax.X(tc + 0.7) + 14, ax.Y(40), pal.amber, 1.5, [3, 3]); D.label(c, "110 mV", ax.X(tc + 0.7) + 20, ax.Y(-15), {color: pal.amber, align: "left"}); }
+      /* poignée de stimulus */
+      var hy = ax.Y(REST + i); D.line(c, geo.hx, ax.Y(REST), geo.hx, hy, pal.red, 3);
+      D.glow(c, geo.hx, hy, 20, pal.red, 0.35); D.dot(c, geo.hx, hy, 8, pal.red);
+      ctx.fillStyle = "#fff"; ctx.beginPath(); ctx.arc(geo.hx, hy, 3, 0, 7); ctx.fill();
+      D.label(c, "+" + S.fmt(i, 0) + " mV", geo.hx + 14, hy - 12, {color: pal.red, align: "left"});
+      if (best !== null) D.label(c, "plus petit stimulus efficace : " + S.fmt(best, 0) + " mV", ax.L + 8, ax.T + 12, {color: pal.green, align: "left"});
+      ro.set(0, S.fmt(soutenu && ok ? 40 : (tt === null ? vmax : vmax), 0) + " mV");
       ro.set(1, ok ? "oui" : "non");
       ro.set(2, ok ? "110 mV (toujours)" : (i ? S.fmt(i, 0) + " mV (local)" : "0"));
       ro.set(3, soutenu ? (ok ? S.fmt(f, 0) + " Hz (≈ " + n + " PA en 60 ms)" : "0 Hz") : (ok ? "1 PA" : "0 PA"));
-      if (!ok) nt.set(i === 0 ? "Aucun stimulus : le neurone reste au repos (−70 mV)." : "Dépolarisation de " + S.fmt(i, 0) + " mV < 15 mV : on n'atteint pas −55 mV, la réponse locale s'éteint sans se propager.", i ? "warn" : "");
-      else nt.set(soutenu ? "Chaque potentiel d'action culmine à +40 mV. À 40 mV de stimulus on a " + S.fmt(f, 0) + " Hz contre 20 Hz au seuil : seule la fréquence change." : "Seuil franchi : un potentiel d'action de 110 mV (de −70 à +40 mV). Essaie 16 puis 40 mV : même hauteur.", "ok");
+      if (!ok) nt.set(i === 0 ? "Aucun stimulus : le neurone reste au repos (−70 mV)." : "Dépolarisation de " + S.fmt(i, 0) + " mV < 15 mV : on n'atteint pas −55 mV, les canaux Na⁺ restent fermés, la réponse locale s'éteint.", i ? "warn" : "");
+      else nt.set(soutenu ? "Chaque potentiel d'action culmine à +40 mV. À 40 mV de stimulus on a " + S.fmt(f, 0) + " Hz contre 20 Hz au seuil : seule la fréquence change." : "Seuil franchi : les canaux Na⁺ s'ouvrent, un potentiel d'action de 110 mV (de −70 à +40 mV). Essaie 16 puis 40 mV : même hauteur.", "ok");
     });
   }
 });

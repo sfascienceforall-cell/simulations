@@ -43,25 +43,33 @@ SFA.sim({
   aRetenir:"La formule d'un composé ionique est neutre : (nombre de cations × charge +) + (nombre d'anions × charge −) = 0. On écrit le cation d'abord. L'indice d'un ion est la valeur absolue de la charge de l'autre (« croisement » des charges), simplifié par leur plus grand diviseur commun. Un ion polyatomique (OH, SO₄, NO₃…) s'écrit entre parenthèses quand il y en a plus d'un. Le nom commence par l'anion : « chlorure de sodium ».",
   piege:"Les charges ne sont pas des indices dans la formule finale (Al³⁺ + O²⁻ → Al₂O₃, pas Al³O²). N'oublie pas les parenthèses : Ca(OH)₂ ≠ CaOH₂. Pour Fe et Cu, la charge est indiquée par un chiffre romain dans le nom : fer(II) ou fer(III).",
   build:function(k,S){
-    var c = k.canvas(300);
+    var c = k.canvas(350);
     var ca = k.select("Cation (charge +)", opt(CAT), "Ca");
     var an = k.select("Anion (charge −)", opt(AN), "OH");
     var ro = k.readouts(["Formule","Nom","Famille","Bilan des charges"]);
     var nt = k.note("","");
+    var lp = k.loop(function(){ k.redraw(); });
     k.draw(function(){
-      c.clear(); var W=c.W,H=c.H, r=build(ca.value,an.value), C=CAT[ca.value], A=AN[an.value];
-      var maxn=Math.max(r.n,r.m), size=Math.min(52,(W-40)/Math.max(2*maxn+1,3)), gap=6;
-      // cations (rangée haute) et anions (rangée basse)
-      function row(n,y,label,fill,stroke,col){ var tw=n*(size+gap)-gap, x0=(W-tw)/2; for(var i=0;i<n;i++){ rr(c,x0+i*(size+gap),y,size,size,fill,stroke,2,size/2); T(c,label,x0+i*(size+gap)+size/2,y+size/2,{size:Math.max(12,Math.min(15,size*0.3)),color:col}); } }
-      T(c,"cations",W/2,14,{size:12,color:P.acc}); row(r.n,24,C[0]+chg(C[2]),"#e2ecfa",P.acc,P.acc);
-      T(c,"anions",W/2,24+size+22,{size:12,color:P.green}); row(r.m,24+size+30,A[0]+chg(A[2]),"#dcf1e6",P.green,P.green);
-      var y3=24+2*size+72;
-      T(c,r.n+" × (+"+r.qc+")  +  "+r.m+" × (−"+r.qa+")  =  "+(r.n*r.qc)+" − "+(r.m*r.qa)+"  =  0",W/2,y3,{size:14,color:P.ink});
-      T(c,r.f,W/2,y3+34,{size:24,color:P.red,math:true});
-      var hp=C[3]||A[3];
+      c.clear(); var W=c.W,H=c.H,g=c.ctx, r=build(ca.value,an.value), C=CAT[ca.value], A=AN[an.value], t=Date.now()/1000, small=W<420;
+      CH.bg(c);
+      var maxn=Math.max(r.n,r.m), size=Math.min(60,(W-30)/Math.max(maxn,2)-8), gap=8;
+      function row(n,y,label,col,q,rf){ var tw=n*(size+gap)-gap, x0=(W-tw)/2; for(var i=0;i<n;i++){ var x=x0+i*(size+gap)+size/2, yy=y+Math.sin(t*1.6+i*1.3)*2;
+          D.glow(c,x,yy,size*0.95,col,.3); CH.ball(c,x,yy,size*rf/2,col,label,{size:Math.max(12,Math.min(17,size*0.3)),math:false});
+          for(var j=0;j<Math.abs(q);j++){ var tx=x-(Math.abs(q)-1)*7+j*14, ty=yy-size*rf/2-9; CH.circ(c,tx,ty,6,"#fff",col,1.6); D.text(c,q>0?"+":"−",tx,ty,{size:11,color:col}); } } }
+      var yc=70, ya=yc+size*0.5+size*0.52+44;
+      D.label(c,"cations (+)",W/2,14,{size:11.5,color:P.acc}); row(r.n,yc+4,C[0],P.acc,C[2],0.82);
+      D.label(c,"anions (−)",W/2,ya-size*0.5-26,{size:11.5,color:P.green}); row(r.m,ya,A[0],P.green,A[2],1);
+      /* bilan des charges */
+      var by=ya+size*0.5+30, tp=r.n*r.qc, tm=r.m*r.qa, bw2=Math.min(W-40,300), bx=(W-bw2)/2;
+      CH.rr(c,bx,by,bw2*0.5-3,26,D.tint(P.acc,0.14),P.acc,1.4,9); D.text(c,r.n+" × (+"+r.qc+") = +"+tp,bx+bw2*0.25,by+13.5,{size:small?11.5:13,color:P.acc});
+      CH.rr(c,bx+bw2*0.5+3,by,bw2*0.5-3,26,D.tint(P.green,0.14),P.green,1.4,9); D.text(c,r.m+" × (−"+r.qa+") = −"+tm,bx+bw2*0.75,by+13.5,{size:small?11.5:13,color:P.green});
+      D.label(c,"+"+tp+" − "+tm+" = 0 : neutre",W/2,by+44,{size:12,color:P.green});
+      D.panel(c,W/2-70,H-64,140,50,{shadow:false});
+      D.text(c,r.f,W/2,H-39,{size:26,color:P.red,math:true});
       ro.set(0,r.f); ro.set(1,r.nom); ro.set(2,r.fam); ro.set(3,r.n+"×(+"+r.qc+") + "+r.m+"×(−"+r.qa+") = 0");
       nt.set((ca.value==="H"?"L'ion H⁺ associé à un anion donne un <b>acide</b>. ":"")+"Croisement des charges : "+C[0]+chg(C[2])+" a une charge de "+r.qc+", "+A[0]+chg(A[2])+" une charge de "+r.qa+". Indices : "+(r.m>1||r.n>1?"cation × "+r.n+", anion × "+r.m+" (après simplification par "+gcd(r.qc,r.qa)+").":"1 pour chacun.")+((r.n>1&&C[3])||(r.m>1&&A[3])?" Les parenthèses sont nécessaires pour l'ion polyatomique répété.":""),"");
     });
+    lp.play();
   }
 });
 
@@ -81,7 +89,7 @@ SFA.sim({
   aRetenir:"Méthode en 3 étapes : 1) écrire les ions avec leurs charges ; 2) trouver le plus petit nombre d'ions de chaque sorte qui rend la somme des charges nulle ; 3) écrire la formule (cation d'abord, parenthèses si ion polyatomique répété). Dans l'autre sens : lire l'anion (-ure, -ate, hydroxyde, oxyde), puis le cation.",
   piege:"Les erreurs fréquentes sont proposées parmi les réponses : indices inversés, parenthèses oubliées, charges non équilibrées (formule 1 pour 1 par réflexe). Chlorure ≠ chlorate : -ure = anion simple (Cl⁻), -ate = anion avec oxygène.",
   build:function(k,S){
-    var c = k.canvas(190);
+    var c = k.canvas(210);
     var lv = k.seg("Niveau", [[1,"1 · ions simples"],[2,"2 · polyatomiques"],[3,"3 · Fe, Cu…"]], 1, function(){ next(); });
     var ch = k.select("Ta réponse", [["","— choisis —"]], "");
     var ro = k.readouts(["Score","Série en cours","Questions"]);
@@ -121,12 +129,14 @@ SFA.sim({
     k.button("Question suivante", function(){ next(); });
     next();
     k.draw(function(){
-      c.clear(); var W=c.W,H=c.H;
+      c.clear(); var W=c.W,H=c.H; CH.bg(c);
       if(!Q) return;
-      T(c,"Question "+(nq+(answered?0:1)),W/2,20,{size:12,color:P.grey});
-      if(Q.dir==="f"){ T(c,"Quelle est la formule de",W/2,60,{size:14,color:P.ink}); T(c,Q.r.nom+" ?",W/2,98,{size:Math.min(22,W/ (Q.r.nom.length*0.52)),color:P.acc}); }
-      else { T(c,"Quel est le nom de",W/2,60,{size:14,color:P.ink}); T(c,Q.r.f+" ?",W/2,106,{size:28,color:P.acc,math:true}); }
-      T(c,"niveau "+lv.value,W/2,H-16,{size:12,color:P.grey});
+      D.panel(c,10,10,W-20,H-20,{shadow:false});
+      D.label(c,"Question "+(nq+(answered?0:1)),16+36,26,{size:11,color:P.grey,align:"center"}); D.label(c,"niveau "+lv.value,W-12-30,26,{size:11,color:P.mat});
+      for(var d=0;d<5;d++) CH.circ(c,W/2-24+d*12,26,4,d<Math.min(5,streak)?P.amber:"#e3e7ed");
+      if(Q.dir==="f"){ T(c,"Quelle est la formule de",W/2,62,{size:14,color:P.grey}); T(c,Q.r.nom+" ?",W/2,104,{size:Math.min(24,(W-50)/(Q.r.nom.length*0.52)),color:P.acc}); }
+      else { T(c,"Quel est le nom de",W/2,62,{size:14,color:P.grey}); T(c,Q.r.f+" ?",W/2,112,{size:34,color:P.acc,math:true}); }
+      var ci=CAT[Q.ck], ai=AN[Q.ak]; if(Q.dir==="f"){ CH.ball(c,W/2-70,H-34,11,P.acc,"+",{size:12}); CH.ball(c,W/2+70,H-34,13,P.green,"−",{size:14}); D.text(c,"cation  +  anion",W/2,H-34,{size:11.5,color:P.grey}); }
       ro.set(0,score+" / "+nq); ro.set(1,String(streak)); ro.set(2,String(nq));
     });
   }
@@ -153,7 +163,7 @@ SFA.sim({
   aRetenir:"Oxyde : un élément + oxygène. Acide : H⁺ + anion (la formule commence par H). Base : OH⁻ + cation métallique. Sel : un cation (métal ou NH₄⁺) + un anion qui n'est ni O²⁻ ni OH⁻. On regarde d'abord le premier et le dernier ion de la formule.",
   piege:"NaOH est une base (OH⁻), pas un sel. H₂O n'est pas un acide. CO₂ est un oxyde même s'il n'y a pas de métal. Un sel n'est pas forcément du sel de cuisine : CaCO₃ (calcaire) et CuSO₄ sont des sels.",
   build:function(k,S){
-    var c = k.canvas(190);
+    var c = k.canvas(230);
     var ro = k.readouts(["Score","Série","Question"]);
     var nt = k.note("","");
     var order=shuffle(FAM.map(function(x,i){return i;})), idx=0, score=0, tot=0, streak=0, answered=false, last="";
@@ -164,9 +174,14 @@ SFA.sim({
     k.button("Formule suivante", function(){ idx++; answered=false; last=""; nt.set("Classe cette formule.",""); }, true);
     nt.set("Classe cette formule.","");
     k.draw(function(){
-      c.clear(); var W=c.W,H=c.H, q=cur();
-      T(c,"À quelle famille appartient",W/2,28,{size:13,color:P.grey}); T(c,q.f,W/2,86,{size:Math.min(40,W/(q.f.length*0.62)),color:last==="ok"?P.green:(last==="bad"?P.red:P.ink),math:true});
-      if(answered){ T(c,q.c+"   +   "+q.a,W/2,134,{size:15,color:P.ink}); T(c,"cation / première partie + anion / deuxième partie",W/2,158,{size:12,color:P.grey}); }
+      c.clear(); var W=c.W,H=c.H, q=cur(); CH.bg(c);
+      var FC={oxyde:P.red,acide:P.amber,base:P.acc,sel:P.green}, col=answered?FC[q.fam]:P.ink;
+      D.panel(c,W/2-Math.min(150,W*0.4),14,Math.min(300,W*0.8),88,{shadow:false,stroke:answered?col:"#e3e7ed"});
+      D.label(c,"À quelle famille appartient",W/2,28,{size:11,color:P.grey});
+      T(c,q.f,W/2,68,{size:Math.min(40,(W*0.7)/(q.f.length*0.62)),color:last==="ok"?P.green:(last==="bad"?P.red:P.ink),math:true});
+      if(answered){ var parts=[q.c,q.a]; parts.forEach(function(p,i){ var x=W/2+(i?1:-1)*Math.min(70,W*0.2); CH.ball(c,x,H-52,24,i?P.green:P.acc,"",{lw:1.5}); T(c,p,x,H-52,{size:p.length>6?10.5:13,color:"#fff",math:false}); });
+        T(c,"+",W/2,H-52,{size:20,color:P.grey}); D.label(c,q.fam.toUpperCase(),W/2,H-14,{size:12,color:col}); D.label(c,"cation / 1re partie",W/2-Math.min(70,W*0.2),122,{size:10.5,color:P.acc}); D.label(c,"anion / 2e partie",W/2+Math.min(70,W*0.2),122,{size:10.5,color:P.green}); }
+      else D.text(c,"Choisis : oxyde · acide · base · sel",W/2,H-30,{size:12.5,color:P.grey});
       ro.set(0,score+" / "+tot); ro.set(1,String(streak)); ro.set(2,((idx%order.length)+1)+" / "+order.length);
     });
   }
@@ -209,27 +224,32 @@ SFA.sim({
   aRetenir:"Les noms usuels (soude, javel, vinaigre) correspondent à des formules précises : NaOH, NaClO, CH₃COOH. Connaître la famille (acide, base, sel, oxydant) permet de prévoir les risques. Règle d'or : on ne mélange jamais deux produits ménagers, surtout l'eau de Javel avec un acide ou de l'ammoniaque.",
   piege:"« Naturel » ne veut pas dire sans danger : le vinaigre est un acide, le bicarbonate un sel basique. Et « acide » ne veut pas dire « dangereux » : le vinaigre se mange. La dangerosité dépend de la substance et de sa concentration. Les valeurs de pH sont des ordres de grandeur.",
   build:function(k,S){
-    var c = k.canvas(250);
+    var c = k.canvas(300);
+    var lp = k.loop(function(){ k.redraw(); });
     var A = k.select("Produit A", Object.keys(PROD).map(function(i){return [i,PROD[i].n];}), "javel");
     var B = k.select("Produit B", Object.keys(PROD).map(function(i){return [i,PROD[i].n];}), "vin");
     var ro = k.readouts(["Produit A","Produit B","Verdict"]);
     var nt = k.note("","");
     function bottle(x,y,w,h,col,name,pics){
-      var g=c.ctx; g.save(); g.fillStyle=col; g.strokeStyle="#556"; g.lineWidth=2.5; g.beginPath(); g.moveTo(x+w*0.3,y); g.lineTo(x+w*0.7,y); g.lineTo(x+w*0.7,y+h*0.18); g.lineTo(x+w,y+h*0.3); g.lineTo(x+w,y+h); g.lineTo(x,y+h); g.lineTo(x,y+h*0.3); g.lineTo(x+w*0.3,y+h*0.18); g.closePath(); g.fill(); g.stroke(); g.restore();
+      var g=c.ctx; g.save(); var gr=g.createLinearGradient(x,0,x+w,0); gr.addColorStop(0,CH.lite(col,.35)); gr.addColorStop(.5,col); gr.addColorStop(1,CH.lite(col,.15)); g.fillStyle=gr; g.strokeStyle="#6b7a90"; g.lineWidth=2.5; g.lineJoin="round"; g.beginPath(); g.moveTo(x+w*0.3,y); g.lineTo(x+w*0.7,y); g.lineTo(x+w*0.7,y+h*0.18); g.lineTo(x+w,y+h*0.3); g.lineTo(x+w,y+h); g.lineTo(x,y+h); g.lineTo(x,y+h*0.3); g.lineTo(x+w*0.3,y+h*0.18); g.closePath(); g.fill(); g.stroke(); g.restore();
       pics.forEach(function(p,i){ var cx=x+w/2, cy=y+h*0.52+i*22, g2=c.ctx; g2.save(); g2.translate(cx,cy); g2.rotate(Math.PI/4); g2.strokeStyle=P.red; g2.lineWidth=2; g2.fillStyle="#fff"; g2.fillRect(-9,-9,18,18); g2.strokeRect(-9,-9,18,18); g2.restore(); T(c,p==="corrosif"?"C":(p==="irritant"?"!":"~"),cx,cy,{size:12,color:P.red}); });
     }
     k.draw(function(){
-      c.clear(); var W=c.W,H=c.H, a=PROD[A.value], b=PROD[B.value], v=mix(A.value,B.value), colV=v[0]==="bad"?P.red:(v[0]==="warn"?P.amber:P.green);
+      c.clear(); CH.bg(c); var tt=Date.now()/1000, W=c.W,H=c.H, a=PROD[A.value], b=PROD[B.value], v=mix(A.value,B.value), colV=v[0]==="bad"?P.red:(v[0]==="warn"?P.amber:P.green);
       var bw=Math.min(80,W*0.22), bh=H*0.58, by=34;
       bottle(W*0.1,by,bw,bh,a.col,a.n,a.pic); bottle(W*0.9-bw,by,bw,bh,b.col,b.n,b.pic);
       T(c,a.n,W*0.1+bw/2,by-14,{size:12,color:P.ink}); T(c,b.n,W*0.9-bw/2,by-14,{size:12,color:P.ink});
-      T(c,"+",W/2,by+bh*0.5,{size:30,color:P.grey});
-      rr(c,12,H-70,W-24,56,v[0]==="bad"?"#fdecea":(v[0]==="warn"?"#fff4e0":"#e8f6ee"),colV,2,10);
-      T(c,v[0]==="bad"?"DANGER : ne jamais mélanger":(v[0]==="warn"?"À éviter":"Pas de danger notable"),W/2,H-42,{size:15,color:colV});
+      T(c,"+",W/2,by+bh*0.62,{size:30,color:P.grey});
+      if(A.value!==B.value){ var cloud=v[0]==="bad"?"rgba(190,200,60,":(v[0]==="warn"?"rgba(240,150,40,":null);
+        if(cloud) for(var q=0;q<9;q++){ var ph=((tt*0.45+q/9)%1); var cx2=W/2+Math.sin(q*2.3+tt)*18*ph+((q%3)-1)*8, cy2=by+bh*0.4-ph*bh*0.7; var rad=8+ph*16; var gg=c.ctx.createRadialGradient(cx2,cy2,0,cx2,cy2,rad); gg.addColorStop(0,cloud+(0.55*(1-ph)).toFixed(2)+")"); gg.addColorStop(1,cloud+"0)"); c.ctx.fillStyle=gg; c.ctx.beginPath(); c.ctx.arc(cx2,cy2,rad,0,6.3); c.ctx.fill(); }
+        if(v[0]==="bad") D.label(c,"gaz toxique",W/2,by+bh*0.62-26,{size:10.5,color:P.red}); }
+      rr(c,12,H-74,W-24,60,v[0]==="bad"?"#fdecea":(v[0]==="warn"?"#fff4e0":"#e8f6ee"),colV,2,10);
+      T(c,v[0]==="bad"?"DANGER : ne jamais mélanger":(v[0]==="warn"?"À éviter":"Pas de danger notable"),W/2,H-44,{size:15,color:colV});
       ro.set(0,a.f.split(" (")[0]); ro.set(1,b.f.split(" (")[0]); ro.set(2,v[0]==="bad"?"dangereux":(v[0]==="warn"?"déconseillé":"sans danger notable"));
       function card(p){ return "<b>"+p.n+"</b> : "+p.f+" · "+p.fam+" · pH "+p.ph+" · pictogrammes : "+(p.pic.length?p.pic.map(function(x){return PICL[x];}).join(", "):"aucun"); }
       nt.set(card(a)+"<br>"+card(b)+"<br><b>Mélange :</b> "+v[1], v[0]==="bad"?"bad":(v[0]==="warn"?"warn":"ok"));
     });
+    lp.play();
   }
 });
 })();

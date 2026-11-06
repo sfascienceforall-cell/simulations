@@ -166,11 +166,11 @@ SFA.sim({
   id: "c6-c08-citron", ch: "c08", tag: "Dans la vraie vie",
   titre: "La pile au citron : combien de citrons pour allumer une LED ?",
   resume: "Tension et intensité ne sont pas la même chose : compare des citrons en série et en parallèle.",
-  but: "Règle le nombre de citrons, le montage (série ou parallèle), la taille des électrodes et la couleur de la LED. Le graphe montre l'intensité en fonction du nombre de citrons.",
+  but: "Règle le nombre de citrons, le montage (série ou parallèle), la taille des électrodes et la couleur de la LED. Clique sur un citron pour en ajouter. Le graphe montre l'intensité en fonction du nombre de citrons.",
   aRetenir: "En série, les f.é.m. s'additionnent (n × E), mais les résistances internes aussi. En parallèle, la tension reste celle d'un seul citron, mais l'intensité fournie augmente. Une LED ne s'allume que si la tension dépasse son seuil (rouge ≈ 1,8 V) ET si l'intensité est suffisante (quelques dixièmes de mA au moins).",
   piege: "Beaucoup de tension ne suffit pas : un citron produit une très faible intensité (forte résistance interne). Modèle simplifié, valeurs typiques d'ordre de grandeur : f.é.m. d'un citron Zn–Cu ≈ 0,9 V (inférieure aux 1,10 V standards), résistance interne ≈ 1,5 kΩ (petites électrodes) ou 300 Ω (grandes).",
   build: function(k, S){
-    var c = k.canvas(400), P = S.draw.palette;
+    var c = k.canvas(490), P = S.draw.palette, H = window.C6, tt = 0;
     var n = k.slider("Nombre de citrons", 1, 8, 1, 3, "");
     var mon = k.seg("Montage", [["s", "En série"], ["p", "En parallèle"]], "s");
     var el = k.seg("Électrodes", [["0.9", "Zn–Cu"], ["0.5", "Fe–Cu"]], "0.9");
@@ -178,24 +178,48 @@ SFA.sim({
     var le = k.select("LED", LED, "1.8");
     var ro = k.readouts(["f.é.m. du montage", "Résistance interne", "Intensité", "LED"]);
     var nt = k.note("", "ok");
+    var lp = k.loop(function(dt, t){ tt = t; k.redraw(); }); lp.play();
+    c.pointer(function(type, p){ if (type === "down" && p.y > 95 && p.y < 175){ n.set(n.value >= 8 ? 1 : n.value + 1); k.redraw(); } });
     function I(nn, m){ var E = parseFloat(el.value), r = parseFloat(tl.value), Vf = parseFloat(le.value), Rd = 20;
       var Et = m === "s" ? nn * E : E, rt = m === "s" ? nn * r : r / nn; return Et > Vf ? (Et - Vf) / (rt + Rd) * 1000 : 0; }
+    var LEDC = {"1.8": [255, 70, 50], "2.1": [60, 220, 90], "3.0": [70, 130, 255]};
+    function wire(pts, col, w){ var ctx = c.ctx; ctx.save(); ctx.strokeStyle = col || "#2c3a4e"; ctx.lineWidth = w || 2.4; ctx.lineJoin = "round"; ctx.beginPath(); pts.forEach(function(p, i){ i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1]); }); ctx.stroke(); ctx.restore(); }
     k.draw(function(){
-      c.clear();
-      var N = n.value, E = parseFloat(el.value), r = parseFloat(tl.value), Vf = parseFloat(le.value), ctx = c.ctx, i;
-      var Et = mon.value === "s" ? N * E : E, rt = mon.value === "s" ? N * r : r / N, Iv = I(N, mon.value);
-      /* schéma : citrons */
-      var w = Math.min(36, (c.W - 140) / N), x0 = 24;
-      for (i = 0; i < N; i++){ var x = x0 + i * w * 1.05 + w / 2, y = mon.value === "s" ? 50 : 50 + (i % 2) * 0; ctx.fillStyle = "#f4e04d"; ctx.strokeStyle = "#b8a000"; ctx.lineWidth = 2; ctx.beginPath(); ctx.ellipse(x, y, w / 2, 18, 0, 0, 7); ctx.fill(); ctx.stroke(); }
-      var lx = c.W - 70, ly = 50, glow = Math.min(1, Iv / 3);
-      if (Iv > 0.15){ var g = ctx.createRadialGradient(lx, ly, 3, lx, ly, 14 + 34 * glow); g.addColorStop(0, "rgba(255,80,60," + (0.35 + 0.65 * glow).toFixed(2) + ")"); g.addColorStop(1, "rgba(255,80,60,0)"); ctx.fillStyle = g; ctx.fillRect(lx - 60, ly - 60, 120, 120); }
-      ctx.fillStyle = Iv > 0.15 ? "#ff5a3c" : "#b8bec6"; ctx.strokeStyle = P.ink; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(lx, ly, 12, 0, 7); ctx.fill(); ctx.stroke();
-      S.draw.text(c, "LED", lx, ly + 30, {size: 12, color: P.grey}); S.draw.text(c, N + " citron" + (N > 1 ? "s" : "") + " " + (mon.value === "s" ? "en série" : "en parallèle"), x0 + 100, 14, {size: 12, color: P.ink, align: "left"});
+      c.clear(); H.bg(c, {top: "#fbfcfd", bottom: "#eef2f7"});
+      var N = n.value, E = parseFloat(el.value), r = parseFloat(tl.value), Vf = parseFloat(le.value), ctx = c.ctx, i, ser = mon.value === "s";
+      var Et = ser ? N * E : E, rt = ser ? N * r : r / N, Iv = I(N, mon.value), on = Iv > 0.15;
+      var xL = c.W - 34, w = Math.min(52, (c.W - 96) / N), x0 = 18 + w / 2, yc = 134, topR = 56, botR = 212, stubT = 98, stubB = 172, X = function(j){ return x0 + j * w * 1.02; };
+      /* fils (sous les citrons) */
+      var xs = []; for (i = 0; i < N; i++) xs.push(X(i));
+      if (ser){
+        for (i = 0; i < N - 1; i++){ var gx = (xs[i] + xs[i + 1]) / 2 + w * 0.02; wire([[xs[i] + 9, stubT], [xs[i] + 9, 86], [gx, 86], [gx, 190], [xs[i + 1] - 9, 190], [xs[i + 1] - 9, stubB]]); }
+        wire([[xs[N - 1] + 9, stubT], [xs[N - 1] + 9, topR], [xL, topR], [xL, yc - 18]]); wire([[xs[0] - 9, stubB], [xs[0] - 9, botR], [xL, botR], [xL, yc + 18]]);
+      } else {
+        wire([[xs[0] + 9, topR], [xL, topR], [xL, yc - 18]]); wire([[xs[0] - 9, botR], [xL, botR], [xL, yc + 18]]);
+        for (i = 0; i < N; i++){ wire([[xs[i] + 9, stubT], [xs[i] + 9, topR]]); wire([[xs[i] - 9, stubB], [xs[i] - 9, botR]]); }
+      }
+      /* citrons + électrodes */
+      for (i = 0; i < N; i++){
+        var lx = xs[i], gl = ctx.createRadialGradient(lx - w * 0.15, yc - 12, 4, lx, yc, w * 0.6); gl.addColorStop(0, "#fbf07a"); gl.addColorStop(1, "#e2c21c");
+        ctx.save(); ctx.shadowColor = "rgba(15,27,45,.22)"; ctx.shadowBlur = 8; ctx.shadowOffsetY = 3; ctx.fillStyle = gl; ctx.beginPath(); ctx.ellipse(lx, yc, w / 2, 30, 0, 0, 7); ctx.fill(); ctx.restore();
+        ctx.strokeStyle = "#b8a000"; ctx.lineWidth = 1.6; ctx.beginPath(); ctx.ellipse(lx, yc, w / 2, 30, 0, 0, 7); ctx.stroke();
+        S.draw.rrect(c, lx + 5, stubT - 4, 8, 44, 3); ctx.fillStyle = "#c46a3c"; ctx.fill(); S.draw.rrect(c, lx - 13, yc - 6, 8, 46, 3); ctx.fillStyle = el.value === "0.9" ? "#9aa5b1" : "#7c6a5c"; ctx.fill();
+      }
+      S.draw.legend(c, [["#c46a3c", "électrode de cuivre (+)"], [el.value === "0.9" ? "#9aa5b1" : "#7c6a5c", el.value === "0.9" ? "électrode de zinc (−)" : "électrode de fer (−)"]], 14, 224, {});
+      /* LED */
+      var lc = LEDC[le.value], glow = Math.min(1, Iv / 2);
+      if (on) S.draw.glow(c, xL, yc, 22 + 40 * glow, "rgb(" + lc.join(",") + ")", 0.35 + 0.6 * glow);
+      ctx.save(); ctx.beginPath(); ctx.arc(xL, yc, 13, 0, 7); ctx.fillStyle = on ? "rgb(" + lc.map(function(v){ return Math.round(v + (255 - v) * glow * 0.6); }).join(",") + ")" : "rgba(" + lc.join(",") + ",.28)"; ctx.fill(); ctx.strokeStyle = "#2c3a4e"; ctx.lineWidth = 2; ctx.stroke(); ctx.restore();
+      S.draw.text(c, "LED", xL, yc + 32, {size: 11, color: P.grey, weight: 800});
+      /* courant */
+      if (on) for (i = 0; i < 6; i++){ var u = (tt * 0.45 * Math.min(1.5, 0.4 + Iv) + i / 6) % 1, span = xL - (xs[N - 1] + 9); S.draw.dot(c, xs[N - 1] + 9 + u * span, topR, 3, "#f4c542"); }
+      S.draw.text(c, N + " citron" + (N > 1 ? "s" : "") + " " + (ser ? "en série" : "en parallèle") + " · " + S.fmt(Et, 2) + " V", 14, 20, {size: 13, color: P.ink, align: "left", weight: 800});
+      S.draw.text(c, on ? "LED allumée" : Et <= Vf ? "tension trop faible" : "courant trop faible", c.W - 14, 20, {size: 12, color: on ? P.green : P.red, align: "right", weight: 800});
       /* graphe I(n) */
-      var ax = S.draw.axes(c, {x0: 0.5, x1: 8.5, y0: 0, y1: 3, stepX: 1, stepY: 0.5, xl: "nombre de citrons", yl: "I (mA)", t: 110, b: 36});
-      S.draw.fn(c, ax, function(x){ return I(Math.max(1, Math.round(x)), "s"); }, P.acc, 2.2);
-      S.draw.fn(c, ax, function(x){ return I(Math.max(1, Math.round(x)), "p"); }, P.amber, 2.2, [6, 4]);
-      S.draw.text(c, "— série", ax.R - 6, ax.T + 8, {size: 12, color: P.acc, align: "right"}); S.draw.text(c, "- - parallèle", ax.R - 6, ax.T + 26, {size: 12, color: P.amber, align: "right"});
+      var ax = S.draw.axes(c, {x0: 0.5, x1: 8.5, y0: 0, y1: 3, stepX: 1, stepY: 0.5, xl: "nombre de citrons", yl: "I (mA)", t: 276, b: 36});
+      S.draw.fn(c, ax, function(x){ return I(Math.max(1, Math.round(x)), "s"); }, P.acc, 2.4);
+      S.draw.fn(c, ax, function(x){ return I(Math.max(1, Math.round(x)), "p"); }, P.amber, 2.4, [6, 4]);
+      S.draw.legend(c, [[P.acc, "série"], [P.amber, "parallèle", true]], ax.R - 6, ax.T + 4, {align: "right"});
       S.draw.line(c, ax.L, ax.Y(0.3), ax.R, ax.Y(0.3), P.light, 1.3, [4, 3]); S.draw.text(c, "seuil visible ≈ 0,3 mA", ax.L + 6, ax.Y(0.3) - 8, {size: 12, color: P.grey, align: "left"});
       S.draw.dot(c, ax.X(N), ax.Y(Math.min(3, Iv)), 6, P.red);
       ro.set(0, S.fmt(Et, 2) + " V"); ro.set(1, S.fmt(rt, 0) + " Ω"); ro.set(2, S.fmt(Iv, 2) + " mA"); ro.set(3, Et <= Vf ? "éteinte (tension < seuil)" : Iv < 0.3 ? "à peine visible" : Iv < 1.5 ? "faible" : "bien allumée");

@@ -7,44 +7,61 @@ SFA.sim({
   aRetenir: "Dans le modèle de Bohr, l'énergie de l'électron de l'hydrogène est quantifiée : E_n = −13,6 eV / n². Lors d'un saut, le photon échangé a l'énergie |ΔE| = h·f = h·c/λ, donc λ = 1 240 eV·nm / |ΔE|. Retour au niveau n = 2 : raies visibles de la série de Balmer ; au niveau n = 1 : ultraviolet (Lyman) ; au niveau n = 3 : infrarouge (Paschen).",
   piege: "Les niveaux sont discrets : l'atome n'absorbe qu'un photon d'énergie exactement égale à un écart entre deux niveaux (pas n'importe quelle couleur). Le modèle de Bohr est une première approche : l'électron n'est pas vraiment sur une orbite ; il n'explique bien que l'hydrogène (et les ions à un électron).",
   build: function(k, S){
-    var c = k.canvas(330), P = S.draw.palette;
-    var ni = k.slider("Niveau de départ n", 1, 6, 1, 3, "");
-    var nf = k.slider("Niveau d'arrivée n'", 1, 6, 1, 2, "");
+    var c = k.canvas(340), P = S.draw.palette, H = PH6;
+    var ni = k.slider("Niveau de départ n", 1, 6, 1, 3, "", function(){ T0 = t; chk(); });
+    var nf = k.slider("Niveau d'arrivée n'", 1, 6, 1, 2, "", function(){ T0 = t; chk(); });
     var ro = k.readouts(["Énergie de départ", "Énergie d'arrivée", "Énergie du photon", "Longueur d'onde", "Domaine / série"]);
-    var nt = k.note("", "ok");
+    var nt = k.note("", "ok"), goal = null, T0 = 0, t = 0;
+    var BAL = [[410.2, "violet"], [434.0, "bleu"], [486.1, "bleu-vert"], [656.3, "rouge"]];
+    k.button("Défi : trouve la transition", function(){ goal = BAL[Math.floor(Math.random() * 4)]; chk(); }, true);
     function E(n){ return -13.6 / (n * n); }
-    var t = 0;
+    function lamOf(a, b){ return a === b ? NaN : 1239.84 / Math.abs(E(a) - E(b)); }
+    function chk(){ if (!goal) return; var l = lamOf(ni.value, nf.value), ok = Math.abs(l - goal[0]) < 1.5; nt.set("<b>Défi :</b> produis un photon de <b>" + S.fmt(goal[0], 1) + " nm</b> (" + goal[1] + ") en <b>émission</b>. " + (ok && ni.value > nf.value ? "Réussi : n = " + ni.value + " → n' = " + nf.value + " (série de Balmer) !" : isNaN(l) ? "" : "Ton photon : " + S.fmt(l, 1) + " nm."), ok && ni.value > nf.value ? "ok" : "warn"); }
     var lp = k.loop(function(dt){ t += dt; k.redraw(); }); lp.play();
+    function rad(n, R){ return R * (0.16 + 0.84 * Math.sqrt((n * n - 1) / 35)); }
+    function hx(col){ var m = /(\d+)\D+(\d+)\D+(\d+)/.exec(col); if (!m || col.charAt(0) === "#") return col; return "#" + [1, 2, 3].map(function(i){ return ("0" + (+m[i]).toString(16)).slice(-2); }).join(""); }
+    function ease(u){ u = Math.max(0, Math.min(1, u)); return u * u * (3 - 2 * u); }
     k.draw(function(){
-      c.clear(); var ctx = c.ctx, W = c.W, H = c.H, a = ni.value, b = nf.value, em = a > b;
-      /* gauche : orbites */
-      var cx = W * 0.27, cy = H / 2 + 6, R = Math.min(W * 0.25, H / 2 - 18), r1 = R / 36;
-      for (var n = 1; n <= 6; n++){ var r = Math.max(10, R * n * n / 36); ctx.beginPath(); ctx.arc(cx, cy, r, 0, 7); ctx.strokeStyle = n === a || n === b ? P.acc : "#d5dbe5"; ctx.lineWidth = n === a || n === b ? 2.2 : 1; ctx.stroke(); S.draw.text(c, String(n), cx + r * 0.71 + 6, cy - r * 0.71 - 6, {size: 12, color: P.grey}); }
-      S.draw.dot(c, cx, cy, 6, P.red); S.draw.text(c, "p⁺", cx, cy - 14, {size: 12, color: P.red});
-      var rr = Math.max(10, R * a * a / 36), ang = t * 1.5;
-      if (a !== b){
-        /* animation du saut toutes les 3 s */
-        var ph = (t % 3) / 3, rsrc = Math.max(10, R * b * b / 36), rcur = rr + (rsrc - rr) * Math.min(1, ph * 2);
-        rr = rcur;
-        var pc = P6.rgb(Math.max(380, Math.min(780, 1239.84 / Math.abs(13.6 * (1 / (b * b) - 1 / (a * a))))));
-        var px = cx + rr * Math.cos(ang), py = cy - rr * Math.sin(ang);
-        if (ph > 0.4){ var q = (ph - 0.4) / 0.6, sx = cx + (rsrc * Math.cos(ang) ), sy = cy - rsrc * Math.sin(ang); var dxp = em ? 1 : -1;
-          /* photon : flèche ondulée sortant (émission) ou entrant (absorption) */
-          var x0 = em ? px : px - 90 * (1 - q) - 10, x1 = em ? px + 120 * q : px; var ptx = em ? px + 14 : px - 14;
-          ctx.beginPath(); ctx.strokeStyle = pc; ctx.lineWidth = 3; for (var j = 0; j <= 40; j++){ var xx = (em ? px : px - 80) + j * 2.6 * 1 + (em ? 120 * q * 0 : 0), yy = py + 7 * Math.sin(j * 0.9 + t * 10); if (j) ctx.lineTo(xx + (em ? 40 * q : 0) * 1, yy); else ctx.moveTo(xx + (em ? 40 * q : 0), yy); } ctx.stroke(); }
-        S.draw.dot(c, px, py, 7, P.acc);
-      } else S.draw.dot(c, cx + rr * Math.cos(ang), cy - rr * Math.sin(ang), 7, P.acc);
-      /* droite : diagramme d'énergie */
-      var x0d = W * 0.58, x1d = W - 28, yE = function(e){ return 24 + (0 - e) / 13.6 * (H - 60) * 0.98; };
-      S.draw.line(c, x0d - 12, yE(0), x1d + 10, yE(0), P.grey, 1, [4, 4]); S.draw.text(c, "0 eV (atome ionisé)", x1d + 6, yE(0) - 10, {size: 12, align: "right", color: P.grey});
-      for (n = 1; n <= 6; n++){ var y = yE(E(n)), on = n === a || n === b; S.draw.line(c, x0d, y, x1d, y, on ? P.acc : "#aab3c0", on ? 3 : 1.6); if (on || n <= 3) S.draw.text(c, "n = " + n + "   " + S.fmt(E(n), 2) + " eV", x0d - 6, y, {size: 12, align: "right", color: on ? P.acc : P.grey}); }
-      if (a !== b){ var xm = (x0d + x1d) / 2; S.draw.arrow(c, xm, yE(E(a)), xm, yE(E(b)), em ? P.red : P.green, 3); }
-      var dE = a === b ? 0 : Math.abs(E(a) - E(b)), lam = dE > 0 ? 1239.84 / dE : NaN;
+      c.clear(); var ctx = c.ctx, W = c.W, Hh = c.H, a = ni.value, b = nf.value, em = a > b, same = a === b;
+      H.bg(c, "#f8fafd", "#eaf0f7");
+      var narrow = W < 520, cx = W * 0.27, cy = Hh / 2, R = Math.min(W * 0.2, Hh / 2 - 12);
+      var lamN = lamOf(a, b), vis = lamN >= 380 && lamN <= 750, pc = same ? "#8a95a3" : vis ? P6.rgb(lamN) : "#8a95a3";
+      /* noyau et orbites */
+      S.draw.glow(c, cx, cy, 30, "#ff8a65", 0.5);
+      for (var n = 1; n <= 6; n++){ var r = rad(n, R), on = n === a || n === b; ctx.beginPath(); ctx.arc(cx, cy, r, 0, 7); ctx.strokeStyle = on ? P.acc : "#d0d8e4"; ctx.lineWidth = on ? 2.2 : 1.1; ctx.setLineDash(on ? [] : [3, 4]); ctx.stroke(); ctx.setLineDash([]); S.draw.text(c, String(n), cx + r * 0.71 + 8, cy - r * 0.71 - 3, {size: 11.5, color: on ? P.acc : P.grey, weight: 700}); }
+      var rg = ctx.createRadialGradient(cx - 2, cy - 2, 1, cx, cy, 9); rg.addColorStop(0, "#ff9e80"); rg.addColorStop(1, P.red); ctx.beginPath(); ctx.arc(cx, cy, 9, 0, 7); ctx.fillStyle = rg; ctx.fill();
+      S.draw.text(c, "+", cx, cy, {size: 13, color: "#fff"});
+      /* cycle de 4 s : photon et saut */
+      var p = (t - T0) % 4, ang = t * 1.6, rcur, ph = null;
+      if (same){ rcur = rad(a, R); }
+      else if (em){ var j = ease((p - 0.8) / 0.5); rcur = rad(a, R) + (rad(b, R) - rad(a, R)) * j; if (p > 0.8) ph = {u: (p - 0.8) / 3.2, dir: 1}; }
+      else { var j2 = ease((p - 1.0) / 0.5); rcur = rad(a, R) + (rad(b, R) - rad(a, R)) * j2; if (p < 1.0) ph = {u: p / 1.0, dir: 0}; }
+      var ex = cx + rcur * Math.cos(ang), ey = cy - rcur * Math.sin(ang);
+      /* photon : paquet d'onde le long de la droite horizontale passant par le noyau */
+      if (ph){
+        var len = 54, start = ph.dir ? cx + rad(b, R) * 0.5 : cx - R - 70, endx = ph.dir ? W - 30 : cx - 8;
+        var head = ph.dir ? start + (endx - start) * ph.u : start + (endx - start) * ph.u;
+        var al = ph.dir ? 1 - ph.u * 0.6 : 1;
+        ctx.save(); ctx.globalAlpha = al; ctx.lineWidth = 3.2; ctx.strokeStyle = pc; ctx.beginPath();
+        for (var q = 0; q <= 50; q++){ var u = q / 50, xx = head - len * (1 - u) * (ph.dir ? 1 : 1), env = Math.sin(Math.PI * u); var yy = cy + 9 * env * Math.sin(q * 0.75 - t * 14); q ? ctx.lineTo(xx, yy) : ctx.moveTo(xx, yy); } ctx.stroke(); ctx.restore();
+        S.draw.glow(c, head - len / 2, cy, 36, hx(pc), 0.35 * al);
+        if (!ph.dir || ph.u < 0.8) S.draw.label(c, (same ? "" : S.fmt(Math.abs(E(a) - E(b)), 2) + " eV · " + S.fmt(lamN, 0) + " nm"), Math.max(70, Math.min(W - 70, head - len / 2)), cy - 34, {color: vis ? P.ink : P.grey, size: 11});
+      }
+      S.draw.glow(c, ex, ey, 14, P.acc, 0.35); var eg = ctx.createRadialGradient(ex - 2, ey - 2, 1, ex, ey, 7.5); eg.addColorStop(0, "#7ea3e6"); eg.addColorStop(1, P.acc); ctx.beginPath(); ctx.arc(ex, ey, 7.5, 0, 7); ctx.fillStyle = eg; ctx.fill(); S.draw.text(c, "−", ex, ey, {size: 11, color: "#fff"});
+      S.draw.text(c, "rayons des orbites non à l'échelle", cx, Hh - 8, {size: 10, color: P.grey, weight: 600});
+      /* diagramme d'énergie */
+      var x0d = W * 0.56, x1d = W - 14, yE = function(e){ return 30 + (0 - e) / 13.6 * (Hh - 64); };
+      S.draw.line(c, x0d, yE(0), x1d, yE(0), P.grey, 1.2, [4, 4]); S.draw.text(c, "0 eV : atome ionisé", x1d, yE(0) - 12, {size: 10.5, align: "right", color: P.grey});
+      for (n = 1; n <= 6; n++){ var y = yE(E(n)), on = n === a || n === b; S.draw.line(c, x0d, y, x1d, y, on ? P.acc : "#aab3c0", on ? 3.4 : 1.6);
+        if (on || n <= 3) S.draw.text(c, "n = " + n + "   " + S.fmt(E(n), 2) + " eV", x0d + 2, y - 9, {size: 11, align: "left", color: on ? P.acc : P.grey, weight: on ? 800 : 600}); }
+      if (!same){ var xm = (x0d + x1d) / 2; S.draw.arrow(c, xm, yE(E(a)), xm, yE(E(b)), em ? P.red : P.green, 3.4); S.draw.label(c, em ? "émission" : "absorption", xm + 4, (yE(E(a)) + yE(E(b))) / 2, {color: em ? P.red : P.green, size: 11, align: "left"}); }
+      var dE = same ? 0 : Math.abs(E(a) - E(b)), lam = lamN;
       var dom = isNaN(lam) ? "—" : lam < 380 ? "ultraviolet" : lam > 750 ? "infrarouge" : "visible";
       var serie = b === 1 || a === 1 ? "Lyman (retour à n = 1)" : b === 2 || a === 2 ? "Balmer (n = 2)" : b === 3 || a === 3 ? "Paschen (n = 3)" : "autres séries (infrarouge)";
       ro.set(0, S.fmt(E(a), 2) + " eV"); ro.set(1, S.fmt(E(b), 2) + " eV"); ro.set(2, dE ? S.fmt(dE, 3) + " eV" : "—"); ro.set(3, dE ? S.fmt(lam, 1) + " nm" : "—"); ro.set(4, dE ? dom + " · " + serie : "—");
-      nt.set(a === b ? "Même niveau au départ et à l'arrivée : aucun photon échangé." : em ? "Émission : l'électron descend de n = " + a + " à n = " + b + ", l'atome émet un photon de " + S.fmt(dE, 2) + " eV." : "Absorption : l'atome absorbe un photon de " + S.fmt(dE, 2) + " eV et l'électron monte de n = " + a + " à n = " + b + ". Tout autre photon est ignoré.", "ok");
+      if (!goal) nt.set(same ? "Même niveau au départ et à l'arrivée : aucun photon échangé." : em ? "Émission : l'électron descend de n = " + a + " à n = " + b + ", l'atome émet un photon de " + S.fmt(dE, 2) + " eV." : "Absorption : l'atome absorbe un photon de " + S.fmt(dE, 2) + " eV et l'électron monte de n = " + a + " à n = " + b + ". Tout autre photon est ignoré.", "ok");
     });
+    chk();
   }
 });
 
@@ -56,29 +73,43 @@ SFA.sim({
   aRetenir: "Un noyau instable se désintègre de façon aléatoire, sans « horloge » ni mémoire. Sur un grand nombre de noyaux, la loi est régulière : N(t) = N₀·2^(−t/T½), où la demi-vie T½ est la durée au bout de laquelle la moitié des noyaux restants s'est désintégrée. Après 2 T½ il en reste 1/4, après 3 T½ 1/8 : jamais zéro en un temps fini.",
   piege: "Une demi-vie n'est pas « la moitié du temps pour que tout disparaisse ». Au bout de 2 demi-vies, il reste encore 25 % des noyaux, pas 0 %. Et pour un petit nombre de noyaux, le hasard fait fortement dévier la courbe de la loi : la loi n'est précise que pour de grands nombres.",
   build: function(k, S){
-    var c = k.canvas(220), g = k.canvas(220), P = S.draw.palette;
+    var c = k.canvas(230), g = k.canvas(230), P = S.draw.palette;
     var N0 = k.slider("Nombre de noyaux N₀", 20, 800, 20, 200, "", function(){ reset(); });
     var iso = k.select("Noyau (pour l'échelle de temps)", [["h", "Technétium 99m : T½ = 6,0 heures"], ["d", "Iode 131 : T½ = 8,0 jours"], ["a", "Carbone 14 : T½ = 5 730 ans"], ["u", "Uranium 238 : T½ = 4,47 milliards d'années"]], "a");
+    var multi = k.toggle("Refaire l'expérience 4 fois (courbes pâles)", true, function(){ reset(); });
     k.button("Recommencer", function(){ reset(); }, true);
     var ro = k.readouts(["Temps écoulé", "Noyaux restants", "Fraction restante", "Prévue par la loi"]);
-    var alive, t, hist, lastN, tPer = 3.5;   /* 1 demi-vie = 3,5 s d'animation */
-    function reset(){ var n = N0 ? N0.value : 200; alive = []; for (var i = 0; i < n; i++) alive.push(true); t = 0; hist = [[0, n]]; lastN = n; }
+    var alive, flash, t, hist, lastN, runs, tPer = 3.5, decayed = 0;   /* 1 demi-vie = 3,5 s d'animation */
+    function reset(){ var n = N0 ? N0.value : 200; alive = []; flash = []; for (var i = 0; i < n; i++){ alive.push(true); flash.push(0); } t = 0; hist = [[0, n]]; lastN = n; decayed = 0; runs = []; for (var r = 0; r < 4; r++) runs.push({n: n, h: [[0, n]]}); }
     reset();
     var lp = k.loop(function(dt){
       var th = dt / tPer, p = 1 - Math.pow(2, -th);
-      if (t < 6){ t += th; var cnt = 0; for (var i = 0; i < alive.length; i++){ if (alive[i] && Math.random() < p) alive[i] = false; if (alive[i]) cnt++; } hist.push([t, cnt]); lastN = cnt; }
+      for (var f = 0; f < flash.length; f++) flash[f] = Math.max(0, flash[f] - dt * 2.2);
+      if (t < 6){
+        t += th; var cnt = 0, d0 = 0;
+        for (var i = 0; i < alive.length; i++){ if (alive[i] && Math.random() < p){ alive[i] = false; flash[i] = 1; d0++; } if (alive[i]) cnt++; }
+        hist.push([t, cnt]); lastN = cnt; decayed = d0;
+        if (multi.value) runs.forEach(function(r){ var dd = 0; for (var q = 0; q < r.n; q++) if (Math.random() < p) dd++; r.n -= dd; r.h.push([t, r.n]); });
+      }
       k.redraw();
     });
     lp.play();
     var units = {h: ["h", 6], d: ["jours", 8], a: ["ans", 5730], u: ["Ga", 4.47]};
     k.draw(function(){
-      c.clear(); g.clear(); var ctx = c.ctx, W = c.W, H = c.H, n = alive.length, cols = Math.ceil(Math.sqrt(n * W / H)), rows = Math.ceil(n / cols), cs = Math.min((W - 20) / cols, (H - 20) / rows);
-      for (var i = 0; i < n; i++){ var cx = 10 + (i % cols) * cs, cy = 10 + Math.floor(i / cols) * cs; ctx.fillStyle = alive[i] ? P.acc : "#e1e6ee"; ctx.fillRect(cx, cy, cs - 1.5, cs - 1.5); }
+      c.clear(); g.clear(); var ctx = c.ctx, W = c.W, H = c.H, n = alive.length, top = 34, cols = Math.ceil(Math.sqrt(n * W / (H - top))), rows = Math.ceil(n / cols), cs = Math.min((W - 20) / cols, (H - top - 10) / rows);
+      var ox = (W - cols * cs) / 2;
+      for (var i = 0; i < n; i++){ var cx = ox + (i % cols) * cs, cy = top + Math.floor(i / cols) * cs, fl = flash[i];
+        ctx.fillStyle = alive[i] ? P.acc : fl > 0 ? "rgba(192,50,29," + (0.25 + 0.75 * fl) + ")" : "#e1e6ee"; S.draw.rrect(c, cx + 0.5, cy + 0.5, cs - 1.8, cs - 1.8, Math.min(3, cs / 4)); ctx.fill(); }
+      S.draw.label(c, "noyaux intacts : " + lastN, 12, 14, {color: P.acc, size: 12, align: "left"});
+      S.draw.label(c, "désintégrés : " + (n - lastN), W - 12, 14, {color: P.red, size: 12, align: "right"});
       var ax = S.draw.axes(g, {x0: 0, x1: 6, y0: 0, y1: 1.05, xl: "t / T½", yl: "N / N₀", l: 46, t: 14, stepX: 1, stepY: 0.25});
-      S.draw.fn(g, ax, function(x){ return Math.pow(2, -x); }, P.red, 2, [6, 4]);
-      var gc = g.ctx; gc.save(); gc.beginPath(); gc.rect(ax.L, ax.T, ax.R - ax.L, ax.B - ax.T); gc.clip(); gc.strokeStyle = P.acc; gc.lineWidth = 2.4; gc.beginPath();
+      var gc = g.ctx; gc.save(); gc.beginPath(); gc.rect(ax.L, ax.T, ax.R - ax.L, ax.B - ax.T); gc.clip();
+      if (multi.value) runs.forEach(function(r){ gc.strokeStyle = "rgba(31,75,158,.28)"; gc.lineWidth = 1.5; gc.beginPath(); r.h.forEach(function(h, j){ var X = ax.X(h[0]), Y = ax.Y(h[1] / n); if (j) gc.lineTo(X, Y); else gc.moveTo(X, Y); }); gc.stroke(); });
+      gc.strokeStyle = P.acc; gc.lineWidth = 2.8; gc.beginPath();
       hist.forEach(function(h, j){ var X = ax.X(h[0]), Y = ax.Y(h[1] / n); if (j) gc.lineTo(X, Y); else gc.moveTo(X, Y); }); gc.stroke(); gc.restore();
-      S.draw.text(g, "pointillés : loi 2^(−t/T½)   trait plein : ta simulation", ax.R - 4, ax.T + 8, {size: 12, align: "right"});
+      S.draw.fn(g, ax, function(x){ return Math.pow(2, -x); }, P.red, 2.2, [6, 4]);
+      [1, 2, 3].forEach(function(m){ var yy = Math.pow(2, -m); S.draw.dot(g, ax.X(m), ax.Y(yy), 3.5, P.red); S.draw.text(g, m === 1 ? "1/2" : m === 2 ? "1/4" : "1/8", ax.X(m) + 6, ax.Y(yy) - 10, {size: 11, color: P.red, align: "left"}); });
+      S.draw.legend(g, [[P.red, "loi 2^(−t/T½)", true], [P.acc, "ta simulation"]].concat(multi.value ? [["rgba(31,75,158,.4)", "4 autres essais"]] : []), ax.R - 6, ax.T + 4, {align: "right"});
       var u = units[iso.value], tt = t * u[1];
       ro.set(0, S.fmt(t, 2) + " T½ = " + (iso.value === "a" ? S.fmt(tt, 0) : S.fmt(tt, 1)) + " " + u[0]); ro.set(1, lastN + " sur " + n); ro.set(2, S.fmt(lastN / n * 100, 1) + " %"); ro.set(3, S.fmt(Math.pow(2, -t) * n, 1) + " noyaux (" + S.fmt(Math.pow(2, -t) * 100, 1) + " %)");
     });

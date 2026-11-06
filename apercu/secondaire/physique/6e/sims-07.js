@@ -7,7 +7,7 @@ SFA.sim({
   aRetenir: "Un son pur est une onde sinusoïdale. Sa fréquence f (en hertz) fixe la hauteur : plus f est grande, plus le son est aigu. Son amplitude fixe l'intensité (le « volume ») : à fréquence égale, une amplitude plus grande donne un son plus fort. Dans l'air, λ = v/f avec v ≈ 340 m/s. L'oreille humaine perçoit environ de 20 Hz à 20 kHz : en dessous, ce sont des infrasons ; au-dessus, des ultrasons.",
   piege: "Fort ne veut pas dire aigu : amplitude et fréquence sont deux réglages indépendants. Doubler l'amplitude n'a aucun effet sur la note. Monter d'une octave, c'est doubler la fréquence (pas ajouter 100 Hz).",
   build: function(k, S){
-    var c = k.canvas(250), P = S.draw.palette;
+    var c = k.canvas(250), kb = k.canvas(150), P = S.draw.palette;
     var gam = k.seg("Gamme", [["1", "20 Hz à 2 kHz"], ["10", "200 Hz à 20 kHz"]], "1");
     var f = k.slider("Fréquence (× gamme)", 20, 2000, 10, 440, "Hz");
     var A = k.slider("Amplitude", 0.1, 1, 0.1, 0.6, "");
@@ -28,12 +28,46 @@ SFA.sim({
       } catch (e) { stopA(); }
     }
     function stopA(){ try { if (osc){ osc.stop(); osc.disconnect(); } if (gain) gain.disconnect(); if (ctxA){ ctxA.close(); ctxA = null; } } catch (e) {} osc = null; gain = null; if (timer){ clearInterval(timer); timer = null; } }
+    var blackPat = [1, 3, 6, 8, 10];
     k.draw(function(){
-      c.clear(); var fr = freq(), T = 1 / fr, W = c.W, H = c.H;
+      c.clear(); kb.clear(); var fr = freq(), T = 1 / fr, W = c.W, H = c.H, ctx = c.ctx;
       if (osc){ try { osc.frequency.value = fr; gain.gain.value = 0.12 * A.value; } catch (e) {} }
-      var ax = S.draw.axes(c, {x0: 0, x1: 4 * T * 1000, y0: -1.2, y1: 1.2, xl: "t (ms)", yl: "amplitude", l: 50, t: 18, stepY: 0.5});
-      S.draw.fn(c, ax, function(tm){ return A.value * Math.sin(2 * Math.PI * fr * tm / 1000); }, P.acc, 3);
-      var n = Math.round(12 * Math.log(fr / 440) / Math.LN2), fn = 440 * Math.pow(2, n / 12), cents = 1200 * Math.log(fr / fn) / Math.LN2, midi = n + 69;
+      /* écran d'oscilloscope */
+      var x0 = 14, y0 = 12, w = W - 28, h = H - 24, cy = y0 + h / 2, dx = w / 8, dy = h / 6;
+      S.draw.rrect(c, x0 - 6, y0 - 6, w + 12, h + 12, 12); ctx.fillStyle = "#26303f"; ctx.fill();
+      S.draw.rrect(c, x0, y0, w, h, 8); var bgc = ctx.createLinearGradient(0, y0, 0, y0 + h); bgc.addColorStop(0, "#0a1b17"); bgc.addColorStop(1, "#06100e"); ctx.fillStyle = bgc; ctx.fill();
+      ctx.save(); S.draw.rrect(c, x0, y0, w, h, 8); ctx.clip();
+      ctx.strokeStyle = "rgba(120,220,170,.16)"; ctx.lineWidth = 1;
+      for (var i = 1; i < 8; i++){ ctx.beginPath(); ctx.moveTo(x0 + i * dx, y0); ctx.lineTo(x0 + i * dx, y0 + h); ctx.stroke(); }
+      for (var j = 1; j < 6; j++){ ctx.beginPath(); ctx.moveTo(x0, y0 + j * dy); ctx.lineTo(x0 + w, y0 + j * dy); ctx.stroke(); }
+      ctx.strokeStyle = "rgba(120,220,170,.4)"; ctx.beginPath(); ctx.moveTo(x0, cy); ctx.lineTo(x0 + w, cy); ctx.moveTo(x0 + w / 2, y0); ctx.lineTo(x0 + w / 2, y0 + h); ctx.stroke();
+      var amp = A.value * 2.5 * dy, n = Math.max(200, Math.round(w));
+      [[8, "rgba(80,255,170,.18)"], [3, "#5dffb1"]].forEach(function(st){
+        ctx.beginPath(); ctx.lineWidth = st[0]; ctx.strokeStyle = st[1]; ctx.lineJoin = "round";
+        for (var q = 0; q <= n; q++){ var u = q / n, px = x0 + u * w, py = cy - amp * Math.sin(2 * Math.PI * 4 * u); q ? ctx.lineTo(px, py) : ctx.moveTo(px, py); } ctx.stroke();
+      });
+      /* mesures : période et amplitude */
+      var tx0 = x0 + w / 8 * 0 + 0, per = w / 4;
+      S.draw.line(c, x0 + per, y0 + 18, x0 + 2 * per, y0 + 18, "#ffc34d", 2); S.draw.line(c, x0 + per, y0 + 12, x0 + per, y0 + 24, "#ffc34d", 2); S.draw.line(c, x0 + 2 * per, y0 + 12, x0 + 2 * per, y0 + 24, "#ffc34d", 2);
+      S.draw.text(c, "T = " + S.fmt(T * 1000, T < 0.001 ? 3 : 2) + " ms", x0 + 1.5 * per, y0 + 34, {size: 12.5, color: "#ffc34d"});
+      S.draw.arrow(c, x0 + 14, cy, x0 + 14, cy - amp, "#ff8f7a", 2.4);
+      S.draw.text(c, "A = " + S.fmt(A.value, 1), x0 + 40, cy - amp / 2 - (amp < 24 ? 12 : 0), {size: 12.5, color: "#ff8f7a", align: "left", bg: "rgba(6,16,14,.85)"});
+      ctx.restore();
+      S.draw.text(c, "4 périodes à l'écran · 1 div = T / 2 = " + S.fmt(T * 500, T < 0.001 ? 3 : 2) + " ms", W / 2, H - 16, {size: 11, color: "#8fd9b8", weight: 600, base: "bottom"});
+      /* clavier : 3 octaves do2 → do5, + règle d'audibilité */
+      var kw = kb.W - 20, nW = 22, wk = kw / nW, ky = 8, kh = 62, midi0 = 48, n = Math.round(12 * Math.log(fr / 440) / Math.LN2), midi = n + 69, kx0 = 10, kc = kb.ctx;
+      var whites = []; for (var mm = midi0; mm < midi0 + 36; mm++) if (blackPat.indexOf(mm % 12) < 0) whites.push(mm);
+      whites.push(midi0 + 36);
+      whites.forEach(function(mk, i){ var on = mk === midi; S.draw.rrect(kb, kx0 + i * wk + 0.5, ky, wk - 1, kh, 3); kc.fillStyle = on ? P.acc : "#fff"; kc.fill(); kc.strokeStyle = "#9aa6b6"; kc.lineWidth = 1; kc.stroke(); if (mk % 12 === 0) S.draw.text(kb, "do" + (Math.floor(mk / 12) - 2), kx0 + i * wk + wk / 2, ky + kh - 9, {size: 10, color: on ? "#fff" : "#5f6b7a", weight: 700}); });
+      whites.forEach(function(mk, i){ if (mk >= midi0 + 36) return; var nx = mk + 1; if (blackPat.indexOf(nx % 12) >= 0 && nx < midi0 + 36){ var on = nx === midi; S.draw.rrect(kb, kx0 + (i + 1) * wk - wk * 0.3, ky, wk * 0.6, kh * 0.6, 2); kc.fillStyle = on ? P.acc : "#1b2638"; kc.fill(); } });
+      if (midi < midi0 || midi > midi0 + 36) S.draw.label(kb, midi < midi0 ? "◄ plus grave que le clavier" : "plus aigu que le clavier ►", kb.W / 2, ky + 30, {color: P.acc});
+      /* règle d'audibilité (échelle logarithmique 10 Hz → 100 kHz) */
+      var ry = 108, rx0 = 24, rx1 = kb.W - 24, lg = function(v){ return rx0 + (Math.log10(Math.max(10, Math.min(1e5, v))) - 1) / 4 * (rx1 - rx0); };
+      kc.fillStyle = "#f4d6d0"; kc.fillRect(rx0, ry, lg(20) - rx0, 10); kc.fillStyle = "#cfe6d8"; kc.fillRect(lg(20), ry, lg(20000) - lg(20), 10); kc.fillStyle = "#d9d0f0"; kc.fillRect(lg(20000), ry, rx1 - lg(20000), 10);
+      [10, 100, 1000, 10000, 100000].forEach(function(v){ S.draw.line(kb, lg(v), ry + 10, lg(v), ry + 15, "#6b7686", 1.2); S.draw.text(kb, v >= 1000 ? (v / 1000) + " kHz" : v + " Hz", lg(v), ry + 26, {size: 10.5, color: "#4a5668", weight: 600}); });
+      S.draw.text(kb, "infrasons", (rx0 + lg(20)) / 2 + 6, ry - 8, {size: 10.5, color: P.red}); S.draw.text(kb, "audible", lg(1000), ry - 8, {size: 10.5, color: P.green}); S.draw.text(kb, "ultrasons", (lg(20000) + rx1) / 2, ry - 8, {size: 10.5, color: P.violet});
+      var mx = lg(fr); kc.beginPath(); kc.moveTo(mx, ry - 1); kc.lineTo(mx - 6, ry - 11); kc.lineTo(mx + 6, ry - 11); kc.closePath(); kc.fillStyle = P.acc; kc.fill();
+      var cents = 1200 * Math.log(fr / (440 * Math.pow(2, n / 12))) / Math.LN2, fn = 440 * Math.pow(2, n / 12);
       var nom = names[((midi % 12) + 12) % 12] + (Math.floor(midi / 12) - 2);
       ro.set(0, S.fmt(fr, 0) + " Hz"); ro.set(1, S.fmt(T * 1000, T < 0.001 ? 3 : 2) + " ms"); ro.set(2, 340 / fr >= 1 ? S.fmt(340 / fr, 2) + " m" : S.fmt(34000 / fr, 1) + " cm");
       ro.set(3, nom + " (" + S.fmt(fn, 1) + " Hz, " + (cents >= 0 ? "+" : "−") + S.fmt(Math.abs(cents), 0) + " cents)"); ro.set(4, S.fmt(20 * Math.log10(A.value), 1) + " dB");
@@ -121,32 +155,57 @@ SFA.sim({
   aRetenir: "Niveau sonore L = 10·log(I/I₀) avec I₀ = 10⁻¹² W/m². Doubler le nombre de sources identiques ajoute seulement 3 dB ; multiplier par 10 ajoute 10 dB. En champ libre, doubler la distance retire 6 dB (L = L₁ − 20·log r). À partir d'environ 85 dB (A), le risque auditif apparaît : chaque +3 dB divise par deux la durée d'exposition tolérable.",
   piege: "Deux sources de 60 dB ne donnent pas 120 dB mais 63 dB. Le niveau en dB n'est pas proportionnel à l'intensité : +10 dB = intensité ×10. Modèle simplifié : source ponctuelle en champ libre, sans réflexion, dB assimilés à des dB(A) ; la durée limite 8 h × 2^(−(L−85)/3) est une règle indicative.",
   build: function(k, S){
-    var c = k.canvas(120), g = k.canvas(220), P = S.draw.palette;
+    var c = k.canvas(250), g = k.canvas(220), P = S.draw.palette, H = PH6;
     var L1 = k.slider("Niveau d'une source à 1 m", 50, 120, 1, 90, "dB");
-    var r = k.slider("Distance à la source", 1, 100, 1, 10, "m");
+    var r = k.slider("Distance à la source (ou glisse l'auditeur)", 1, 100, 1, 10, "m");
     var n = k.slider("Nombre de sources identiques", 1, 64, 1, 1, "");
     var ro = k.readouts(["Niveau reçu L", "Intensité I", "Intensité par rapport à 1 source à 1 m", "Durée d'exposition max (indicatif)"]);
     var nt = k.note("", "ok");
+    var geo = {}, t = 0;
     function Lr(l1, nn, rr){ return l1 + 10 * Math.log10(nn) - 20 * Math.log10(rr); }
+    var lp = k.loop(function(dt){ t += dt; k.redraw(); }); lp.play();
+    c.cv.style.touchAction = "none"; c.cv.style.cursor = "ew-resize";
+    c.pointer(function(tp, p){ if (tp === "move" || tp === "up" || !geo.sx) return; var u = (p.x - geo.sx) / (geo.ex - geo.sx); u = Math.max(0, Math.min(1, u)); r.set(Math.max(1, Math.round(Math.pow(100, u)))); k.redraw(); });
+    function zoneCol(L){ return L < 60 ? "#24775a" : L < 85 ? "#a98b00" : L < 100 ? "#c26a0c" : L < 120 ? "#c0321d" : "#8e1f12"; }
     k.draw(function(){
-      c.clear(); g.clear(); var ctx = c.ctx, W = c.W, L = Lr(L1.value, n.value, r.value), lo = 0, hi = 140, x0 = 20, x1 = W - 20;
+      c.clear(); g.clear(); var ctx = c.ctx, W = c.W, Hh = c.H, L = Lr(L1.value, n.value, r.value);
+      H.bg(c, "#f8fafd", "#eaf0f7");
+      /* jauge de niveau */
+      var lo = 0, hi = 140, x0 = 16, x1 = W - 16, gy = 62;
       function X(v){ return x0 + (v - lo) / (hi - lo) * (x1 - x0); }
       var zones = [[0, 60, "#9ed8b5"], [60, 85, "#f4e29a"], [85, 100, "#f6b26b"], [100, 120, "#ea8a6f"], [120, 140, "#c0392b"]];
-      zones.forEach(function(z){ ctx.fillStyle = z[2]; ctx.fillRect(X(z[0]), 40, X(z[1]) - X(z[0]), 18); });
-      [[0, "seuil d'audition"], [60, "conversation"], [85, "risque"], [110, "concert"], [130, "douleur"]].forEach(function(m, i){ S.draw.line(c, X(m[0]), 36, X(m[0]), 62, P.ink, 1); S.draw.text(c, m[1], Math.min(Math.max(X(m[0]), 62), W - 50), 78 + (i % 2) * 16, {size: 12}); });
-      var Lc = Math.max(0, Math.min(140, L)); ctx.fillStyle = P.ink; ctx.beginPath(); ctx.moveTo(X(Lc), 62); ctx.lineTo(X(Lc) - 7, 74); ctx.lineTo(X(Lc) + 7, 74); ctx.closePath(); ctx.fill();
-      S.draw.text(c, S.fmt(L, 1) + " dB", Math.min(Math.max(X(Lc), 36), W - 36), 18, {size: 16, color: P.ink});
+      zones.forEach(function(z){ ctx.fillStyle = z[2]; ctx.fillRect(X(z[0]), gy, X(z[1]) - X(z[0]), 14); });
+      [[0, "0"], [60, "60"], [85, "85"], [120, "120"]].forEach(function(m){ S.draw.line(c, X(m[0]), gy, X(m[0]), gy + 18, P.ink, 1); S.draw.text(c, m[1] + " dB", Math.min(Math.max(X(m[0]), 20), W - 20), gy + 28, {size: 10.5, color: "#4a5668", weight: 600}); });
+      [[2, "audition"], [72, "conversation"], [92, "risque"], [110, "concert"], [131, "douleur"]].forEach(function(m, i){ if (W < 420 && (m[1] === "concert" || m[1] === "risque")) return; S.draw.text(c, m[1], Math.min(Math.max(X(m[0]), 34), W - 30), gy - 9 - (i % 2) * 0, {size: 10.5, color: "#2c3a4e", weight: 700}); });
+      var Lc = Math.max(0, Math.min(140, L)); ctx.fillStyle = P.ink; ctx.beginPath(); ctx.moveTo(X(Lc), gy + 15); ctx.lineTo(X(Lc) - 6, gy + 25); ctx.lineTo(X(Lc) + 6, gy + 25); ctx.closePath(); ctx.fill();
+      S.draw.display(c, S.fmt(L, 1) + " dB", Math.min(Math.max(X(Lc), 60), W - 60), 26, {w: 112, h: 38, size: 20, color: zoneCol(L), caption: null});
+      /* scène : sources à gauche, auditeur sur une échelle logarithmique de 1 à 100 m */
+      var sy = 170, sx = 44, ex = W - 30; geo.sx = sx; geo.ex = ex; geo.y = sy;
+      ctx.fillStyle = "#cfd8e4"; ctx.fillRect(0, sy + 22, W, 10);
+      [1, 2, 5, 10, 20, 50, 100].forEach(function(v){ var xx = sx + Math.log(v) / Math.log(100) * (ex - sx); S.draw.line(c, xx, sy + 22, xx, sy + 28, "#6b7686", 1.2); S.draw.text(c, v + " m", xx, sy + 43, {size: 10.5, color: "#4a5668", weight: 600}); });
+      var lx = sx + Math.log(r.value) / Math.log(100) * (ex - sx);
+      var amp = Math.max(0, (L - 20) / 100);
+      for (var q = 0; q < 6; q++){ var ph = ((t * 0.9 + q / 6) % 1), rr = 18 + ph * (lx - sx - 14); if (rr < 8) continue; ctx.beginPath(); ctx.arc(sx, sy, rr, -0.85, 0.85); ctx.strokeStyle = "rgba(31,75,158," + (0.5 * (1 - ph) * (0.25 + amp)) + ")"; ctx.lineWidth = 2 + 4 * amp; ctx.stroke(); }
+      var cnt = Math.min(n.value, 9), cols = cnt > 3 ? 3 : cnt, rows = Math.ceil(cnt / cols);
+      for (var s2 = 0; s2 < cnt; s2++){ var cx2 = sx - 10 - (s2 % cols) * 11, cy2 = sy - 14 + Math.floor(s2 / cols) * 14 - (rows - 1) * 7 + 10; H.metal(c, cx2 - 6, cy2 - 8, 12, 16, 3, "#4b5565"); S.draw.dot(c, cx2, cy2 + 2, 3.2, "#9aa6b6"); }
+      S.draw.label(c, n.value + (n.value > 1 ? " sources" : " source") + " · " + L1.value + " dB à 1 m", sx + 56, sy - 44, {color: P.acc, size: 11});
+      var zc = zoneCol(L); S.draw.glow(c, lx, sy - 6, 30, zc, 0.35 + 0.3 * Math.min(1, Math.max(0, (L - 60) / 60)));
+      ctx.fillStyle = "#e6b58c"; ctx.beginPath(); ctx.arc(lx, sy - 14, 8, 0, 7); ctx.fill(); ctx.strokeStyle = "#13233a"; ctx.lineWidth = 1.8; ctx.stroke();
+      ctx.fillStyle = "#3a5ea8"; S.draw.rrect(c, lx - 8, sy - 5, 16, 22, 5); ctx.fill();
+      S.draw.dot(c, lx - 8, sy - 14, 3, "#13233a"); S.draw.dot(c, lx + 8, sy - 14, 3, "#13233a");
+      S.draw.label(c, "r = " + r.value + " m", lx, sy - 36, {color: P.ink, size: 11.5});
+      if (t < 5) S.draw.label(c, "glisse l'auditeur", W / 2, Hh - 6, {color: P.grey, size: 10.5, base: "bottom"});
       var I = 1e-12 * Math.pow(10, L / 10), t8 = L > 85 ? 8 * 60 * Math.pow(2, -(L - 85) / 3) : null, tx;
       if (t8 === null) tx = "pas de limite pour 8 h"; else if (t8 >= 60) tx = S.fmt(t8 / 60, 1) + " h"; else if (t8 >= 1) tx = S.fmt(t8, 0) + " min"; else tx = S.fmt(t8 * 60, 0) + " s";
       ro.set(0, S.fmt(L, 1) + " dB"); ro.set(1, I >= 0.01 ? S.fmt(I, 3) + " W/m²" : S.sci(I) + " W/m²"); ro.set(2, "× " + S.fmt(Math.pow(10, (L - L1.value) / 10), 3)); ro.set(3, tx);
-      nt.set(L > 120 ? "Dangereux : seuil de la douleur, lésions possibles en quelques secondes." : L > 85 ? "Au-dessus de 85 dB : risque pour l'audition si l'exposition dure. Protège-toi ou éloigne-toi." : L < 30 ? "Très calme." : "Niveau sans danger pour une exposition normale.", L > 85 ? "warn" : "ok");
-      /* graphe L(r) */
+      nt.set(L > 120 ? "Dangereux : seuil de la douleur, lésions possibles en quelques secondes." : L > 85 ? "Au-dessus de 85 dB : risque pour l'audition si l'exposition dure. Protège-toi ou éloigne-toi." : L < 30 ? "Très calme." : "Niveau sans danger pour une exposition normale. Repère : conversation ≈ 60 dB, circulation ≈ 80 dB.", L > 120 ? "bad" : L > 85 ? "warn" : "ok");
       var ax = S.draw.axes(g, {x0: 0, x1: 100, y0: 20, y1: 140, xl: "distance (m)", yl: "L (dB)", l: 50, t: 20, stepX: 20, stepY: 20});
-      S.draw.line(g, ax.L, ax.Y(85), ax.R, ax.Y(85), P.red, 1.5, [6, 4]);
+      S.draw.area(g, ax, function(){ return 140; }, 0, 100, "#c0321d", 0.06, 85);
+      S.draw.line(g, ax.L, ax.Y(85), ax.R, ax.Y(85), P.red, 1.5, [6, 4]); S.draw.text(g, "seuil de risque 85 dB", ax.R - 4, ax.Y(85) - 9, {size: 11, color: P.red, align: "right"});
       S.draw.fn(g, ax, function(x){ return x < 1 ? NaN : Lr(L1.value, 1, x); }, P.grey, 2, [5, 4]);
       S.draw.fn(g, ax, function(x){ return x < 1 ? NaN : Lr(L1.value, n.value, x); }, P.acc, 3);
       S.draw.dot(g, ax.X(r.value), ax.Y(Math.max(20, Math.min(140, L))), 6, P.red);
-      S.draw.text(g, (n.value === 1 ? "une seule source" : "pointillés : 1 source — trait plein : " + n.value + " sources"), ax.R - 4, ax.T + 6, {size: 12, align: "right", color: P.ink});
+      S.draw.legend(g, n.value === 1 ? [[P.acc, "une seule source"]] : [[P.grey, "1 source", true], [P.acc, n.value + " sources"]], ax.R - 8, ax.T + 6, {align: "right"});
     });
   }
 });
@@ -201,7 +260,7 @@ SFA.sim({
       S.draw.arrow(c, x1 + 4, cy, x1 + 26, cy, P.red, 3); S.draw.arrow(c, x1 - 4, cy, x1 - 26, cy, P.red, 3);
       S.draw.dot(c, x1, cy, 8, P.red);
       S.draw.line(c, x0, cy - h - 20, x1, cy - h - 20, P.ink, 1.5); S.draw.line(c, x0, cy - h - 25, x0, cy - h - 15, P.ink, 1.5); S.draw.line(c, x1, cy - h - 25, x1, cy - h - 15, P.ink, 1.5);
-      S.draw.label(c, "L = " + S.fmt(L.value, 2) + " m", (x0 + x1) / 2, cy - h - 20, {color: P.ink, size: 12});
+      S.draw.label(c, "L = " + S.fmt(L.value, 2) + " m", (x0 + x1) / 2, cy - h - 38, {color: P.ink, size: 12});
       S.draw.text(c, open ? "ventre" : "nœud (fermé)", x0 + (open ? 0 : 0), cy + h + 54, {size: 11.5, color: open ? P.green : P.red, align: "left"});
       S.draw.text(c, "● ventre de déplacement   ● nœud", W - 10, cy + h + 54, {size: 11, color: P.grey, align: "right"});
       /* afficheur */

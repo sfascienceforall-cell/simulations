@@ -163,47 +163,55 @@ SFA.sim({
   aRetenir: "Un fil rectiligne crée des lignes de champ circulaires autour de lui : B = μ₀·I/(2π·r) = 2·10⁻⁷·I/r (SI). Le champ double si I double, il est divisé par 2 si r double. Le sens se trouve avec la règle de la main droite : pouce dans le sens du courant, doigts qui s'enroulent dans le sens du champ.",
   piege: "Le champ du fil n'est pas dirigé vers le fil ni le long du fil : il est tangent à des cercles. Et si le champ du fil est plus faible que celui de la Terre (≈ 19 µT en horizontal chez nous), la boussole ne bascule pas : elle dévie seulement.",
   build: function(k, S){
-    var c = k.canvas(330), g = k.canvas(190), P = S.draw.palette;
+    var c = k.canvas(350), g = k.canvas(190), P = S.draw.palette, Pm = PH6;
     var I = k.slider("Intensité I", 0, 20, 0.5, 10, "A");
-    var r = k.slider("Distance r au fil", 1, 20, 0.5, 5, "cm");
+    var r = k.slider("Distance r au fil (ou glisse sur le dessin)", 1, 20, 0.5, 5, "cm");
     var sens = k.seg("Sens du courant", [["out", "⊙ vers toi"], ["in", "⊗ vers la feuille"]], "out");
     var terre = k.toggle("Tenir compte du champ terrestre (≈ 19 µT vers le nord)", true);
     var ro = k.readouts(["B du fil", "Déviation de la boussole nord", "B du fil / B terrestre horizontal"]);
-    var BH = 19;
+    var BH = 19, geo = {}, tm = 0;
     function Bw(i, rr){ return 20 * i / rr; }  /* µT, r en cm */
+    var lp = k.loop(function(dt){ tm += dt; k.redraw(); }); lp.play();
+    c.cv.style.touchAction = "none"; c.cv.style.cursor = "crosshair";
+    c.pointer(function(t, p){ if (t === "move" || t === "up" || !geo.cx) return; var d = Math.sqrt(Math.pow(p.x - geo.cx, 2) + Math.pow(p.y - geo.cy, 2)); r.set(Math.round(Math.max(1, Math.min(20, (d - 20) / (geo.scale - 20) * 20)) * 2) / 2); k.redraw(); });
     k.draw(function(){
-      c.clear(); g.clear();
-      var ctx = c.ctx, cx = c.W / 2, cy = c.H / 2 + 6, sg = sens.value === "out" ? 1 : -1;
-      var scale = Math.min(c.W, c.H) / 2 - 36, rmax = 20, rp = r.value / rmax * (scale - 20) + 20 ;
-      /* cercles */
-      [1, 2, 3, 4].forEach(function(j){ ctx.beginPath(); ctx.arc(cx, cy, 20 + (scale - 20) * j / 4 * 1, 0, 7); ctx.strokeStyle = "#e3e7ed"; ctx.lineWidth = 1; ctx.stroke(); });
-      ctx.beginPath(); ctx.arc(cx, cy, rp, 0, 7); ctx.strokeStyle = "rgba(30,63,143,.7)"; ctx.lineWidth = 2; ctx.setLineDash([6, 4]); ctx.stroke(); ctx.setLineDash([]);
+      c.clear(); g.clear(); Pm.bg(c, "#f8fafd", "#e9eff7");
+      var ctx = c.ctx, cx = c.W / 2, cy = c.H / 2, sg = sens.value === "out" ? 1 : -1;
+      var scale = Math.min(c.W, c.H) / 2 - 22, rp = r.value / 20 * (scale - 20) + 20; geo.cx = cx; geo.cy = cy; geo.scale = scale;
+      var b = Bw(I.value, r.value);
+      /* lignes de champ : cercles avec flèches qui tournent */
+      [1, 2, 3, 4].forEach(function(j){ var rr = 20 + (scale - 20) * j / 4; ctx.beginPath(); ctx.arc(cx, cy, rr, 0, 7); ctx.strokeStyle = "rgba(31,75,158,.22)"; ctx.lineWidth = 1.4; ctx.stroke();
+        for (var q = 0; q < 6; q++){ var an = (q / 6) * 2 * Math.PI + sg * tm * 0.5 * Math.min(2, 0.2 + I.value / 10) / Math.sqrt(j), ax_ = cx + rr * Math.cos(an), ay = cy - rr * Math.sin(an), tdx = -Math.sin(an) * sg, tdy = -Math.cos(an) * sg; S.draw.arrow(c, ax_ - tdx * 4, ay - tdy * 4, ax_ + tdx * 4, ay + tdy * 4, "rgba(31,75,158,.5)", 1.6); } });
+      ctx.beginPath(); ctx.arc(cx, cy, rp, 0, 7); ctx.strokeStyle = "rgba(31,75,158,.8)"; ctx.lineWidth = 2; ctx.setLineDash([6, 4]); ctx.stroke(); ctx.setLineDash([]);
       /* fil */
-      ctx.beginPath(); ctx.arc(cx, cy, 13, 0, 7); ctx.fillStyle = "#c7cdd6"; ctx.fill(); ctx.strokeStyle = P.ink; ctx.lineWidth = 2; ctx.stroke();
+      S.draw.glow(c, cx, cy, 34, "#e0861a", Math.min(0.5, I.value / 40));
+      var fg = ctx.createRadialGradient(cx - 3, cy - 3, 2, cx, cy, 13); fg.addColorStop(0, "#f1c58a"); fg.addColorStop(1, "#b56a14"); ctx.beginPath(); ctx.arc(cx, cy, 13, 0, 7); ctx.fillStyle = fg; ctx.fill(); ctx.strokeStyle = P.ink; ctx.lineWidth = 2; ctx.stroke();
       if (sg > 0){ S.draw.dot(c, cx, cy, 4, P.ink); } else { S.draw.line(c, cx - 6, cy - 6, cx + 6, cy + 6, P.ink, 2.5); S.draw.line(c, cx - 6, cy + 6, cx + 6, cy - 6, P.ink, 2.5); }
       /* boussoles sur le cercle de rayon r */
-      var b = Bw(I.value, r.value);
       for (var j = 0; j < 8; j++){
         var th = j * Math.PI / 4 + Math.PI / 2, px = cx + rp * Math.cos(th), py = cy - rp * Math.sin(th);
-        /* tangente anti-horaire (vu de dessus, courant vers toi) : (-sin, -cos) en coordonnées écran */
-        var tx = -Math.sin(th) * sg * (+1), ty = -Math.cos(th) * sg;
-        /* anti-horaire en coordonnées écran avec y vers le bas : tangent = (-sin th, -cos th) car position = (cos, -sin) */
-        var vx = tx * b + 0, vy = ty * b;
+        var tx = -Math.sin(th) * sg, ty = -Math.cos(th) * sg, vx = tx * b, vy = ty * b;
         if (terre.value){ vy += -BH; }
         var l = Math.sqrt(vx * vx + vy * vy); if (l < 1e-9){ vx = 0; vy = -1; l = 1; }
-        ctx.save(); ctx.translate(px, py); ctx.rotate(Math.atan2(vy, vx));
-        ctx.fillStyle = P.red; ctx.beginPath(); ctx.moveTo(15, 0); ctx.lineTo(0, -5); ctx.lineTo(0, 5); ctx.closePath(); ctx.fill();
-        ctx.fillStyle = P.acc; ctx.beginPath(); ctx.moveTo(-15, 0); ctx.lineTo(0, -5); ctx.lineTo(0, 5); ctx.closePath(); ctx.fill(); ctx.restore();
-        if (j === 0) { S.draw.text(c, "Nord ↑", px + 34, py - 18, {size: 12, color: P.grey}); }
+        ctx.save(); ctx.translate(px, py); ctx.beginPath(); ctx.arc(0, 0, 19, 0, 7); ctx.fillStyle = "rgba(255,255,255,.92)"; ctx.fill(); ctx.strokeStyle = "#9aa6b6"; ctx.lineWidth = 1.4; ctx.stroke();
+        ctx.rotate(Math.atan2(vy, vx));
+        ctx.fillStyle = P.red; ctx.beginPath(); ctx.moveTo(16, 0); ctx.lineTo(0, -5); ctx.lineTo(0, 5); ctx.closePath(); ctx.fill();
+        ctx.fillStyle = P.acc; ctx.beginPath(); ctx.moveTo(-16, 0); ctx.lineTo(0, -5); ctx.lineTo(0, 5); ctx.closePath(); ctx.fill(); ctx.restore();
+        S.draw.dot(c, px, py, 2.2, "#fff");
       }
+      /* boussole du nord : déviation */
       var dev = Math.atan(b / BH) * 180 / Math.PI;
+      S.draw.label(c, "Nord ↑", cx + rp * 0 + 0, cy - rp - 30, {color: P.grey, size: 11});
+      if (terre.value) S.draw.label(c, "δ = " + S.fmt(dev, 0) + " °", cx + 40, cy - rp - 2, {color: P.red, size: 11.5, align: "left"});
+      S.draw.legend(c, [[P.red, "pôle Nord de l'aiguille"], [P.acc, "pôle Sud"], ["rgba(31,75,158,.6)", "lignes de champ"]], 8, 8, {});
+      S.draw.label(c, "B = " + S.fmt(b, 1) + " µT à " + S.fmt(r.value, 1) + " cm", c.W - 10, c.H - 14, {color: P.acc, size: 12, align: "right"});
       ro.set(0, S.fmt(b, 1) + " µT"); ro.set(1, terre.value ? S.fmt(dev, 0) + " °" : "—"); ro.set(2, S.fmt(b / BH, 2));
       /* graphe B(r) */
       var ymax = Math.max(40, Math.ceil(20 * I.value / 1 / 10) * 10);
       var ax = S.draw.axes(g, {x0: 0, x1: 20, y0: 0, y1: ymax, xl: "r (cm)", yl: "B (µT)", l: 52, t: 22});
       S.draw.fn(g, ax, function(x){ return x < 0.2 ? NaN : Bw(I.value, x); }, P.acc);
       S.draw.line(g, ax.L, ax.Y(BH), ax.R, ax.Y(BH), P.amber, 1.5, [5, 4]);
-      S.draw.label(g, "champ terrestre horizontal ≈ 19 µT", ax.R - 4, Math.min(ax.B - 16, ax.Y(BH) + 14), {size: 11.5, color: P.amber, align: "right"});
+      S.draw.label(g, "champ terrestre horizontal ≈ 19 µT", ax.R - 4, Math.max(ax.T + 12, ax.Y(BH) - 14), {size: 11.5, color: P.amber, align: "right"});
       S.draw.dot(g, ax.X(r.value), ax.Y(b), 6, P.red);
     });
     k.note("Tangente de la déviation : tan δ = B<sub>fil</sub> / B<sub>horizontal terrestre</sub> (au point situé au nord du fil).");

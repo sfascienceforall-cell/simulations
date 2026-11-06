@@ -17,34 +17,54 @@ SFA.sim({
   id:"c3-c05-ion", ch:"c05", tag:"Classique",
   titre:"De l'atome à l'ion : gagner ou perdre des électrons",
   resume:"Retire ou ajoute des électrons à un atome : la charge change, les protons jamais.",
-  but:"Choisis un élément puis fais varier le nombre d'électrons gagnés ou perdus. Observe la couche externe, la charge et le symbole de l'ion. Trouve l'ion que l'élément forme naturellement.",
+  but:"Choisis un élément puis fais varier le nombre d'électrons gagnés ou perdus (curseur, boutons − / + ou clic sur un électron pour l'arracher). Observe la couche externe, la charge et le symbole de l'ion. Trouve l'ion que l'élément forme naturellement.",
   aRetenir:"Un ion est un atome (ou un groupe d'atomes) qui a gagné ou perdu des électrons. Perte d'électrons : cation (charge +). Gain : anion (charge −). Le nombre de protons ne change pas : l'élément reste le même. Les ions courants ont une couche externe pleine (2 ou 8 électrons), comme un gaz noble.",
   piege:"Un ion Na⁺ n'a pas « gagné un proton » : il a perdu un électron. Les métaux donnent des cations, les non-métaux des anions. Les électrons ne se retirent pas au hasard : on cherche la configuration d'un gaz noble.",
   build:function(k,S){
-    var c = k.canvas(330);
+    var c = k.canvas(400);
     var el = k.select("Élément", Object.keys(AT).map(function(i){return [i,AT[i][1]+" ("+AT[i][0]+", Z = "+AT[i][2]+")"];}), "na", function(){ gain.set(0); });
     var gain = k.slider("Électrons gagnés (+) ou perdus (−)", -3, 3, 1, 0, "");
     k.button("Ion naturel", function(){ gain.set(-AT[el.value][3]); }, true);
     var ro = k.readouts(["Protons","Électrons","Charge","Particule"]);
     var nt = k.note("","");
+    var chips=[], epos=[], flash=0;
+    var lp = k.loop(function(dt){ flash=Math.max(0,flash-dt); k.redraw(); });
+    c.pointer(function(type,pt){ if(type!=="down") return;
+      for(var i=0;i<chips.length;i++) if(CH.hit(chips[i],pt)){ gain.set(gain.value+chips[i].d); flash=.6; k.redraw(); return; }
+      for(var j=epos.length-1;j>=0;j--){ if(Math.hypot(pt.x-epos[j][0],pt.y-epos[j][1])<12){ gain.set(gain.value-1); flash=.6; k.redraw(); return; } } });
     k.draw(function(){
-      c.clear(); var W=c.W,H=c.H,g=c.ctx,a=AT[el.value],Z=a[2],E=Z+gain.value, cx=W/2, cy=H/2-4, R=Math.min(W,H)/2-14, q=Z-E;
+      c.clear(); var W=c.W,H=c.H,g=c.ctx,a=AT[el.value],Z=a[2],E=Z+gain.value, cx=W/2, cy=H/2-26, R=Math.min(W,H-110)/2-6, q=Z-E, t=Date.now()/1000, small=W<420;
+      CH.bg(c);
       var shells=[2,8,8,2], rem=Math.max(E,0), ring=[]; shells.forEach(function(cap){ var m=Math.min(cap,rem); ring.push(m); rem-=m; });
       var rad=[0.3,0.55,0.78,0.98].map(function(f){return R*f;});
-      ring.forEach(function(m,j){ if(m>0||j===0){ g.save(); g.strokeStyle="#cfd6e0"; g.setLineDash([3,4]); g.beginPath(); g.arc(cx,cy,rad[j],0,6.28); g.stroke(); g.restore(); } });
-      circ(c,cx,cy,rad[0]*0.62,P.red,"#fff",2); T(c,"+"+Z,cx,cy,{size:15,color:"#fff"});
-      ring.forEach(function(m,j){ for(var i=0;i<m;i++){ var ang=-1.57+i*6.2832/m+j*0.35; circ(c,cx+rad[j]*Math.cos(ang),cy+rad[j]*Math.sin(ang),5.5,P.acc,"#fff",1); } });
       var outer=ring[3]>0?ring[3]:(ring[2]>0?ring[2]:(ring[1]>0?ring[1]:ring[0])), li=ring[3]>0?3:(ring[2]>0?2:(ring[1]>0?1:0));
-      var full=(li===0&&outer===2)||(li===1&&outer===8)||(li===2&&outer===8)||(li===3&&false);
-      var sym=a[0]+(q===0?"":"<sup>"+(Math.abs(q)>1?Math.abs(q):"")+(q>0?"+":"−")+"</sup>");
-      ro.set(0,String(Z)); ro.set(1,String(E)); ro.set(2,q===0?"0":(q>0?"+"+q:"−"+Math.abs(q))); ro.set(3,sym+(q===0?" (atome)":(q>0?" (cation)":" (anion)")));
+      var full=(li===0&&outer===2)||(li===1&&outer===8)||(li===2&&outer===8);
+      ring.forEach(function(m,j){ if(m>0||j===0){ g.save(); g.setLineDash([3,5]); var on=(j===li&&full&&E>0); CH.circ(c,cx,cy,rad[j],null,on?P.green:"#b8c3d3",on?2.4:1.3); g.restore(); } });
+      D.glow(c,cx,cy,rad[0]*1.3,q>0?P.red:(q<0?P.acc:P.amber),.35);
+      CH.ball(c,cx,cy,rad[0]*0.62,P.red,"+"+Z,{size:15});
+      epos=[];
+      ring.forEach(function(m,j){ for(var i=0;i<m;i++){ var ang=-1.57+i*6.2832/m+j*0.35+t*0.25*(j%2?-1:1)/(1+j), x=cx+rad[j]*Math.cos(ang), y=cy+rad[j]*Math.sin(ang); epos.push([x,y]); CH.ball(c,x,y,6,P.acc,"",{lw:1}); } });
+      var sym=a[0]+(q===0?"":(Math.abs(q)>1?Math.abs(q):"")+(q>0?"+":"−")), sh=q===0?"":(Math.abs(q)>1?Math.abs(q):"")+(q>0?"+":"−");
+      /* carte symbole */
+      D.panel(c,8,8,small?78:92,small?58:66,{shadow:false});
+      D.text(c,a[0],8+(small?32:38),8+(small?32:36),{size:small?30:36,color:P.mat,math:true});
+      if(sh) D.text(c,sh,8+(small?64:76),8+14,{size:13,color:q>0?P.red:P.acc});
+      D.label(c,q===0?"atome neutre":(q>0?"cation":"anion"),8+(small?39:46),(small?66:74)+10,{size:11,color:q===0?P.green:(q>0?P.red:P.acc)});
+      D.legend(c,[[P.red,"proton (+)"],[P.acc,"électron (−)"]],W-8,8,{align:"right"});
+      D.label(c,"charge totale : "+Z+" − "+E+" = "+(q>0?"+"+q:(q<0?"−"+Math.abs(q):"0")),W-8,60,{align:"right",size:11,color:q>0?P.red:(q<0?P.acc:P.green)});
+      if(full&&GN[E]) D.label(c,"= comme le "+GN[E]+" (couche pleine)",cx,H-66,{size:12,color:P.green});
+      /* boutons */
+      chips=[]; var bw=Math.min(120,(W-30)/2);
+      [[-1,"− 1 électron",P.red],[1,"+ 1 électron",P.acc]].forEach(function(b,i){ var x=W/2+(i?6:-bw-6); CH.rr(c,x,H-48,bw,36,"#fff",b[2],1.8,12); D.text(c,b[1],x+bw/2,H-30,{size:13,color:b[2]}); chips.push({x:x,y:H-48,w:bw,h:36,d:b[0]}); });
+      ro.set(0,String(Z)); ro.set(1,String(E)); ro.set(2,q===0?"0":(q>0?"+"+q:"−"+Math.abs(q))); ro.set(3,a[0]+(sh?"<sup>"+sh+"</sup>":"")+(q===0?" (atome)":(q>0?" (cation)":" (anion)")));
       var msg;
       if(E===0) msg="Il ne reste aucun électron : c'est un noyau nu, pas un ion usuel de la chimie. Reviens à un nombre d'électrons plus raisonnable.";
       else if(full&&GN[E]) msg="Couche externe pleine : même nombre d'électrons que le <b>"+GN[E]+"</b> ("+E+" électrons). Configuration stable, c'est l'ion que "+a[1]+" forme naturellement"+(q===-a[3]?".":" (même si d'autres ions existent).");
-      else msg="Couche externe : "+outer+" électron"+(outer>1?"s":"")+" (incomplète). Cet ion n'est pas courant : "+a[1]+" forme plutôt l'ion "+a[0]+(a[3]>0?"":"")+"<sup>"+(Math.abs(a[3])>1?Math.abs(a[3]):"")+(a[3]>0?"+":"−")+"</sup>.";
+      else msg="Couche externe : "+outer+" électron"+(outer>1?"s":"")+" (incomplète). Cet ion n'est pas courant : "+a[1]+" forme plutôt l'ion "+a[0]+"<sup>"+(Math.abs(a[3])>1?Math.abs(a[3]):"")+(a[3]>0?"+":"−")+"</sup>.";
       if(q===0) msg="Atome neutre : "+Z+" protons (charges +) et "+E+" électrons (charges −). "+(full?"":"Couche externe incomplète : l'atome peut gagner ou perdre des électrons.");
       nt.set(msg, (full&&q!==0)?"ok":"");
     });
+    lp.play();
   }
 });
 
@@ -74,16 +94,17 @@ SFA.sim({
       var yM=ys(nM), yX=ys(nX), rM=Math.min(30,(H-60)/Math.max(nM,nX)/2.6), rX=rM*1.12;
       function slot(cx,cy,r,i,n,out){ var ang=-1.57+i*6.2832/n; return [cx+(r+0)*Math.cos(ang),cy+(r)*Math.sin(ang)]; }
       var done=p>=0.999;
-      yM.forEach(function(y){ circ(c,colX[0],y,rM,done?"#cfe0f5":"#e7eef8",done?P.acc:"#8aa0bf",2); T(c,M[0]+(done?["","","²","³"][v]+"⁺":""),colX[0],y,{size:14,color:P.acc}); });
-      yX.forEach(function(y){ circ(c,colX[1],y,rX,done?"#d6efe3":"#eef6f1",done?P.green:"#8fb7a3",2); T(c,X[0]+(done?["","","²","³"][w]+"⁻":""),colX[1],y,{size:14,color:P.green}); });
+      CH.bg(c);
+      yM.forEach(function(y){ if(done) D.glow(c,colX[0],y,rM*2,P.acc,.35); g.save(); g.setLineDash([3,4]); CH.circ(c,colX[0],y,rM+8,null,"#b8c3d3",1.2); g.restore(); CH.ball(c,colX[0],y,rM,done?P.acc:"#7d93b8",M[0]+(done?["","","²","³"][v]+"⁺":""),{size:15}); });
+      yX.forEach(function(y){ if(done) D.glow(c,colX[1],y,rX*2,P.green,.35); g.save(); g.setLineDash([3,4]); CH.circ(c,colX[1],y,rX+8,null,"#b8c3d3",1.2); g.restore(); CH.ball(c,colX[1],y,rX,done?P.green:"#7fae98",X[0]+(done?["","","²","³"][w]+"⁻":""),{size:15}); });
       // électrons
       var e=0;
       for(var im=0;im<nM;im++){ for(var j=0;j<v;j++){ var src=slot(colX[0],yM[im],rM+8,j,v), ix=Math.floor(e/w), jx=e%w, dst=slot(colX[1],yX[ix],rX+8,jx,w), t=Math.max(0,Math.min(1,p*1.25-0.25*(e/Math.max(1,tot-1))));
-          var xx=src[0]+(dst[0]-src[0])*t, yy=src[1]+(dst[1]-src[1])*t; circ(c,xx,yy,5,P.acc,"#fff",1.2); e++; } }
+          var xx=src[0]+(dst[0]-src[0])*t, yy=src[1]+(dst[1]-src[1])*t; CH.ball(c,xx,yy,5.5,P.amber,"",{lw:1.2}); e++; } }
       // cases vides côté non-métal
       for(var ix2=0;ix2<nX;ix2++) for(var jx2=0;jx2<w;jx2++){ var d=slot(colX[1],yX[ix2],rX+8,jx2,w); if(p<0.02){ g.save(); g.strokeStyle=P.grey; g.setLineDash([2,2]); g.beginPath(); g.arc(d[0],d[1],5,0,6.28); g.stroke(); g.restore(); } }
-      if(done){ T(c,"attraction",W/2,H/2,{size:12,color:P.red}); D.arrow(c,colX[0]+rM+10,H/2-14,colX[1]-rX-10,H/2-14,P.red,1.5); D.arrow(c,colX[1]-rX-10,H/2+14,colX[0]+rM+10,H/2+14,P.red,1.5); }
-      T(c,"métal : donne",colX[0],16,{size:12,color:P.acc}); T(c,"non-métal : reçoit",colX[1],16,{size:12,color:P.green});
+      if(done){ D.label(c,"attraction",W/2,H/2,{size:12,color:P.red}); D.arrow(c,colX[0]+rM+10,H/2-14,colX[1]-rX-10,H/2-14,P.red,1.5); D.arrow(c,colX[1]-rX-10,H/2+14,colX[0]+rM+10,H/2+14,P.red,1.5); }
+      D.label(c,"métal : donne",colX[0],16,{size:12,color:P.acc}); D.label(c,"non-métal : reçoit",colX[1],16,{size:12,color:P.green});
       var formula=M[0]+(nM>1?sub(nM):"")+X[0]+(nX>1?sub(nX):"");
       ro.set(0,nM+" "+M[0]); ro.set(1,nX+" "+X[0]); ro.set(2,tot+" é"); ro.set(3,formula);
       nt.set("<b>"+formula+"</b> : "+X[2]+" "+M[2]+". Charges : "+nM+" × (+"+v+") + "+nX+" × (−"+w+") = "+(nM*v)+" − "+(nX*w)+" = <b>0</b>."+(done?" Les ions s'attirent : ils s'organisent en cristal.":""),done?"ok":"");
@@ -131,7 +152,7 @@ SFA.sim({
   aRetenir:"Dans une molécule, les atomes sont liés par des paires d'électrons partagées (liaisons covalentes). Chaque atome cherche à avoir 8 électrons autour de lui (2 pour H) : H forme 1 liaison, O 2, N 3, C 4, Cl 1. Les doublets non liants restent sur l'atome.",
   piege:"La formule brute (C₂H₆O) ne dit pas comment les atomes sont liés : il peut exister plusieurs molécules pour la même formule. Ici on ne montre qu'une molécule par formule. Et un schéma de Lewis est plat : la vraie molécule est en 3D.",
   build:function(k,S){
-    var c = k.canvas(300);
+    var c = k.canvas(350);
     var ex = k.select("Charger une molécule", [["","— choisir —"]].concat(Object.keys(MOL).map(function(m){ return [m,fmtF(m)+" · "+MOL[m].n]; })), "", function(v){ if(!v) return; var t={C:0,H:0,N:0,O:0,Cl:0}, re=/([A-Z][a-z]?)(\d*)/g, r; while((r=re.exec(v))) t[r[1]]+=r[2]?+r[2]:1; nC.set(t.C); nH.set(t.H); nN.set(t.N); nO.set(t.O); nCl.set(t.Cl); });
     var nC = k.slider("Carbone (C)", 0, 2, 1, 1, "");
     var nH = k.slider("Hydrogène (H)", 0, 8, 1, 4, "");
@@ -144,26 +165,31 @@ SFA.sim({
       var res=[]; for(var q=0;q<nl;q++){ var best=0,bs=-1; for(var a=0;a<360;a+=10){ var th=a*Math.PI/180, m=9; angs.concat(res).forEach(function(b){ var d=Math.abs(Math.atan2(Math.sin(th-b),Math.cos(th-b))); if(d<m) m=d; }); if(m>bs){ bs=m; best=th; } } res.push(best); } return res; }
     k.draw(function(){
       c.clear(); var W=c.W,H=c.H,g=c.ctx, cnt={C:nC.value,H:nH.value,N:nN.value,O:nO.value,Cl:nCl.value};
+      CH.bg(c);
+      var CPK={H:"#c9d3e0",C:"#4a5260",N:"#3b6fd6",O:"#d6402e",Cl:"#2f9e6b"}, VL={H:1,C:4,N:3,O:2,Cl:1};
+      /* palette d'atomes avec valence */
+      (function(){ var ks=["H","C","N","O","Cl"], w=Math.min(64,(W-16)/5); ks.forEach(function(e,i){ var x=W/2+(i-2)*w; CH.ball(c,x,H-30,e==="H"?9:11,CPK[e],e,{size:e==="Cl"?10:11,tc:e==="H"?"#0f1b2d":"#fff"}); D.text(c,VL[e]+" liaison"+(VL[e]>1?"s":""),x,H-10,{size:9.5,color:P.grey,weight:700}); }); })();
       var tot=cnt.C+cnt.H+cnt.N+cnt.O+cnt.Cl, val=cnt.C*4+cnt.H+cnt.N*3+cnt.O*2+cnt.Cl, nb=val/2;
       var key=tot?lookup(cnt):null, form=keyOf(cnt);
       ro.set(0,tot?fmtF(key||form):"—"); ro.set(1,key?MOL[key].n:(tot?"molécule inconnue":"—")); ro.set(2,String(tot)); ro.set(3,val%2===0?String(nb):"impossible (impair)");
       if(!key){
-        T(c,tot?"Aucune molécule simple connue":"Ajoute des atomes",W/2,H/2-10,{size:15,color:P.grey});
-        T(c,tot?"avec ces atomes à ce niveau":"avec les curseurs",W/2,H/2+14,{size:13,color:P.grey});
+        D.label(c,tot?"Aucune molécule simple connue avec ces atomes":"Ajoute des atomes avec les curseurs",W/2,H/2-20,{size:13,color:P.grey});
+        var all=[]; ["C","H","N","O","Cl"].forEach(function(e){ for(var q=0;q<cnt[e];q++) all.push(e); });
+        all.forEach(function(e,i){ var cx2=W/2+(i-(all.length-1)/2)*Math.min(34,(W-40)/Math.max(1,all.length)), wob=Math.sin(Date.now()/500+i)*3; CH.ball(c,cx2,H/2+22+wob,e==="H"?10:13,CPK[e],e,{size:11,tc:e==="H"?"#0f1b2d":"#fff"}); });
         nt.set(!tot?"Choisis les atomes ou charge une molécule d'exemple.":(tot===1?"Un atome isolé ne forme pas de molécule.":(val%2?"La somme des valences ("+val+") est impaire : les atomes ne peuvent pas tous être complétés par des paires d'électrons partagées.":"La somme des valences est "+val+" (soit "+nb+" liaisons attendues), mais aucune structure simple connue n'a cette composition. Essaie de modifier les nombres d'atomes.")),"warn");
         return; }
       var m=MOL[key], xs=m.a.map(function(a){return a[1];}), ys=m.a.map(function(a){return a[2];});
       var minx=Math.min.apply(null,xs), maxx=Math.max.apply(null,xs), miny=Math.min.apply(null,ys), maxy=Math.max.apply(null,ys);
-      var sc=Math.min((W-90)/Math.max(0.01,maxx-minx), (H-90)/Math.max(0.01,maxy-miny), 70), ox=W/2-(minx+maxx)/2*sc, oy=H/2-(miny+maxy)/2*sc;
+      var sc=Math.min((W-90)/Math.max(0.01,maxx-minx), (H-150)/Math.max(0.01,maxy-miny), 74), ox=W/2-(minx+maxx)/2*sc, oy=(H-40)/2-(miny+maxy)/2*sc;
       function X(i){ return ox+m.a[i][1]*sc; } function Y(i){ return oy+m.a[i][2]*sc; }
       var COLS={H:"#dfe6f0",C:"#9aa3b0",N:"#a9c1f0",O:"#f2b5ad",Cl:"#a9dcc4"};
       m.b.forEach(function(b){ var x1=X(b[0]),y1=Y(b[0]),x2=X(b[1]),y2=Y(b[1]), ang=Math.atan2(y2-y1,x2-x1), nx=-Math.sin(ang), ny=Math.cos(ang), n=b[2];
-        for(var i=0;i<n;i++){ var off=(i-(n-1)/2)*6; D.line(c,x1+nx*off,y1+ny*off,x2+nx*off,y2+ny*off,"#3a4556",2.4); } });
+        for(var i=0;i<n;i++){ var off=(i-(n-1)/2)*7; D.line(c,x1+nx*off,y1+ny*off,x2+nx*off,y2+ny*off,"#5b6677",3.2); } });
       m.a.forEach(function(a,i){ var bonds=0; m.b.forEach(function(b){ if(b[0]===i||b[1]===i) bonds+=b[2]; });
         var ve=VE[a[0]], nl=a[0]==="H"?0:Math.floor((ve-bonds)/2); if(key==="CO") nl=1;
-        circ(c,X(i),Y(i),a[0]==="H"?12:15,COLS[a[0]],"#3a4556",1.5); T(c,a[0],X(i),Y(i),{size:13,color:"#0f1b2d"});
-        lone(m.a,m.b,i,nl).forEach(function(th){ var cx=X(i)+Math.cos(th)*26, cy=Y(i)+Math.sin(th)*26, px=-Math.sin(th)*4, py=Math.cos(th)*4; circ(c,cx+px,cy+py,2.6,P.acc); circ(c,cx-px,cy-py,2.6,P.acc); }); });
-      T(c,"• • = doublet non liant   | trait = liaison (paire partagée)",W/2,H-10,{size:12,color:P.grey});
+        CH.ball(c,X(i),Y(i),a[0]==="H"?13:17,CPK[a[0]],a[0],{size:a[0]==="Cl"?12:13,tc:a[0]==="H"?"#0f1b2d":"#fff"});
+        lone(m.a,m.b,i,nl).forEach(function(th){ var cx=X(i)+Math.cos(th)*29, cy=Y(i)+Math.sin(th)*29, px=-Math.sin(th)*4, py=Math.cos(th)*4; circ(c,cx+px,cy+py,2.8,P.acc); circ(c,cx-px,cy-py,2.8,P.acc); }); });
+      D.label(c,"•• doublet non liant · trait = liaison (paire partagée)",W/2,H-52,{size:11,color:P.grey});
       var tip="<b>"+fmtF(key)+"</b> : "+m.n+". "+nb+" liaison"+(nb>1?"s":"")+" (en comptant une double liaison pour 2, une triple pour 3). Vérifie : H 1, Cl 1, O 2, N 3, C 4."+(key==="CO"?" (Le monoxyde de carbone est un cas particulier : son schéma de Lewis exige des charges formelles, hors programme.)":"");
       nt.set(tip,"ok");
     });
@@ -194,7 +220,7 @@ SFA.sim({
     var lp = k.loop(function(dt,t){ ph.forEach(function(o){ o.wx+=(R()-0.5)*dt*60; o.wy+=(R()-0.5)*dt*60; o.wx*=0.97; o.wy*=0.97; }); k.redraw(); });
     function stateOf(tm,tb,t){ if(t<tm) return "s"; if(tb!==null&&t>=tb) return "g"; return "l"; }
     function panel(x0,w,kind,Tc,tm,tb,st,t){
-      var g=c.ctx, y0=40, h=c.H-64; rr(c,x0,y0,w,h,"#fbfcfe","#b8c2d0",1.5,8);
+      var g=c.ctx, y0=36, h=c.H-76; rr(c,x0,y0,w,h,"#fbfcfe","#b8c2d0",1.5,8);
       var sp=Math.min(w/(N+0.5),(h)/(N+0.5),38);
       var Tk=Tc+273.15, A=st==="s"?(0.8+3.2*Math.min(1,Tk/(tm+273.15))):(st==="l"?9:16);
       ph.forEach(function(o,idx){ var gx=idx%N, gy=Math.floor(idx/N), cx=x0+w/2+(gx-(N-1)/2)*sp, cy=y0+h/2+(gy-(N-1)/2)*sp+(st==="g"?0:(st==="l"?h*0.12:0));
@@ -206,9 +232,9 @@ SFA.sim({
     k.draw(function(){
       c.clear(); var W=c.W, t=Date.now()/1000, Tc=tp.value, m=MSUB[ms.value], half=(W-30)/2;
       var s1=stateOf(801,1413,Tc), s2=stateOf(m.tm,m.tb,Tc);
-      T(c,"Cristal de sel NaCl : ions",10+half/2,16,{size:13,color:P.acc}); T(c,m.lab,20+half+half/2,16,{size:13,color:P.amber});
+      D.label(c,"Sel NaCl : ions",10+half/2,16,{size:12,color:P.acc}); D.label(c,m.lab,20+half+half/2,16,{size:12,color:P.amber}); var STC={s:P.acc,l:P.teal,g:P.red}, STN={s:"solide",l:"liquide",g:"gaz"}; D.label(c,STN[s1]+" · "+F(Tc,0)+" °C",10+half/2,c.H-30,{size:11,color:STC[s1]}); D.label(c,STN[s2]+" · "+F(Tc,0)+" °C",20+half+half/2,c.H-30,{size:11,color:STC[s2]});
       panel(10,half,"ion",Tc,801,1413,s1,t); panel(20+half,half,"mol",Tc,m.tm,m.tb,s2,t);
-      T(c,"forces fortes (+ et −)",10+half/2,c.H-12,{size:12,color:P.grey}); T(c,"forces faibles",20+half+half/2,c.H-12,{size:12,color:P.grey});
+      T(c,"forces fortes (+ et −)",10+half/2,c.H-10,{size:11.5,color:P.grey}); T(c,"forces faibles",20+half+half/2,c.H-10,{size:11.5,color:P.grey});
       var nm={s:"solide",l:"liquide",g:"gaz"};
       ro.set(0,"fusion à 801 °C"); ro.set(1,nm[s1]); ro.set(2,"fusion à "+(ms.value==="suc"?"≈ 186 °C (décomposition)":m.tm+" °C")); ro.set(3,ms.value==="suc"&&s2==="l"?"liquide brun (caramel)":nm[s2]);
       var msg;

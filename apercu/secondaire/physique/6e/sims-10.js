@@ -28,7 +28,7 @@ SFA.sim({
       c.clear(); g.clear(); var ctx = c.ctx, W = c.W, H = c.H, t = 2 * (d.value / 100) / V * 1e6, Z2 = Zs[tg.value], R = Math.pow((Z2 - Z1) / (Z2 + Z1), 2);
       var lev = levelOf(d.value, f.value, tg.value, gel.value), lam = V / (f.value * 1e6) * 1000, seen = lev > THR;
       /* scène : coupe de tissus sous la sonde */
-      var y0 = 62, sc = (H - y0 - 20) / 20, sw = W - 124, x0 = 40; geo.y0 = y0; geo.sc = sc;
+      var y0 = 62, sc = (H - y0 - 20) / 20, sw = W - Math.max(124, W * 0.2 + 60), x0 = 40; geo.y0 = y0; geo.sc = sc;
       Pm.bg(c, "#f7f9fc", "#eef2f8");
       var yi = y0 + d.value * sc;
       var below = {gr: ["#f3dc8a", "#e8c860"], mu: ["#d9777a", "#b8545a"], os: ["#f4f1e8", "#cfc8b6"], ai: ["#dff0fb", "#bcdcf0"]}[tg.value];
@@ -52,7 +52,7 @@ SFA.sim({
       S.draw.line(c, x0, yi, x0 + sw, yi, "#13233a", 1.6, [6, 4]); S.draw.dot(c, x0 + sw - 6, yi, 7, P.red);
       S.draw.label(c, "d = " + S.fmt(d.value, 1) + " cm — glisse", x0 + 6, yi - 9, {align: "left", color: P.red, size: 11.5});
       /* image échographique (mode B simulé) */
-      var bx = x0 + sw + 12, bw = 64, bh = H - y0 - 8;
+      var bx = x0 + sw + 12, bw = Math.max(64, Math.min(110, W * 0.2)), bh = H - y0 - 8;
       S.draw.text(c, "image", bx + bw / 2, y0 - 14, {size: 11.5, color: P.ink});
       ctx.fillStyle = "#0b1220"; ctx.fillRect(bx, y0, bw, bh);
       var gain = Math.max(0, (lev + 110) / 110), blur = Math.max(1.2, Math.min(9, lam * 1.1));
@@ -130,11 +130,11 @@ SFA.sim({
   aRetenir: "La dose efficace se mesure en sievert (Sv), souvent en mSv. Le rayonnement naturel (radon, sol, rayons cosmiques, alimentation) représente en moyenne mondiale ≈ 2,4 mSv par an. Un examen médical a un bénéfice diagnostique : on l'utilise quand il est justifié et avec la plus faible dose raisonnable. Une radio dentaire ou un vol sont de l'ordre de quelques µSv à quelques dizaines de µSv ; un scanner de plusieurs mSv. Limites annuelles (hors médical et naturel) : 1 mSv pour le public, 20 mSv pour les travailleurs exposés.",
   piege: "Toutes les radiations ne se valent pas : on compare des doses efficaces, pas le nombre d'examens. Un scanner n'est pas « 350 radios » à proportion fixe pour tous. Et les limites réglementaires ne s'appliquent pas aux doses médicales (décidées au cas par cas par le médecin). Valeurs : ordres de grandeur moyens (varient selon l'appareil, le patient et le protocole).",
   build: function(k, S){
-    var c = k.canvas(190), P = S.draw.palette;
+    var c = k.canvas(330), P = S.draw.palette, H = PH6;
     var items = [
       {id: "den", n: "Radios dentaires", d: 0.005, max: 10, col: "#0e7490"},
       {id: "tho", n: "Radios du thorax", d: 0.02, max: 10, col: "#1e3f8f"},
-      {id: "mam", n: "Mammographies", d: 0.4, max: 2, col: "#5B21B6"},
+      {id: "mam", n: "Mammographies", d: 0.4, max: 2, col: "#6236c4"},
       {id: "sca", n: "Scanners du thorax", d: 7, max: 3, col: "#b42318"},
       {id: "vol", n: "Vols Bruxelles–New York (aller)", d: 0.04, max: 20, col: "#B45309"}
     ];
@@ -142,19 +142,34 @@ SFA.sim({
     var nat = k.toggle("Ajouter le rayonnement naturel moyen (2,4 mSv/an)", true);
     var ro = k.readouts(["Dose ajoutée par ces actes", "Total de l'année", "Équivalent en jours de rayonnement naturel", "Par rapport à la limite « public » (1 mSv)"]);
     var nt = k.note("", "ok");
+    var REF = [["radio dentaire", 0.005, "#0e7490"], ["radio thorax", 0.02, "#1e3f8f"], ["vol Bxl–NY", 0.04, "#B45309"], ["mammographie", 0.4, "#6236c4"], ["limite public", 1, "#c0321d"], ["naturel / an", 2.4, "#5f6b7a"], ["scanner thorax", 7, "#b42318"], ["limite travailleurs", 20, "#c0321d"]];
     k.draw(function(){
-      c.clear(); var ctx = c.ctx, W = c.W, add = 0, parts = [];
-      items.forEach(function(it){ var v = sl[it.id].value * it.d; add += v; if (v > 0) parts.push({v: v, col: it.col, n: it.n}); });
-      var base = nat.value ? 2.4 : 0, tot = add + base, mx = tot <= 3 ? 3 : tot <= 5 ? 5 : tot <= 10 ? 10 : tot <= 25 ? 25 : Math.ceil(tot / 10) * 10, x0 = 20, x1 = W - 20;
+      c.clear(); var ctx = c.ctx, W = c.W, Hh = c.H, add = 0, parts = [];
+      H.bg(c, "#f8fafd", "#eef2f8");
+      items.forEach(function(it){ var v = sl[it.id].value * it.d; add += v; if (v > 0) parts.push({v: v, col: it.col, n: it.n, c: sl[it.id].value}); });
+      var base = nat.value ? 2.4 : 0, tot = add + base, mx = tot <= 3 ? 3 : tot <= 5 ? 5 : tot <= 10 ? 10 : tot <= 25 ? 25 : Math.ceil(tot / 10) * 10, x0 = 16, x1 = W - 16, by = 48;
       function X(v){ return x0 + v / mx * (x1 - x0); }
-      ctx.fillStyle = "#e9edf3"; ctx.fillRect(x0, 60, x1 - x0, 30);
-      var acc = 0; if (base > 0){ ctx.fillStyle = "#9aa4b2"; ctx.fillRect(X(0), 60, X(base) - X(0), 30); acc = base; S.draw.text(c, "naturel", X(base / 2), 106, {size: 12, color: P.grey}); }
-      parts.forEach(function(p){ ctx.fillStyle = p.col; ctx.fillRect(X(acc), 60, Math.max(1.5, X(acc + p.v) - X(acc)), 30); acc += p.v; });
-      ctx.strokeStyle = P.ink; ctx.lineWidth = 1.5; ctx.strokeRect(x0, 60, x1 - x0, 30);
-      [[1, "limite public : 1 mSv", 20], [20, "limite travailleurs : 20 mSv", 20]].forEach(function(m){ if (m[0] <= mx){ S.draw.line(c, X(m[0]), m[2] + 8, X(m[0]), 96, P.red, 1.5, [4, 3]); S.draw.text(c, m[1], X(m[0]) + 4 > W - 150 ? X(m[0]) - 4 : X(m[0]) + 4, m[2], {size: 12, color: P.red, align: X(m[0]) + 4 > W - 150 ? "right" : "left"}); } });
-      parts.forEach(function(p, i){ });
-      S.draw.text(c, "0", x0, 122, {size: 12, color: P.grey, align: "left"}); S.draw.text(c, S.fmt(mx, 0) + " mSv", x1, 122, {size: 12, color: P.grey, align: "right"});
-      S.draw.text(c, "Total : " + S.fmt(tot, 2) + " mSv", W / 2, 150, {size: 16});
+      S.draw.text(c, "Ma dose de l'année (échelle linéaire)", x0, 14, {size: 12, align: "left", color: "#2c3a4e"});
+      S.draw.display(c, S.fmt(tot, 2) + " mSv", x1 - 58, 18, {w: 116, h: 32, size: 17, color: tot > 20 ? P.red : "#13233a"});
+      S.draw.rrect(c, x0, by, x1 - x0, 28, 7); ctx.fillStyle = "#e3e8ef"; ctx.fill();
+      ctx.save(); S.draw.rrect(c, x0, by, x1 - x0, 28, 7); ctx.clip();
+      var acc = 0; if (base > 0){ ctx.fillStyle = "#9aa4b2"; ctx.fillRect(X(0), by, X(base) - X(0), 28); acc = base; }
+      parts.forEach(function(p){ ctx.fillStyle = p.col; ctx.fillRect(X(acc), by, Math.max(2, X(acc + p.v) - X(acc)), 28); ctx.fillStyle = "rgba(255,255,255,.7)"; ctx.fillRect(X(acc), by, 1.2, 28); acc += p.v; });
+      ctx.restore();
+      [[1, "1 mSv"], [20, "20 mSv"]].forEach(function(m){ if (m[0] <= mx){ S.draw.line(c, X(m[0]), by - 4, X(m[0]), by + 34, P.red, 1.6, [4, 3]); S.draw.text(c, m[1], Math.min(X(m[0]) + 3, x1 - 20), by + 44, {size: 10.5, color: P.red, align: X(m[0]) > x1 - 40 ? "right" : "left"}); } });
+      S.draw.text(c, "0", x0, by + 44, {size: 10.5, color: P.grey, align: "left"}); S.draw.text(c, S.fmt(mx, 0) + " mSv", x1, by + 44, {size: 10.5, color: P.grey, align: "right"});
+      /* pastilles de légende des actes choisis */
+      var lx = x0, ly = by + 66;
+      var chips = (base > 0 ? [{col: "#9aa4b2", n: "naturel 2,4"}] : []).concat(parts.map(function(p){ return {col: p.col, n: p.c + " × " + p.n.split(" (")[0].toLowerCase()}; }));
+      chips.forEach(function(ch){ ctx.font = "700 11px Mulish, system-ui, sans-serif"; var w = ctx.measureText(ch.n).width + 22; if (lx + w > x1){ lx = x0; ly += 18; } S.draw.rrect(c, lx, ly - 7, 12, 12, 3); ctx.fillStyle = ch.col; ctx.fill(); S.draw.text(c, ch.n, lx + 17, ly, {size: 11, align: "left", color: "#2c3a4e"}); lx += w + 8; });
+      /* règle logarithmique des repères */
+      var ry = Hh - 58, lo = 0.002, hi = 40, lg = function(v){ return x0 + 8 + (Math.log10(v) - Math.log10(lo)) / (Math.log10(hi) - Math.log10(lo)) * (x1 - x0 - 16); };
+      S.draw.text(c, "Pour comparer : repères sur une échelle logarithmique", x0, ry - 48, {size: 11.5, align: "left", color: "#2c3a4e"});
+      S.draw.rrect(c, x0 + 8, ry, x1 - x0 - 16, 6, 3); ctx.fillStyle = "#d5dbe5"; ctx.fill();
+      [0.01, 0.1, 1, 10].forEach(function(v){ S.draw.line(c, lg(v), ry + 6, lg(v), ry + 11, P.grey, 1.2); S.draw.text(c, S.fmt(v, v < 1 ? (v < 0.1 ? 2 : 1) : 0), lg(v), ry + 22, {size: 10, color: P.grey, weight: 600}); });
+      var narrow = W < 520;
+      REF.forEach(function(q, i){ if (narrow && (i === 1 || i === 3)) return; S.draw.dot(c, lg(q[1]), ry + 3, 5, q[2]); S.draw.text(c, q[0], Math.min(Math.max(lg(q[1]), 34), W - 34), ry - 10 - (i % 3) * 12, {size: 10, color: q[2], weight: 700}); });
+      if (tot > 0){ var mxm = lg(Math.max(lo, Math.min(hi, tot))); ctx.beginPath(); ctx.moveTo(mxm, ry + 9); ctx.lineTo(mxm - 6, ry + 20); ctx.lineTo(mxm + 6, ry + 20); ctx.closePath(); ctx.fillStyle = P.ink; ctx.fill(); S.draw.text(c, "toi", mxm, ry + 31, {size: 10.5, color: P.ink, weight: 800}); }
       ro.set(0, S.fmt(add, 3) + " mSv"); ro.set(1, S.fmt(tot, 2) + " mSv"); ro.set(2, S.fmt(add / (2.4 / 365), 0) + " jours"); ro.set(3, S.fmt(add / 1 * 100, 0) + " %");
       nt.set(add === 0 ? "Choisis des examens ou des vols." : add > 20 ? "Au-delà de 20 mSv ajoutés : on dépasse ce que la réglementation admet pour un travailleur exposé (limite hors médical)." : "Ces doses médicales sont décidées au cas par cas : l'examen est justifié quand son bénéfice dépasse le risque.", add > 20 ? "warn" : "ok");
     });
@@ -169,22 +184,24 @@ SFA.sim({
   aRetenir: "À l'équilibre, ce que la Terre reçoit (S/4)·(1 − albédo) ≈ 238 W/m² est égal à ce qu'elle renvoie dans l'espace. Une atmosphère qui absorbe l'infrarouge renvoie une partie de l'énergie vers le sol : la surface doit alors être plus chaude pour évacuer la même puissance. Sans atmosphère : ≈ −18 °C ; avec l'effet de serre naturel : ≈ +15 °C. Augmenter les gaz à effet de serre (CO₂, CH₄…) renforce l'effet de serre et réchauffe le climat.",
   piege: "L'effet de serre n'est pas un « problème » en soi : sans lui, la Terre serait gelée. C'est son renforcement par l'activité humaine qui modifie le climat. Il ne faut pas le confondre avec le trou de la couche d'ozone (UV), phénomène distinct. Modèle simplifié (une seule couche, pas de convection, pas de nuages ni d'océans) : à utiliser pour comprendre, pas pour prévoir.",
   build: function(k, S){
-    var c = k.canvas(320), P = S.draw.palette, SIG = 5.670e-8, S0 = 1361;
+    var c = k.canvas(340), P = S.draw.palette, SIG = 5.670e-8, S0 = 1361;
     var preset = k.select("Atmosphère", [["", "— régler soi-même —"], ["0", "Aucune atmosphère (ε = 0)"], ["0.77", "Terre actuelle (ε ≈ 0,77)"], ["1", "Atmosphère totalement opaque à l'IR (ε = 1)"]], "", function(v){ if (v !== "") eps.set(parseFloat(v)); });
     var eps = k.slider("Opacité infrarouge de l'atmosphère ε", 0, 1, 0.01, 0.77, "");
     var alb = k.slider("Albédo (part réfléchie)", 0.1, 0.5, 0.01, 0.3, "");
     var co2 = k.slider("Concentration en CO₂ (pour l'estimation)", 280, 1120, 10, 420, "ppm");
     var ro = k.readouts(["Température de surface", "Température sans atmosphère", "Effet de serre (écart)", "Émission de la surface σT⁴", "Température de la couche"]);
     var nt = k.note("", "ok");
+    var tm = 0; var lp = k.loop(function(dt){ tm += dt; k.redraw(); }); lp.play();
     k.draw(function(){
-      c.clear(); var ctx = c.ctx, W = c.W, H = c.H, e = eps.value, a = alb.value, inc = S0 / 4, refl = a * inc, abs = inc - refl;
+      c.clear(); PH6.bg(c, "#f4f8fd", "#e8f0f8"); var ctx = c.ctx, W = c.W, H = c.H, e = eps.value, a = alb.value, inc = S0 / 4, refl = a * inc, abs = inc - refl;
       var surf = abs / (1 - e / 2), Ts = Math.pow(surf / SIG, 0.25), Te = Math.pow(abs / SIG, 0.25), Ta = Ts / Math.pow(2, 0.25);
       var olr = (1 - e / 2) * surf, down = e * surf / 2, gone = (1 - e) * surf, up = e * surf / 2;
-      var ySp = 66, yAt = 150, yGr = H - 62, x0c = W < 420 ? 74 : 90, step = (W - x0c - 30) / 4, cols = [0, 1, 2, 3, 4].map(function(q){ return x0c + q * step; });
+      var ySp = 66, yAt = 150, yGr = H - 62, x0c = W < 420 ? 80 : 100, step = (W - x0c - 30) / 4, cols = [0, 1, 2, 3, 4].map(function(q){ return x0c + q * step; });
       ctx.fillStyle = "rgba(14,116,144," + (0.12 + 0.55 * e) + ")"; ctx.fillRect(0, yAt - 16, W, 32);
       S.draw.text(c, "atmosphère", 6, yAt - 6, {size: 12, align: "left"}); S.draw.text(c, S.fmt(Ta - 273.15, 0) + " °C", 6, yAt + 9, {size: 12, align: "left"});
       ctx.fillStyle = "#c9d9b6"; ctx.fillRect(0, yGr, W, 30); S.draw.text(c, "surface", 6, yGr + 8, {size: 12, align: "left"}); S.draw.text(c, S.fmt(Ts - 273.15, 1) + " °C", 6, yGr + 23, {size: 12, align: "left"});
       function fl(x, y1, y2, v, col, lines, where){ if (v < 1) return; var w = 2 + 6 * v / 400; S.draw.arrow(c, x, y1, x, y2, col, w);
+        var nP = Math.max(1, Math.round(v / 80)), Ln = Math.abs(y2 - y1), sg = y2 > y1 ? 1 : -1; for (var pp = 0; pp < nP; pp++){ var ph = ((tm * 0.35 + pp / nP) % 1); S.draw.dot(c, x, y1 + sg * ph * Ln, 3.4, "#fff"); }
         var all = lines.concat([S.fmt(v, 0)]);
         all.forEach(function(t, i){ var yy = where === "top" ? 12 + i * 14 : (y1 + y2) / 2 + (i - (all.length - 1) / 2) * 14; S.draw.text(c, t, x, yy, {size: 12, align: "center", color: col, bg: where === "top" ? undefined : "rgba(255,255,255,.9)"}); }); }
       fl(cols[0], ySp, yGr - 2, abs, P.amber, ["Soleil", "absorbé"], "top");
