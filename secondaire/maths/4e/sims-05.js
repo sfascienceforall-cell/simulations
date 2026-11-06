@@ -127,30 +127,47 @@ SFA.sim({
   aRetenir:"On ne divise jamais par 0 : x = q est une valeur interdite, il faut l'exclure du domaine. Près de q, |f(x)| devient immense et le signe change de part et d'autre (ici, de signe opposé). Le quotient s'annule en x = p.",
   piege:"Le quotient n'est pas défini en x = q : le crochet doit rester OUVERT sur q, même pour une inéquation ≥ 0. Et on ne multiplie pas « en croix » sans connaître le signe du dénominateur.",
   build:function(k,S){
-    var c=k.canvas(0,{ratio:.75});
+    var M=window.M4, c=k.canvas(0,{ratio:.78}), geo={};
     var p=k.slider("p (numérateur x − p)",-4,4,1,1,"");
     var q=k.slider("q (dénominateur x − q)",-4,4,1,-2,"");
     var x=k.slider("x",-6,6,0.05,0,"");
     var ro=k.readouts(["x","x − p","x − q","f(x)"]);
     var nt=k.note("","");
+    M.grab(c,function(){ return geo.ax?[{id:"x",x:geo.ax.X(x.value),y:geo.ax.Y(0),r:9999}]:[]; },
+      function(id,px){ x.set(M.clamp(Math.round(geo.ax.ix(px)*20)/20,-6,6)); k.redraw(); });
     k.draw(function(){
-      var Pp=p.value,Q=q.value,X=Math.round(x.value*100)/100;
+      var Pp=p.value,Q=q.value,X=Math.round(x.value*100)/100, ctx=c.ctx;
       c.clear();
-      var ax=S.draw.axes(c,{x0:-6,x1:6,y0:-8,y1:8,xl:"x",yl:"y",stepX:2,stepY:4});
+      var ax=geo.ax=S.draw.axes(c,{x0:-6,x1:6,y0:-8,y1:8,xl:"x",yl:"y",stepX:2,stepY:4});
       var f=function(t){ return Math.abs(t-Q)<1e-9?NaN:(t-Pp)/(t-Q); };
-      S.draw.line(c,ax.X(Q),ax.T,ax.X(Q),ax.B,P.red,1.5,[5,4]);
-      S.draw.fn(c,ax,function(t){ return Math.abs(t-Q)<0.03?NaN:(t-Pp)/(t-Q); },P.acc,3);
+      /* bandes de signe sur l'axe x */
+      var lo=Math.min(Pp,Q), hi=Math.max(Pp,Q), yy=ax.Y(0);
+      function band(x1,x2,col){ var a1=Math.max(x1,-6), a2=Math.min(x2,6); if(a2>a1){ ctx.fillStyle=S.draw.tint(col,.22); ctx.fillRect(ax.X(a1),yy-5,ax.X(a2)-ax.X(a1),10); } }
+      if(Pp===Q){ band(-6,6,P.green); } else { band(-6,lo,P.green); band(lo,hi,P.red); band(hi,6,P.green); }
+      /* zone interdite */
+      ctx.save(); ctx.fillStyle=S.draw.tint(P.red,.12); ctx.fillRect(ax.X(Q)-5,ax.T,10,ax.B-ax.T); ctx.restore();
+      S.draw.line(c,ax.X(Q),ax.T,ax.X(Q),ax.B,P.red,1.8,[5,4]);
+      M.lab(c,"x = "+F(Q,0)+" interdit",ax.X(Q)+(Q>2?-56:56),ax.T+14,P.red,{size:10.5});
+      S.draw.fn(c,ax,function(t){ return Math.abs(t-Q)<0.03?NaN:(t-Pp)/(t-Q); },P.acc,3.2);
+      /* zéro du numérateur */
+      if(Pp!==Q){ S.draw.dot(c,ax.X(Pp),ax.Y(0),5.5,P.ink); M.lab(c,"f = 0",ax.X(Pp),ax.Y(0)+(Pp<Q?-16:16),P.ink,{size:10}); }
+      else { ctx.save(); ctx.beginPath(); ctx.arc(ax.X(Q),ax.Y(1),5,0,7); ctx.fillStyle="#fff"; ctx.fill(); ctx.strokeStyle=P.acc; ctx.lineWidth=2; ctx.stroke(); ctx.restore(); }
       var den=X-Q, forb=Math.abs(den)<1e-9;
       ro.set(0,F(X,2)); ro.set(1,F(X-Pp,2)); ro.set(2,F(den,2));
-      if(forb){ ro.set(3,"non défini"); nt.set("x = "+F(Q)+" : le dénominateur vaut 0. Division par zéro impossible : valeur interdite.","warn"); }
+      var shown;
+      if(forb){ shown="ERREUR"; ro.set(3,"non défini"); nt.set("x = "+F(Q)+" : le dénominateur vaut 0. Division par zéro impossible : valeur interdite.","warn");
+        M.handle(c,ax.X(X),ax.Y(0),P.red,7); }
       else {
-        var y=f(X); ro.set(3,Math.abs(y)>=1000?F(y,0):F(y,3));
-        if(y>=-8&&y<=8) S.draw.dot(c,ax.X(X),ax.Y(y),7,y>=0?P.green:P.red); else S.draw.dot(c,ax.X(X),y>8?ax.T+4:ax.B-4,7,y>=0?P.green:P.red);
+        var y=f(X); shown=Math.abs(y)>=1000?F(y,0):F(y,2); ro.set(3,Math.abs(y)>=1000?F(y,0):F(y,3));
+        var col=y>=0?P.green:P.red, py=Math.max(ax.T+6,Math.min(ax.B-6,ax.Y(y)));
+        S.draw.line(c,ax.X(X),ax.Y(0),ax.X(X),py,col,1.6,[4,3]);
+        M.handle(c,ax.X(X),py,col,7); S.draw.dot(c,ax.X(X),ax.Y(0),3.5,P.grey);
         var txt;
-        if(Pp===Q) txt="Ici p = q : f(x) = 1 pour tout x ≠ "+F(Q)+" (la valeur q reste interdite).";
-        else { var lo=Math.min(Pp,Q), hi=Math.max(Pp,Q); txt = Math.abs(den)<0.3 ? "Tu es tout près de la valeur interdite : |f(x)| devient très grand." : "f(x) > 0 sur ]−∞ ; "+F(lo)+"[ ∪ ]"+F(hi)+" ; +∞[ ; f(x) < 0 entre "+F(lo)+" et "+F(hi)+" ; f(x) = 0 en x = "+F(Pp)+" ; x = "+F(Q)+" est exclu."; }
+        if(Pp===Q) txt="Ici p = q : f(x) = 1 pour tout x ≠ "+F(Q)+" (la valeur q reste interdite : trou en ("+F(Q)+" ; 1)).";
+        else { txt = Math.abs(den)<0.3 ? "Tu es tout près de la valeur interdite : |f(x)| devient très grand, et le signe change de côté." : "f(x) > 0 sur ]−∞ ; "+F(lo)+"[ ∪ ]"+F(hi)+" ; +∞[ ; f(x) < 0 entre "+F(lo)+" et "+F(hi)+" ; f(x) = 0 en x = "+F(Pp)+" ; x = "+F(Q)+" est exclu."; }
         nt.set(txt,"");
       }
+      S.draw.display(c,shown,ax.R-60,ax.B-36,{w:110,h:50,caption:"f(x)",color:forb?"#b3261e":"#13233a",size:forb?14:20});
     });
   }
 });

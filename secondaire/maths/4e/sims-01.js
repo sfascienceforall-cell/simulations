@@ -139,35 +139,61 @@ var LG = {
 SFA.sim({
   id:"m4-c01-lecture", ch:"c01", tag:"Classique",
   titre:"Lire un graphe : un point qui se promène",
-  resume:"Déplace un point sur la courbe : coordonnées, signe, croissance et extremum se lisent en direct.",
-  but:"Fais glisser le curseur x (ou touche la courbe) et complète : f(x) est-il positif, négatif, nul ? La fonction monte-t-elle ou descend-elle ?",
+  resume:"Déplace un point sur la courbe : coordonnées, signe, croissance et extremum se lisent en direct. Puis relève les défis.",
+  but:"Fais glisser le point sur la courbe (souris, doigt ou curseur x). La courbe se colore : vert là où f(x) > 0, rouge là où f(x) < 0. Relève ensuite les défis de lecture.",
   aRetenir:"Les zéros sont les abscisses où la courbe coupe l'axe des x. Le signe de f se lit sur la hauteur de la courbe. La fonction est croissante là où la courbe monte quand x augmente.",
   piege:"« Croissante » ne veut pas dire « positive » : une fonction peut monter tout en restant négative. Et f(x) = 0 (zéros) n'est pas f(0) (ordonnée à l'origine).",
   build:function(k,S){
-    var c=k.canvas(0,{ratio:.72});
+    var M=window.M4, c=k.canvas(0,{ratio:.72});
     var sel=k.select("Courbe",[["cub","Cubique"],["abs","Valeur absolue"],["par","Parabole"]],"cub",function(){
-      var L=LG[sel.value]; xs.el.min=L.x0; xs.el.max=L.x1; xs.set((L.x0+L.x1)/2);
-    });
+      var L=LG[sel.value]; xs.el.min=L.x0; xs.el.max=L.x1; xs.set(Math.round((L.x0+L.x1)/2*10)/10); chal=-1; msg=""; });
     var xs=k.slider("x",-3.5,4,0.1,-1,"");
     var ro=k.readouts(["Point (x ; f(x))","Signe de f(x)","Variation en ce point","Zéros de f"]);
-    var ax=null;
-    c.pointer(function(t,p){ if(t==="move"||!ax)return; var L=LG[sel.value]; var v=ax.ix(p.x); v=Math.max(L.x0,Math.min(L.x1,Math.round(v*10)/10)); xs.set(v); k.redraw(); });
+    var CH=[
+      {t:"Place le point sur un zéro de f.", ok:function(x,y){ return Math.abs(y)<0.15; }},
+      {t:"Trouve un point où f est positive ET décroissante.", ok:function(x,y,s){ return y>0.3&&s<-0.3; }},
+      {t:"Trouve un point où f est négative ET croissante.", ok:function(x,y,s){ return y<-0.3&&s>0.3; }},
+      {t:"Place le point sur un extremum (le plus haut ou le plus bas d'un « creux » ou d'une « bosse »).", ok:function(x,y,s,L){ return L.ex.some(function(e){ return Math.abs(e-x)<0.21; }); }}
+    ];
+    var chal=-1, msg="", score=0, ax=null, done={};
+    var nt=k.note("Déplace le point, ou lance un défi.","");
+    k.button("Défi suivant",function(){ chal=(chal+1)%CH.length; msg=""; },true);
+    k.button("Libre",function(){ chal=-1; msg=""; });
+    function extrema(L){ var r=[], f=L.f, h=0.01, p=null; for(var x=L.x0+h; x<L.x1; x+=h){ var s=f(x+h)-f(x), q=f(x)-f(x-h); if(q*s<0) r.push(x); }
+      return r; }
+    for(var key in LG){ LG[key].ex=extrema(LG[key]); }
+    M.grab(c,function(){ if(!ax) return []; var L=LG[sel.value], x=Math.max(L.x0,Math.min(L.x1,xs.value)); return [{id:"p",x:ax.X(x),y:ax.Y(L.f(x)),r:9999}]; },
+      function(id,px){ var L=LG[sel.value]; xs.set(Math.max(L.x0,Math.min(L.x1,Math.round(ax.ix(px)*10)/10))); k.redraw(); });
     k.draw(function(){
       var L=LG[sel.value], f=L.f, x=Math.max(L.x0,Math.min(L.x1,xs.value));
       c.clear();
       ax=S.draw.axes(c,{x0:L.x0,x1:L.x1,y0:L.y0,y1:L.y1,xl:"x",yl:"y"});
-      S.draw.fn(c,ax,f,P.acc,3);
+      /* aires colorées selon le signe */
+      var N=240, a=L.x0, i, pos=f(a+0.0001)>0, st=a;
+      for(i=1;i<=N;i++){ var xx=L.x0+(L.x1-L.x0)*i/N, pp=f(xx)>0;
+        if(pp!==pos||i===N){ S.draw.area(c,ax,f,st,xx,pos?P.green:P.red,.16,0); st=xx; pos=pp; } }
+      /* zéros */
+      var zs=[]; for(i=0;i<N;i++){ var x1=L.x0+(L.x1-L.x0)*i/N, x2=L.x0+(L.x1-L.x0)*(i+1)/N; if(f(x1)*f(x2)<0){ var lo=x1,hi=x2; for(var j=0;j<40;j++){ var md=(lo+hi)/2; if(f(lo)*f(md)<=0) hi=md; else lo=md; } zs.push((lo+hi)/2); } }
+      S.draw.fn(c,ax,f,P.acc,3.2);
+      zs.forEach(function(z){ S.draw.dot(c,ax.X(z),ax.Y(0),5,P.ink); M.lab(c,S.fmt(z,2),ax.X(z),ax.Y(0)+(f(z+0.3)>f(z-0.3)?-15:15),P.ink,{size:10.5}); });
+      L.ex.forEach(function(e){ S.draw.dot(c,ax.X(e),ax.Y(f(e)),4,P.violet); });
       var y=f(x), px=ax.X(x), py=ax.Y(y), col = y>1e-9?P.green:(y<-1e-9?P.red:P.amber);
       S.draw.line(c,px,ax.Y(0),px,py,col,2,[4,3]);
       S.draw.line(c,ax.L,py,px,py,P.grey,1,[3,3]);
-      S.draw.dot(c,px,py,7,col);
       var e=0.02, s=(f(x+e)-f(x-e))/(2*e);
+      var len=Math.min(60,c.W*.12), ang=Math.atan2(-(ax.Y(f(x+0.5))-ax.Y(f(x-0.5))),(ax.X(x+0.5)-ax.X(x-0.5)));
+      S.draw.arrow(c,px-Math.cos(ang)*len*.6,py+Math.sin(ang)*len*.6,px+Math.cos(ang)*len,py-Math.sin(ang)*len,P.amber,2.4);
+      M.handle(c,px,py,col,7.5);
+      M.lab(c,"f("+S.fmt(x,1)+") = "+S.fmt(y,2),Math.max(60,Math.min(c.W-60,px)),py+(py>ax.T+40?-26:26),col,{size:11.5});
       var t = Math.abs(s)<0.05 ? "extremum ou palier" : (s>0?"croissante ↗":"décroissante ↘");
       var z=Math.abs(y)<1e-9;
       ro.set(0,"("+S.fmt(x,1)+" ; "+S.fmt(y,2)+")");
       ro.set(1, z ? "f(x) = 0 : un zéro" : (y>0?"f(x) > 0":"f(x) < 0"));
       ro.set(2,t);
       ro.set(3,L.z);
+      if(chal>=0){ var good=CH[chal].ok(x,y,s,L);
+        nt.set("Défi "+(chal+1)+"/4 — "+CH[chal].t+(good?"  ✓ Réussi ! Clique « Défi suivant ».":""), good?"ok":"warn"); }
+      else nt.set("Mode libre : colorie la courbe en vert/rouge, repère les zéros (points noirs) et les extremums (points violets).","");
     });
   }
 });
@@ -188,29 +214,41 @@ SFA.sim({
   id:"m4-c01-parite", ch:"c01", tag:"Symétries",
   titre:"Pair, impair ou ni l'un ni l'autre ?",
   resume:"Compare f(a) et f(−a), puis regarde la courbe se refléter par rapport à l'axe y ou à l'origine.",
-  but:"Choisis une fonction et un nombre a. Compare f(a) et f(−a). Active les symétries : la courbe pointillée se superpose-t-elle à la courbe pleine ?",
+  but:"Choisis une fonction et fais glisser le point a sur la courbe. Compare f(a) et f(−a). Active les symétries : la courbe pointillée se superpose-t-elle à la courbe pleine ?",
   aRetenir:"f est paire si f(−x) = f(x) pour tout x (courbe symétrique par rapport à l'axe y). f est impaire si f(−x) = −f(x) (symétrique par rapport à l'origine).",
   piege:"Un seul x qui « marche » ne prouve rien : il faut f(−x) = f(x) (ou −f(x)) pour TOUS les x du domaine. Et la plupart des fonctions ne sont ni paires ni impaires.",
   build:function(k,S){
-    var c=k.canvas(0,{ratio:.75});
+    var M=window.M4, c=k.canvas(0,{ratio:.75});
     var sel=k.select("Fonction",Object.keys(PA).map(function(i){return [i,"f(x) = "+PA[i].n];}),"cx");
     var av=k.slider("a",0.2,3,0.1,1.5,"");
-    var t1=k.toggle("Symétrique par rapport à l'axe y (pointillé orange)",true);
-    var t2=k.toggle("Symétrique par rapport à l'origine (pointillé vert)",false);
+    var t1=k.toggle("Miroir par rapport à l'axe y : courbe de f(−x) (orange)",true);
+    var t2=k.toggle("Symétrie par rapport à l'origine : courbe de −f(−x) (vert)",false);
     var ro=k.readouts(["f(a)","f(−a)","−f(a)","Verdict"]);
+    var ax=null;
+    M.grab(c,function(){ return ax?[{id:"a",x:ax.X(av.value),y:ax.Y(0),r:9999}]:[]; },
+      function(id,px){ av.set(M.clamp(Math.round(ax.ix(px)*10)/10,0.2,3)); k.redraw(); });
     k.draw(function(){
-      var f=PA[sel.value].f, a=av.value;
+      var f=PA[sel.value].f, a=av.value, ctx=c.ctx;
       c.clear();
-      var ax=S.draw.axes(c,{x0:-4,x1:4,y0:-6,y1:6,xl:"x",yl:"y",stepX:1,stepY:2});
-      if(t1.value) S.draw.fn(c,ax,function(x){return f(-x);},P.amber,2.2,[5,4]);
-      if(t2.value) S.draw.fn(c,ax,function(x){return -f(-x);},P.green,2.2,[2,4]);
-      S.draw.fn(c,ax,f,P.acc,3);
-      var fa=f(a), fm=f(-a);
-      if(Math.abs(fa)<=6) S.draw.dot(c,ax.X(a),ax.Y(fa),6,P.acc); if(Math.abs(fm)<=6) S.draw.dot(c,ax.X(-a),ax.Y(fm),6,P.red);
+      ax=S.draw.axes(c,{x0:-4,x1:4,y0:-6,y1:6,xl:"x",yl:"y",stepX:1,stepY:2});
       var even=true,odd=true;
       for(var x=0.25;x<=4;x+=0.25){ if(Math.abs(f(x)-f(-x))>1e-9) even=false; if(Math.abs(f(x)+f(-x))>1e-9) odd=false; }
+      if(t1.value) S.draw.fn(c,ax,function(x){return f(-x);},P.amber,2.4,[6,4]);
+      if(t2.value) S.draw.fn(c,ax,function(x){return -f(-x);},P.green,2.4,[2,4]);
+      S.draw.fn(c,ax,f,P.acc,3.4);
+      var fa=f(a), fm=f(-a), ok=function(v){ return Math.abs(v)<=6; };
+      /* guide a / −a */
+      [[a,P.acc],[-a,P.red]].forEach(function(q){ var v=f(q[0]); S.draw.line(c,ax.X(q[0]),ax.Y(0),ax.X(q[0]),ax.Y(Math.max(-6,Math.min(6,v))),q[1],1.6,[4,3]); });
+      if(ok(fa)&&ok(fm)&&Math.abs(fa-fm)>1e-9) S.draw.line(c,ax.X(-a),ax.Y(fm),ax.X(a),ax.Y(fa),P.grey,1.2,[2,4]);
+      if(ok(fa)){ S.draw.dot(c,ax.X(a),ax.Y(fa),6.5,P.acc); M.lab(c,"f(a) = "+S.fmt(fa,2),ax.X(a)+(a>2?-46:46),ax.Y(fa)-14,P.acc,{size:10.5}); }
+      if(ok(fm)){ S.draw.dot(c,ax.X(-a),ax.Y(fm),6.5,P.red); M.lab(c,"f(−a) = "+S.fmt(fm,2),ax.X(-a)+(a>2?46:-46),ax.Y(fm)+(Math.abs(fa-fm)<0.4?14:-14),P.red,{size:10.5}); }
+      M.handle(c,ax.X(a),ax.Y(0),P.acc,6); S.draw.dot(c,ax.X(-a),ax.Y(0),4.5,P.red);
+      M.lab(c,"a",ax.X(a),ax.Y(0)+16,P.acc,{size:10.5}); M.lab(c,"−a",ax.X(-a),ax.Y(0)+16,P.red,{size:10.5});
+      var v=even?"paire":(odd?"impaire":"ni paire ni impaire"), vc=even?P.green:(odd?P.violet:P.red);
+      S.draw.panel(c,ax.L+8,ax.T+8,138,28,{shadow:false});
+      S.draw.text(c,"f est "+v,ax.L+77,ax.T+22,{size:12.5,weight:800,color:vc,align:"center"});
       ro.set(0,S.fmt(fa,2)); ro.set(1,S.fmt(fm,2)); ro.set(2,S.fmt(-fa,2));
-      ro.set(3, even ? "paire" : (odd ? "impaire" : "ni paire ni impaire"));
+      ro.set(3, v+(Math.abs(fa-fm)<1e-9&&!even?" (f(a) = f(−a) ici par hasard !)":""));
     });
   }
 });
@@ -260,40 +298,49 @@ SFA.sim({
 SFA.sim({
   id:"m4-c01-devine", ch:"c01", tag:"Défi",
   titre:"Devine la courbe cachée",
-  resume:"Une courbe cachée (pointillés) : ajuste a, h, k pour la recouvrir parfaitement.",
-  but:"Une courbe cible est tracée en pointillé orange. Choisis la bonne fonction de base puis règle a, h et k jusqu'à ce que ta courbe bleue la recouvre. Objectif : écart nul.",
+  resume:"Une courbe cachée (pointillés) : ajuste a, h, k pour la recouvrir parfaitement. Compte tes essais.",
+  but:"Une courbe cible est tracée en pointillé orange. Choisis la bonne fonction de base, puis règle a, h, k (curseurs, ou fais glisser le point rouge = sommet). Objectif : écart nul, en un minimum d'essais.",
   aRetenir:"Méthode : repère d'abord le sommet ou le point de départ (h ; k), puis regarde si la courbe monte ou descend (signe de a), puis ajuste l'ouverture (valeur de a).",
   piege:"Si ta courbe est symétrique de la cible, tu as le mauvais signe de a ; si elle est décalée de l'autre côté, vérifie le signe de h dans f(x − h).",
   build:function(k,S){
-    var c=k.canvas(0,{ratio:.78});
+    var M=window.M4, c=k.canvas(0,{ratio:.78});
     var T={f:"sq",a:2,h:1,k:-2};
     var fs=k.select("Fonction de base",[["sq","x²"],["ab","|x|"],["rt","√x"],["cu","x³"]],"sq");
     var a=k.slider("a",-3,3,0.5,1,"");
     var h=k.slider("h",-4,4,0.5,0,"");
     var kk=k.slider("k",-4,4,0.5,0,"");
-    var ro=k.readouts(["Écart moyen","Statut"]);
+    var ro=k.readouts(["Écart moyen","Statut","Niveau réussi"]);
     var nt=k.note("Règle les trois paramètres.","");
-    var shown=false;
+    var shown=false, won=0, solved=false, ax=null;
     function rnd(arr){return arr[Math.floor(Math.random()*arr.length)];}
-    function neu(){ T={f:rnd(["sq","ab","rt","cu"]),a:rnd([-2,-1.5,-1,-0.5,0.5,1,1.5,2]),h:rnd([-3,-2,-1,0,1,2,3]),k:rnd([-3,-2,-1,0,1,2,3])}; shown=false; }
+    function neu(){ T={f:rnd(["sq","ab","rt","cu"]),a:rnd([-2,-1.5,-1,-0.5,0.5,1,1.5,2]),h:rnd([-3,-2,-1,0,1,2,3]),k:rnd([-3,-2,-1,0,1,2,3])}; shown=false; solved=false; }
     k.button("Nouvelle courbe",function(){neu();},true);
     k.button("Montrer la solution",function(){ shown=true; });
     var F={sq:function(u){return u*u;},ab:Math.abs,rt:function(u){return u<0?NaN:Math.sqrt(u);},cu:function(u){return u*u*u;}};
     neu();
+    M.grab(c,function(){ return ax?[{id:"v",x:ax.X(h.value),y:ax.Y(kk.value),r:28}]:[]; },
+      function(id,px,py){ h.set(M.clamp(Math.round(ax.ix(px)*2)/2,-4,4)); kk.set(M.clamp(Math.round(ax.iy(py)*2)/2,-4,4)); k.redraw(); });
     k.draw(function(){
       c.clear();
-      var ax=S.draw.axes(c,{x0:-8,x1:8,y0:-6.2,y1:6.2,xl:"x",yl:"y",stepX:2,stepY:2});
+      ax=S.draw.axes(c,{x0:-8,x1:8,y0:-6.2,y1:6.2,xl:"x",yl:"y",stepX:2,stepY:2});
       var tg=function(x){return T.a*F[T.f](x-T.h)+T.k;}, mine=function(x){return a.value*F[fs.value](x-h.value)+kk.value;};
-      S.draw.fn(c,ax,tg,P.amber,4,[7,5]);
-      S.draw.fn(c,ax,mine,P.acc,2.4);
       var s=0,n=0;
       for(var x=-6;x<=6.001;x+=0.25){ var u=tg(x),v=mine(x); if(isNaN(u)&&isNaN(v))continue; if(isNaN(u)||isNaN(v)){s+=3;n++;continue;} s+=Math.min(3,Math.abs(u-v)); n++; }
-      var err=s/n;
+      var err=s/n, ok = err<0.005;
+      if(ok&&!solved&&!shown){ solved=true; won++; }
+      S.draw.fn(c,ax,tg,ok?P.green:P.amber,4.5,[7,5]);
+      S.draw.fn(c,ax,mine,P.acc,2.6);
+      M.handle(c,ax.X(h.value),ax.Y(kk.value),P.red,7);
+      /* jauge d'écart */
+      var gw=Math.min(150,c.W*.34), gx=ax.R-gw-8, gy=ax.T+10, q=Math.max(0,Math.min(1,1-err/1.5));
+      S.draw.panel(c,gx-8,gy-6,gw+16,34,{shadow:false});
+      c.ctx.save(); c.ctx.fillStyle="#e3e7ed"; c.ctx.fillRect(gx,gy+14,gw,6); c.ctx.fillStyle=ok?P.green:(q>.7?P.amber:P.red); c.ctx.fillRect(gx,gy+14,gw*q,6); c.ctx.restore();
+      S.draw.text(c,ok?"Recouvrement parfait":"Proximité de la cible",gx,gy+3,{size:10.5,weight:800,color:ok?P.green:P.grey,align:"left"});
       ro.set(0,S.fmt(err,2));
-      var ok = err<0.005;
       ro.set(1, ok ? "Bravo !" : (err<0.5?"Presque":"Continue"));
+      ro.set(2, won+" courbe"+(won>1?"s":""));
       if(shown){ nt.set("Solution : g(x) = "+S.fmt(T.a)+"·f("+(T.h===0?"x":T.h>0?"x − "+S.fmt(T.h):"x + "+S.fmt(-T.h))+")"+(T.k===0?"":T.k>0?" + "+S.fmt(T.k):" − "+S.fmt(-T.k))+" avec f(x) = "+({sq:"x²",ab:"|x|",rt:"√x",cu:"x³"})[T.f]+".","warn"); }
-      else nt.set(ok?"Les deux courbes sont confondues : tu as trouvé a, h, k et la bonne fonction de base.":"Astuce : commence par le sommet / point de départ (h ; k).",ok?"ok":"");
+      else nt.set(ok?"Les deux courbes sont confondues : tu as trouvé a, h, k et la bonne fonction de base. Clique « Nouvelle courbe ».":"Astuce : fais glisser le point rouge sur le sommet / point de départ de la cible (h ; k), puis ajuste a.",ok?"ok":"");
     });
   }
 });

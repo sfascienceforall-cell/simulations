@@ -74,57 +74,100 @@ SFA.sim({
 SFA.sim({
   id:"m3-c09-echelle", ch:"c09", tag:"Facteur d'échelle", titre:"Agrandir ou réduire : k pour les longueurs, k² pour les aires",
   resume:"Quand les longueurs sont multipliées par k, le périmètre est multiplié par k, mais l'aire par k².",
-  but:"Fais glisser le coin de l'image (ou le curseur) pour changer k. Compte combien de copies de la figure de départ recouvrent l'image. Essaie les boutons A4 → A3 et A3 → A4.",
+  but:"Fais glisser la poignée rouge de l'image (ou le curseur) pour changer k. Les carreaux de l'image sont des agrandissements des carreaux de départ : compte-les. Change de figure, puis essaie les boutons A4 → A3 et A3 → A4.",
   aRetenir:"Rapport k de similitude : longueurs et périmètres × k ; aires × k². Pour doubler l'aire, il faut multiplier les longueurs par √2 ≈ 1,414 (141 %).",
   piege:"Agrandir à 200 % ne double pas l'aire : elle est multipliée par 4. Un agrandissement de 141 % double l'aire (A4 → A3).",
   build:function(k,S){
-    var M3=window.M3, c=k.canvas(0,{ratio:.7}), P=S.draw.palette, T=S.draw.tint;
+    var M3=window.M3, c=k.canvas(0,{ratio:.82}), P=S.draw.palette, T=S.draw.tint;
+    var SH={
+      rect:{n:"Rectangle 3 × 2",pts:[[0,0],[3,0],[3,2],[0,2]]},
+      L:{n:"Figure en L",pts:[[0,0],[3,0],[3,1],[1,1],[1,2],[0,2]]},
+      tri:{n:"Triangle rectangle",pts:[[0,0],[3,0],[0,2]]},
+      maison:{n:"Maison",pts:[[0,0],[3,0],[3,1.5],[1.5,2.5],[0,1.5]]}
+    };
+    function area(p){ var s=0; for(var i=0;i<p.length;i++){ var q=p[(i+1)%p.length]; s+=p[i][0]*q[1]-q[0]*p[i][1]; } return Math.abs(s)/2; }
+    function perim(p){ var s=0; for(var i=0;i<p.length;i++){ var q=p[(i+1)%p.length]; s+=Math.hypot(q[0]-p[i][0],q[1]-p[i][1]); } return s; }
+    var fg=k.seg("Figure",[["rect","Rectangle"],["L","En L"],["tri","Triangle"],["maison","Maison"]],"rect");
     var kk=k.slider("Rapport k",0.5,3,0.1,2,"");
     k.button("A4 → A3 (141 %)",function(){ kk.set(1.4); });
     k.button("A3 → A4 (71 %)",function(){ kk.set(0.7); });
     k.button("200 %",function(){ kk.set(2); });
     var ro=k.readouts(["Périmètre","Aire","Rapport des aires"]); var nt=k.note(""); var geo={};
     M3.drag(c,function(){ return geo.h?[geo.h]:[]; },function(id,p){ kk.set(M3.snap((p.x-geo.X2)/(3*geo.u),0.1,0.5,3)); k.redraw(); });
+    function path(ctx,pts,ox,oy,u){ ctx.beginPath(); pts.forEach(function(p,i){ var x=ox+p[0]*u, y=oy-p[1]*u; i?ctx.lineTo(x,y):ctx.moveTo(x,y); }); ctx.closePath(); }
+    window.M3.fit(c,0.62,.82);
     k.draw(function(){
-      c.clear(); var ctx=c.ctx, K=kk.value, w=3, h=2, fs=M3.sz(c,13);
-      var u=Math.min((c.W-50)/(w+w*3+1),(c.H-70)/(h*3)), ox=18, oy=c.H-28, X2=ox+w*u+u, ww=w*K*u, hh=h*K*u; geo.u=u; geo.X2=X2;
-      S.draw.rrect(c,ox,oy-h*u,w*u,h*u,3); ctx.fillStyle=T(P.acc,0.28); ctx.fill();
-      ctx.strokeStyle="#fff"; ctx.lineWidth=1; for(var i=1;i<w;i++){ ctx.beginPath(); ctx.moveTo(ox+i*u,oy-h*u); ctx.lineTo(ox+i*u,oy); ctx.stroke(); } for(var j=1;j<h;j++){ ctx.beginPath(); ctx.moveTo(ox,oy-j*u); ctx.lineTo(ox+w*u,oy-j*u); ctx.stroke(); }
-      ctx.strokeStyle=P.acc; ctx.lineWidth=2.6; ctx.strokeRect(ox,oy-h*u,w*u,h*u);
-      /* image : k² copies de la figure de départ, teintes alternées */
-      ctx.save(); ctx.beginPath(); ctx.rect(X2,oy-hh,ww,hh); ctx.clip();
-      for(var a=0;a<Math.ceil(K);a++) for(var b=0;b<Math.ceil(K);b++){ ctx.fillStyle=T((a+b)%2?P.red:P.orange,0.3); ctx.fillRect(X2+a*w*u,oy-(b+1)*h*u,w*u,h*u); ctx.strokeStyle="#fff"; ctx.lineWidth=2; ctx.strokeRect(X2+a*w*u,oy-(b+1)*h*u,w*u,h*u); }
-      ctx.restore(); ctx.strokeStyle=P.red; ctx.lineWidth=2.6; ctx.strokeRect(X2,oy-hh,ww,hh);
-      S.draw.text(c,"k² = "+S.fmt(K*K,2)+" copies",X2+ww/2,oy-hh/2,{size:Math.max(fs,Math.min(20,ww/7)),color:P.red,bg:"rgba(255,255,255,.8)"});
-      geo.h={id:"k",x:X2+ww,y:oy-hh,r:30}; M3.handle(c,X2+ww,oy-hh,P.red,false,8);
-      S.draw.label(c,"départ",ox+w*u/2,oy-h*u-16,{color:P.acc,size:fs}); S.draw.label(c,"image (× "+S.fmt(K,1)+")",X2+ww/2,Math.max(16,oy-hh-18),{color:P.red,size:fs});
-      var per=2*(w+h)*K;
-      ro.set(0,S.fmt(2*(w+h),0)+" → "+S.fmt(per,1)+"  (×"+S.fmt(K,1)+")"); ro.set(1,S.fmt(w*h,0)+" → "+S.fmt(w*h*K*K,2)+"  (×"+S.fmt(K*K,2)+")"); ro.set(2,"k² = "+S.fmt(K,1)+"² = "+S.fmt(K*K,2));
-      nt.set(Math.abs(K*K-2)<0.1?"Quasi doublement de l'aire : k ≈ √2 ≈ 1,414. C'est le passage A4 → A3.":Math.abs(K*K-0.5)<0.05?"Aire divisée par 2 : réduction A3 → A4 (k ≈ 0,707).":"Longueurs ×"+S.fmt(K,1)+", aire ×"+S.fmt(K*K,2)+".",Math.abs(K*K-2)<0.1||Math.abs(K*K-0.5)<0.05?"ok":"");
+      c.clear(); var ctx=c.ctx, K=kk.value, sh=SH[fg.value], pts=sh.pts, fs=M3.sz(c,13), w=3, h=(fg.value==="maison"?2.5:2);
+      var u=Math.min((c.W-44)/(w+w*3+0.8),(c.H-86)/(h*3)), ox=16, oy=c.H-26, X2=ox+w*u+u*0.8; geo.u=u; geo.X2=X2;
+      /* figure de départ + carreaux unitaires */
+      ctx.save(); path(ctx,pts,ox,oy,u); ctx.fillStyle=T(P.acc,0.22); ctx.fill(); ctx.clip();
+      ctx.strokeStyle=T(P.acc,.55); ctx.lineWidth=1; ctx.beginPath(); for(var i=0;i<=w;i++){ ctx.moveTo(ox+i*u,oy-h*u); ctx.lineTo(ox+i*u,oy); } for(var j=0;j<=Math.ceil(h);j++){ ctx.moveTo(ox,oy-j*u); ctx.lineTo(ox+w*u,oy-j*u); } ctx.stroke(); ctx.restore();
+      path(ctx,pts,ox,oy,u); ctx.strokeStyle=P.acc; ctx.lineWidth=2.8; ctx.lineJoin="round"; ctx.stroke();
+      /* image agrandie : carreaux de côté k */
+      var uk=u*K;
+      ctx.save(); path(ctx,pts,X2,oy,uk); ctx.fillStyle=T(P.red,0.18); ctx.fill(); ctx.clip();
+      ctx.strokeStyle=T(P.red,.6); ctx.lineWidth=1.2; ctx.beginPath(); for(i=0;i<=w;i++){ ctx.moveTo(X2+i*uk,oy-Math.ceil(h)*uk); ctx.lineTo(X2+i*uk,oy); } for(j=0;j<=Math.ceil(h);j++){ ctx.moveTo(X2,oy-j*uk); ctx.lineTo(X2+w*uk,oy-j*uk); } ctx.stroke(); ctx.restore();
+      path(ctx,pts,X2,oy,uk); ctx.strokeStyle=P.red; ctx.lineWidth=2.8; ctx.stroke();
+      /* cotes */
+      M3.dim(c,ox,oy+14,ox+w*u,oy+14,"3",P.acc); M3.dim(c,X2,oy+14,X2+w*uk,oy+14,S.fmt(3*K,1),P.red);
+      geo.h={id:"k",x:X2+w*uk,y:oy-h*uk*0+oy-oy,r:30}; var hy=oy-(fg.value==="tri"?0:h)*uk; geo.h.x=X2+(fg.value==="tri"?w*uk:w*uk); geo.h.y=oy-(fg.value==="tri"?0:(fg.value==="maison"?1.5:fg.value==="L"?1:h))*uk; if(fg.value==="L") geo.h.y=oy-uk;
+      M3.handle(c,geo.h.x,geo.h.y,P.red,false,8);
+      var A0=area(pts), A1=A0*K*K;
+      S.draw.label(c,"départ",ox+w*u/2,oy-h*u-14,{color:P.acc,size:fs}); S.draw.label(c,"image × "+S.fmt(K,1),X2+w*uk/2,Math.max(16,oy-h*uk-14),{color:P.red,size:fs});
+      /* grosse mention des copies */
+      S.draw.label(c,"aire : "+S.fmt(A0,A0%1?1:0)+" → "+S.fmt(A0*K*K,2)+" carreaux de départ",c.W/2,14,{color:P.ink,size:fs-1.5});
+      var per0=perim(pts);
+      ro.set(0,S.fmt(per0,1)+" → "+S.fmt(per0*K,1)+"  (×"+S.fmt(K,1)+")"); ro.set(1,S.fmt(A0,A0%1?1:0)+" → "+S.fmt(A1,2)+"  (×"+S.fmt(K*K,2)+")"); ro.set(2,"k² = "+S.fmt(K,1)+"² = "+S.fmt(K*K,2));
+      nt.set(Math.abs(K*K-2)<0.1?"Quasi doublement de l'aire : k ≈ √2 ≈ 1,414. C'est le passage A4 → A3.":Math.abs(K*K-0.5)<0.05?"Aire divisée par 2 : réduction A3 → A4 (k ≈ 0,707).":"Longueurs ×"+S.fmt(K,1)+", aire ×"+S.fmt(K*K,2)+" : chaque carreau devient un carreau "+S.fmt(K,1)+" fois plus long, donc "+S.fmt(K*K,2)+" fois plus grand.",Math.abs(K*K-2)<0.1||Math.abs(K*K-0.5)<0.05?"ok":"");
     });
   }
 });
 SFA.sim({
   id:"m3-c09-semblables", ch:"c09", tag:"Cas AA", titre:"Triangles semblables : deux angles suffisent",
   resume:"Deux triangles ayant les mêmes angles ont leurs côtés proportionnels.",
-  but:"Règle les angles α et β et le rapport k. Puis modifie un angle du second triangle pour casser la ressemblance.",
+  but:"Règle les angles α et β et le rapport k (ou tire sur le sommet B' du grand triangle). Puis modifie un angle du second triangle pour casser la ressemblance. Active la superposition pour voir les côtés correspondants se « suivre ».",
   aRetenir:"Deux triangles qui ont deux angles égaux (cas AA) sont semblables : leurs côtés correspondants sont dans le même rapport k, et leurs angles sont égaux.",
   piege:"Semblables ne veut pas dire isométriques : même forme, pas forcément même taille. Les côtés correspondants sont ceux situés face aux angles égaux.",
   build:function(k,S){
-    var c=k.canvas(0,{ratio:.7}), P=S.draw.palette;
+    var M3=window.M3, c=k.canvas(0,{ratio:.78}), P=S.draw.palette, T=S.draw.tint;
     var al=k.slider("Angle α (A)",30,80,5,55,"°"), be=k.slider("Angle β (B)",30,80,5,65,"°"), kk=k.slider("Rapport k",0.5,2,0.1,1.5,"");
     var dl=k.slider("Changer β' du 2e triangle de",-20,20,5,0,"°");
-    var ro=k.readouts(["Côté c'/c","Côté a'/a","Côté b'/b","Angles"]); var nt=k.note("");
-    function tri(base,A,B){ var C=Math.PI-A-B, ab=base, ac=ab*Math.sin(B)/Math.sin(C), cp=[ac*Math.cos(A),ac*Math.sin(A)]; return {A:[0,0],B:[base,0],C:cp,a:Math.hypot(base-cp[0],cp[1]),b:ac,c:base}; }
+    var ov=k.toggle("Superposer depuis A (homothétie)",false);
+    var ro=k.readouts(["Côté c'/c","Côté a'/a","Côté b'/b","Angles"]); var nt=k.note(""); var geo={};
+    function tri(base,A,B){ var C=Math.PI-A-B, ac=base*Math.sin(B)/Math.sin(C), cp=[ac*Math.cos(A),ac*Math.sin(A)]; return {A:[0,0],B:[base,0],C:cp,a:Math.hypot(base-cp[0],cp[1]),b:ac,c:base}; }
+    M3.drag(c,function(){ return geo.h?[geo.h]:[]; },function(id,p){ kk.set(M3.snap((p.x-geo.ax)/(4*geo.sc),0.1,0.5,2)); k.redraw(); });
+    window.M3.fit(c,0.62,.78);
     k.draw(function(){
-      c.clear(); var ctx=c.ctx, A=al.value*Math.PI/180, B=be.value*Math.PI/180, K=kk.value, D=dl.value, B2=(be.value+D)*Math.PI/180;
+      c.clear(); var ctx=c.ctx, A=al.value*Math.PI/180, B=be.value*Math.PI/180, K=kk.value, D=dl.value, B2=(be.value+D)*Math.PI/180, fs=M3.sz(c,13), over=ov.value;
       if(A+B>=Math.PI-0.05||A+B2>=Math.PI-0.05){ for(var q=0;q<4;q++) ro.set(q,"—"); nt.set("α + β (ou α + β') atteint 180° : le triangle n'existe plus. Diminue un angle.","warn"); return; }
-      var T1=tri(4,A,B), T2=tri(4*K,A,B2);
-      var maxX=Math.max(T1.B[0],T2.B[0],T1.C[0],T2.C[0]), maxY=Math.max(T1.C[1],T2.C[1]), sc=Math.min((c.W-60)/maxX,(c.H-60)/maxY), ox=28, oy=c.H-28;
-      function Tr(p){ return [ox+p[0]*sc, oy-p[1]*sc]; }
-      function draw(T,col,fill){ var a=Tr(T.A),b=Tr(T.B),cc=Tr(T.C); ctx.beginPath(); ctx.moveTo(a[0],a[1]); ctx.lineTo(b[0],b[1]); ctx.lineTo(cc[0],cc[1]); ctx.closePath(); ctx.fillStyle=fill; ctx.fill(); ctx.strokeStyle=col; ctx.lineWidth=2.6; ctx.stroke(); }
-      draw(T2,P.red,"rgba(180,35,24,.08)"); draw(T1,P.acc,"rgba(30,63,143,.2)");
-      var a=Tr([0,0]); S.draw.text(c,"A",a[0]-12,a[1]+12,{size:13}); var b=Tr(T1.B); S.draw.text(c,"B",b[0]+4,b[1]+14,{size:13,color:P.acc}); var b2=Tr(T2.B); S.draw.text(c,"B'",b2[0]+4,b2[1]+14,{size:13,color:P.red});
+      var T1=tri(4,A,B), T2=tri(4*K,A,B2), gap=over?0:1.4;
+      var totW=over?Math.max(T1.B[0],T2.B[0],T1.C[0],T2.C[0],T2.C[0]):(Math.max(T1.B[0],T1.C[0])+gap+Math.max(T2.B[0],T2.C[0],0));
+      var maxY=Math.max(T1.C[1],T2.C[1]), sc=Math.min((c.W-56)/totW,(c.H-78)/maxY), ox=22, oy=c.H-34;
+      var o2=over?ox:ox+(Math.max(T1.B[0],T1.C[0])+gap)*sc;
+      function Tr(p,o){ return [o+p[0]*sc, oy-p[1]*sc]; }
+      var cols=[P.red,P.acc,P.green];
+      function drawT(t,o,col,fill,lw,ang,pr){
+        var a=Tr(t.A,o),b=Tr(t.B,o),cc=Tr(t.C,o); ctx.beginPath(); ctx.moveTo(a[0],a[1]); ctx.lineTo(b[0],b[1]); ctx.lineTo(cc[0],cc[1]); ctx.closePath(); ctx.fillStyle=fill; ctx.fill(); ctx.lineJoin="round"; ctx.strokeStyle=col; ctx.lineWidth=lw; ctx.stroke();
+        if(ang){ var vs=[[a,b,cc,0],[b,cc,a,1],[cc,a,b,2]]; vs.forEach(function(v){ var p=v[0],q1=v[1],q2=v[2], a1=Math.atan2(q1[1]-p[1],q1[0]-p[0]), a2=Math.atan2(q2[1]-p[1],q2[0]-p[0]); var d=a2-a1; while(d>Math.PI)d-=2*Math.PI; while(d<-Math.PI)d+=2*Math.PI; var r=Math.min(26,sc*0.5);
+          ctx.strokeStyle=cols[v[3]]; ctx.fillStyle=T(cols[v[3]],.3); ctx.lineWidth=2.4; ctx.beginPath(); ctx.moveTo(p[0],p[1]); ctx.arc(p[0],p[1],r,a1,a1+d,d<0); ctx.closePath(); ctx.fill(); ctx.stroke(); }); }
+        return [a,b,cc]; }
+      if(over){ var g=drawT(T2,o2,T(P.red,.7),T(P.red,.07),2.2,false); /* rayons homothétie */ }
+      var d2=!over&&drawT(T2,o2,P.red,T(P.red,.08),2.8,false);
+      var d1=drawT(T1,ox,P.acc,T(P.acc,.14),2.8,false);
+      /* arcs d'angles colorés (triangle 1 et 2) */
+      function arcs(t,o,ang2){ var a=Tr(t.A,o),b=Tr(t.B,o),cc=Tr(t.C,o); [[a,b,cc,0],[b,cc,a,1],[cc,a,b,2]].forEach(function(v){ var p=v[0],q1=v[1],q2=v[2], a1=Math.atan2(q1[1]-p[1],q1[0]-p[0]), a2=Math.atan2(q2[1]-p[1],q2[0]-p[0]), d=a2-a1; while(d>Math.PI)d-=2*Math.PI; while(d<-Math.PI)d+=2*Math.PI; var r=Math.min(24,sc*0.45)*(ang2&&v[3]===1&&D!==0?1.0:1);
+        ctx.fillStyle=T(cols[v[3]],ang2&&v[3]===1&&D!==0?.55:.35); ctx.strokeStyle=cols[v[3]]; ctx.lineWidth=2.2; ctx.beginPath(); ctx.moveTo(p[0],p[1]); ctx.arc(p[0],p[1],r,a1,a1+d,d<0); ctx.closePath(); ctx.fill(); ctx.stroke(); }); }
+      arcs(T1,ox,false); arcs(T2,o2,true);
+      if(over){ [T2.B,T2.C].forEach(function(p,i){ var a=Tr([0,0],ox), b=Tr(p,o2); S.draw.line(c,a[0],a[1],b[0],b[1],T(P.grey,.6),1.2,[4,4]); }); }
+      /* sommets */
+      function names(t,o,pr,col){ var a=Tr(t.A,o),b=Tr(t.B,o),cc=Tr(t.C,o); [["A",a,-13,12],["B",b,12,12],["C",cc,0,-14]].forEach(function(q){ S.draw.dot(c,q[1][0],q[1][1],3.6,col); S.draw.text(c,q[0]+pr,q[1][0]+q[2],q[1][1]+q[3],{size:fs,color:col,math:true}); }); }
+      names(T1,ox,"",P.acc); names(T2,o2,"'",P.red);
+      /* longueurs des côtés (unités arbitraires : 1 u = 1 cm) */
+      function sideL(t,o,pr,col,off){ var a=Tr(t.A,o),b=Tr(t.B,o),cc=Tr(t.C,o);
+        [[b,cc,"a",t.a,1],[a,cc,"b",t.b,-1],[a,b,"c",t.c,0]].forEach(function(s){ var mx=(s[0][0]+s[1][0])/2,my=(s[0][1]+s[1][1])/2; var nx=s[0][1]-s[1][1], ny=s[1][0]-s[0][0], L=Math.hypot(nx,ny)||1; var sg=s[4]===1?1:s[4]===-1?-1:-1; var ox2=sg*nx/L*17, oy2=sg*ny/L*17; if(s[4]===0){ ox2=0; oy2=17; }
+          S.draw.label(c,s[2]+pr+" = "+S.fmt(s[3],1),mx+ox2,my+oy2,{color:col,size:fs-2.5}); }); }
+      if(!over){ sideL(T1,ox,"",P.acc); sideL(T2,o2,"'",P.red); }
+      geo.h={id:"k",x:Tr(T2.B,o2)[0],y:Tr(T2.B,o2)[1],r:28}; geo.ax=o2; geo.sc=sc; M3.handle(c,geo.h.x,geo.h.y,P.red,false,7);
       ro.set(0,S.fmt(T2.c/T1.c,2)); ro.set(1,S.fmt(T2.a/T1.a,2)); ro.set(2,S.fmt(T2.b/T1.b,2));
       var simil=D===0;
       ro.set(3,simil?"A, B égaux : "+S.fmt(180-al.value-be.value,0)+"° pour C aussi":"β ≠ β' : "+be.value+"° et "+(be.value+D)+"°");

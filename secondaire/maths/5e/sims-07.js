@@ -127,6 +127,8 @@ SFA.sim({
         var pts = d.zeros.map(function(z){ return [z, 0]; }).concat(d.crit.map(function(q){ return [q[0], q[1]]; })).sort(function(a, b){ return a[0] - b[0]; });
         ctx.save(); ctx.setLineDash([4, 4]); ctx.strokeStyle = P.grey; ctx.beginPath(); pts.forEach(function(p, i){ var cut = i && d.va.some(function(v){ return v > pts[i - 1][0] && v < p[0]; }); if (i && !cut) ctx.lineTo(ax.X(p[0]), ax.Y(p[1])); else ctx.moveTo(ax.X(p[0]), ax.Y(p[1])); }); ctx.stroke(); ctx.restore();
       }
+      if (s < 7) S.draw.fn(c, ax, d.f, "rgba(31,75,158,.12)", 3, [2, 5]);
+      S.draw.label(c, d.n, ax.L + 10, ax.T + 14, {color:P.acc, align:"left", size:12, math:true});
       if (s === 7){ S.draw.fn(c, ax, d.f, P.acc, 3); }
       var leg = [];
       if (s >= 2) leg.push([P.amber, "zéros"]); if (s >= 3 && (d.va.length || d.lines.length)) leg.push([P.red, "asymptotes", true]); if (s >= 5) leg.push([P.green, "extrema"]);
@@ -249,21 +251,31 @@ SFA.sim({
   id:"m5-c07-famille", ch:"c07", tag:"Niche utile",
   titre:"Une famille de fonctions : f(x) = x + m/x",
   resume:"Selon m, la courbe a deux extrema ou aucun ; l'asymptote oblique ne bouge pas.",
-  but:"Fais varier m de −4 à 4 : combien d'extrema ? où ? Que reste-t-il quand m = 0 ? Quelles droites ne changent jamais ?",
+  but:"Tire le point orange de la courbe (ou règle m de −4 à 4) : combien d'extrema ? où ? Que reste-t-il quand m = 0 ? Quelles droites ne changent jamais ?",
   aRetenir:"f′(x) = 1 − m/x². Si m > 0 : f′ s'annule en x = ±√m, extrema f(±√m) = ±2√m (maximum local à gauche, minimum local à droite). Si m < 0 : f′ > 0, aucun extremum. Pour m ≠ 0 : asymptote verticale x = 0 et oblique y = x (pour m = 0, f(x) = x).",
   piege:"Pour une famille, on discute selon la valeur du paramètre : le nombre de solutions de f′(x) = 0 dépend de m. Ne suppose pas « les mêmes extrema » pour tout m.",
   build:function(k, S){
     var c = k.canvas(430);
     var m = k.slider("m", -4, 4, 0.5, 2, "");
     var ro = k.readouts(["Extrema", "Valeurs extrêmes", "Asympt. verticale", "Asympt. oblique"]);
-    var nt = k.note("", "ok");
+    var nt = k.note("", "ok"), axf = null, dg = false;
+    c.pointer(function(t, q){
+      if (!axf) return;
+      if (t === "down") dg = Math.hypot(q.x - axf.X(2), q.y - axf.Y(2 + m.value / 2)) < 34;
+      if ((t === "down" || t === "drag") && dg){ m.set(Math.max(-4, Math.min(4, Math.round(3.5 * (axf.iy(q.y) - 3.5) * 2) / 2))); k.redraw(); }
+      if (t === "up") dg = false;
+    });
     k.draw(function(){
       c.clear(); var M = m.value, f = function(x){ return x === 0 ? NaN : x + M / x; };
-      var ax = S.draw.axes(c, {x0:-6, x1:6, y0:-10, y1:10, stepX:2, stepY:2, xl:"x", yl:"y"});
+      var ax = axf = S.draw.axes(c, {x0:-6, x1:6, y0:-10, y1:10, stepX:2, stepY:2, xl:"x", yl:"y"});
       S.draw.line(c, ax.X(-6), ax.Y(-6), ax.X(6), ax.Y(6), P.violet, 1.5, [6, 5]);
       if (M !== 0) S.draw.line(c, ax.X(0), ax.T, ax.X(0), ax.B, P.red, 1.5, [6, 5]);
       S.draw.fn(c, ax, f, P.acc, 2.8);
-      if (M > 0){ var r = Math.sqrt(M); S.draw.dot(c, ax.X(-r), ax.Y(-2 * r), 6, P.red); S.draw.dot(c, ax.X(r), ax.Y(2 * r), 6, P.green); S.draw.line(c, ax.X(-r) - 20, ax.Y(-2 * r), ax.X(-r) + 20, ax.Y(-2 * r), P.red, 2); S.draw.line(c, ax.X(r) - 20, ax.Y(2 * r), ax.X(r) + 20, ax.Y(2 * r), P.green, 2); }
+      S.draw.glow(c, ax.X(3.5), ax.Y(3.5 + M / 3.5), 16, P.amber, 0.45); S.draw.dot(c, ax.X(3.5), ax.Y(3.5 + M / 3.5), 7, P.amber);
+      S.draw.label(c, "↕ tire : m = " + F(M, 1), ax.X(3.5) + 12, ax.Y(3.5 + M / 3.5) + 18, {color:P.amber, align:"left", size:11.5});
+      S.draw.label(c, "y = x", ax.R - 8, ax.Y(5.2) , {color:P.violet, align:"right", size:11});
+      if (M !== 0) S.draw.label(c, "x = 0", ax.X(0) + 8, ax.B - 14, {color:P.red, align:"left", size:11});
+      if (M > 0){ var r = Math.sqrt(M); S.draw.label(c, "max local " + F(-2 * r, 2), ax.X(-r) - 6, ax.Y(-2 * r) + 20, {color:P.red, align:"right", size:11}); S.draw.label(c, "min local " + F(2 * r, 2), ax.X(r) + 8, ax.Y(2 * r) + 20, {color:P.green, align:"left", size:11}); S.draw.dot(c, ax.X(-r), ax.Y(-2 * r), 6, P.red); S.draw.dot(c, ax.X(r), ax.Y(2 * r), 6, P.green); S.draw.line(c, ax.X(-r) - 20, ax.Y(-2 * r), ax.X(-r) + 20, ax.Y(-2 * r), P.red, 2); S.draw.line(c, ax.X(r) - 20, ax.Y(2 * r), ax.X(r) + 20, ax.Y(2 * r), P.green, 2); }
       ro.set(0, M > 0 ? "2 (x = ±" + F(Math.sqrt(M), 2) + ")" : "0"); ro.set(1, M > 0 ? "−" + F(2 * Math.sqrt(M), 2) + " (max) et " + F(2 * Math.sqrt(M), 2) + " (min)" : "—");
       ro.set(2, M !== 0 ? "x = 0" : "aucune"); ro.set(3, M !== 0 ? "y = x" : "aucune (f = x)");
       nt.set(M > 0 ? "m > 0 : f′(x) = 1 − m/x² = 0 ⇔ x² = m. En −√m, f passe de ↗ à ↘ : <b>maximum local</b> f(−√m) = −2√m = " + F(-2 * Math.sqrt(M), 2) + " ; en +√m, ↘ puis ↗ : <b>minimum local</b> " + F(2 * Math.sqrt(M), 2) + ". Remarque : le « maximum local » est plus bas que le « minimum local »." : M < 0 ? "m < 0 : f′(x) = 1 + |m|/x² > 0 partout : f est croissante sur chaque branche, aucun extremum." : "m = 0 : f(x) = x + 0/x = x pour x ≠ 0 : une droite privée du point (0 ; 0). Plus d'asymptote verticale.", "ok");

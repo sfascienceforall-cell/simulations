@@ -49,7 +49,7 @@ SFA.sim({
       if (!isFinite(fb) || !isFinite(fa)){ nt.set("a + h sort du domaine de f : choisis une autre valeur.", "warn"); return; }
       var slope = (fb - fa) / h, t = d.d(A);
       clipped(c, ax, function(){ line(c, ax, A, fa, t, P.green, [6, 5], 2); line(c, ax, A, fa, slope, P.red, null, 2); });
-      S.draw.dot(c, ax.X(A), ax.Y(fa), 6, P.acc); S.draw.glow(c, ax.X(B), ax.Y(fb), 16, P.red, 0.4); S.draw.dot(c, ax.X(B), ax.Y(fb), 7, P.red); S.draw.label(c, "↔ glisse B vers A", ax.X(B) + 12, ax.Y(fb) + 22, {color:P.red, align:"left", size:11});
+      S.draw.dot(c, ax.X(A), ax.Y(fa), 6, P.acc); S.draw.glow(c, ax.X(B), ax.Y(fb), 16, P.red, 0.4); S.draw.dot(c, ax.X(B), ax.Y(fb), 7, P.red); S.draw.label(c, "↔ glisse B vers A", ax.X(B) + (ax.X(B) > ax.R - 140 ? -12 : 12), ax.Y(fb) + 22, {color:P.red, align:ax.X(B) > ax.R - 140 ? "right" : "left", size:11});
       S.draw.text(c, "A", ax.X(A) - 10, ax.Y(fa) - 10, {color:P.acc}); S.draw.text(c, "B", ax.X(B) + 10, ax.Y(fb) - 10, {color:P.red});
       ro.set(0, F(h, 4)); ro.set(1, F(slope, 4)); ro.set(2, F(t, 4)); ro.set(3, F(slope - t, 4));
       nt.set("Sécante AB : pente (f(" + F(B, 3) + ") − f(" + F(A, 2) + ")) / " + F(h, 4) + " = <b>" + F(slope, 4) + "</b>. Tangente : f′(" + F(A, 2) + ") = <b>" + F(t, 4) + "</b>. Équation de la tangente : y = " + F(t, 3) + "·(" + (A === 0 ? "x" : A < 0 ? "x + " + F(-A, 2) : "x − " + F(A, 2)) + ")" + (fa < 0 ? " − " + F(-fa, 3) : " + " + F(fa, 3)) + ".", "ok");
@@ -186,7 +186,7 @@ SFA.sim({
   id:"m5-c05-vitesse", ch:"c05", tag:"Animation",
   titre:"Vitesse moyenne, vitesse instantanée",
   resume:"Une bille tombe : s(t) = 4,9·t². Rétrécis l'intervalle de temps.",
-  but:"Lance la chute (▶). Puis choisis t₀ et diminue Δt : la vitesse moyenne sur [t₀ ; t₀ + Δt] tend vers la vitesse instantanée s′(t₀).",
+  but:"Lance la chute (▶). Puis glisse le point bleu (t₀) et tire le point rouge vers lui (Δt → 0) : la vitesse moyenne sur [t₀ ; t₀ + Δt] tend vers la vitesse instantanée s′(t₀).",
   aRetenir:"Vitesse moyenne = Δs/Δt = pente de la sécante. Vitesse instantanée = s′(t₀) = limite de la vitesse moyenne quand Δt → 0 : pente de la tangente à la courbe s(t). Ici s′(t) = 9,8·t (m/s), sans frottements.",
   piege:"La vitesse moyenne entre 0 et t₀ (s(t₀)/t₀ = 4,9·t₀) vaut la moitié de la vitesse instantanée à t₀, car la bille accélère.",
   build:function(k, S){
@@ -194,17 +194,26 @@ SFA.sim({
     var t0 = k.slider("t₀", 0.5, 3, 0.1, 2, "s");
     var z = k.slider("Rapprochement z (Δt = 10^−z s)", -0.3, 3, 0.1, 0, "");
     var ro = k.readouts(["Vitesse moyenne", "Vitesse instantanée", "Écart", "Vit. moy. [0 ; t₀]"]);
-    var tt = 0;
+    var tt = 0, axv = null, dm = "";
+    c.pointer(function(ty, q){
+      if (!axv) return;
+      if (ty === "down"){ var T0 = t0.value, dT = Math.pow(10, -z.value); dm = Math.hypot(q.x - axv.X(T0 + dT), q.y - axv.Y(4.9 * (T0 + dT) * (T0 + dT))) < 26 && dT > 0.02 ? "z" : "t"; }
+      if ((ty === "down" || ty === "drag") && dm === "z"){ var dd = Math.max(0.001, axv.ix(q.x) - t0.value); z.set(Math.max(-0.3, Math.min(3, -Math.log10(dd)))); k.redraw(); }
+      else if ((ty === "down" || ty === "drag") && dm === "t"){ t0.set(Math.max(0.5, Math.min(3, Math.round(axv.ix(q.x) * 10) / 10))); k.redraw(); }
+      if (ty === "up") dm = "";
+    });
     var anim = k.loop(function(dt){ tt += dt * 0.8; if (tt > 3.2){ tt = 3.2; anim.pause(); } k.redraw(); });
     k.button("▶ Lancer la chute", function(){ tt = 0; anim.play(); }, true);
     k.button("Arrêter", function(){ anim.pause(); });
     k.draw(function(){
       c.clear(); var s = function(t){ return 4.9 * t * t; }, T0 = t0.value, dT = Math.pow(10, -z.value);
-      var ax = S.draw.axes(c, {x0:0, x1:3.5, y0:0, y1:60, l:46, r:116, xl:"t (s)", yl:"s (m)", stepX:0.5, stepY:10});
+      var ax = axv = S.draw.axes(c, {x0:0, x1:3.5, y0:0, y1:60, l:46, r:116, xl:"t (s)", yl:"s (m)", stepX:0.5, stepY:10});
       S.draw.fn(c, ax, s, P.acc, 2.6);
       var vm = (s(T0 + dT) - s(T0)) / dT, vi = 9.8 * T0;
       clipped(c, ax, function(){ line(c, ax, T0, s(T0), vm, P.red, null, 2); line(c, ax, T0, s(T0), vi, P.green, [6, 5], 2); });
-      S.draw.dot(c, ax.X(T0), ax.Y(s(T0)), 6, P.acc); clipped(c, ax, function(){ S.draw.dot(c, ax.X(T0 + dT), ax.Y(s(T0 + dT)), 5, P.red); });
+      S.draw.dot(c, ax.X(T0), ax.Y(s(T0)), 6, P.acc); clipped(c, ax, function(){ S.draw.dot(c, ax.X(T0 + dT), ax.Y(s(T0 + dT)), 5.5, P.red); });
+      S.draw.label(c, "t₀ = " + F(T0, 1) + " s", ax.X(T0) - 10, ax.Y(s(T0)) - 14, {color:P.acc, align:"right", size:11});
+      if (dT > 0.02) S.draw.label(c, "↔ Δt = " + F(dT, 2) + " s", Math.min(ax.R - 6, ax.X(T0 + dT) + 10), Math.min(ax.B - 14, ax.Y(s(T0 + dT)) + 22), {color:P.red, align:ax.X(T0 + dT) + 100 > ax.R ? "right" : "left", size:11});
       var cx = c.W - 58, top = ax.T + 6, bot = ax.B - 6;
       S.draw.line(c, cx, top, cx, bot, P.light, 3);
       var yy = top + (bot - top) * (s(tt) / 60);

@@ -8,7 +8,7 @@ SFA.sim({
   aRetenir:"Trois rayons particuliers : parallèle à l'axe → passe par le foyer image F′ ; passant par le centre → non dévié ; passant par le foyer objet F → ressort parallèle. Relation de conjugaison : 1/f = 1/p + 1/q ; grandissement γ = −q/p. Objet au-delà de F : image réelle renversée ; entre F et la lentille : image virtuelle, droite, agrandie (loupe).",
   piege:"L'image ne se forme pas « sur la lentille » mais à la distance q. Cacher la moitié de la lentille ne coupe pas la moitié de l'image : l'image reste entière, mais moins lumineuse. Et si on retire l'écran, l'image réelle existe toujours dans l'air (on ne la voit que si on la reçoit sur un écran ou dans l'œil).",
   build:function(k,S){
-    var c = k.canvas(290), st = {drag:false};
+    var c = PX.canvas(k, 0.62, 0.85), st = {drag:false, hint:true};
     var f = k.slider("Distance focale f", 5, 30, 1, 12, "cm");
     var p = k.slider("Distance objet – lentille p", 3, 85, 1, 30, "cm");
     var h = k.slider("Hauteur de l'objet", 1, 6, 1, 3, "cm");
@@ -17,16 +17,16 @@ SFA.sim({
     var nt = k.note("", "");
     var XR = 90, sx, sy, X, Y, cy;
     function setup(){ sx = (c.W - 20) / (2 * XR); sy = sx * 4.5; cy = c.H / 2; X = function(x){ return c.W / 2 + x * sx; }; Y = function(y){ return cy - y * sy; }; }
-    c.pointer(function(type, pt){ setup(); if (type === "down"){ st.drag = Math.abs(pt.x - X(-p.value)) < 40; } if ((type === "down" || type === "drag") && st.drag){ var v = Math.round(-(pt.x - c.W / 2) / sx); v = Math.max(3, Math.min(85, v)); p.set(v); k.redraw(); } if (type === "up") st.drag = false; });
+    c.pointer(function(type, pt){ setup(); if (type === "down"){ st.drag = Math.abs(pt.x - X(-p.value)) < 40; } if ((type === "down" || type === "drag") && st.drag){ st.hint = false; var v = Math.round(-(pt.x - c.W / 2) / sx); v = Math.max(3, Math.min(85, v)); p.set(v); k.redraw(); } if (type === "up") st.drag = false; });
     k.draw(function(){
       setup(); var P = SFA.draw.palette, F = f.value, Pp = p.value, H = h.value, ctx = c.ctx, masked = mk.value;
       var none = Math.abs(Pp - F) < 1e-9, q = none ? Infinity : F * Pp / (Pp - F), gam = none ? NaN : -q / Pp, Hi = gam * H, real = q > 0;
       var Hl = (c.H / 2 - 8) / sy;
-      c.clear(); ctx.save(); ctx.beginPath(); ctx.rect(0, 0, c.W, c.H); ctx.clip();
+      c.clear(); PX.bg(c, "#f4f7fb", "#e2e9f3"); ctx.save(); ctx.beginPath(); ctx.rect(0, 0, c.W, c.H); ctx.clip();
       S.draw.line(c, 0, cy, c.W, cy, "#c9d1dc", 1.5);
       for (var t = -80; t <= 80; t += 20){ S.draw.line(c, X(t), cy - 4, X(t), cy + 4, "#8a95a3", 1); if (t) P4.label(c, String(t), X(t), cy + 14, "#8a95a3"); }
       [-F, F].forEach(function(xf, i){ S.draw.dot(c, X(xf), cy, 4, P.violet); P4.label(c, i ? "F′" : "F", X(xf), cy - 12, P.violet); });
-      S.draw.line(c, X(0), Y(Hl), X(0), Y(-Hl), "#13233a", 3);
+      ctx.fillStyle = "rgba(120,170,230,.28)"; ctx.strokeStyle = "#13233a"; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(X(0), Y(Hl)); ctx.quadraticCurveTo(X(0) + 13, cy, X(0), Y(-Hl)); ctx.quadraticCurveTo(X(0) - 13, cy, X(0), Y(Hl)); ctx.closePath(); ctx.fill(); ctx.stroke();
       SFA.draw.arrow(c, X(0), Y(Hl - 2), X(0), Y(Hl), "#13233a", 3); SFA.draw.arrow(c, X(0), Y(-Hl + 2), X(0), Y(-Hl), "#13233a", 3);
       if (masked){ ctx.fillStyle = "rgba(95,107,122,.35)"; ctx.fillRect(X(0) - 6, Y(Hl), 12, cy - Y(Hl)); }
       var T = [-Pp, H], rayCol = ["rgba(180,83,9,.95)", "rgba(46,107,85,.95)", "rgba(30,63,143,.95)"];
@@ -51,7 +51,8 @@ SFA.sim({
         seg(T[0], T[1], 0, 0, "rgba(46,107,85,.95)");
         if (!none) seg(0, 0, real ? q * Math.max(1, (XR + 5) / q) : q * -4, real ? Hi * Math.max(1, (XR + 5) / q) : Hi * -4, "rgba(46,107,85,.95)", null);
       }
-      SFA.draw.arrow(c, X(-Pp), Y(0), X(-Pp), Y(H), P.red, 4);
+      if (!none && real && Math.abs(q) <= XR){ ctx.fillStyle = "rgba(255,255,255,.85)"; ctx.strokeStyle = "#a3adba"; ctx.lineWidth = 1.2; ctx.fillRect(X(q) - 3, Y(Hl * 0.9), 6, 2 * Hl * 0.9 * sy); ctx.strokeRect(X(q) - 3, Y(Hl * 0.9), 6, 2 * Hl * 0.9 * sy); P4.label(c, "écran", X(q), Y(Hl * 0.9) - 10, "#5f6b7a"); }
+      SFA.draw.arrow(c, X(-Pp), Y(0), X(-Pp), Y(H), P.red, 4); PX.grip(c, X(-Pp), Y(H), P.red, st.hint ? "glisse l'objet" : null, 6);
       if (!none && Math.abs(q) <= XR){ if (real) SFA.draw.arrow(c, X(q), Y(0), X(q), Y(Hi), P.acc, 4); else { ctx.save(); ctx.setLineDash([5, 4]); SFA.draw.arrow(c, X(q), Y(0), X(q), Y(Hi), "rgba(30,63,143,.6)", 3); ctx.restore(); } }
       ctx.restore();
       ro.set(0, none ? "à l'infini" : (real ? S.fmt(q, 1) + " cm" : S.fmt(q, 1) + " cm (côté objet)")); ro.set(1, none ? "—" : S.fmt(gam, 2)); ro.set(3, S.fmt(100 / F, 1) + " δ");
@@ -67,40 +68,82 @@ SFA.sim({
   id:"p4-c10-oeil-lunettes", ch:"c10", tag:"Santé",
   titre:"L'œil et ses lunettes : myopie et hypermétropie",
   resume:"Le cristallin accommode, mais un œil trop long ou trop court ne forme pas l'image sur la rétine sans lunettes.",
-  but:"Choisis un type d'œil, la distance de l'objet et la vergence des lunettes (en dioptries). L'image doit se former exactement sur la rétine pour être nette.",
+  but:"Choisis un type d'œil, la distance de l'objet et la vergence des lunettes (en dioptries) : glisse aussi les lunettes vers le haut ou le bas. L'image doit se former exactement sur la rétine pour être nette : regarde le point de convergence et la lettre vue par la personne. (Échelle verticale agrandie.)",
   aRetenir:"L'œil est une lentille convergente (cristallin) qui forme l'image sur la rétine ; il accommode en augmentant sa vergence pour voir de près. Myopie : image en avant de la rétine, corrigée par une lentille DIVERGENTE (vergence négative). Hypermétropie : image en arrière, corrigée par une lentille CONVERGENTE. Vergence C = 1/f (en dioptries δ).",
   piege:"Une lentille divergente rend le faisceau plus divergent : elle recule l'image, utile pour le myope (image trop avant). Les lunettes ne « grossissent » pas l'œil : elles changent la vergence totale. (Modèle d'œil réduit simplifié : lentille unique de 50 δ au repos et rétine à 20 mm (l'œil réel fait ≈ 60 δ pour ≈ 17 mm), pupille de 6 mm.)",
   build:function(k,S){
-    var c = k.canvas(210);
+    var P = S.draw.palette, c = PX.canvas(k, 0.55, 0.85), st = {hint:true}, geo = {};
+    var EYE = {normal:{d:20.0, n:"Œil normal"}, myope:{d:21.5, n:"Œil myope (trop long)"}, hyper:{d:18.5, n:"Œil hypermétrope (trop court)"}};
     var ty = k.seg("Œil", [["normal","Normal"],["myope","Myope"],["hyper","Hypermétrope"]], "myope");
     var ac = k.seg("Accommodation", [[8,"Jeune (8 δ)"],[1,"Presbyte (1 δ)"]], 8);
     var inf = k.toggle("Objet très lointain (∞)", true);
     var dp = k.slider("Distance de l'objet (si non lointain)", 0.1, 5, 0.05, 1, "m");
-    var cc = k.slider("Lunettes : vergence C", -6, 6, 0.25, 0, "δ");
+    var cc = k.slider("Lunettes : vergence C", -6, 6, 0.25, 0, "δ", function(){ st.hint = false; });
     var ro = k.readouts(["Image sur la rétine ?", "Accommodation utilisée", "Verre pour voir net à l'infini", "Plage de vision nette"]);
     var nt = k.note("", "");
+    PX.drag(k, c, function(){ return geo.gx == null ? [] : [{x:geo.gx, y:geo.gy, r:16, set:function(px, py){ st.hint = false; cc.set(Math.max(-6, Math.min(6, Math.round((geo.cy - py) / 38 * 6 * 4) / 4))); }}]; });
+    function blurLetter(g, ch, x, y, size, blur, col){
+      var ctx = g.ctx, n = blur < 0.4 ? 1 : 12, i;
+      ctx.save(); ctx.font = "800 " + size + "px Mulish, system-ui, sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillStyle = col; ctx.globalAlpha = n === 1 ? 1 : 1 / Math.sqrt(n) * 0.75;
+      for (i = 0; i < n; i++){ var an = i / n * 6.2832; ctx.fillText(ch, x + Math.cos(an) * blur, y + Math.sin(an) * blur); if (n > 1 && i % 3 === 0) ctx.fillText(ch, x + Math.cos(an) * blur * 0.5, y + Math.sin(an) * blur * 0.5); }
+      ctx.restore();
+    }
     k.draw(function(){
-      var P = SFA.draw.palette, ctx = c.ctx, E = EYE[ty.value], d = E.d / 1000, Am = +ac.value, C0 = 50, Cc = cc.value, invP = inf.value ? 0 : 1 / dp.value;
-      var need = invP + 1 / d - C0 - Cc, a = Math.max(0, Math.min(Am, need)), Ceff = C0 + a + Cc, V = Ceff - invP;   /* V = 1/q */
-      var excess = Math.abs(a - need), sharp = excess <= 0.25;
-      var qmm = V > 1e-3 ? 1000 / V : Infinity;
-      var s = 9, xL = 84, cy = c.H / 2, xR = xL + E.d * s, r = 3;
-      c.clear();
-      ctx.fillStyle = "rgba(244,197,66,.14)"; ctx.beginPath(); ctx.ellipse(xL + 95, cy, 100, 46, 0, 0, 6.2832); ctx.fill();
-      ctx.strokeStyle = "#8a95a3"; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(xR, cy - 44); ctx.quadraticCurveTo(xR + 14, cy, xR, cy + 44); ctx.stroke();
-      P4.label(c, "rétine", xR + 4, cy + 56, "#5f6b7a");
-      S.draw.line(c, xL, cy - 30, xL, cy + 30, "#13233a", 4); P4.label(c, "cristallin", xL, cy - 40, "#13233a");
-      if (Math.abs(Cc) > 0.01){ var xg = xL - 40; S.draw.line(c, xg, cy - 32, xg, cy + 32, P.teal, 3); P4.label(c, "lunettes", xg, cy - 42, P.teal); }
+      var ctx = c.ctx, E = EYE[ty.value], d = E.d / 1000, Am = +ac.value, C0 = 50, Cc = cc.value, invP = inf.value ? 0 : 1 / dp.value, ph = PX.phone(c);
+      var need = invP + 1 / d - C0 - Cc, a = Math.max(0, Math.min(Am, need)), Ceff = C0 + a + Cc, V = Ceff - invP;
+      var sharp = Math.abs(a - need) <= 0.25, qmm = V > 1e-3 ? 1000 / V : Infinity;
+      /* géométrie : x en mm depuis le cristallin, échelle sc px/mm ; échelle verticale sv exagérée */
+      var sc = Math.min((c.W * (ph ? 0.5 : 0.46)) / 26, (c.H - 40) / 26), sv = Math.min(sc * 1.7, (c.H / 2 - 16) / (11.5 * 0.82)), xL = c.W - (E.d + 4.5) * sc - 16, cy = c.H / 2 + 4;
+      var X = function(mm){ return xL + mm * sc; }, retX = X(E.d), pup = 3 * sv;
+      geo.cy = cy;
+      c.clear(); PX.bg(c, "#eef3fa", "#dfe7f2");
+      /* globe oculaire */
+      var ex = X((E.d - 4.5) / 2), rx = (E.d + 4.5) / 2 * sc + 2, ry = 11.5 * sv * 0.82;
+      var gr = ctx.createRadialGradient(ex, cy, 4, ex, cy, rx); gr.addColorStop(0, "#fffdf5"); gr.addColorStop(1, "#f1e3d1");
+      ctx.fillStyle = gr; ctx.beginPath(); ctx.ellipse(ex, cy, rx, ry, 0, 0, 6.2832); ctx.fill();
+      ctx.strokeStyle = "#8a7e72"; ctx.lineWidth = 2; ctx.stroke();
+      /* rétine */
+      ctx.strokeStyle = "#c0321d"; ctx.lineWidth = 5; ctx.lineCap = "round"; ctx.beginPath(); ctx.ellipse(ex, cy, rx - 2, ry - 2, 0, -1.0, 1.0); ctx.stroke();
+      S.draw.label(c, "rétine", retX + 4, cy + ry * 0.78 + 8, {color:P.red, size:PX.fs(c, 11.5), align:"center"});
+      /* cornée + pupille / iris */
+      ctx.fillStyle = "rgba(180,220,255,.55)"; ctx.beginPath(); ctx.ellipse(X(-3.8), cy, 5 * sc * 0.55, ry * 0.62, 0, 0, 6.2832); ctx.fill(); ctx.strokeStyle = "rgba(60,90,130,.6)"; ctx.lineWidth = 1.2; ctx.stroke();
+      ctx.fillStyle = "#6a8a5a"; ctx.fillRect(xL - 2, cy - ry * 0.72, 4, ry * 0.72 - pup); ctx.fillRect(xL - 2, cy + pup, 4, ry * 0.72 - pup);
+      /* cristallin : s'épaissit avec l'accommodation */
+      var lw = (1.6 + a * 0.22) * sc;
+      ctx.fillStyle = "rgba(255,214,120,.85)"; ctx.strokeStyle = "#a9741a"; ctx.lineWidth = 1.6; ctx.beginPath(); ctx.ellipse(xL, cy, Math.max(3, lw), pup * 1.02, 0, 0, 6.2832); ctx.fill(); ctx.stroke();
+      S.draw.label(c, "cristallin", xL, cy - ry - 8, {color:"#a9741a", size:PX.fs(c, 11.5)});
+      /* lunettes */
+      var xg = Math.max(34, xL - (ph ? 70 : 96)), gy = cy - 50;
+      geo.gx = xg; geo.gy = gy;
+      if (Math.abs(Cc) > 0.01){
+        var th = 2 + Math.abs(Cc) * 1.5, hh = 38;
+        ctx.fillStyle = "rgba(14,127,150,.22)"; ctx.strokeStyle = P.teal; ctx.lineWidth = 2; ctx.beginPath();
+        if (Cc > 0){ ctx.moveTo(xg, cy - hh); ctx.quadraticCurveTo(xg + th * 2, cy, xg, cy + hh); ctx.quadraticCurveTo(xg - th * 2, cy, xg, cy - hh); }
+        else { ctx.moveTo(xg - th, cy - hh); ctx.lineTo(xg + th, cy - hh); ctx.quadraticCurveTo(xg - th * 0.2, cy, xg + th, cy + hh); ctx.lineTo(xg - th, cy + hh); ctx.quadraticCurveTo(xg + th * 0.2, cy, xg - th, cy - hh); }
+        ctx.closePath(); ctx.fill(); ctx.stroke();
+        S.draw.label(c, "lunettes " + S.fmt(Cc, 2) + " δ", xg, cy + hh + 14, {color:P.teal, size:PX.fs(c, 11.5)});
+      } else S.draw.line(c, xg, cy - 38, xg, cy + 38, "rgba(14,127,150,.35)", 2, [3, 4]);
+      PX.grip(c, xg, gy, P.teal, st.hint ? "glisse les lunettes" : null, 7);
+      /* rayons */
+      var x0 = 8, Lobj = xg - x0;
       [-1, 1].forEach(function(sg){
-        var ex = 6, h0 = r * s * (1 + (xL - ex) / (inf.value ? 1e9 : dp.value * 1000 * s));
-        S.draw.line(c, ex, cy + sg * h0, xL, cy + sg * r * s, P.amber, 1.8);
-        var xEnd = Math.min(c.W - 6, isFinite(qmm) ? xL + qmm * s : c.W - 6);
-        var yAt = function(x){ return cy + sg * r * s * (1 - (x - xL) / (isFinite(qmm) ? qmm * s : 1e9)); };
-        S.draw.line(c, xL, cy + sg * r * s, xEnd, yAt(xEnd), sharp ? P.green : P.red, 1.8);
+        var hObj = inf.value ? pup : pup * (1 + Lobj / Math.max(1, Math.min(dp.value * 1000 * sc, 1e5)) * 0.0), yStart = inf.value ? sg * pup : sg * pup * (0.25 + 0.75 * Math.min(1, 0.4 / dp.value));
+        S.draw.line(c, x0, cy + yStart, xL, cy + sg * pup, P.amber, 2);
+        var xEnd = isFinite(qmm) ? Math.min(c.W - 4, retX + 26, xL + qmm * sc) : retX + 20;
+        var yAt = function(x){ return cy + sg * pup * (1 - (x - xL) / (isFinite(qmm) ? qmm * sc : 1e9)); };
+        S.draw.line(c, xL, cy + sg * pup, xEnd, yAt(xEnd), sharp ? P.green : P.red, 2);
       });
-      if (isFinite(qmm) && xL + qmm * s < c.W - 6) S.draw.dot(c, xL + qmm * s, cy, 4, sharp ? P.green : P.red);
-      var blurPx = Math.min(40, Math.abs(a - need) * 6);
-      ctx.fillStyle = sharp ? "rgba(46,107,85,.6)" : "rgba(180,35,24,.35)"; ctx.beginPath(); ctx.ellipse(xR, cy, 3 + (sharp ? 0 : blurPx * 0.35), 3 + (sharp ? 0 : blurPx), 0, 0, 6.2832); ctx.fill();
+      var fx = isFinite(qmm) ? xL + qmm * sc : null;
+      if (fx != null && fx < c.W - 6) S.draw.dot(c, fx, cy, 4.5, sharp ? P.green : P.red);
+      var blur = Math.min(40, Math.abs(a - need) * 6);
+      if (!sharp){ ctx.fillStyle = "rgba(192,50,29,.35)"; ctx.beginPath(); ctx.ellipse(retX, cy, 3 + blur * 0.3, 3 + blur, 0, 0, 6.2832); ctx.fill(); }
+      else S.draw.glow(c, retX, cy, 16, P.green, 0.8);
+      S.draw.label(c, inf.value ? "objet à l'infini : rayons parallèles" : "objet à " + S.fmt(dp.value, 2) + " m : rayons divergents", x0 + 4, 14, {color:P.amber, align:"left", size:PX.fs(c, 11.5)});
+      /* vue du patient */
+      var bw = ph ? 62 : 74, bx = x0 + 4, by = c.H - bw - 8;
+      S.draw.panel(c, bx, by, bw, bw, {fill:"#fff", stroke:sharp ? P.green : P.red, shadow:false});
+      blurLetter(c, "E", bx + bw / 2, by + bw / 2 - 2, bw * 0.62, sharp ? 0 : Math.min(9, Math.abs(a - need) * 1.7 + 1), "#0f1b2d");
+      S.draw.label(c, sharp ? "net" : "flou", bx + bw / 2, by - 10, {color:sharp ? P.green : P.red, size:11});
       var cinf = 1 / d - C0, far = C0 + Cc - 1 / d, near = Am + C0 + Cc - 1 / d;
       var farTxt = far > 1e-9 ? S.fmt(100 / far, 0) + " cm" : "∞", nearTxt = near > 1e-9 ? S.fmt(100 / near, 0) + " cm" : "∞";
       ro.set(0, sharp ? "NETTE" : (need < 0 ? "floue : image devant la rétine" : "floue : image derrière la rétine")); ro.set(1, S.fmt(a, 2) + " δ (max " + Am + ")"); ro.set(2, S.fmt(cinf, 2) + " δ"); ro.set(3, near < -1e-9 ? "aucune (même à l'infini, image derrière la rétine)" : near < 1e-9 ? "à l'infini seulement" : "de " + nearTxt + " à " + farTxt);

@@ -107,7 +107,7 @@ SFA.sim({
   aRetenir:"P(malade | test +) = P(M ∩ +) / P(+) = prév·sens / (prév·sens + (1 − prév)·(1 − spéc)). Quand la maladie est rare, les faux positifs (très nombreux sains × petit taux d'erreur) peuvent être plus nombreux que les vrais positifs : un test fiable à 95 % ne signifie pas « 95 % de chances d'être malade ».",
   piege:"La sensibilité P(+ | malade) n'est pas la valeur prédictive P(malade | +). C'est la confusion entre P(A | B) et P(B | A). Les valeurs choisies ici sont des exemples, pas des données d'un vrai test.",
   build:function(k,S){
-    var c=M6.canvas(k,.9,400), P=S.draw.palette;
+    var c=M6.canvas(k,1,440), P=S.draw.palette;
     var prev=k.slider("Prévalence (part de malades)",0.1,30,0.1,1,"%",null), se=k.slider("Sensibilité P(+ | malade)",50,100,1,95,"%",null), sp=k.slider("Spécificité P(− | sain)",50,100,1,95,"%",null);
     var s=0, tgt=0, lp=k.loop(function(dt){ var d=tgt-s; s+=Math.sign(d)*Math.min(Math.abs(d),dt*1.3); if(Math.abs(tgt-s)<1e-4){ s=tgt; lp.pause(); } k.redraw(); });
     var tri=k.toggle("Trier selon le résultat du test",false,function(on){ tgt=on?1:0; lp.play(); });
@@ -132,7 +132,7 @@ SFA.sim({
       else S.draw.text(c,"1 000 personnes : chaque point est quelqu'un",W/2,oy-12,{size:fs,color:P.grey,weight:700});
       /* légende + afficheur */
       var ly=gridBottom+16, dispW=Math.min(150,W*0.4);
-      [[P.red,"Vrais positifs ("+nTP+")"],["#eaa59c","Faux négatifs ("+nFN+")"],[P.mat,"Faux positifs ("+nFP+")"],["#bcc5d3","Vrais négatifs ("+nTN+")"]].forEach(function(l,i){ var x=14+(i%2)*((W-dispW-30)/2), y=ly+Math.floor(i/2)*22; ctx.fillStyle=l[0]; ctx.beginPath(); ctx.arc(x+6,y,6,0,6.2832); ctx.fill(); S.draw.text(c,l[1],x+18,y,{size:fs,align:"left"}); });
+      [[P.red,"Vrais positifs ("+nTP+")"],["#eaa59c","Faux négatifs ("+nFN+")"],[P.mat,"Faux positifs ("+nFP+")"],["#bcc5d3","Vrais négatifs ("+nTN+")"]].forEach(function(l,i){ var x=14, y=ly+i*20; ctx.fillStyle=l[0]; ctx.beginPath(); ctx.arc(x+6,y,6,0,6.2832); ctx.fill(); S.draw.text(c,l[1],x+18,y,{size:fs,align:"left"}); });
       S.draw.display(c,pct(S,TP/pos,1),W-dispW/2-12,ly+12,{w:dispW,h:56,caption:"P(MALADE | TEST +)",color:TP/pos<0.5?"#a5301f":"#1c5a43"});
       ro.set(0,pct(S,TP/pos,1)); ro.set(1,String(Math.round(TP*10000)));
       ro.set(2,String(Math.round(FP*10000))); ro.set(3,pct(S,TN/neg,2));

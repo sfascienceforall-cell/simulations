@@ -46,7 +46,7 @@ SFA.sim({
       ctx.save(); ctx.strokeStyle=P.red; ctx.lineWidth=3.6; ctx.lineJoin="round"; ctx.beginPath(); pts.forEach(function(q,i){ if(i===0) ctx.moveTo(q[0],q[1]); else ctx.lineTo(q[0],q[1]); }); ctx.stroke(); ctx.restore();
       pts.forEach(function(q,i){ if(i>0){ ctx.fillStyle="#fff"; ctx.strokeStyle=P.red; ctx.lineWidth=2; ctx.beginPath(); ctx.arc(q[0],q[1],10,0,6.2832); ctx.fill(); ctx.stroke(); S.draw.text(c,letters[sp[i-1]],q[0],q[1]+0.5,{size:12.5,color:P.red}); } });
       S.draw.dot(c,L,mid,6,P.ink); S.draw.text(c,"départ",L+4,mid-16,{size:fs,align:"left",color:P.grey});
-      for(lv=1;lv<=K;lv++) S.draw.text(c,"choix n° "+lv+" : "+(R?N:N-lv+1)+" possibilité"+((R?N:N-lv+1)>1?"s":""),L+lv*dx-dx/2,H-B+22,{size:fs,color:P.grey});
+      for(lv=1;lv<=K;lv++) S.draw.text(c,(dx>150?"choix n° "+lv+" : "+(R?N:N-lv+1)+" possibilité"+((R?N:N-lv+1)>1?"s":""):"choix "+lv+" : "+(R?N:N-lv+1)),L+lv*dx-dx/2,H-B+22,{size:fs,color:P.grey});
       var calc=[]; for(var i=0;i<K;i++) calc.push(R?N:(N-i)); var total=R?Math.pow(N,K):Aar(N,K);
       ro.set(0,big(S,cnt)); ro.set(1,calc.join(" × ")+" = "+big(S,total));
       var word=sp.map(function(i){return letters[i];}).join("");

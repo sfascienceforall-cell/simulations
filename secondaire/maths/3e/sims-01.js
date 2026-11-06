@@ -7,6 +7,12 @@ var SERIF = "'STIX Two Text','Cambria Math',serif";
 M3.serif = SERIF;
 /* taille de texte adaptée à la largeur du canevas (lisible sur téléphone) */
 M3.sz = function(c, n){ return Math.max(12, Math.min(n, c.W / 26)); };
+/* ratio du canevas : bas sur grand écran (vignettes, colonne large), plus haut sur téléphone */
+M3.fit = function(c, desk, mob){
+  var orig = c.resize;
+  c.resize = function(){ var w = c.cv.parentNode ? c.cv.parentNode.clientWidth : 600; c.ratio = w >= 440 ? desk : mob; orig(); };
+  c.resize();
+};
 /* arrondi au pas, borné */
 M3.snap = function(v, step, lo, hi){ var r = Math.round(v / step) * step; r = Math.round(r * 1e6) / 1e6; return Math.max(lo, Math.min(hi, r)); };
 /* nombre entre parenthèses s'il est négatif */
@@ -113,7 +119,7 @@ SFA.sim({
   aRetenir:"(a + b)² = a² + 2ab + b² : le grand carré contient un carré a², un carré b² et deux rectangles a × b.",
   piege:"(a + b)² ≠ a² + b². Il manque toujours les deux rectangles 2ab (sauf si a ou b vaut 0).",
   build:function(k,S){
-    var M3=window.M3, c=k.canvas(0,{ratio:.84}), P=S.draw.palette, T=S.draw.tint;
+    var M3=window.M3, c=k.canvas(0,{ratio:1.0}), P=S.draw.palette, T=S.draw.tint;
     var a=k.slider("a",1,8,0.5,3,"cm"), b=k.slider("b",1,8,0.5,2,"cm");
     var sp=k.slider("Écarter les morceaux",0,1,0.05,0,"");
     var err=k.toggle("Montrer l'erreur a² + b²",false);
@@ -123,10 +129,11 @@ SFA.sim({
     var geo={x0:0,u:1,h:[]};
     M3.drag(c,function(){ return sp.value>0.02?[]:geo.h; },function(id,p){
       if(id==="a") a.set(M3.snap((p.x-geo.x0)/geo.u,0.5,1,8)); else b.set(M3.snap((p.x-geo.x0)/geo.u-a.value,0.5,1,8)); k.redraw(); });
+    window.M3.fit(c,0.74,1.0);
     k.draw(function(){
       c.clear(); var ctx=c.ctx, A=a.value, B=b.value, s=A+B, fs=M3.sz(c,15);
-      var M=Math.max(8,s), u=Math.min((c.W-56)/(M+0.6),(c.H-120)/(M+0.6)), g=sp.value*0.4*u;
-      var x0=(c.W-s*u)/2+8, y0=40; geo.x0=x0; geo.u=u;
+      var M=Math.max(8,s), u=Math.min((c.W-56)/(M+0.6),(c.H-100)/(M+0.6)), g=sp.value*0.4*u;
+      var x0=(c.W-s*u)/2+8, y0=Math.max(40,(c.H-30-s*u)/2+14); geo.x0=x0; geo.u=u;
       /* quadrillage de fond très discret */
       ctx.strokeStyle="#f1f4f8"; ctx.lineWidth=1; ctx.beginPath(); for(var i=0;i<=s*2;i++){ var q=i*0.5*u; ctx.moveTo(x0+q,y0); ctx.lineTo(x0+q,y0+s*u); ctx.moveTo(x0,y0+q); ctx.lineTo(x0+s*u,y0+q); } ctx.stroke();
       function R(x,y,w,h,col,t,dx,dy,area){
@@ -173,7 +180,7 @@ SFA.sim({
       if(id==="n") n.set(M3.snap((p.x-geo.x0)/geo.u-x.value,1,1,6)); else m.set(M3.snap((p.y-geo.y0)/geo.u-x.value,1,1,6)); k.redraw(); });
     k.draw(function(){
       c.clear(); var ctx=c.ctx, M=m.value, N=n.value, X=x.value, W=X+N, H=X+M, fs=M3.sz(c,14);
-      var u=Math.min((c.W-90)/12,(c.H-110)/12), x0=(c.W-W*u)/2+14, y0=46; geo.x0=x0; geo.y0=y0; geo.u=u;
+      var u=Math.min((c.W-90)/(X+6),(c.H-110)/(X+6)), x0=(c.W-W*u)/2+14, y0=46; geo.x0=x0; geo.y0=y0; geo.u=u;
       function tile(xx,yy,w,h,col,t,labelSize){ ctx.fillStyle=col; ctx.fillRect(x0+xx*u,y0+yy*u,w*u,h*u); ctx.strokeStyle="#fff"; ctx.lineWidth=2; ctx.strokeRect(x0+xx*u,y0+yy*u,w*u,h*u);
         if(t) S.draw.text(c,t,x0+(xx+w/2)*u,y0+(yy+h/2)*u,{size:labelSize||fs,color:"#fff",math:true,italic:true}); }
       tile(0,0,X,X,P.acc,"x²",fs+4);
@@ -263,7 +270,7 @@ SFA.sim({
   aRetenir:"Les puissances se calculent avant le signe moins devant ; les parenthèses d'abord ; puis × et ÷ ; enfin + et −. Un « − » devant une parenthèse change tous les signes à l'intérieur.",
   piege:"−3² = −9 (et non 9). Pour obtenir 9, il faut écrire (−3)².",
   build:function(k,S){
-    var M3=window.M3, c=k.canvas(0,{ratio:.78}), P=S.draw.palette, T=S.draw.tint;
+    var M3=window.M3, c=k.canvas(0,{ratio:1.42}), P=S.draw.palette, T=S.draw.tint;
     var f=function(v){return S.fmt(v,0);}, pr=function(v){return M3.par(v,0);};
     var E=[
       {n:"−x²",f:function(x){return -x*x},bad:function(x){return x*x},m:"On a calculé (−x)² : le signe − est entré dans la puissance.",
@@ -291,7 +298,7 @@ SFA.sim({
       S.draw.text(c,"x = "+f(X),28,30,{size:M3.sz(c,13),color:P.grey,align:"left"});
       S.draw.text(c,o.n,c.W/2,48,{size:fs+8,color:P.acc,math:true});
       /* lignes de calcul */
-      var y=112, lh=Math.min(58,(c.H-250)/Math.max(3,nSt));
+      var y=112, lh=Math.min(56,(c.H-250)/Math.max(2,nSt)+8);
       ST.forEach(function(line,i){
         if(i>s){ ctx.save(); ctx.setLineDash([5,5]); ctx.strokeStyle=P.light; ctx.lineWidth=2; S.draw.rrect(c,60,y-17,c.W-100,34,9); ctx.stroke(); ctx.restore(); S.draw.dot(c,34,y,10,P.light); S.draw.text(c,String(i+1),34,y+0.5,{size:11,color:P.grey}); y+=lh; return; }
         var cur=(i===s);

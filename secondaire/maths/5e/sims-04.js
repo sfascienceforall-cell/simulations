@@ -29,23 +29,32 @@ SFA.sim({
   id:"m5-c04-asymptotes", ch:"c04", tag:"Classique",
   titre:"Les trois asymptotes d'une fraction rationnelle",
   resume:"f(x) = (ax² + bx + c)/(x − p) : verticale, horizontale ou oblique.",
-  but:"Modifie a, b, c et p. Quand a = 0, cherche l'asymptote horizontale ; quand a ≠ 0, une oblique apparaît. Fais disparaître l'asymptote verticale : que reste-t-il ?",
+  but:"Glisse l'asymptote verticale (rouge) ou modifie a, b, c et p. Quand a = 0, cherche l'asymptote horizontale ; quand a ≠ 0, une oblique apparaît. Fais disparaître l'asymptote verticale : que reste-t-il ?",
   aRetenir:"Asymptote verticale en x = p si le dénominateur s'annule et pas le numérateur. Si deg num = deg den : horizontale. Si deg num = deg den + 1 : oblique, obtenue par division euclidienne : f(x) = ax + (b + ap) + reste/(x − p).",
   piege:"Quand le numérateur s'annule aussi en p, il n'y a pas d'asymptote mais un trou. Et ne cherche pas d'horizontale si deg num > deg den : c'est l'oblique.",
   build:function(k, S){
     var c = k.canvas(430);
     var a = k.slider("a", -3, 3, 1, 1, ""), b = k.slider("b", -5, 5, 1, 1, ""), cc = k.slider("c", -6, 6, 1, 3, ""), p = k.slider("p", -4, 4, 1, 1, "");
     var ro = k.readouts(["Asympt. verticale", "Asympt. horizontale", "Asympt. oblique"]);
-    var nt = k.note("", "ok");
+    var nt = k.note("", "ok"), axg = null, dg = false;
+    c.pointer(function(t, q){
+      if (!axg) return;
+      if (t === "down") dg = Math.abs(q.x - axg.X(p.value)) < 22;
+      if ((t === "down" || t === "drag") && dg){ p.set(Math.max(-4, Math.min(4, Math.round(axg.ix(q.x))))); k.redraw(); }
+      if (t === "up") dg = false;
+    });
     k.draw(function(){
       c.clear(); var A = a.value, B = b.value, C = cc.value, Pp = p.value;
       var num = function(x){ return A*x*x + B*x + C; };
-      var ax = S.draw.axes(c, {x0:-8, x1:8, y0:-10, y1:10, stepX:2, stepY:2, xl:"x", yl:"y"});
+      var ax = axg = S.draw.axes(c, {x0:-8, x1:8, y0:-10, y1:10, stepX:2, stepY:2, xl:"x", yl:"y"});
       var rem = num(Pp), vert = Math.abs(rem) > 1e-12, qa = A, qb = B + A * Pp;
       if (vert) S.draw.line(c, ax.X(Pp), ax.T, ax.X(Pp), ax.B, P.red, 1.5, [6, 5]);
       if (A === 0 && vert) S.draw.line(c, ax.L, ax.Y(B), ax.R, ax.Y(B), P.green, 1.5, [6, 5]);
       if (A !== 0 && vert){ c.ctx.save(); c.ctx.beginPath(); c.ctx.rect(ax.L, ax.T, ax.R - ax.L, ax.B - ax.T); c.ctx.clip(); S.draw.line(c, ax.L, ax.Y(qa * ax.x0 + qb), ax.R, ax.Y(qa * ax.x1 + qb), P.violet, 1.5, [6, 5]); c.ctx.restore(); }
       S.draw.fn(c, ax, function(x){ return Math.abs(x - Pp) < 1e-9 ? NaN : num(x)/(x - Pp); }, P.acc, 2.6);
+      if (vert) S.draw.label(c, "↔ x = " + F(Pp, 0), ax.X(Pp) + (Pp > 2 ? -8 : 8), ax.B - 14, {color:P.red, align:Pp > 2 ? "right" : "left", size:11.5});
+      if (A === 0 && vert) S.draw.label(c, "y = " + F(B, 0), ax.R - 8, ax.Y(B) - 14, {color:P.green, align:"right", size:11.5});
+      if (A !== 0 && vert) S.draw.label(c, "y = " + lin(qa, qb), ax.R - 8, Math.max(ax.T + 12, Math.min(ax.B - 12, ax.Y(qa * ax.x1 + qb) + (qa > 0 ? 16 : -16))), {color:P.violet, align:"right", size:11.5});
       var holeY = !vert ? (A === 0 ? B : qa * Pp + qb) : null;
       if (!vert) hole(c, ax, Pp, holeY, P.acc);
       ro.set(0, vert ? "x = " + F(Pp, 0) : (A === 0 && B === 0 && C === 0 ? "—" : "aucune (trou)"));

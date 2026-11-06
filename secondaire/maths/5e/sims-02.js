@@ -130,22 +130,27 @@ SFA.sim({
     var u1 = k.slider("u₁ (premier terme)", 1, 10, 1, 1, "");
     var r = k.slider("r (raison)", 0, 4, 1, 1, "");
     var n = k.slider("n (nombre de termes)", 2, 12, 1, 8, "");
+    var mode = k.seg("Mode", [["L", "Libre"], ["D", "Défi : S = 60"]], "L");
     var ro = k.readouts(["uₙ", "u₁ + uₙ", "Somme S"]);
     var nt = k.note("", "ok");
+    var fl = 1, anim = k.loop(function(dt){ fl += dt * 0.7; if (fl >= 1){ fl = 1; anim.pause(); } k.redraw(); });
+    k.button("▶ Retourner la copie", function(){ fl = 0; anim.play(); }, true);
+    c.pointer(function(t, q){ if (t === "up") return; var Lm = 40, w = (c.W - Lm - 16) / n.value; n.set(Math.max(2, Math.min(12, Math.floor((q.x - Lm) / w) + 1))); k.redraw(); });
     k.draw(function(){
       c.clear(); var N = n.value, a = u1.value, d = r.value, un = a + (N - 1) * d, h = a + un;
-      var ctx = c.ctx, L = 40, Rr = 16, T = 24, B = 30, w = (c.W - L - Rr) / N, sc = (c.H - T - B) / h, i;
+      var ctx = c.ctx, L = 40, Rr = 16, T = 34, B = 30, w = (c.W - L - Rr) / N, hm = fl < 1 ? Math.max(h, 2 * Math.max(a, un)) : h, sc = (c.H - T - B) / hm, i;
       for (i = 1; i <= N; i++){
-        var v = a + (i - 1) * d, x = L + (i - 1) * w, y0 = c.H - B;
+        var v = a + (i - 1) * d, x = L + (i - 1) * w, y0 = c.H - B, o = (1 - fl) * v + fl * (h - v);
         ctx.fillStyle = "rgba(30,63,143,.85)"; ctx.fillRect(x + 1, y0 - v * sc, w - 2, v * sc);
-        ctx.fillStyle = "rgba(180,83,9,.8)"; ctx.fillRect(x + 1, y0 - h * sc, w - 2, (h - v) * sc);
-        S.draw.text(c, F(v, 0), x + w/2, y0 - v * sc/2, {color:"#fff", size:12});
-        S.draw.text(c, F(h - v, 0), x + w/2, y0 - v * sc - (h - v) * sc/2, {color:"#fff", size:12});
+        ctx.fillStyle = "rgba(180,83,9,.8)"; ctx.fillRect(x + 1, y0 - v * sc - o * sc, w - 2, o * sc);
+        if (w > 18){ S.draw.text(c, F(v, 0), x + w/2, y0 - v * sc/2, {color:"#fff", size:12}); if (o * sc > 14) S.draw.text(c, F(o, 0), x + w/2, y0 - v * sc - o * sc/2, {color:"#fff", size:12}); }
         S.draw.text(c, String(i), x + w/2, y0 + 14, {size:12, color:P.grey});
       }
-      S.draw.text(c, "u₁ + uₙ = " + F(h, 0) + " pour chaque colonne", L, 12, {align:"left", size:12, color:P.amber});
+      if (fl >= 1){ ctx.save(); ctx.strokeStyle = P.ink; ctx.setLineDash([5, 4]); ctx.lineWidth = 1.5; ctx.strokeRect(L + 0.5, c.H - B - h * sc, c.W - L - Rr, h * sc); ctx.restore(); }
+      S.draw.text(c, fl < 1 ? "la copie orange se retourne…" : "u₁ + uₙ = " + F(h, 0) + " par colonne · touche pour changer n", L, 14, {align:"left", size:12, color:P.amber});
       ro.set(0, F(un, 0)); ro.set(1, F(h, 0)); ro.set(2, F(N * h / 2, 1));
       var s = 0; for (i = 1; i <= N; i++) s += a + (i - 1) * d;
+      if (mode.value === "D"){ var ok60 = Math.abs(N * h / 2 - 60) < 1e-9; nt.set(ok60 ? "<b>Bravo : S = " + F(N, 0) + " × " + F(h, 0) + " / 2 = 60.</b> Il y a plusieurs solutions : en trouves-tu une autre ?" : "Défi : règle u₁, r et n pour que la somme vale exactement 60. Pour l'instant S = " + F(N * h / 2, 1) + ".", ok60 ? "ok" : "warn"); return; }
       nt.set("Rectangle : " + N + " × " + F(h, 0) + " = " + F(N * h, 0) + " cases, soit deux fois la somme. S = " + F(N * h, 0) + " / 2 = " + F(N * h / 2, 1) + ". Vérification en additionnant terme à terme : " + F(s, 0) + ".", "ok");
     });
   }

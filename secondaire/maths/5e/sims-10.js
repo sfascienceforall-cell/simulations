@@ -82,7 +82,7 @@ SFA.sim({
   id:"m5-c10-distance", ch:"c10", tag:"Classique",
   titre:"Distance d'un point à une droite",
   resume:"La perpendiculaire donne le plus court chemin : d = |ax₀ + by₀ + c|/√(a² + b²).",
-  but:"Choisis la droite ax + by + c = 0 puis glisse P. Déplace aussi Q sur la droite : PQ est-il jamais plus court que PH ?",
+  but:"Choisis la droite ax + by + c = 0 puis glisse P. Déplace aussi Q sur la droite : PQ est-il jamais plus court que PH ? Défi : place P à la distance exacte 2 de la droite.",
   aRetenir:"Le vecteur (a ; b) est normal à la droite ax + by + c = 0. La distance de P(x₀ ; y₀) à la droite vaut |ax₀ + by₀ + c|/√(a² + b²) : c'est la longueur de l'ombre de AP sur le vecteur normal, où A est un point de la droite. Le pied H de la perpendiculaire est le point de la droite le plus proche de P.",
   piege:"Oublier la valeur absolue (une distance est positive) ou la racine du dénominateur. Et (a ; b) est un vecteur normal, pas directeur : un directeur est (−b ; a).",
   build:function(k, S){
@@ -105,7 +105,8 @@ SFA.sim({
       S.draw.label(c, "P (glisse-moi)", ax.X(X0) + 12, ax.Y(Y0) - 14, {color:P.red, align:"left"}); S.draw.text(c, "H", ax.X(hx) + 11, ax.Y(hy) + 9, {color:P.green}); S.draw.text(c, "Q", ax.X(qx) + 11, ax.Y(qy) - 9, {color:P.amber});
       var pq = Math.hypot(X0 - qx, Y0 - qy);
       ro.set(0, F(val, 2)); ro.set(1, F(dist, 3)); ro.set(2, "(" + F(hx, 2) + " ; " + F(hy, 2) + ")"); ro.set(3, F(pq, 3));
-      nt.set("Droite " + F(A, 0) + "x " + (B < 0 ? "− " : "+ ") + F(Math.abs(B), 0) + "y " + (C < 0 ? "− " : "+ ") + F(Math.abs(C), 0) + " = 0. d = |" + F(val, 2) + "|/√" + F(n2, 0) + " = " + F(dist, 3) + ". PQ = " + F(pq, 3) + " ≥ PH = " + F(dist, 3) + " : la perpendiculaire est le plus court chemin. (Flèche violette : vecteur normal (" + F(A, 0) + " ; " + F(B, 0) + ").)" + (Math.abs(hx) > ax.x1 || Math.abs(hy) > ax.y1 || Math.abs(qx) > ax.x1 || Math.abs(qy) > ax.y1 ? " <b>Le pied H ou le point Q est hors du cadre</b> : les valeurs restent justes, change c ou la position de Q pour le voir." : ""), "ok");
+      var hitD = Math.abs(dist - 2) < 0.03;
+      nt.set((hitD ? "<b>Défi réussi : d = 2.</b> " : "") + "Droite " + F(A, 0) + "x " + (B < 0 ? "− " : "+ ") + F(Math.abs(B), 0) + "y " + (C < 0 ? "− " : "+ ") + F(Math.abs(C), 0) + " = 0. d = |" + F(val, 2) + "|/√" + F(n2, 0) + " = " + F(dist, 3) + ". PQ = " + F(pq, 3) + " ≥ PH = " + F(dist, 3) + " : la perpendiculaire est le plus court chemin. (Flèche violette : vecteur normal (" + F(A, 0) + " ; " + F(B, 0) + ").)" + (Math.abs(hx) > ax.x1 || Math.abs(hy) > ax.y1 || Math.abs(qx) > ax.x1 || Math.abs(qy) > ax.y1 ? " <b>Le pied H ou le point Q est hors du cadre</b> : les valeurs restent justes, change c ou la position de Q pour le voir." : ""), hitD ? "ok" : "");
     });
   }
 });
@@ -115,7 +116,7 @@ SFA.sim({
   id:"m5-c10-travail", ch:"c10", tag:"Animation",
   titre:"Le travail d'une force : W = F·d·cos θ",
   resume:"Pourquoi celui qui porte une valise sur un sol horizontal ne « travaille » pas (au sens physique).",
-  but:"Tire sur la pointe de la flèche rouge pour changer la force F et l'angle θ, glisse la luge, ou lance l'animation : le travail se construit. Teste θ = 90° (valise) et θ = 180° (frottement).",
+  but:"Tire sur la pointe de la flèche rouge pour changer la force F et l'angle θ, glisse la luge, ou lance l'animation : le travail se construit. Défi : obtiens W = 300 J. Teste aussi θ = 90° (valise) et θ = 180° (frottement).",
   aRetenir:"Le travail de la force F pour un déplacement d est le produit scalaire W = F·d = ‖F‖·‖d‖·cos θ (en joules, si F en N et d en m). θ < 90° : W > 0 (la force aide) · θ = 90° : W = 0 · θ > 90° : W < 0 (la force freine).",
   piege:"Une grande force ne fournit pas forcément un grand travail : seule la composante de F dans la direction du déplacement compte. Porter une valise à vitesse constante sur un sol plat : θ = 90°, donc W = 0.",
   build:function(k, S){
@@ -159,11 +160,11 @@ SFA.sim({
         if (Math.abs(fy) > 0.02) S.draw.line(c, tx, anchor[1], tx, ty, S.draw.tint(P.grey, 0.8), 1.6, [3, 3]);
         S.draw.arrow(c, anchor[0], anchor[1], tx, ty, P.red, 3.5);
         S.draw.glow(c, tx, ty, 16, P.red, 0.4);
-        S.draw.label(c, "F = " + F(F0, 0) + " N", tx + (fx >= -0.3 ? 12 : -12), ty - 12, {color:P.red, align:fx >= -0.3 ? "left" : "right", size:12});
+        S.draw.label(c, "F = " + F(F0, 0) + " N", tx + (fx >= -0.3 && tx < c.W - 100 ? 12 : -12), Math.max(14, ty - 12), {color:P.red, align:fx >= -0.3 && tx < c.W - 100 ? "left" : "right", size:12});
       }
-      S.draw.label(c, "θ = " + F(th.value, 0) + "°", anchor[0] + 38, anchor[1] + 16, {color:P.ink, align:"left", size:11.5});
+      S.draw.label(c, "θ = " + F(th.value, 0) + "°", Math.min(anchor[0] + 38, c.W - 62), anchor[1] + 16, {color:P.ink, align:"left", size:11.5});
       geo = {ax:anchor[0], ay:anchor[1], tx:tx, ty:ty, gy:gy, x0:x0, sc:sc};
-      S.draw.label(c, "↔ tire la flèche · glisse la luge", 12, 16, {color:P.grey, align:"left", size:11.5});
+      S.draw.label(c, "↔ tire la flèche · glisse la luge", 12, 20, {color:P.grey, align:"left", size:11.5});
       /* graphe W(x) */
       var Wmax = Math.max(50, Math.ceil(F0 * 10 * 1.15 / 50) * 50), W = F0 * D * Math.cos(T), Wp = F0 * xa * Math.cos(T), Fu = F0 * Math.cos(T);
       var ax = S.draw.axes(c, {x0:0, x1:10, y0:-Wmax, y1:Wmax, xl:"position (m)", yl:"W (J)", t:sceneH + 18, b:30, l:54, stepX:1});
@@ -174,7 +175,8 @@ SFA.sim({
       S.draw.label(c, "W = " + F(Wp, 0) + " J", Math.min(ax.R - 8, ax.X(xa) + 10), ax.Y(Wp) + (Wp >= 0 ? -16 : 16), {color:wc, align:ax.X(xa) > ax.R - 90 ? "right" : "left", size:12});
       ro.set(0, F(W, 1) + " J"); ro.set(1, F(Fu, 1) + " N"); ro.set(2, F(Wp, 1) + " J"); ro.set(3, F(xa, 1) + " m");
       var sgn = Math.abs(Math.cos(T)) < 1e-9 ? "θ = 90° : F ⟂ d, donc W = 0" : Math.cos(T) > 0 ? "θ < 90° : W > 0, la force aide le mouvement" : "θ > 90° : W < 0, la force s'oppose au mouvement";
-      nt.set("W = F·d·cos θ = " + F(F0, 0) + " × " + F(D, 0) + " × cos " + F(th.value, 0) + "° = <b>" + F(W, 1) + " J</b>. Seule la composante F cos θ = " + F(Fu, 1) + " N (flèche verte) agit dans la direction du déplacement. " + sgn + ".", Math.abs(Math.cos(T)) < 1e-9 || Math.cos(T) < 0 ? "warn" : "ok");
+      var hitW = Math.abs(W - 300) < 10;
+      nt.set((hitW ? "<b>Défi réussi : W ≈ 300 J.</b> " : "") + "W = F·d·cos θ = " + F(F0, 0) + " × " + F(D, 0) + " × cos " + F(th.value, 0) + "° = <b>" + F(W, 1) + " J</b>. Seule la composante F cos θ = " + F(Fu, 1) + " N (flèche verte) agit dans la direction du déplacement. " + sgn + ".", hitW ? "ok" : Math.abs(Math.cos(T)) < 1e-9 || Math.cos(T) < 0 ? "warn" : "ok");
     });
   }
 });

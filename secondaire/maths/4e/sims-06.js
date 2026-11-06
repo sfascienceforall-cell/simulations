@@ -18,31 +18,47 @@ SFA.sim({
   aRetenir:"Sur le cercle de rayon 1, le point d'angle θ a pour coordonnées (cos θ ; sin θ). Donc cos² θ + sin² θ = 1, et −1 ≤ cos θ, sin θ ≤ 1. La tangente tan θ = sin θ / cos θ se lit sur la droite x = 1.",
   piege:"cos est l'abscisse (horizontal) et sin l'ordonnée (vertical), pas l'inverse. tan θ n'existe pas pour θ = 90° et 270° (cos θ = 0).",
   build:function(k,S){
-    var c=k.canvas(0,{ratio:.88});
+    var M=window.M4, c=k.canvas(0,{ratio:.9});
     var th=k.slider("Angle θ",0,360,1,30,"°");
+    var mg=k.toggle("Aimanter aux angles remarquables (multiples de 15°)",false);
     var tg=k.toggle("Montrer la tangente (droite x = 1)",false);
     var ro=k.readouts(["θ en radians","cos θ","sin θ","tan θ","Quadrant","cos² + sin²"]);
-    var geo={};
-    c.pointer(function(t,p){ if(t==="move"||!geo.r) return; var a=Math.atan2(-(p.y-geo.cy),p.x-geo.cx)*180/PI; if(a<0)a+=360; th.set(Math.round(a)); k.redraw(); });
+    var nt=k.note("Fais glisser le point sur le cercle.","");
+    var geo={}, goal=null, won=0;
+    var GL=[["sin",0.5],["cos",0.5],["sin",-0.5],["cos",-0.5],["sin",0.866],["cos",0],["sin",1],["cos",-1],["sin",-0.707]];
+    k.button("Défi : trouve θ",function(){ goal=GL[Math.floor(Math.random()*GL.length)]; },true);
+    k.button("Arrêter le défi",function(){ goal=null; });
+    c.pointer(function(t,p){ if(t==="move"||!geo.r) return; var a=Math.atan2(-(p.y-geo.cy),p.x-geo.cx)*180/PI; if(a<0)a+=360; if(mg.value) a=Math.round(a/15)*15%360; th.set(Math.round(a)); k.redraw(); });
     k.draw(function(){
-      var d=th.value, a=d*PI/180, W=c.W,H=c.H, r=Math.min(W,H)*0.36, cx=W/2-(tg.value?W*.06:0), cy=H/2; geo={cx:cx,cy:cy,r:r};
+      var d=th.value, a=d*PI/180, W=c.W,H=c.H, r=Math.min(W*.36,H*.4), cx=W/2-(tg.value?W*.06:0), cy=H/2; geo={cx:cx,cy:cy,r:r};
       c.clear(); var ctx=c.ctx;
-      ctx.strokeStyle="#e3e7ed"; ctx.lineWidth=1; ctx.beginPath(); ctx.arc(cx,cy,r,0,2*PI); ctx.stroke();
-      S.draw.line(c,cx-r*1.3,cy,cx+r*1.45,cy,P.grey,1.3); S.draw.line(c,cx,cy-r*1.3,cx,cy+r*1.3,P.grey,1.3);
-      ctx.strokeStyle=P.acc; ctx.lineWidth=2.5; ctx.beginPath(); ctx.arc(cx,cy,r,0,2*PI); ctx.stroke();
+      /* disque et quadrants */
+      ctx.save(); ctx.beginPath(); ctx.arc(cx,cy,r,0,2*PI); ctx.fillStyle="#f2f5fb"; ctx.fill(); ctx.restore();
+      var qd=Math.floor(((d%360)+360)%360/90); if(d%90!==0) M.sector(c,cx,cy,r,qd*90*PI/180,(qd+1)*90*PI/180,P.acc,.07);
+      S.draw.line(c,cx-r*1.3,cy,cx+r*1.5,cy,P.grey,1.3); S.draw.line(c,cx,cy-r*1.3,cx,cy+r*1.3,P.grey,1.3);
+      /* repères tous les 30° */
+      for(var q=0;q<360;q+=30){ var qa=q*PI/180, big=q%90===0; ctx.strokeStyle=big?P.grey:"#b9c3d0"; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(cx+r*Math.cos(qa)*.95,cy-r*Math.sin(qa)*.95); ctx.lineTo(cx+r*Math.cos(qa)*1.04,cy-r*Math.sin(qa)*1.04); ctx.stroke();
+        if(c.W>420||big){ S.draw.text(c,radStr(q),cx+r*Math.cos(qa)*1.17,cy-r*Math.sin(qa)*1.17,{size:c.W<420?9.5:10.5,color:P.grey,weight:700}); } }
+      ctx.strokeStyle=P.acc; ctx.lineWidth=2.8; ctx.beginPath(); ctx.arc(cx,cy,r,0,2*PI); ctx.stroke();
       var px=cx+r*Math.cos(a), py=cy-r*Math.sin(a);
       if(tg.value){ S.draw.line(c,cx+r,cy-r*1.3,cx+r,cy+r*1.3,P.violet,1.5,[5,4]);
         if(Math.abs(Math.cos(a))>0.02){ var ty=cy-r*Math.tan(a); if(Math.abs(ty-cy)<r*1.3){ S.draw.line(c,cx,cy,cx+r,ty,P.violet,1.3,[3,3]); S.draw.line(c,cx+r,cy,cx+r,ty,P.violet,3); S.draw.dot(c,cx+r,ty,5,P.violet); } } }
-      arcAt(c,cx,cy,r*.22,0,a,P.amber,2.5);
+      M.sector(c,cx,cy,r*.24,0,a,P.amber,.35); arcAt(c,cx,cy,r*.24,0,a,P.amber,2.5);
       S.draw.line(c,cx,cy,px,py,P.ink,2);
-      S.draw.line(c,px,py,px,cy,P.red,3); S.draw.line(c,cx,cy,px,cy,P.green,3);
-      S.draw.dot(c,px,py,7,P.ink);
-      S.draw.text(c,"cos",cx+r*Math.cos(a)/2,cy+(Math.sin(a)>=0?14:-14),{size:12,color:P.green});
-      S.draw.text(c,"sin",px+(Math.cos(a)>=0?18:-18),(py+cy)/2,{size:12,color:P.red});
-      S.draw.text(c,"1",cx+r+8,cy+12,{size:12,color:P.grey}); S.draw.text(c,"1",cx-9,cy-r,{size:12,color:P.grey});
+      S.draw.line(c,px,py,px,cy,P.red,3.2); S.draw.line(c,cx,cy,px,cy,P.green,3.2);
       var cs=Math.cos(a), sn=Math.sin(a); if(Math.abs(cs)<1e-12)cs=0; if(Math.abs(sn)<1e-12)sn=0;
+      S.draw.line(c,ax0(px,cx),py,px,py,P.red,1,[3,3]);
+      M.handle(c,px,py,P.ink,7);
+      M.lab(c,"cos = "+F(cs,3),(cx+px)/2,cy+(sn>=0?16:-16),P.green,{size:11});
+      M.lab(c,"sin = "+F(sn,3),px+(cs>=0?(c.W<420?44:52):-(c.W<420?44:52)),(py+cy)/2,P.red,{size:11});
+      function ax0(a1,b1){ return b1; }
+      S.draw.panel(c,8,8,128,28,{shadow:false});
+      S.draw.text(c,"θ = "+d+"°  ("+radStr(d)+")",72,22,{size:12,weight:800,color:P.amber,align:"center"});
       ro.set(0,radStr(d)+(Math.abs(d-Math.round(d/15)*15)<1e-9?" ("+F(a,3)+")":"")); ro.set(1,F(cs,3)); ro.set(2,F(sn,3));
       ro.set(3,(d%180===90)?"non définie":F(sn/cs,3)); ro.set(4,quad(d)); ro.set(5,F(cs*cs+sn*sn,3));
+      if(goal){ var v=goal[0]==="sin"?sn:cs, hit=Math.abs(v-goal[1])<0.012; if(hit&&!geo.done){} 
+        nt.set("Défi : place le point pour que "+goal[0]+" θ = "+F(goal[1],goal[1]===0.866?3:(goal[1]===-0.707?3:1))+(hit?"  ✓ Bien vu ! Il y a souvent une 2e position : la trouves-tu ?":""),hit?"ok":"warn"); }
+      else nt.set("cos θ est l'abscisse (vert), sin θ l'ordonnée (rouge). Active l'aimantation pour retrouver les valeurs remarquables.","");
     });
   }
 });

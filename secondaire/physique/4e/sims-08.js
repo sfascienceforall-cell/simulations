@@ -31,49 +31,63 @@ SFA.sim({
   aRetenir:"Les angles se mesurent par rapport à la NORMALE (perpendiculaire à la surface). Loi : r = i, et les trois (rayon incident, normale, rayon réfléchi) sont dans un même plan. Si on tourne le miroir de δ, le rayon réfléchi tourne de 2δ.",
   piege:"Ne mesure pas les angles par rapport à la surface : l'angle d'incidence est i = 90° − (angle avec la surface). Une surface rugueuse respecte la loi en chaque petit point, mais les normales diffèrent : la lumière part dans tous les sens (réflexion diffuse).",
   build:function(k,S){
-    var c = PX.canvas(k, 0.72, 1.0), Gm = {x:null};
+    var P = S.draw.palette, c = PX.canvas(k, 0.72, 1.0), Gm = {x:null}, st = {s:0, hint:true};
     var mode = k.seg("Affichage", [["1","Un rayon"],["l","Faisceau – miroir lisse"],["g","Faisceau – surface rugueuse"]], "1");
-    var i0 = k.slider("Direction du rayon (écart à la verticale)", -75, 75, 5, 40, "°");
+    var i0 = k.slider("Direction du rayon (écart à la verticale)", -75, 75, 5, 40, "°", function(){ st.hint = false; });
     var dl = k.slider("Rotation du miroir δ", -30, 30, 1, 0, "°");
     var ro = k.readouts(["Angle d'incidence i", "Angle de réflexion r", "Angle rayon–surface", "Rotation du rayon réfléchi"]);
     var nt = k.note("", "");
-    PX.drag(k, c, function(){ return Gm.x == null ? [] : [{x:Gm.x, y:Gm.y, r:12, set:function(px, py){ i0.set(Math.max(-75, Math.min(75, Math.round(Math.atan2(-(px - Gm.cx), -(py - Gm.cy)) * R2D / 5) * 5))); }}]; });
+    var lp = k.loop(function(dt){ st.s = (st.s + dt * 0.8) % 1; k.redraw(); }); lp.play();
+    PX.drag(k, c, function(){ return Gm.x == null ? [] : [{x:Gm.x, y:Gm.y, r:14, set:function(px, py){ st.hint = false; i0.set(Math.max(-75, Math.min(75, Math.round(Math.atan2(-(px - Gm.cx), -(py - Gm.cy)) * R2D / 5) * 5))); }}]; });
     var TILT = [-24, 11, -7, 27, -15, 6, 20];
-    function arc(c, cx, cy, R, a1, a2, col, lab, dr){
+    function pulses(x1, y1, x2, y2, col, n){ for (var j = 0; j < n; j++){ var f = (st.s + j / n) % 1; S.draw.glow(c, x1 + (x2 - x1) * f, y1 + (y2 - y1) * f, 9, col, 0.9); } }
+    function beam(x1, y1, x2, y2, col, w){ S.draw.line(c, x1, y1, x2, y2, col.replace("1)", ".28)"), w * 3); S.draw.line(c, x1, y1, x2, y2, col, w); }
+    function arc(cx, cy, R, a1, a2, col, lab){
       var diff = a2 - a1; while (diff > Math.PI) diff -= 2 * Math.PI; while (diff < -Math.PI) diff += 2 * Math.PI;
-      var ctx = c.ctx; ctx.save(); ctx.strokeStyle = col; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(cx, cy, R, a1, a1 + diff, diff < 0); ctx.stroke(); ctx.restore();
-      var am = a1 + diff / 2; P4.label(c, lab, cx + (R + dr) * Math.cos(am), cy + (R + dr) * Math.sin(am), col);
+      var ctx = c.ctx; ctx.save(); ctx.strokeStyle = col; ctx.lineWidth = 2.4; ctx.beginPath(); ctx.arc(cx, cy, R, a1, a1 + diff, diff < 0); ctx.stroke(); ctx.restore();
+      var am = a1 + diff / 2; S.draw.label(c, lab, cx + (R + 16) * Math.cos(am), cy + (R + 16) * Math.sin(am), {color:col, size:PX.fs(c, 11.5), fill:"rgba(255,255,255,.92)"});
     }
     k.draw(function(){
-      var P = SFA.draw.palette, I0 = i0.value * D2R, dd = dl.value * D2R, cx = c.W / 2, cy = c.H * 0.62, L = Math.min(c.W * 0.46, 150);
-      c.clear(); PX.bg(c, "#f2f5fa", "#e2e9f3"); Gm.x = null; var ctx = c.ctx, d = [Math.sin(I0), Math.cos(I0)], n = [-Math.sin(dd), -Math.cos(dd)], tt = [Math.cos(dd), -Math.sin(dd)];
+      var I0 = i0.value * D2R, dd = dl.value * D2R, cx = c.W / 2, cy = c.H * 0.64, L = Math.min(c.W * 0.46, c.H * 0.52), ph = PX.phone(c), ctx = c.ctx;
+      var AMB = "rgba(255,170,40,1)", RED = "rgba(255,90,70,1)";
+      c.clear(); PX.bg(c, "#10172a", "#1d2742"); Gm.x = null;
+      var d = [Math.sin(I0), Math.cos(I0)], n = [-Math.sin(dd), -Math.cos(dd)], tt = [Math.cos(dd), -Math.sin(dd)];
       var dn = d[0] * n[0] + d[1] * n[1], cosI = -dn, ok = cosI > 0.0001, r = [d[0] - 2 * dn * n[0], d[1] - 2 * dn * n[1]];
       function reflect(dv, nv){ var q = dv[0] * nv[0] + dv[1] * nv[1]; return [dv[0] - 2 * q * nv[0], dv[1] - 2 * q * nv[1]]; }
+      var hw = L * 1.3;
+      function mirror(rough){
+        var x1 = cx - tt[0] * hw, y1 = cy - tt[1] * hw, x2 = cx + tt[0] * hw, y2 = cy + tt[1] * hw;
+        ctx.fillStyle = "#3a4560"; ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.lineTo(x2 - n[0] * 14, y2 - n[1] * 14); ctx.lineTo(x1 - n[0] * 14, y1 - n[1] * 14); ctx.closePath(); ctx.fill();
+        ctx.strokeStyle = "rgba(255,255,255,.25)"; ctx.lineWidth = 1; ctx.beginPath(); for (var q = 0; q < 2 * hw; q += 9){ var px = x1 + tt[0] * q, py = y1 + tt[1] * q; ctx.moveTo(px, py); ctx.lineTo(px - n[0] * 12 - tt[0] * 6, py - n[1] * 12 - tt[1] * 6); } ctx.stroke();
+        S.draw.line(c, x1, y1, x2, y2, rough ? "#9aa5b8" : "#e6f2ff", rough ? 3 : 4.5);
+      }
       if (mode.value === "1"){
-        ctx.fillStyle = "#cfd6e0"; ctx.beginPath(); ctx.moveTo(cx - tt[0] * L * 1.3, cy - tt[1] * L * 1.3); ctx.lineTo(cx + tt[0] * L * 1.3, cy + tt[1] * L * 1.3); ctx.lineTo(cx + tt[0] * L * 1.3 - n[0] * 12, cy + tt[1] * L * 1.3 - n[1] * 12); ctx.lineTo(cx - tt[0] * L * 1.3 - n[0] * 12, cy - tt[1] * L * 1.3 - n[1] * 12); ctx.closePath(); ctx.fill();
-        S.draw.line(c, cx - tt[0] * L * 1.3, cy - tt[1] * L * 1.3, cx + tt[0] * L * 1.3, cy + tt[1] * L * 1.3, "#13233a", 4);
-        S.draw.line(c, cx, cy, cx + n[0] * L, cy + n[1] * L, "#8a95a3", 1.5, [5, 4]); P4.label(c, "normale", cx + n[0] * (L + 14), cy + n[1] * (L + 14), "#5f6b7a"); Gm.x = cx - d[0] * L; Gm.y = cy - d[1] * L; Gm.cx = cx; Gm.cy = cy;
+        mirror(false);
+        S.draw.line(c, cx, cy, cx + n[0] * L, cy + n[1] * L, "rgba(200,210,235,.55)", 1.4, [5, 4]); S.draw.label(c, "normale", cx + n[0] * (L + 14), cy + n[1] * (L + 14), {color:"#c9d3df", fill:"rgba(255,255,255,.12)", size:PX.fs(c, 11)});
+        Gm.x = cx - d[0] * L; Gm.y = cy - d[1] * L; Gm.cx = cx; Gm.cy = cy;
+        var an = Math.atan2(n[1], n[0]);
+        beam(Gm.x, Gm.y, cx, cy, AMB, 2.4); pulses(Gm.x, Gm.y, cx, cy, "#ffd24a", 3);
         if (ok){
-          SFA.draw.arrow(c, cx - d[0] * L, cy - d[1] * L, cx, cy, P.amber, 3);
-          SFA.draw.arrow(c, cx, cy, cx + r[0] * L, cy + r[1] * L, P.red, 3);
-          var an = Math.atan2(n[1], n[0]);
-          arc(c, cx, cy, 44, an, Math.atan2(-d[1], -d[0]), P.amber, "i", 12); arc(c, cx, cy, 56, an, Math.atan2(r[1], r[0]), P.red, "r", 12);
-        } else { S.draw.line(c, cx - d[0] * L, cy - d[1] * L, cx, cy, "#b8c0cc", 2, [5, 4]); P4.label(c, "le rayon arrive par l'arrière du miroir", cx, 20, P.red); }
-        PX.grip(c, Gm.x, Gm.y, P.amber, null, 7);
-        var I = ok ? Math.acos(cosI) * R2D : NaN, rot = ok ? Math.round(2 * dl.value) : NaN;
+          beam(cx, cy, cx + r[0] * L, cy + r[1] * L, RED, 2.4); pulses(cx, cy, cx + r[0] * L, cy + r[1] * L, "#ff9a85", 3);
+          var Rr = Math.min(48, L * 0.4);
+          arc(cx, cy, Rr, an, Math.atan2(-d[1], -d[0]), P.amber, "i"); arc(cx, cy, Rr + 14, an, Math.atan2(r[1], r[0]), P.red, "r");
+        } else S.draw.label(c, "le rayon arrive par l'arrière du miroir", cx, 18, {color:P.red, fill:"rgba(255,255,255,.92)", size:12});
+        ctx.save(); ctx.translate(Gm.x, Gm.y); ctx.rotate(-I0); ctx.fillStyle = "#8a95a3"; PX.rr(ctx, -10, -30, 20, 30, 4); ctx.fill(); ctx.fillStyle = "#c0321d"; ctx.fillRect(-3, -2, 6, 4); ctx.restore();
+        PX.grip(c, Gm.x, Gm.y, P.amber, st.hint ? "glisse le laser" : null, 7);
+        var I = ok ? Math.acos(cosI) * R2D : NaN;
         ro.set(0, ok ? S.fmt(I, 1) + " °" : "—"); ro.set(1, ok ? S.fmt(I, 1) + " °" : "—"); ro.set(2, ok ? S.fmt(90 - I, 1) + " °" : "—"); ro.set(3, ok ? S.fmt(2 * dl.value, 0) + " °" : "—");
         nt.set(ok ? "r = i = " + S.fmt(I, 1) + " °. L'angle avec la surface (" + S.fmt(90 - I, 1) + " °) n'est PAS l'angle d'incidence. Tourne le miroir de " + S.fmt(dl.value, 0) + " ° : le rayon réfléchi tourne de " + S.fmt(2 * dl.value, 0) + " °." : "Le miroir est vu de dos : aucune réflexion utile.", ok ? "" : "warn");
       } else {
-        var rough = mode.value === "g", NS = 7, W = 2 * L, base = cy;
-        var j, xc, tl, hl, nj, tj, rv, okj;
+        var rough = mode.value === "g", NS = 7, W = 2 * L, base = cy, j, xc, tl, hl, nj, tj, rv, okj;
+        ctx.fillStyle = "#3a4560"; ctx.fillRect(cx - W / 2 - 10, base, W + 20, 14);
         for (j = 0; j < NS; j++){
           xc = cx - W / 2 + (j + 0.5) * W / NS; tl = rough ? TILT[j] * D2R : 0; hl = W / NS / 2 * 0.95;
           nj = [-Math.sin(tl), -Math.cos(tl)]; tj = [Math.cos(tl), -Math.sin(tl)];
-          S.draw.line(c, xc - tj[0] * hl, base - tj[1] * hl, xc + tj[0] * hl, base + tj[1] * hl, "#13233a", 4);
+          S.draw.line(c, xc - tj[0] * hl, base - tj[1] * hl, xc + tj[0] * hl, base + tj[1] * hl, rough ? "#b4bfd2" : "#e6f2ff", 4);
           rv = reflect(d, nj); okj = -(d[0] * nj[0] + d[1] * nj[1]) > 0.0001;
-          SFA.draw.arrow(c, xc - d[0] * 110, base - d[1] * 110, xc, base, P.amber, 2);
-          if (okj) SFA.draw.arrow(c, xc, base, xc + rv[0] * 110, base + rv[1] * 110, P.red, 2);
-          if (rough) S.draw.line(c, xc, base, xc + nj[0] * 26, base + nj[1] * 26, "#b8c0cc", 1, [3, 3]);
+          beam(xc - d[0] * 120, base - d[1] * 120, xc, base, AMB, 1.6);
+          if (okj){ beam(xc, base, xc + rv[0] * 120, base + rv[1] * 120, RED, 1.6); pulses(xc, base, xc + rv[0] * 120, base + rv[1] * 120, "#ff9a85", 2); }
+          if (rough) S.draw.line(c, xc, base, xc + nj[0] * 26, base + nj[1] * 26, "rgba(200,210,235,.6)", 1, [3, 3]);
         }
         ro.set(0, "variable"); ro.set(1, "= i en chaque point"); ro.set(2, "—"); ro.set(3, "—");
         nt.set(rough ? "Surface rugueuse : chaque petit morceau est un petit miroir avec sa propre normale (pointillés). La loi r = i est vraie partout, mais les rayons repartent dans des directions variées : réflexion diffuse. C'est ce qui permet de voir une feuille de papier de n'importe où." : "Miroir lisse : toutes les normales sont parallèles, donc le faisceau parallèle reste parallèle : réflexion spéculaire. On ne voit l'image que depuis une direction.", "");
@@ -90,7 +104,7 @@ SFA.sim({
   aRetenir:"L'image d'un objet dans un miroir plan est symétrique de l'objet par rapport au miroir : même distance derrière que l'objet devant, même taille. C'est une image VIRTUELLE : les rayons ne s'y croisent pas vraiment, seuls leurs prolongements (pointillés) s'y croisent.",
   piege:"L'image n'est pas « sur » le miroir ni dans le miroir : elle est symétrique, derrière. On ne pourrait pas la recueillir sur un écran placé là. Et pour la voir, il faut que le rayon réfléchi qui va vers l'œil touche réellement le miroir.",
   build:function(k,S){
-    var c = k.canvas(200), st = {ox:-2.2, oy:1.0, ex:-3.4, ey:1.6, drag:null};
+    var c = PX.canvas(k, 0.5, 0.78), st = {ox:-2.2, oy:1.0, ex:-3.4, ey:1.6, drag:null, hint:true};
     var len = k.slider("Longueur du miroir", 0.4, 3.4, 0.1, 2, "m");
     var ro = k.readouts(["Distance objet – miroir", "Distance image – miroir", "L'œil voit l'image ?"]);
     var nt = k.note("", "");
@@ -98,20 +112,24 @@ SFA.sim({
     function setup(){ sc = Math.min((c.W - 24) / 9, (c.H - 20) / 3.4); X = function(x){ return 12 + (x + 4.5) * sc; }; Y = function(y){ return c.H - 10 - y * sc; }; ix = function(px){ return (px - 12) / sc - 4.5; }; iy = function(py){ return (c.H - 10 - py) / sc; }; }
     c.pointer(function(type, p){
       setup();
-      if (type === "down"){ var dO = Math.hypot(X(st.ox) - p.x, Y(st.oy) - p.y), dE = Math.hypot(X(st.ex) - p.x, Y(st.ey) - p.y); st.drag = dO < 36 && dO <= dE ? "o" : dE < 36 ? "e" : null; }
+      if (type === "down"){ var dO = Math.hypot(X(st.ox) - p.x, Y(st.oy) - p.y), dE = Math.hypot(X(st.ex) - p.x, Y(st.ey) - p.y); st.drag = dO < 36 && dO <= dE ? "o" : dE < 36 ? "e" : null; if (st.drag) st.hint = false; }
       if ((type === "down" || type === "drag") && st.drag){ var x = Math.max(st.drag === "o" ? -3.6 : -4.4, Math.min(-0.3, ix(p.x))), y = Math.max(0.1, Math.min(3.2, iy(p.y))); if (st.drag === "o"){ st.ox = x; st.oy = y; } else { st.ex = x; st.ey = y; } k.redraw(); }
       if (type === "up") st.drag = null;
     });
     k.draw(function(){
       setup(); var P = SFA.draw.palette, ctx = c.ctx, mc = 1.7, half = len.value / 2;
-      c.clear();
-      ctx.fillStyle = "#e3e7ed"; ctx.fillRect(0, Y(0), c.W, 10);
-      ctx.fillStyle = "rgba(30,63,143,.12)"; ctx.fillRect(X(0), Y(mc + half), 14, len.value * sc);
-      S.draw.line(c, X(0), Y(mc + half), X(0), Y(mc - half), "#13233a", 5);
-      S.draw.line(c, X(0), Y(0), X(0), Y(3.4), "#c9d1dc", 1, [4, 4]);
+      c.clear(); PX.bg(c, "#f6f1ea", "#ebe4d9");
+      ctx.fillStyle = PX.lin(c, 0, Y(0), 0, c.H, [[0, "#c9b9a2"], [1, "#b8a78e"]]); ctx.fillRect(0, Y(0), c.W, c.H - Y(0));
+      ctx.fillStyle = "rgba(47,127,209,.10)"; ctx.fillRect(X(0), 0, c.W - X(0), Y(0));
+      S.draw.label(c, "derrière le miroir : monde « virtuel »", X(0) + 8, c.H * 0.1, {color:"#2f7fd1", align:"left", size:PX.fs(c, 11), fill:"rgba(255,255,255,.7)"});
+      ctx.fillStyle = PX.lin(c, X(0) - 7, 0, X(0) + 7, 0, [[0, "#cfe3f2"], [0.5, "#f4fbff"], [1, "#a9c4d8"]]); ctx.fillRect(X(0) - 5, Y(mc + half), 10, len.value * sc);
+      ctx.strokeStyle = "#5a4a38"; ctx.lineWidth = 2.5; ctx.strokeRect(X(0) - 5, Y(mc + half), 10, len.value * sc);
+      S.draw.line(c, X(0), Y(0), X(0), Y(3.4), "#b8a78e", 1, [4, 4]);
       var O = [st.ox, st.oy], E = [st.ex, st.ey], Im = [-st.ox, st.oy];
-      S.draw.dot(c, X(Im[0]), Y(Im[1]), 7, "rgba(180,35,24,.35)"); P4.label(c, "image", X(Im[0]) + 22, Y(Im[1]) - 12, "rgba(180,35,24,.8)");
-      S.draw.line(c, X(O[0]), Y(O[1]), X(Im[0]), Y(Im[1]), "rgba(180,35,24,.35)", 1, [2, 4]);
+      /* image virtuelle : même objet, estompé, de l'autre côté */
+      ctx.save(); ctx.globalAlpha = 0.4; PX.ball(c, X(Im[0]), Y(Im[1]), 9, P.red); ctx.restore();
+      S.draw.line(c, X(O[0]), Y(O[1]), X(Im[0]), Y(Im[1]), "rgba(180,35,24,.4)", 1, [2, 4]);
+      S.draw.label(c, "image", X(Im[0]), Y(Im[1]) - 20, {color:P.red, size:PX.fs(c, 11.5)});
       /* rayon vers l'œil */
       var t = (0 - E[0]) / (Im[0] - E[0]), yh = E[1] + t * (Im[1] - E[1]), sees = Math.abs(yh - mc) <= half;
       if (sees){
@@ -121,8 +139,12 @@ SFA.sim({
       /* second rayon : touche le miroir 0,6 m plus haut */
       var yb = O[1] + 0.6, okb = Math.abs(yb - mc) <= half;
       if (okb){ S.draw.line(c, X(O[0]), Y(O[1]), X(0), Y(yb), P.green, 2); S.draw.line(c, X(0), Y(yb), X(O[0]), Y(yb + 0.6), P.green, 2); S.draw.line(c, X(0), Y(yb), X(Im[0]), Y(Im[1]), P.green, 1.5, [4, 4]); }
-      S.draw.dot(c, X(O[0]), Y(O[1]), 8, P.red); P4.label(c, "objet", X(O[0]), Y(O[1]) + 18, P.red);
-      S.draw.dot(c, X(E[0]), Y(E[1]), 8, P.acc); P4.label(c, "œil", X(E[0]), Y(E[1]) - 16, P.acc);
+      PX.ball(c, X(O[0]), Y(O[1]), 9, P.red); S.draw.label(c, "objet", X(O[0]), Y(O[1]) + 21, {color:P.red, size:PX.fs(c, 11.5)});
+      /* œil : amande + iris */
+      ctx.save(); ctx.translate(X(E[0]), Y(E[1])); ctx.fillStyle = "#fff"; ctx.strokeStyle = P.acc; ctx.lineWidth = 2; ctx.beginPath(); ctx.ellipse(0, 0, 13, 8, 0, 0, 6.2832); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = P.acc; ctx.beginPath(); ctx.arc(4, 0, 5, 0, 6.2832); ctx.fill(); ctx.fillStyle = "#fff"; ctx.beginPath(); ctx.arc(5.5, -1.5, 1.4, 0, 6.2832); ctx.fill(); ctx.restore();
+      S.draw.label(c, "œil", X(E[0]), Y(E[1]) - 20, {color:P.acc, size:PX.fs(c, 11.5)});
+      if (st.hint) S.draw.label(c, "glisse l'objet et l'œil", c.W / 2, c.H - 12, {color:P.grey, size:11.5});
       ro.set(0, S.fmt(-O[0], 2) + " m"); ro.set(1, S.fmt(-O[0], 2) + " m (derrière)"); ro.set(2, sees ? "oui" : "non (le rayon manque le miroir)");
       nt.set(sees ? "Le rayon réfléchi vers l'œil touche le miroir à " + S.fmt(yh, 2) + " m de hauteur : l'œil voit l'image. Les prolongements en pointillés se coupent exactement à l'image." : "Le rayon qui irait de l'image à l'œil traverse le plan du miroir hors du miroir : l'œil ne voit pas l'image. Rallonge le miroir ou déplace l'œil.", sees ? "" : "warn");
     });

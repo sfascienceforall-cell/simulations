@@ -113,10 +113,10 @@ SFA.sim({
   piege:"f′(a) = 0 n'implique pas un extremum : pour f(x) = x³, f′(0) = 0 mais f est croissante partout (point d'inflexion à tangente horizontale).",
   build:function(k, S){
     var c1 = k.canvas(250), c2 = k.canvas(210);
-    var sel = k.select("Fonction", Object.keys(TG).map(function(q){ return [q, TG[q].n]; }), "a", function(){ x.set(-1.5); });
+    var sel = k.select("Fonction", Object.keys(TG).map(function(q){ return [q, TG[q].n]; }), "a", function(){ x.set(-1.5); found = {}; });
     var x = k.slider("x", -2.2, 2.2, 0.05, -1.5, "");
     var ro = k.readouts(["f(x)", "f′(x)", "Signe de f′", "f est"]);
-    var nt = k.note("", "ok"), ax1, ax2;
+    var nt = k.note("", "ok"), ax1, ax2, found = {};
     function drag(type, p){ if (type === "down" || type === "drag"){ x.set(Math.max(-2.2, Math.min(2.2, Math.round(ax1.ix(p.x) / 0.05) * 0.05))); k.redraw(); } }
     c1.pointer(drag); c2.pointer(function(t, p){ drag(t, p); });
     k.draw(function(){
@@ -130,6 +130,9 @@ SFA.sim({
       d.cr.forEach(function(q){ if (q[1] !== "aucun") S.draw.dot(c1, ax1.X(q[0]), ax1.Y(d.f(q[0])), 4, q[1] === "max" ? P.red : P.violet); });
       S.draw.dot(c1, ax1.X(X), ax1.Y(yy), 7, P.acc); S.draw.dot(c2, ax2.X(X), ax2.Y(m), 6, P.red);
       S.draw.line(c2, ax2.X(X), ax2.Y(0), ax2.X(X), ax2.Y(m), P.red, 1.5);
+      d.cr.forEach(function(q, qi){ if (q[1] !== "aucun" && Math.abs(X - q[0]) < 0.06) found[sel.value + qi] = 1; });
+      var nTot = d.cr.filter(function(q){ return q[1] !== "aucun"; }).length, nFound = Object.keys(found).length;
+      S.draw.label(c1, "extrema trouvés : " + nFound + " / " + nTot, ax1.R - 8, ax1.T + 12, {color:nFound >= nTot ? P.green : P.grey, align:"right", size:11.5});
       var tol = 0.02, sgn = m > tol ? "+" : m < -tol ? "−" : "0";
       ro.set(0, F(yy, 3)); ro.set(1, F(m, 3)); ro.set(2, sgn); ro.set(3, sgn === "+" ? "croissante ↗" : sgn === "−" ? "décroissante ↘" : "tangente horizontale");
       var iv = 0, pts = d.cr.map(function(q){ return q[0]; }), i;
@@ -139,7 +142,7 @@ SFA.sim({
       mids.forEach(function(mx, j){ var s = d.d(mx) > 0 ? "+" : "−", on = j === iv; row += "<td style='border:1px solid #ccd;padding:4px;" + (on ? "background:#fff3d6;font-weight:800" : "") + "'>" + s + "</td>"; arr += "<td style='border:1px solid #ccd;padding:4px;" + (on ? "background:#fff3d6;font-weight:800" : "") + "'>" + (s === "+" ? "↗" : "↘") + "</td>"; });
       var txt = "<b>Tableau de variations</b> (intervalle actuel en jaune) : f′ vaut " + mids.map(function(mx, j){ return (d.d(mx) > 0 ? "+" : "−"); }).join(" puis ") + ", points critiques en x = " + pts.map(function(p){ return F(p, 2); }).join(" ; ") + ".<br>";
       var kinds = d.cr.map(function(q){ return F(q[0], 2) + " : " + (q[1] === "max" ? "maximum local" : q[1] === "min" ? "minimum local" : "pas d'extremum (f′ ne change pas de signe)"); }).join(" · ");
-      nt.set(txt + kinds + "<br><table style='border-collapse:collapse;margin-top:4px;font-size:13px'><tr><td style='padding:4px'>f′</td>" + row + "</tr><tr><td style='padding:4px'>f</td>" + arr + "</tr></table>", "ok");
+      nt.set((nFound >= nTot && nTot > 0 ? "<b>Bravo : tu as repéré tous les extrema (tangente horizontale).</b><br>" : "Défi : fais rouler la tangente jusqu'à ce qu'elle soit horizontale, partout où elle peut l'être.<br>") + txt + kinds + "<br><table style='border-collapse:collapse;margin-top:4px;font-size:13px'><tr><td style='padding:4px'>f′</td>" + row + "</tr><tr><td style='padding:4px'>f</td>" + arr + "</tr></table>", "ok");
     });
     sel.el.dispatchEvent(new Event("change"));
   }
@@ -176,7 +179,7 @@ SFA.sim({
       var maxA = R ? L*L/8 : L*L/16, dA = R ? L - 4*X : L/2 - 2*X;
       /* scène */
       S.draw.panel(c, 4, 4, c.W - 8, topH - 4, {fill:"#f4f8ef", stroke:"#dfe8d4", radius:12, shadow:false});
-      var ox = 22, oy = R ? 46 : 30, wmax = R ? L : L / 2, sc = Math.min((c.W - ox - 30) / wmax, (topH - oy - 46) / (L / 2));
+      var ox = 22, oy = R ? 46 : 30, wmax = R ? L : L / 2, sc = Math.min((c.W - ox - 30) / wmax, (topH - oy - 76) / (L / 2));
       if (R){
         var g = ctx.createLinearGradient(0, 8, 0, 38); g.addColorStop(0, "#9fd0e6"); g.addColorStop(1, "#6fb4d3");
         ctx.save(); S.draw.rrect(c, 8, 8, c.W - 16, 30, 8); ctx.fillStyle = g; ctx.fill(); ctx.clip();
@@ -192,11 +195,11 @@ SFA.sim({
       else { clPosts(c, S, ox, top, ox + pw, top, 0, wood); clPosts(c, S, ox, top + ph, ox + pw, top + ph, 0, wood); clPosts(c, S, ox, top, ox, top + ph, 0, wood); clPosts(c, S, ox + pw, top, ox + pw, top + ph, 0, wood); }
       geo = {sc:sc, oy:top, bot:top + ph};
       S.draw.arrow(c, ox + pw + 12, top, ox + pw + 12, top + ph, P.ink, 1.4); S.draw.arrow(c, ox + pw + 12, top + ph, ox + pw + 12, top, P.ink, 1.4);
-      S.draw.text(c, "x = " + F(X, 1) + " m", ox + pw + 20, top + ph / 2, {align:"left", size:12});
-      S.draw.text(c, "autre côté = " + F(oth(X), 1) + " m   ·   A = " + F(A(X), 0) + " m²", ox + pw / 2, top + ph + 34, {size:12.5, color:P.green});
-      if (ph > 44) S.draw.text(c, "A = " + F(A(X), 0) + " m²", ox + pw / 2, top + ph / 2, {size:15, color:P.green, weight:800});
+      S.draw.text(c, "x = " + F(X, 1) + " m", Math.min(ox + pw + 20, c.W - 70), top + ph / 2, {align:"left", size:12, halo:"#f4f8ef"});
+      S.draw.text(c, "autre côté = " + F(oth(X), 1) + " m   ·   A = " + F(A(X), 0) + " m²", 16, topH - 34, {size:12.5, color:P.green, align:"left"});
+      if (ph > 44 && pw > 120) S.draw.text(c, "A = " + F(A(X), 0) + " m²", ox + pw / 2, top + ph / 2, {size:15, color:P.green, weight:800});
       S.draw.glow(c, ox + pw * 0.2, top + ph, 16, P.red, 0.45); S.draw.dot(c, ox + pw * 0.2, top + ph, 7, P.red);
-      S.draw.text(c, "↕ tire le bord", ox + pw * 0.2 + 12, top + ph + 14, {align:"left", size:11.5, color:P.red});
+      S.draw.text(c, "↕ tire le bord", Math.min(ox + pw * 0.2 + 12, c.W - 100), top + ph + 14, {align:"left", size:11.5, color:P.red});
       /* barre de grillage */
       S.draw.text(c, "grillage utilisé : " + (R ? "x + x + autre côté" : "2x + 2 × autre côté") + " = " + F(L, 0) + " m", 16, topH - 14, {align:"left", size:12, color:P.ink});
       ax = S.draw.axes(c, {x0:0, x1:xmax, y0:0, y1:maxA * 1.12, l:60, xl:"x (m)", yl:"A (m²)", t:topH + 18, b:30});

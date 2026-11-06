@@ -22,7 +22,7 @@ SFA.sim({
   aRetenir:"Moyenne = somme des valeurs / effectif. Médiane : valeur du milieu de la série ordonnée. Quartiles Q₁ et Q₃ : médianes des deux moitiés. Écart interquartile = Q₃ − Q₁. Écart-type σ = √(moyenne des carrés des écarts à la moyenne) : il mesure la dispersion.",
   piege:"L'écart-type n'est pas la moyenne des écarts : on élève les écarts au carré avant de faire la moyenne, puis on prend la racine. Et pour la médiane, on ordonne d'abord la série.",
   build:function(k,S){
-    var c=k.canvas(0,{ratio:.72});
+    var M=window.M4, c=k.canvas(0,{ratio:.78});
     var cnt=PRE.sym.slice(), ax=null;
     k.button("Symétrique",function(){ cnt=PRE.sym.slice(); });
     k.button("Étalée à droite",function(){ cnt=PRE.droite.slice(); });
@@ -30,18 +30,29 @@ SFA.sim({
     k.button("Beaucoup de bonnes notes",function(){ cnt=PRE.haut.slice(); });
     k.button("Tout effacer",function(){ cnt=cnt.map(function(){return 0;}); });
     var ro=k.readouts(["Effectif n","Moyenne","Médiane","Mode","Q₁ ; Q₃","Étendue","Écart interquartile","Écart-type σ"]);
-    var nt=k.note("Tableau des effectifs : touche une barre pour modifier sa hauteur (0 à 15). Quartiles calculés par la médiane des deux moitiés (médiane exclue si n est impair).","");
-    c.pointer(function(t,p){ if(!ax||t==="move")return; var i=Math.round(ax.ix(p.x)); if(i<0||i>10)return; cnt[i]=Math.max(0,Math.min(15,Math.round(ax.iy(p.y)))); k.redraw(); });
+    var nt=k.note("Touche ou glisse sur le graphique pour fixer l'effectif de chaque note (0 à 12). Quartiles : médiane des deux moitiés (médiane exclue si n est impair).","");
+    c.pointer(function(t,p){ if(!ax||t==="move")return; var i=Math.round(ax.ix(p.x)); if(i<0||i>10)return; cnt[i]=Math.max(0,Math.min(12,Math.round(ax.iy(p.y)))); k.redraw(); });
     k.draw(function(){
-      c.clear(); ax=S.draw.axes(c,{x0:-0.6,x1:10.6,y0:0,y1:15.5,xl:"note",yl:"effectif",stepX:1,stepY:5,l:40});
+      c.clear(); ax=S.draw.axes(c,{x0:-0.6,x1:10.6,y0:0,y1:15.5,xl:"note",yl:"effectif",stepX:1,stepY:3,l:40});
       var ctx=c.ctx, bw=ax.X(0.42)-ax.X(0);
-      cnt.forEach(function(n,i){ if(n>0){ ctx.fillStyle="rgba(30,63,143,.55)"; ctx.fillRect(ax.X(i)-bw,ax.Y(n),2*bw,ax.Y(0)-ax.Y(n)); ctx.strokeStyle=P.acc; ctx.lineWidth=1.5; ctx.strokeRect(ax.X(i)-bw,ax.Y(n),2*bw,ax.Y(0)-ax.Y(n)); } });
+      cnt.forEach(function(n,i){
+        ctx.fillStyle="rgba(30,63,143,.05)"; ctx.fillRect(ax.X(i)-bw,ax.Y(12),2*bw,ax.Y(0)-ax.Y(12));
+        if(n>0){ var g=ctx.createLinearGradient(0,ax.Y(n),0,ax.Y(0)); g.addColorStop(0,S.draw.tint(P.acc,.85)); g.addColorStop(1,S.draw.tint(P.acc,.45)); ctx.fillStyle=g; ctx.fillRect(ax.X(i)-bw,ax.Y(n),2*bw,ax.Y(0)-ax.Y(n)); ctx.strokeStyle=P.acc; ctx.lineWidth=1.5; ctx.strokeRect(ax.X(i)-bw,ax.Y(n),2*bw,ax.Y(0)-ax.Y(n));
+          S.draw.text(c,String(n),ax.X(i),ax.Y(n)-9,{size:10.5,weight:800,color:P.acc}); } });
       var vals=[]; cnt.forEach(function(n,i){ for(var j=0;j<n;j++) vals.push(i); });
       var n=vals.length;
-      if(!n){ ["—","—","—","—","—","—","—","—"].forEach(function(s,i){ ro.set(i,s); }); ro.set(0,"0"); return; }
+      if(!n){ ["—","—","—","—","—","—","—","—"].forEach(function(s,i){ ro.set(i,s); }); ro.set(0,"0"); M.hint(c,"Touche le graphique pour construire ta série."); return; }
       var m=mean(vals), md=med(vals), q=quart(vals), s=sd(vals), mx=Math.max.apply(null,cnt), modes=[]; cnt.forEach(function(v,i){ if(v===mx) modes.push(i); });
-      S.draw.line(c,ax.X(m),ax.T,ax.X(m),ax.B,P.red,2.5); S.draw.line(c,ax.X(md),ax.T,ax.X(md),ax.B,P.green,2.5,[6,4]);
-      S.draw.text(c,"moy.",ax.X(m)+(m>=md?16:-16),ax.T+10,{size:12,color:P.red}); S.draw.text(c,"méd.",ax.X(md)+(m>=md?-18:18),ax.T+26,{size:12,color:P.green});
+      S.draw.line(c,ax.X(m),ax.Y(12.6),ax.X(m),ax.B,P.red,2.5); S.draw.line(c,ax.X(md),ax.Y(12.6),ax.X(md),ax.B,P.green,2.5,[6,4]);
+      var tri=function(x,col){ ctx.save(); ctx.fillStyle=col; ctx.beginPath(); ctx.moveTo(x,ax.B-1); ctx.lineTo(x-6,ax.B-12); ctx.lineTo(x+6,ax.B-12); ctx.closePath(); ctx.fill(); ctx.restore(); };
+      tri(ax.X(m),P.red); tri(ax.X(md),P.green);
+      /* boîte à moustaches en haut */
+      var by=ax.Y(14.4), mn=vals[0], mxv=vals[n-1];
+      S.draw.line(c,ax.X(mn),by,ax.X(mxv),by,P.ink,2);
+      S.draw.line(c,ax.X(mn),by-7,ax.X(mn),by+7,P.ink,2); S.draw.line(c,ax.X(mxv),by-7,ax.X(mxv),by+7,P.ink,2);
+      ctx.save(); ctx.fillStyle=S.draw.tint(P.violet,.25); ctx.strokeStyle=P.violet; ctx.lineWidth=2; ctx.fillRect(ax.X(q[0]),by-9,ax.X(q[1])-ax.X(q[0]),18); ctx.strokeRect(ax.X(q[0]),by-9,ax.X(q[1])-ax.X(q[0]),18); ctx.restore();
+      S.draw.line(c,ax.X(md),by-9,ax.X(md),by+9,P.green,3);
+      S.draw.legend(c,[[P.red,"moyenne "+F(m,2)],[P.green,"médiane "+F(md,1),true],[P.violet,"boîte Q₁–Q₃"]],ax.R-8,ax.Y(12.2),{align:"right"});
       ro.set(0,String(n)); ro.set(1,F(m,2)); ro.set(2,F(md,1)); ro.set(3,modes.length>3?"plusieurs":modes.join(" ; ")); ro.set(4,F(q[0],1)+" ; "+F(q[1],1));
       ro.set(5,F(vals[n-1]-vals[0],0)); ro.set(6,F(q[1]-q[0],1)); ro.set(7,F(s,2));
     });
@@ -65,38 +76,43 @@ SFA.sim({
     var ro=k.readouts(["Moyenne","Médiane","Étendue","Écart-type σ"]);
     var nt=k.note("","");
     var geo={};
-    M.grab(c,function(){ return geo.X&&ad.value?[{id:"x",x:geo.X(xv.value),y:geo.y0-16,r:34}]:[]; },
+    k.button("Un patron à 30 k€",function(){ xv.set(30); ad.set&&ad.set(true); });
+    k.button("Un salaire comme les autres",function(){ xv.set(2.5); });
+    M.grab(c,function(){ return geo.X&&ad.value?[{id:"x",x:geo.X(xv.value),y:geo.y0-22,r:9999}]:[]; },
       function(id,px){ xv.set(M.clamp(Math.round(((px-geo.L)/(geo.W-geo.L-geo.R)*32)*2)/2,1.5,30)); k.redraw(); });
     k.draw(function(){
-      M.adapt(c,.78,.56,520);
+      M.adapt(c,.8,.56,520);
       c.clear(); var W=c.W,H=c.H,L=26,R=16, X=function(v){return L+v/32*(W-L-R);}, y0=H*0.7, ctx=c.ctx;
       geo={X:X,y0:y0,L:L,R:R,W:W};
       var data=BASE.slice(); if(ad.value) data.push(xv.value);
       var s=sorted(data), m=mean(s), md=med(s), m0=mean(BASE), md0=med(sorted(BASE));
-      /* axe */
-      S.draw.line(c,L,y0,W-R,y0,P.ink,2);
-      for(var v=0;v<=30;v+=5){ S.draw.line(c,X(v),y0,X(v),y0+5,P.ink,1.4); S.draw.text(c,String(v),X(v),y0+18,{size:11.5,color:P.grey}); }
-      S.draw.text(c,"salaire (k€)",W-R,y0+34,{size:11,color:P.grey,align:"right"});
-      for(var v2=1;v2<32;v2++) if(v2%5) S.draw.line(c,X(v2),y0,X(v2),y0+3,P.axis,1);
-      /* points empilés par valeur */
+      var gg=ctx.createLinearGradient(0,0,0,H); gg.addColorStop(0,"#ffffff"); gg.addColorStop(1,"#f3f6fb"); ctx.fillStyle=gg; ctx.fillRect(0,0,W,H);
+      /* planche (balance) */
+      ctx.save(); ctx.fillStyle="#e7ecf4"; ctx.fillRect(L-6,y0,W-L-R+12,7); ctx.strokeStyle="#c8d1de"; ctx.strokeRect(L-6,y0,W-L-R+12,7); ctx.restore();
+      for(var v=0;v<=30;v+=5){ S.draw.line(c,X(v),y0+7,X(v),y0+13,P.ink,1.4); S.draw.text(c,String(v),X(v),y0+26,{size:11.5,color:P.grey,weight:700}); }
+      S.draw.text(c,"salaire mensuel (k€)",W-R,y0+44,{size:11,color:P.grey,align:"right"});
+      /* points empilés */
       var placed=[]; data.forEach(function(v,i){ var isNew=ad.value&&i===data.length-1, lvl=0;
-        if(!isNew){ var near=placed.filter(function(q){ return Math.abs(X(q.v)-X(v))<13; }).length; lvl=near; placed.push({v:v}); }
-        if(isNew) M.handle(c,X(v),y0-18,P.amber,8); else S.draw.dot(c,X(v),y0-11-lvl*13,5.5,P.acc); });
-      /* moyenne et médiane : repères et bulles */
-      var top=H*.14;
-      S.draw.line(c,X(m),top+24,X(m),y0,P.red,2.6); S.draw.line(c,X(md),top+8,X(md),y0,P.green,2.6,[6,4]);
-      var tri=function(x,col){ ctx.save(); ctx.fillStyle=col; ctx.beginPath(); ctx.moveTo(x,y0+1); ctx.lineTo(x-6,y0+12); ctx.lineTo(x+6,y0+12); ctx.closePath(); ctx.fill(); ctx.restore(); };
-      var lx=function(x,w){ return Math.max(w/2+4,Math.min(W-w/2-4,x)); };
-      var medL=X(md)<=X(m);
-      M.lab(c,"médiane "+F(md,2),medL?X(md)-62:X(md)+62,top,P.green,{size:11.5});
-      M.lab(c,"moyenne "+F(m,2),medL?X(m)+62:X(m)-62,top+24,P.red,{size:11.5});
-      /* écart de la moyenne à sa valeur sans le 10e salaire */
-      if(ad.value&&Math.abs(X(m)-X(m0))>46){ var yb=y0-100; S.draw.line(c,X(m0),yb,X(m),yb,P.red,1.6); S.draw.dot(c,X(m0),yb,3.5,P.red); M.lab(c,"+"+F(m-m0,2)+" k€ avec le 10e salaire",Math.max(70,(X(m0)+X(m))/2+40),yb-12,P.red,{size:10.5}); }
+        if(!isNew){ var near=placed.filter(function(q){ return Math.abs(X(q.v)-X(v))<15; }).length; lvl=near; placed.push({v:v}); }
+        if(isNew){ S.draw.glow(c,X(v),y0-12,22,P.amber,.5); S.draw.dot(c,X(v),y0-12,8,P.amber); M.lab(c,"10e",X(v),y0-34,P.amber,{size:10.5}); }
+        else S.draw.dot(c,X(v),y0-8-lvl*15,6.5,P.acc); });
+      /* repères d'origine (sans le 10e) en creux */
+      var ghost=function(x,col){ ctx.save(); ctx.strokeStyle=col; ctx.setLineDash([2,3]); ctx.lineWidth=1.4; ctx.beginPath(); ctx.moveTo(x,y0-86); ctx.lineTo(x,y0); ctx.stroke(); ctx.restore(); };
+      if(ad.value){ ghost(X(m0),P.red); }
+      /* fulcre = moyenne ; drapeau = médiane */
+      var fx=X(m); ctx.save(); ctx.fillStyle=P.red; ctx.beginPath(); ctx.moveTo(fx,y0+8); ctx.lineTo(fx-13,y0+36); ctx.lineTo(fx+13,y0+36); ctx.closePath(); ctx.fill(); ctx.restore();
+      S.draw.line(c,fx,y0-86,fx,y0,P.red,2.6);
+      S.draw.line(c,X(md),y0-112,X(md),y0,P.green,2.6,[6,4]);
+      var top=H*.08, medL=X(md)<=X(m);
+      M.lab(c,"médiane "+F(md,2)+" k€",Math.max(70,Math.min(W-70,X(md)+(medL?-8:8))),top+4,P.green,{size:11.5});
+      M.lab(c,"moyenne "+F(m,2)+" k€ (point d'équilibre)",Math.max(100,Math.min(W-100,X(m))),top+30,P.red,{size:11.5});
+      if(ad.value&&Math.abs(X(m)-X(m0))>40){ var yb=y0-70; S.draw.arrow(c,X(m0),yb,X(m),yb,P.red,2); M.lab(c,"+"+F(m-m0,2)+" k€",Math.max(40,Math.min(W-40,(X(m0)+X(m))/2)),yb-14,P.red,{size:10.5}); }
       ro.set(0,F(m,2)+" k€"); ro.set(1,F(md,2)+" k€"); ro.set(2,F(s[s.length-1]-s[0],2)+" k€"); ro.set(3,F(sd(s),2)+" k€");
       nt.set(ad.value?"Sans le 10e salaire : moyenne "+F(m0,2)+" et médiane "+F(md0,2)+". Avec lui : la moyenne varie de "+F(m-m0,2)+" k€, la médiane de "+F(md-md0,2)+" k€.":"Série de 9 salaires : moyenne "+F(m0,2)+" et médiane "+F(md0,2)+" (proches).","");
     });
   }
 });
+
 
 /* ---------- boîtes à moustaches : comparer deux séries ---------- */
 var Z=[-2,-1.5,-1.2,-0.8,-0.5,-0.3,-0.1,0,0.1,0.3,0.5,0.8,1.2,1.5,2];

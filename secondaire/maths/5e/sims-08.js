@@ -16,7 +16,7 @@ SFA.sim({
   id:"m5-c08-sinusoide", ch:"c08", tag:"Classique",
   titre:"La sinusoïde a·sin(bx + c) + d",
   resume:"Amplitude, période, déphasage, valeur moyenne : quatre curseurs, quatre effets.",
-  but:"Modifie a, b, c, d et observe ce qui change. En mode Défi, ajuste les quatre curseurs pour recouvrir la courbe grise.",
+  but:"Glisse le point rouge (phase c, valeur moyenne d) et le point orange (amplitude a, fréquence b), ou modifie les curseurs, et observe ce qui change. En mode Défi, ajuste les quatre curseurs pour recouvrir la courbe grise.",
   aRetenir:"Amplitude |a| · période T = 2π/|b| · décalage horizontal −c/b (déphasage) · valeur moyenne d (la courbe oscille entre d − |a| et d + |a|). Un b plus grand resserre la courbe.",
   piege:"La période de sin(bx) est 2π/b, pas 2π·b. Et le décalage de sin(bx + c) est c/b vers la gauche, pas c.",
   build:function(k, S){
@@ -25,16 +25,27 @@ SFA.sim({
     var a = k.slider("a (amplitude)", -3, 3, 0.5, 2, ""), b = k.slider("b (fréquence)", 0.5, 4, 0.5, 1, ""), cc = k.slider("c (phase)", -3, 3, 0.5, 0, ""), d = k.slider("d (valeur moyenne)", -2, 2, 0.5, 0, "");
     var ro = k.readouts(["Amplitude |a|", "Période 2π/|b|", "Décalage −c/b", "Max / min"]);
     var nt = k.note("", "ok");
-    var TG = {a:1.5, b:2, c:1, d:-1};
+    var TG = {a:1.5, b:2, c:1, d:-1}, axs = null, dm = "";
+    c.pointer(function(t, q){
+      if (!axs) return; var A = a.value, B = b.value, x0 = -cc.value / B;
+      if (t === "down"){
+        var dc = Math.hypot(q.x - axs.X(x0), q.y - axs.Y(d.value)), dp = Math.hypot(q.x - axs.X(x0 + PI / (2 * B)), q.y - axs.Y(d.value + A));
+        dm = Math.min(dc, dp) < 30 ? (dc <= dp ? "c" : "p") : "";
+      }
+      if ((t === "down" || t === "drag") && dm === "c"){ d.set(Math.round(axs.iy(q.y) * 2) / 2); cc.set(Math.max(-3, Math.min(3, Math.round(-axs.ix(q.x) * B * 2) / 2))); k.redraw(); }
+      if ((t === "down" || t === "drag") && dm === "p"){ a.set(Math.round((axs.iy(q.y) - d.value) * 2) / 2); var dx = axs.ix(q.x) - x0; if (dx > 0.15) b.set(Math.max(0.5, Math.min(4, Math.round(PI / (2 * dx) * 2) / 2))); k.redraw(); }
+      if (t === "up") dm = "";
+    });
     k.draw(function(){
       c.clear(); var A = a.value, B = b.value, C = cc.value, D = d.value;
-      var ax = piAxes(c, S, -2 * PI, 2 * PI, -6, 6);
+      var ax = axs = piAxes(c, S, -2 * PI, 2 * PI, -6, 6);
       if (mode.value === "D") S.draw.fn(c, ax, function(x){ return TG.a * Math.sin(TG.b * x + TG.c) + TG.d; }, "rgba(138,149,163,.55)", 6);
       S.draw.line(c, ax.L, ax.Y(D), ax.R, ax.Y(D), P.green, 1.2, [6, 5]);
       S.draw.line(c, ax.L, ax.Y(D + Math.abs(A)), ax.R, ax.Y(D + Math.abs(A)), P.light, 1.2, [3, 3]); S.draw.line(c, ax.L, ax.Y(D - Math.abs(A)), ax.R, ax.Y(D - Math.abs(A)), P.light, 1.2, [3, 3]);
       S.draw.fn(c, ax, function(x){ return A * Math.sin(B * x + C) + D; }, P.acc, 2.8);
       var x0 = -C / B, T = 2 * PI / Math.abs(B);
-      S.draw.dot(c, ax.X(x0), ax.Y(D), 5, P.red);
+      S.draw.glow(c, ax.X(x0 + PI / (2 * B)), ax.Y(D + A), 14, P.amber, 0.45); S.draw.dot(c, ax.X(x0 + PI / (2 * B)), ax.Y(D + A), 6.5, P.amber);
+      S.draw.dot(c, ax.X(x0), ax.Y(D), 6.5, P.red); S.draw.label(c, "↕↔ glisse", ax.X(x0) + 10, ax.Y(D) + 16, {color:P.red, align:"left", size:10.5});
       var ctx = c.ctx; ctx.strokeStyle = P.red; ctx.lineWidth = 2; var yb = ax.Y(D + Math.abs(A) + 0.4); ctx.beginPath(); ctx.moveTo(ax.X(x0), yb); ctx.lineTo(ax.X(x0 + T), yb); ctx.stroke();
       S.draw.text(c, "T = " + F(T, 2), ax.X(x0 + T / 2), yb - 10, {size:12, color:P.red});
       ro.set(0, F(Math.abs(A), 2)); ro.set(1, F(T, 3) + " (= " + toPi(T) + ")"); ro.set(2, F(x0, 3)); ro.set(3, F(D + Math.abs(A), 2) + " / " + F(D - Math.abs(A), 2));
@@ -58,16 +69,19 @@ SFA.sim({
     var a1 = k.slider("A₁", 0.5, 1.5, 0.5, 1, ""), a2 = k.slider("A₂", 0.5, 1.5, 0.5, 1, "");
     var ro = k.readouts(["Fréquence de battement", "Période de battement", "Amplitude max", "Amplitude min"]);
     var nt = k.note("", "ok");
+    c1.pointer(function(t, q){ if (t === "up") return; var fr = Math.max(0, Math.min(1, (q.x - 46) / (c1.W - 62))); f2.set(Math.max(2, Math.min(12, Math.round((2 + fr * 10) * 2) / 2))); k.redraw(); });
     k.draw(function(){
       c1.clear(); c2.clear(); var F1 = f1.value, F2 = f2.value, A1 = a1.value, A2 = a2.value, df = Math.abs(F1 - F2);
       var w1 = function(t){ return A1 * Math.sin(2 * PI * F1 * t); }, w2 = function(t){ return A2 * Math.sin(2 * PI * F2 * t); }, sm = function(t){ return w1(t) + w2(t); };
       var env = function(t){ return Math.sqrt(Math.max(0, A1*A1 + A2*A2 + 2*A1*A2*Math.cos(2 * PI * (F1 - F2) * t))); };
-      var ax1 = S.draw.axes(c1, {x0:0, x1:2, y0:-1.7, y1:1.7, stepX:0.5, stepY:1, xl:"t (s)", b:26});
+      var ax1 = S.draw.axes(c1, {x0:0, x1:2, y0:-1.7, y1:1.7, stepX:0.5, stepY:1, b:30});
       S.draw.fn(c1, ax1, w1, P.acc, 2); S.draw.fn(c1, ax1, w2, P.red, 2);
-      var ax2 = S.draw.axes(c2, {x0:0, x1:2, y0:-3.3, y1:3.3, stepX:0.5, stepY:1, xl:"t (s)", b:26});
+      var ax2 = S.draw.axes(c2, {x0:0, x1:2, y0:-3.3, y1:3.3, stepX:0.5, stepY:1, b:30});
       S.draw.fn(c2, ax2, env, P.green, 1.4, [5, 4]); S.draw.fn(c2, ax2, function(t){ return -env(t); }, P.green, 1.4, [5, 4]);
       S.draw.fn(c2, ax2, sm, P.violet, 1.8);
-      S.draw.text(c1, "bleu : f₁ · rouge : f₂", ax1.R, ax1.T + 8, {align:"right", size:12}); S.draw.text(c2, "violet : somme · vert : enveloppe", ax2.R, ax2.T + 8, {align:"right", size:12});
+      S.draw.legend(c1, [[P.acc, "f₁ = " + F(F1, 1) + " Hz"], [P.red, "f₂ = " + F(F2, 1) + " Hz (glisse ↔)"]], ax1.R - 4, ax1.T + 2, {align:"right"});
+      S.draw.legend(c2, [[P.violet, "somme"], [P.green, "enveloppe", [5, 4]]], ax2.R - 4, ax2.T + 2, {align:"right"});
+      if (df === 0) S.draw.label(c2, "accordé : plus de battement", ax2.L + 10, ax2.T + 14, {color:P.green, align:"left"});
       ro.set(0, F(df, 2) + " Hz"); ro.set(1, df === 0 ? "pas de battement" : F(1 / df, 2) + " s"); ro.set(2, F(A1 + A2, 2)); ro.set(3, F(Math.abs(A1 - A2), 2));
       nt.set(df === 0 ? "f₁ = f₂ : les deux ondes sont en phase, la somme est une sinusoïde d'amplitude A₁ + A₂ = " + F(A1 + A2, 1) + ", sans battement." : "L'enveloppe passe d'un maximum (A₁ + A₂ = " + F(A1 + A2, 1) + ") à un minimum (|A₁ − A₂| = " + F(Math.abs(A1 - A2), 1) + ") avec la période " + F(1 / df, 2) + " s : " + F(df, 2) + " battement(s) par seconde.", "ok");
     });

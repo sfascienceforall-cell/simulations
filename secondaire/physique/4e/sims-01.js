@@ -133,7 +133,9 @@ window.PX = (function(){
     S.draw.text(c, s, x, y, {size:c.W < 460 ? 11.5 : 12, color:color || "#2c3a4e", align:align || "center", bg:"rgba(255,255,255,.8)"});
   };
   P4.bars = function(c, items, opts){
-    var ctx = c.ctx, ph = c.W < 460, L = ph ? 40 : 52, R = ph ? 66 : 78, rowH = c.H / items.length, lo = opts.lo, hi = opts.hi;
+    var ctx = c.ctx, ph = c.W < 460, L = 0, R = ph ? 66 : 78, rowH = c.H / items.length, lo = opts.lo, hi = opts.hi;
+    var X = function(v){ return L + (v - lo) / (hi - lo) * (c.W - L - R); };
+    ctx.save(); ctx.font = "800 " + (ph ? 12 : 13) + "px Mulish, system-ui, sans-serif"; items.forEach(function(it){ L = Math.max(L, ctx.measureText(it.n).width + 14); }); ctx.restore(); L = Math.max(L, ph ? 40 : 52);
     var X = function(v){ return L + (v - lo) / (hi - lo) * (c.W - L - R); };
     c.clear();
     ctx.save(); ctx.strokeStyle = "#a3adba"; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.moveTo(X(0), 3); ctx.lineTo(X(0), c.H - 3); ctx.stroke(); ctx.restore();
@@ -293,18 +295,36 @@ SFA.sim({
   aRetenir:"v<sub>moy</sub> = distance totale / durée totale. Sur des distances égales, on passe plus de temps à la vitesse lente : v<sub>moy</sub> = 2·v₁·v₂/(v₁ + v₂) (moyenne harmonique), toujours plus petite que (v₁ + v₂)/2.",
   piege:"« (60 + 120)/2 = 90 km/h » est faux pour un aller-retour de même distance : la vraie valeur est 80 km/h. La moyenne arithmétique n'est correcte que si les DURÉES sont égales.",
   build:function(k,S){
-    var g = k.canvas(300);
+    var P0 = S.draw.palette, race = PX.canvas(k, 0.4, 0.62), g = PX.canvas(k, 0.55, 0.7), st = {u:0, run:false, last:null};
     var mode = k.seg("Les deux trajets ont…", [["d","même distance"],["t","même durée"]], "d");
     var v1 = k.slider("Vitesse 1 (aller)", 20, 150, 5, 60, "km/h");
     var v2 = k.slider("Vitesse 2 (retour)", 20, 150, 5, 120, "km/h");
     var dd = k.slider("Distance de chaque trajet", 60, 300, 20, 120, "km");
     var ro = k.readouts(["Durée totale", "Distance totale", "Vitesse moyenne", "Moyenne arithmétique"]);
     var nt = k.note("", "");
+    var lp = k.loop(function(dt){ st.u += dt / 6; if (st.u >= 1.35){ st.u = 1.35; lp.pause(); } k.redraw(); });
+    k.button("▶ Lancer la course des trois voitures", function(){ st.u = 0; lp.play(); }, true);
+    k.button("↺ Départ", function(){ st.u = 0; lp.pause(); k.redraw(); });
     k.draw(function(){
       var A = v1.value, B = v2.value, m = mode.value, D = dd.value, d1, d2, t1, t2;
       if (m === "d"){ d1 = D; d2 = D; t1 = D / A; t2 = D / B; }
       else { t1 = D / A; t2 = t1; d1 = A * t1; d2 = B * t2; }   /* même durée : celle du trajet 1 */
       var T = t1 + t2, Dt = d1 + d2, vm = Dt / T, va = (A + B) / 2;
+      /* course : réel (v₁ puis v₂), vitesse moyenne constante, moyenne arithmétique */
+      race.clear(); var rc = race.ctx, ph = PX.phone(race), tt = st.u * T, Wl = race.W, rowH = race.H / 3, x0 = ph ? 40 : 52, x1 = Wl - 22;
+      PX.bg(race, "#cfe3f7", "#eef6fd");
+      var pos = [tt <= t1 ? A * tt : d1 + B * Math.min(tt - t1, t2), vm * tt, va * tt].map(function(q){ return Math.min(1, q / Dt); });
+      var cols = [P0.acc, P0.green, P0.amber], names = ["trajet réel", "à v moyenne : " + S.fmt(vm, 0), "à (v₁+v₂)/2 : " + S.fmt(va, 0)];
+      for (var r = 0; r < 3; r++){
+        var yy = r * rowH, cyr = yy + rowH * 0.62;
+        rc.fillStyle = r % 2 ? "#586377" : "#4c5767"; rc.fillRect(0, yy + 2, Wl, rowH - 4);
+        rc.fillStyle = "rgba(255,255,255,.55)"; for (var q2 = 6; q2 < Wl; q2 += 28) rc.fillRect(q2, cyr + rowH * 0.3, 14, 1.6);
+        var cw = Math.min(70, rowH * 1.55), xc = x0 + (x1 - x0 - cw * 0.5) * pos[r] + cw * 0.1;
+        P4.car(race, xc, yy + rowH - 6, cw, cols[r], 1);
+        S.draw.label(race, names[r], 8, yy + 11, {color:cols[r], align:"left", size:ph ? 10 : 11, fill:"rgba(255,255,255,.92)"});
+      }
+      rc.fillStyle = "#fff"; rc.fillRect(x1 + 8, 0, 4, race.H); for (var cq = 0; cq < race.H; cq += 8){ rc.fillStyle = (cq / 8) % 2 ? "#0f1b2d" : "#fff"; rc.fillRect(x1 + 8, cq, 4, 8); }
+      S.draw.label(race, "t = " + S.fmt(Math.min(tt, T * 1.35), 2) + " h", Wl - 40, race.H - 11, {color:P0.ink, size:11.5, fill:"rgba(255,255,255,.95)"});
       g.clear();
       var ax = S.draw.axes(g, {x0:0, x1:T * 1.05, y0:0, y1:Math.max(Dt, va * T) * 1.08, xl:"t (h)", yl:"distance parcourue (km)"});
       S.draw.line(g, ax.X(0), ax.Y(0), ax.X(T), ax.Y(Dt), SFA.draw.palette.green, 2.5, [7, 5]);
@@ -312,6 +332,7 @@ SFA.sim({
       var ctx = g.ctx; ctx.save(); ctx.strokeStyle = SFA.draw.palette.acc; ctx.lineWidth = 3.5; ctx.beginPath();
       ctx.moveTo(ax.X(0), ax.Y(0)); ctx.lineTo(ax.X(t1), ax.Y(d1)); ctx.lineTo(ax.X(T), ax.Y(Dt)); ctx.stroke(); ctx.restore();
       S.draw.dot(g, ax.X(t1), ax.Y(d1), 5, SFA.draw.palette.acc);
+      if (st.u > 0){ var tq = Math.min(tt, T); S.draw.dot(g, ax.X(tq), ax.Y(tq <= t1 ? A * tq : d1 + B * (tq - t1)), 6, SFA.draw.palette.red); }
       P4.label(g, "trajet réel", ax.X(t1) - 6, ax.Y(d1) - 14, SFA.draw.palette.acc, "right");
       P4.label(g, "pente = v moyenne", ax.X(T) - 4, ax.Y(Dt) + 14, SFA.draw.palette.green, "right");
       P4.label(g, "pente = (v₁+v₂)/2", ax.X(T) - 4, ax.Y(va * T) + (Math.abs(va - vm) < 4 ? 30 : 14), SFA.draw.palette.amber, "right");

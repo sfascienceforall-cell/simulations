@@ -68,7 +68,7 @@ SFA.sim({
     function span(){ return {A:Math.min(a.value,b.value),B:Math.max(a.value,b.value)}; }
     k.draw(function(){
       c.clear(); var ctx=c.ctx, M=mu.value, s=sg.value, sp=span(), A=sp.A, Bv=sp.B, fs=M6.fs(c,12);
-      var f=function(x){return phi((x-M)/s)/s;}, peak=f(M), top=fix.value?0.85:Math.max(0.12,peak*1.3);
+      var f=function(x){return phi((x-M)/s)/s;}, peak=f(M), top=fix.value?0.85:Math.max(0.12,peak*1.75);
       ax=S.draw.axes(c,{x0:-12,x1:12,y0:0,y1:top,xl:"x",yl:"densité",stepX:2});
       S.draw.area(c,ax,f,A,Bv,P.mat,0.28);
       if(!fix.value||true){ S.draw.fn(c,ax,function(x){return phi(x);},"#c5ccd8",1.6,[4,4]); }

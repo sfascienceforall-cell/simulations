@@ -194,33 +194,83 @@ SFA.sim({
   id:"p4-c06-perpetuel", ch:"c06", tag:"Défi impossible",
   titre:"Perpétuel mobile : le défi impossible",
   resume:"Un moteur alimente une dynamo qui alimente le moteur… peut-il tourner indéfiniment ?",
-  but:"Règle les rendements du moteur et de la dynamo (et l'énergie prélevée pour une lampe). Essaie de faire tourner la machine pour toujours.",
+  but:"Lance la machine : le paquet d'énergie fait le tour du circuit et perd un peu de chaleur à chaque étape. Règle les rendements du moteur et de la dynamo (et l'énergie prélevée pour une lampe), puis essaie de la faire tourner pour toujours. Le bouton « Relancer » remet 100 J.",
   aRetenir:"À chaque transformation, une partie de l'énergie devient chaleur : rendement < 100 %. Après chaque tour il reste moins d'énergie utilisable qu'avant. Un perpétuel mobile de première espèce (qui crée de l'énergie) violerait la conservation ; un perpétuel mobile qui ne perd rien est impossible dès qu'un frottement existe.",
   piege:"Même avec des rendements de 99 %, l'énergie diminue lentement mais sûrement. Ce n'est pas que l'énergie disparaît : elle part en chaleur dans l'air et le support, où on ne peut plus la récupérer pour faire tourner la machine.",
   build:function(k,S){
-    var c = k.canvas(160), g1 = k.canvas(220);
+    var P = S.draw.palette, c = PX.canvas(k, 0.55, 0.85), g1 = PX.canvas(k, 0.42, 0.6), st = {E:100, lap:0, ph:0, ang:0, ang2:0, puffs:[], done:false};
     var e1 = k.slider("Rendement du moteur", 50, 99, 1, 90, "%");
     var e2 = k.slider("Rendement de la dynamo", 50, 99, 1, 90, "%");
     var x = k.slider("Énergie prélevée par tour pour une lampe", 0, 50, 5, 0, "%");
     var ro = k.readouts(["Énergie après 1 tour", "Énergie après 10 tours", "Tours pour tomber sous 50 %", "Tours pour tomber sous 1 %"]);
     var nt = k.note("", "");
+    function q(){ return e1.value / 100 * e2.value / 100 * (1 - x.value / 100); }
+    function eAt(E0, ph){
+      var a = e1.value / 100, b = e2.value / 100, p = x.value / 100;
+      if (ph < 0.25) return E0 * (1 - (1 - a) * ph / 0.25);
+      if (ph < 0.5) return E0 * a * (1 - (1 - b) * (ph - 0.25) / 0.25);
+      if (ph < 0.6) return E0 * a * b * (1 - p * (ph - 0.5) / 0.1);
+      return E0 * a * b * (1 - p);
+    }
+    var lp = k.loop(function(dt){
+      var T = 2.4; st.ph += dt / T * (st.E < 0.3 ? 0 : 1);
+      var sp = 5 * Math.sqrt(Math.max(0, st.E) / 100); st.ang += dt * sp; st.ang2 += dt * sp;
+      if (st.E >= 0.3 && Math.random() < dt * 30 * (1 - e1.value / 100 + 0.02) && st.ph < 0.3) st.puffs.push({x:0, y:0, w:0, t:0, who:0});
+      if (st.E >= 0.3 && Math.random() < dt * 30 * (1 - e2.value / 100 + 0.02) && st.ph > 0.25 && st.ph < 0.55) st.puffs.push({x:0, y:0, w:0, t:0, who:1});
+      if (st.ph >= 1){ st.ph -= 1; st.E *= q(); st.lap++; }
+      st.puffs.forEach(function(p){ p.t += dt; }); st.puffs = st.puffs.filter(function(p){ return p.t < 1.2; });
+      k.redraw();
+    });
+    lp.play();
+    k.button("▶ / ❚❚", function(){ if (lp.running) lp.pause(); else lp.play(); }, true);
+    k.button("↺ Relancer à 100 J", function(){ st.E = 100; st.lap = 0; st.ph = 0; st.puffs = []; k.redraw(); });
+    function wheel(cx, cy, r, ang, col){
+      var ctx = c.ctx; ctx.save(); ctx.translate(cx, cy); ctx.rotate(ang);
+      var g = ctx.createRadialGradient(0, 0, r * 0.1, 0, 0, r); g.addColorStop(0, "#3a4a66"); g.addColorStop(1, col);
+      ctx.fillStyle = g; ctx.beginPath(); ctx.arc(0, 0, r, 0, 6.2832); ctx.fill(); ctx.strokeStyle = "#0f1b2d"; ctx.lineWidth = 2; ctx.stroke();
+      ctx.strokeStyle = "rgba(255,255,255,.65)"; ctx.lineWidth = 2.4; ctx.lineCap = "round";
+      for (var i = 0; i < 6; i++){ ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(r * 0.82 * Math.cos(i * 1.0472), r * 0.82 * Math.sin(i * 1.0472)); ctx.stroke(); }
+      ctx.fillStyle = "#e8edf5"; ctx.beginPath(); ctx.arc(0, 0, r * 0.14, 0, 6.2832); ctx.fill(); ctx.restore();
+    }
     k.draw(function(){
-      var P = SFA.draw.palette, a = e1.value / 100, b = e2.value / 100, p = x.value / 100, q = a * b * (1 - p), E0 = 100;
-      c.clear(); var ctx = c.ctx, bw = Math.min(110, (c.W - 80) / 2.4), x1 = 20, x2 = c.W - 20 - bw;
-      ctx.fillStyle = "#13233a"; ctx.fillRect(x1, 20, bw, 50); ctx.fillRect(x2, 20, bw, 50);
-      SFA.draw.text(c, "Moteur", x1 + bw / 2, 38, {size:13, color:"#fff"}); SFA.draw.text(c, S.fmt(a * 100, 0) + " %", x1 + bw / 2, 56, {size:12, color:"#f4c542"});
-      SFA.draw.text(c, "Dynamo", x2 + bw / 2, 38, {size:13, color:"#fff"}); SFA.draw.text(c, S.fmt(b * 100, 0) + " %", x2 + bw / 2, 56, {size:12, color:"#f4c542"});
-      SFA.draw.arrow(c, x1 + bw, 45, x2, 45, P.acc, 3); P4.label(c, S.fmt(E0 * a, 0) + " J", (x1 + bw + x2) / 2, 32, P.acc);
-      S.draw.line(c, x2 + bw / 2, 70, x2 + bw / 2, 110, P.green, 3); SFA.draw.arrow(c, x2 + bw / 2, 100, x2 + bw / 2, 112, P.green, 3); P4.label(c, "lampe " + S.fmt(E0 * a * b * p, 0) + " J", x2 + bw / 2 - 4, 128, P.green, "center");
-      SFA.draw.arrow(c, x2 + bw / 2, 140, x1 + bw / 2, 140, P.acc, 3); S.draw.line(c, x1 + bw / 2, 140, x1 + bw / 2, 70, P.acc, 3); SFA.draw.arrow(c, x1 + bw / 2, 80, x1 + bw / 2, 70, P.acc, 3);
-      P4.label(c, "retour au moteur : " + S.fmt(E0 * q, 1) + " J (au lieu de 100 J)", c.W / 2, 154, P.acc);
-      S.draw.line(c, x1 + bw / 2, 70, x1 + bw / 2, 100, P.red, 3); P4.label(c, "chaleur " + S.fmt(E0 * (1 - a), 0) + " J", x1 + bw / 2 + 4, 100, P.red, "left");
+      var a = e1.value / 100, b = e2.value / 100, p = x.value / 100, qq = q(), ph = PX.phone(c), ctx = c.ctx;
+      c.clear(); PX.bg(c, "#eef2f8", "#dde4ee");
+      var r = Math.min(c.H * 0.2, (c.W - 60) / 6, 40), xm = c.W * 0.2, xd = c.W * 0.8, ym = c.H * 0.4, yb = c.H * 0.82;
+      /* circuit : arbre en haut, fil de retour en bas */
+      ctx.lineCap = "round"; S.draw.line(c, xm, ym, xd, ym, "#8a95a3", 7); S.draw.line(c, xm, ym, xm, yb, "#c9d1dc", 4); S.draw.line(c, xm, yb, xd, yb, "#c9d1dc", 4); S.draw.line(c, xd, ym, xd, yb, "#c9d1dc", 4);
+      S.draw.line(c, xm + r, ym, xd - r, ym, "#5f6b7a", 2, [2, 6]);
+      wheel(xm, ym, r, st.ang, "#1f4b9e");
+      /* dynamo : stator + rotor */
+      var dw = r * 1.6; ctx.fillStyle = "#1f4b3a"; PX.rr(ctx, xd - dw, ym - r, 2 * dw, 2 * r, 8); ctx.fill(); ctx.strokeStyle = "#0f1b2d"; ctx.lineWidth = 2; ctx.stroke();
+      ctx.strokeStyle = "#e0a043"; ctx.lineWidth = 3; for (var i = -2; i <= 2; i++){ ctx.beginPath(); ctx.moveTo(xd - dw + 6, ym + i * r * 0.32); ctx.lineTo(xd + dw - 6, ym + i * r * 0.32); ctx.stroke(); }
+      ctx.save(); ctx.translate(xd, ym); ctx.rotate(st.ang2); ctx.fillStyle = "#e8edf5"; ctx.fillRect(-r * 0.7, -4, r * 1.4, 8); ctx.fillStyle = P.red; ctx.fillRect(-r * 0.7, -4, r * 0.35, 8); ctx.restore();
+      S.draw.label(c, "Moteur " + S.fmt(a * 100, 0) + " %", xm, ym - r - 14, {color:P.acc, size:PX.fs(c, 11.5)});
+      S.draw.label(c, "Dynamo " + S.fmt(b * 100, 0) + " %", xd, ym - r - 14, {color:P.green, size:PX.fs(c, 11.5)});
+      /* lampe */
+      var lx = xd, ly = yb + 0; ctx.fillStyle = "#13233a"; ctx.fillRect(lx - 4, ly - 6, 8, 6);
+      S.draw.glow(c, lx, ly + 12, 12 + 40 * p * Math.sqrt(st.E / 100), "#ffd24a", Math.min(0.9, 0.15 + p * 1.6 * Math.sqrt(st.E / 100)));
+      PX.ball(c, lx, ly + 12, 8, p > 0 && st.E > 0.5 ? "#fff3b0" : "#c9d1dc");
+      /* chaleur */
+      st.puffs.forEach(function(pf){ var bx = pf.who ? xd : xm, f = pf.t / 1.2; ctx.fillStyle = "rgba(192,50,29," + (0.5 * (1 - f)) + ")"; ctx.beginPath(); ctx.arc(bx + Math.sin(pf.t * 9 + pf.who) * 8, ym - r - 4 - f * 26, 4 + f * 4, 0, 6.2832); ctx.fill(); });
+      /* paquet d'énergie qui voyage */
+      var path = [[xm, ym], [xd, ym], [xd, yb], [xm, yb], [xm, ym]], tot = 0, segs = [], j;
+      for (j = 1; j < path.length; j++){ var dd = Math.hypot(path[j][0] - path[j - 1][0], path[j][1] - path[j - 1][1]); segs.push(dd); tot += dd; }
+      var s = st.ph * tot, acc = 0, px = xm, py = ym; for (j = 0; j < segs.length; j++){ if (s <= acc + segs[j]){ var f2 = (s - acc) / segs[j]; px = path[j][0] + (path[j + 1][0] - path[j][0]) * f2; py = path[j][1] + (path[j + 1][1] - path[j][1]) * f2; break; } acc += segs[j]; }
+      var Ecur = eAt(st.E, st.ph), rr = 4 + 12 * Math.sqrt(Math.max(0, Ecur) / 100);
+      S.draw.glow(c, px, py, rr * 2.6, P.yellow, 0.8); PX.ball(c, px, py, rr, "#ffd24a");
+      S.draw.label(c, S.fmt(Ecur, 0) + " J", px, py - rr - 12, {color:"#a9741a", size:11.5});
+      /* réservoir */
+      S.draw.label(c, "tour " + st.lap + " · énergie utile " + S.fmt(st.E, 1) + " J", c.W / 2, 14, {color:st.E < 1 ? P.red : P.ink, size:PX.fs(c, 12)});
+      if (st.E < 0.3) S.draw.label(c, "la machine s'arrête", c.W / 2, (ym + yb) / 2, {color:P.red, size:13});
+      S.draw.label(c, "retour au moteur : " + S.fmt(100 * qq, 1) + " J pour 100 J", c.W / 2, yb + 18, {color:P.acc, size:PX.fs(c, 11.5)});
+      /* graphe */
       g1.clear(); var N = 40, ax = S.draw.axes(g1, {x0:0, x1:N, y0:0, y1:105, xl:"tours", yl:"énergie (J)", stepX:5, stepY:20});
-      ctx = g1.ctx; ctx.save(); ctx.strokeStyle = P.acc; ctx.lineWidth = 3; ctx.beginPath(); for (var n = 0; n <= N; n++){ var yy = E0 * Math.pow(q, n); if (n) ctx.lineTo(ax.X(n), ax.Y(yy)); else ctx.moveTo(ax.X(n), ax.Y(yy)); } ctx.stroke(); ctx.restore();
-      S.draw.line(g1, ax.X(0), ax.Y(100), ax.X(N), ax.Y(100), P.green, 1.5, [6, 4]); P4.label(g1, "« perpétuel » = 100 J à chaque tour", ax.X(N) - 4, ax.Y(100) + 12, P.green, "right");
-      var n50 = Math.log(0.5) / Math.log(q), n1 = Math.log(0.01) / Math.log(q);
-      ro.set(0, S.fmt(E0 * q, 1) + " J"); ro.set(1, S.fmt(E0 * Math.pow(q, 10), 1) + " J"); ro.set(2, S.fmt(Math.ceil(n50), 0) + " tours"); ro.set(3, S.fmt(Math.ceil(n1), 0) + " tours");
-      nt.set("Facteur par tour : " + S.fmt(a, 2) + " × " + S.fmt(b, 2) + (p > 0 ? " × " + S.fmt(1 - p, 2) : "") + " = " + S.fmt(q, 3) + " < 1. Pour tourner indéfiniment, il faudrait un facteur ≥ 1 : impossible, car chaque rendement est inférieur à 1.", "warn");
+      var g = g1.ctx; g.save(); g.strokeStyle = P.acc; g.lineWidth = 3; g.beginPath(); for (var n = 0; n <= N; n++){ var yy = 100 * Math.pow(qq, n); if (n) g.lineTo(ax.X(n), ax.Y(yy)); else g.moveTo(ax.X(n), ax.Y(yy)); } g.stroke(); g.restore();
+      S.draw.line(g1, ax.X(0), ax.Y(100), ax.X(N), ax.Y(100), P.green, 1.5, [6, 4]); S.draw.label(g1, "« perpétuel » = 100 J à chaque tour", ax.X(N) - 4, ax.Y(100) + 14, {color:P.green, align:"right", size:11});
+      var lapX = Math.min(N, st.lap + st.ph); S.draw.dot(g1, ax.X(lapX), ax.Y(Math.max(0, Math.min(105, eAt(st.E, st.ph)))), 6, P.red);
+      var n50 = Math.log(0.5) / Math.log(qq), n1 = Math.log(0.01) / Math.log(qq);
+      ro.set(0, S.fmt(100 * qq, 1) + " J"); ro.set(1, S.fmt(100 * Math.pow(qq, 10), 1) + " J"); ro.set(2, S.fmt(Math.ceil(n50), 0) + " tours"); ro.set(3, S.fmt(Math.ceil(n1), 0) + " tours");
+      nt.set("Facteur par tour : " + S.fmt(a, 2) + " × " + S.fmt(b, 2) + (p > 0 ? " × " + S.fmt(1 - p, 2) : "") + " = " + S.fmt(qq, 3) + " < 1. Pour tourner indéfiniment, il faudrait un facteur ≥ 1 : impossible, car chaque rendement est inférieur à 1.", "warn");
     });
   }
 });

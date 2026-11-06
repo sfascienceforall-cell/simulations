@@ -29,3 +29,12 @@ Nouvelle structure (kit/) : chaque cours = une page `index.html` → chapitres �
 | 10:23 | Théorie biologie 3e complète (10 chapitres, 0 erreur) | fait |
 | 10:23 | Théorie maths 3e + 6e + statistique complètes (index corrigés) | fait |
 | 10:25 | Designer terminé (moteur embelli, ~75 pages en échec réparées, navigation précédent/suivant/clavier). Phase 2 lancée : inspecteurs | fait |
+| 11:00 | Enzo a arrêté les inspecteurs (lancés à 11 en partie), puis demande des VAGUES DE 6. Tous les cours reconstruits, théorie chargée partout, 938 pages de simulation 0 échec, check-course 0 erreur sur 20 cours. Commit d7dcae2 | fait |
+| — | Vagues d'inspecteurs (brief /home/claude/briefs2/insp-*.md, « reprise : retouches partielles possibles ») : V1 maths 3e-6e + physique 3e, 4e · V2 physique 5e, 6e + chimie 3e-6e · V3 biologie 3e-6e + u-biologie + u-chimie · V4 u-statistique + u-maths. Lancer la vague suivante quand la précédente est finie. | V1 en cours |
+| — | Ensuite : reconstruire tous les cours, scanall + check-course, vignettes, hubs, push, aperçu artefact, copie SSD, rapport | à faire |
+| 11:19 | V1 maths 6e inspecté : 40 sims OK, 5 fichiers retouchés, vignettes refaites | fait |
+| 11:32 | V1 physique 4e inspecté : 12 refaites en profondeur (éclipses, phases, œil, Snell, prisme…), 0 erreur | fait |
+| 11:35 | V1 maths 5e inspecté : 14 retouchées (poignées à glisser, défis), 0 erreur | fait |
+| 11:36 | V1 maths 4e inspecté : 16 refaites (lecture de graphe, cercle trigo, ellipse, médiatrice, histogramme…), 0 erreur | fait |
+| 11:38 | V1 maths 3e inspecté : 14 refaites (vase, pavage, spirale, cercle, clinomètre…), 0 erreur | fait |
+| 11:38 | V1 physique 3e inspecté : ch. 6-10 réécrits (20 sims). VAGUE 1 TERMINÉE. À la fin : vignettes avec kit/thumbs_fit.py (garde toute la scène). V2 lancée | fait |

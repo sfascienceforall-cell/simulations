@@ -54,17 +54,21 @@ SFA.sim({
   aRetenir:"x = (−b ± √Δ) / (2a) avec Δ = b² − 4ac. On calcule Δ d'abord, puis √Δ, puis les deux solutions. On vérifie toujours en remplaçant dans l'équation.",
   piege:"Le dénominateur est 2a pour TOUT le numérateur, pas seulement pour √Δ. Et −b change le signe de b : si b = −3, alors −b = 3.",
   build:function(k,S){
-    var c=k.canvas(0,{ratio:.5});
+    var M=window.M4, c=k.canvas(0,{ratio:.62}), geo={};
     var a=k.slider("a",-4,4,1,2,"");
     var b=k.slider("b",-9,9,1,-3,"");
     var cc=k.slider("c",-9,9,1,-5,"");
     var nt=k.note("","");
+    M.grab(c,function(){ return geo.ax?[{id:"c",x:geo.ax.X(0),y:geo.ax.Y(cc.value),r:30}]:[]; },
+      function(id,px,py){ cc.set(M.clamp(Math.round(geo.ax.iy(py)),-9,9)); k.redraw(); });
     k.draw(function(){
       var A=a.value,B=b.value,C=cc.value;
       c.clear();
-      var ax=S.draw.axes(c,{x0:-6,x1:6,y0:-8,y1:8,xl:"x",yl:"y",stepX:2,stepY:4});
+      var ax=geo.ax=S.draw.axes(c,{x0:-6,x1:6,y0:-10,y1:10,xl:"x",yl:"y",stepX:2,stepY:5});
       if(A===0){ nt.set("a = 0 n'est pas permis pour une équation du 2e degré. Choisis a ≠ 0.","warn"); S.draw.fn(c,ax,function(x){return B*x+C;},P.acc,3); return; }
-      S.draw.fn(c,ax,function(x){return A*x*x+B*x+C;},P.acc,3);
+      S.draw.fn(c,ax,function(x){return A*x*x+B*x+C;},P.acc,3.2);
+      M.handle(c,ax.X(0),ax.Y(C),P.amber,6); M.lab(c,"c = "+S.fmt(C,0),ax.X(0)+36,ax.Y(C)+(A>0?-16:16),P.amber,{size:10.5});
+      S.draw.legend(c,[[P.green,"solutions x₁, x₂"],[P.amber,"c : glisse ce point"]],ax.R-8,ax.T+6,{align:"right"});
       var D=B*B-4*A*C, h="<b>Équation : "+eq(A,B,C)+"</b><br>";
       h+="<b>1.</b> Δ = b² − 4ac = "+pv(B)+"² − 4×"+pv(A)+"×"+pv(C)+" = "+S.fmt(B*B)+" − ("+S.fmt(4*A*C)+") = <b>"+S.fmt(D)+"</b><br>";
       var kind="ok";
@@ -78,7 +82,7 @@ SFA.sim({
           h+="<b>4.</b> x₂ = (−b + √Δ)/(2a) = ("+S.fmt(-B)+" + "+S.fmt(r,3)+")/"+S.fmt(2*A)+" "+(exact?"= ":"≈ ")+"<b>"+S.fmt(x2,3)+"</b><br>";
           var v1=A*x1*x1+B*x1+C, v2=A*x2*x2+B*x2+C;
           h+="Vérification : a·x₁² + b·x₁ + c ≈ "+S.fmt(Math.abs(v1)<1e-9?0:v1,3)+" et a·x₂² + b·x₂ + c ≈ "+S.fmt(Math.abs(v2)<1e-9?0:v2,3)+".";
-          if(Math.abs(x1)<=6) S.draw.dot(c,ax.X(x1),ax.Y(0),7,P.green); if(Math.abs(x2)<=6) S.draw.dot(c,ax.X(x2),ax.Y(0),7,P.green);
+          [x1,x2].forEach(function(x,i){ if(Math.abs(x)<=6){ S.draw.dot(c,ax.X(x),ax.Y(0),7,P.green); M.lab(c,"x"+(i?"₂":"₁")+" = "+S.fmt(x,2),ax.X(x),ax.Y(0)+(A>0?18:-18),P.green,{size:10.5}); } });
           if(Math.abs(x1)>6||Math.abs(x2)>6) h+="<br><i>(Une solution est hors du cadre du graphique.)</i>";
         }
       }

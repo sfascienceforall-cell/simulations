@@ -46,36 +46,40 @@ SFA.sim({
   aRetenir:"Dans tout triangle, la somme des angles vaut 180°. Les trois coins mis côte à côte forment un angle plat.",
   piege:"Ne mesure pas à l'œil : une figure dessinée n'est jamais une preuve. C'est la propriété qui donne 180°, pas le dessin.",
   build:function(k,S){
-    var c=k.canvas(0,{ratio:.95}), P=S.draw.palette;
-    var V=[[0.2,0.3],[0.82,0.22],[0.45,0.04]]; V[2]=[0.5,0.05]; var sel=-1;
-    var tt=k.slider("Réaligner les coins",0,1,0.05,0,"");
-    k.button("Triangle quelconque",function(){ V[0]=[0.15,0.28];V[1]=[0.85,0.2];V[2]=[0.4,0.04]; });
-    k.button("Triangle obtus",function(){ V[0]=[0.1,0.25];V[1]=[0.9,0.25];V[2]=[0.18,0.05]; });
+    var c=k.canvas(0,{ratio:1.0}), P=S.draw.palette;
+    var V=[[0.14,0.5],[0.86,0.42],[0.42,0.06]], sel=-1;
+    var tt=k.slider("Réaligner les coins",0,1,0.01,0,"");
+    var lp=k.loop(function(dt){ var v=tt.value+dt*0.5; if(v>=1){ v=1; lp.pause(); } tt.set(v); k.redraw(); });
+    k.button("Arracher les coins (animation)",function(){ if(tt.value>=1) tt.set(0); lp.play(); },true);
+    k.button("Triangle quelconque",function(){ V[0]=[0.14,0.5];V[1]=[0.86,0.42];V[2]=[0.42,0.06]; lp.pause(); tt.set(0); });
+    k.button("Triangle obtus",function(){ V[0]=[0.1,0.46];V[1]=[0.9,0.46];V[2]=[0.2,0.06]; lp.pause(); tt.set(0); });
     var ro=k.readouts(["Angle A","Angle B","Angle C","Somme"]); var nt=k.note("");
-    function pos(){ var W=c.W,H=c.H; return V.map(function(v){ return [v[0]*W, 36+v[1]*H*0.9]; }); }
+    function pos(){ var W=c.W,H=c.H; return V.map(function(v){ return [v[0]*W, 34+v[1]*H*0.9]; }); }
     c.pointer(function(t,p){
       var ps=pos();
       if(t==="down"){ var best=-1,bd=34; ps.forEach(function(q,i){ var d=Math.hypot(p.x-q[0],p.y-q[1]); if(d<bd){bd=d;best=i;} }); sel=best; }
-      if((t==="down"||t==="drag")&&sel>=0){ V[sel]=[Math.max(0.03,Math.min(0.97,p.x/c.W)),Math.max(0,Math.min(0.42,(p.y-36)/(c.H*0.9)))]; k.redraw(); }
+      if((t==="down"||t==="drag")&&sel>=0){ V[sel]=[Math.max(0.03,Math.min(0.97,p.x/c.W)),Math.max(0,Math.min(0.55,(p.y-34)/(c.H*0.9)))]; k.redraw(); }
       if(t==="up") sel=-1;
     });
     function angleAt(ps,i){ var A=ps[i],B=ps[(i+1)%3],C=ps[(i+2)%3];
       var dB=Math.atan2(-(B[1]-A[1]),B[0]-A[0])*180/Math.PI, dC=Math.atan2(-(C[1]-A[1]),C[0]-A[0])*180/Math.PI;
       var df=((dC-dB)%360+360)%360, st,sw; if(df<=180){st=dB;sw=df;}else{st=dC;sw=360-df;} return {start:st,sweep:sw}; }
+    window.M3.fit(c,0.72,1.0);
     k.draw(function(){
       c.clear(); var ps=pos(), t=tt.value, ctx=c.ctx, cols=[P.red,P.acc,P.green], names=["A","B","C"];
       ctx.beginPath(); ctx.moveTo(ps[0][0],ps[0][1]); ctx.lineTo(ps[1][0],ps[1][1]); ctx.lineTo(ps[2][0],ps[2][1]); ctx.closePath(); ctx.fillStyle="rgba(30,63,143,.07)"; ctx.fill(); ctx.strokeStyle=P.ink; ctx.lineWidth=2.4; ctx.stroke();
-      var yb=c.H*0.82, qx=c.W/2; S.draw.line(c,qx-c.W*0.4,yb,qx+c.W*0.4,yb,P.grey,2);
+      var yb=c.H*0.88, qx=c.W/2; S.draw.line(c,qx-c.W*0.44,yb,qx+c.W*0.44,yb,P.grey,2.4); if(t>0.02) S.draw.text(c,"droite",qx+c.W*0.44-4,yb+14,{size:11,color:P.grey,align:"right"});
       var cum=0, tot=0, ang=[];
       for(var i=0;i<3;i++){ var a=angleAt(ps,i); ang.push(a); tot+=a.sweep; }
-      for(i=0;i<3;i++){ var a2=ang[i], r=Math.min(40,c.W*0.12), tgtStart=cum;
+      for(i=0;i<3;i++){ var a2=ang[i], r=Math.min(46,c.W*0.14), tgtStart=cum;
         var d=(((tgtStart-a2.start)%360)+540)%360-180, st=a2.start+d*t;
         var cx=ps[i][0]+(qx-ps[i][0])*t, cy=ps[i][1]+(yb-ps[i][1])*t;
         M3.wedge(c,cx,cy,st,a2.sweep,r,cols[i],"#fff");
-        var mid=(st+a2.sweep/2)*Math.PI/180; S.draw.text(c,names[i],cx+Math.cos(mid)*(r+12),cy-Math.sin(mid)*(r+12),{size:13,color:cols[i]});
+        var mid=(st+a2.sweep/2)*Math.PI/180; S.draw.text(c,names[i]+" "+S.fmt(a2.sweep,0)+"°",cx+Math.cos(mid)*(r+17),cy-Math.sin(mid)*(r+17),{size:M3.sz(c,12.5),color:cols[i],bg:"rgba(255,255,255,.85)"});
         cum+=a2.sweep; }
       ps.forEach(function(q,i){ if(t<0.02) window.M3.handle(c,q[0],q[1],cols[i],false,8); else S.draw.dot(c,q[0],q[1],4,P.ink); });
-      if(t<0.01) S.draw.text(c,"Glisse les sommets",c.W/2,16,{size:12,color:P.grey});
+      if(t<0.01) S.draw.text(c,"Glisse les sommets du triangle",c.W/2,16,{size:12,color:P.grey});
+      if(t>0.97){ ctx.save(); ctx.strokeStyle=P.ink; ctx.lineWidth=2; ctx.setLineDash([4,4]); ctx.beginPath(); ctx.arc(qx,yb,Math.min(46,c.W*0.14)+34,Math.PI,2*Math.PI); ctx.stroke(); ctx.restore(); S.draw.label(c,"angle plat : "+S.fmt(tot,0)+"°",qx,yb-Math.min(46,c.W*0.14)-52,{color:P.ink,size:M3.sz(c,14)}); }
       var flat=false; for(i=0;i<3;i++){ var q1=ps[i], q2=ps[(i+1)%3]; if(Math.hypot(q1[0]-q2[0],q1[1]-q2[1])<4) flat=true; }
       var area2=Math.abs((ps[1][0]-ps[0][0])*(ps[2][1]-ps[0][1])-(ps[2][0]-ps[0][0])*(ps[1][1]-ps[0][1])); if(area2<6) flat=true;
       if(flat){ for(i=0;i<3;i++) ro.set(i,"—"); ro.set(3,"—"); nt.set("Triangle aplati (sommets confondus ou alignés) : les angles ne sont pas définis. Écarte les sommets.","warn"); return; }
@@ -178,24 +182,64 @@ SFA.sim({
 SFA.sim({
   id:"m3-c07-pavage", ch:"c07", tag:"Pavage", titre:"Quels polygones recouvrent le plan ?",
   resume:"Autour d'un sommet, il faut que les angles des polygones totalisent 360°.",
-  but:"Choisis un polygone régulier (nombre de côtés n) et le nombre de copies autour d'un sommet. Cherche les cas sans trou ni recouvrement.",
+  but:"Choisis un polygone régulier (nombre de côtés n) et le nombre de copies autour d'un sommet : la jauge du bas doit atteindre exactement 360°. Passe ensuite en « Pavage complet » pour voir ce que donne le polygone sur tout le plan.",
   aRetenir:"L'angle intérieur d'un polygone régulier à n côtés vaut 180° × (n − 2) ÷ n. Il pave le plan à lui seul seulement si un nombre entier de copies fait exactement 360° : triangle, carré, hexagone.",
   piege:"Trois pentagones laissent un trou de 36° ; quatre se chevauchent. Un pentagone régulier ne pave pas le plan.",
   build:function(k,S){
-    var c=k.canvas(0,{ratio:.85}), P=S.draw.palette;
+    var M3=window.M3, c=k.canvas(0,{ratio:.92}), P=S.draw.palette, T=S.draw.tint;
     var n=k.slider("Nombre de côtés n",3,12,1,6,""), q=k.slider("Copies autour du sommet",1,8,1,3,"");
+    var md=k.seg("Vue",[["som","Autour d'un sommet"],["pav","Pavage complet"]],"som");
+    var df=k.seg("Défi",[[0,"Libre"],[1,"Trouve les 3 polygones qui pavent"]],0);
     var ro=k.readouts(["Angle intérieur","Total autour du sommet","Écart avec 360°"]); var nt=k.note("");
+    var found={};
+    var cols=[P.acc,P.green,P.amber,P.violet,P.teal,P.red,P.grey,P.yellow];
+    function poly(ctx,cx,cy,R,ph,N){ ctx.beginPath(); for(var j=0;j<N;j++){ var a=ph+j*2*Math.PI/N; var x=cx+R*Math.cos(a), y=cy-R*Math.sin(a); j?ctx.lineTo(x,y):ctx.moveTo(x,y); } ctx.closePath(); }
+    window.M3.fit(c,0.66,.92);
     k.draw(function(){
-      c.clear(); var N=n.value, K=q.value, ctx=c.ctx, al=180*(N-2)/N, ex=360/N, s=0.45*Math.min(c.W,c.H)*Math.sin(Math.PI/N);
-      var cx=c.W/2, cy=c.H/2, cols=["#1e3f8f","#2e6b55","#B45309","#5B21B6","#0e7490","#b42318","#8a95a3","#f4c542"];
-      for(var i=0;i<K;i++){ var th=i*al, X=cx, Y=cy; ctx.beginPath(); ctx.moveTo(X,Y);
-        for(var j=0;j<N;j++){ var r=(th+j*ex)*Math.PI/180; X+=s*Math.cos(r); Y-=s*Math.sin(r); ctx.lineTo(X,Y); }
-        ctx.closePath(); ctx.fillStyle=cols[i%8]; ctx.globalAlpha=0.5; ctx.fill(); ctx.globalAlpha=1; ctx.strokeStyle="#fff"; ctx.lineWidth=2; ctx.stroke(); }
-      var tot=K*al, gap=360-tot;
-      if(gap>0.01){ M3.wedge(c,cx,cy,K*al,gap,s*0.55,"rgba(180,35,24,.12)"); ctx.save(); ctx.setLineDash([5,4]); ctx.strokeStyle=P.red; ctx.lineWidth=2; ctx.beginPath(); ctx.arc(cx,cy,s*0.55,-(K*al)*Math.PI/180,-360*Math.PI/180,true); ctx.stroke(); ctx.restore(); }
-      S.draw.dot(c,cx,cy,5,P.ink);
-      ro.set(0,S.fmt(al,2)+"°"); ro.set(1,S.fmt(tot,2)+"°"); ro.set(2,Math.abs(gap)<0.01?"0° : parfait":gap>0?"trou de "+S.fmt(gap,2)+"°":"recouvrement de "+S.fmt(-gap,2)+"°");
-      if(Math.abs(gap)<0.01) nt.set(K+" copies × "+S.fmt(al,2)+"° = 360° : ces polygones se raccordent sans trou ni chevauchement autour du sommet.","ok");
+      c.clear(); var N=n.value, K=q.value, ctx=c.ctx, al=180*(N-2)/N, ex=360/N, fs=M3.sz(c,13);
+      var gaugeY=c.H-26, areaH=c.H-70;
+      var s=0.9*0.5*Math.min(c.W,areaH)*Math.sin(Math.PI/N); s=Math.max(14,s);
+      var cx=c.W/2, cy=areaH/2+8;
+      var tot=K*al, gap=360-tot, perfect=Math.abs(gap)<0.01;
+      if(md.value==="som"){
+        for(var i=0;i<K;i++){ var th=i*al, X=cx, Y=cy, mx=0, my=0; ctx.beginPath(); ctx.moveTo(X,Y);
+          for(var j=0;j<N;j++){ var r=(th+j*ex)*Math.PI/180; X+=s*Math.cos(r); Y-=s*Math.sin(r); ctx.lineTo(X,Y); }
+          ctx.closePath(); var g=ctx.createLinearGradient(cx-s,cy-s,cx+s,cy+s); g.addColorStop(0,T(cols[i%8],.55)); g.addColorStop(1,T(cols[i%8],.8));
+          ctx.fillStyle=g; ctx.fill(); ctx.strokeStyle="#fff"; ctx.lineWidth=2.6; ctx.lineJoin="round"; ctx.stroke();
+          var mid=(th+al/2)*Math.PI/180, rr=s*0.42; S.draw.text(c,S.fmt(al,al%1?1:0)+"°",cx+Math.cos(mid)*rr*1.1,cy-Math.sin(mid)*rr*1.1,{size:fs-1,color:"#fff",weight:800,halo:"rgba(15,27,45,.45)"}); }
+        if(gap>0.01){ M3.wedge(c,cx,cy,K*al,gap,s*0.7,"rgba(192,50,29,.14)"); ctx.save(); ctx.setLineDash([5,4]); ctx.strokeStyle=P.red; ctx.lineWidth=2.2; ctx.beginPath(); ctx.moveTo(cx,cy); ctx.arc(cx,cy,s*0.7,-(K*al)*Math.PI/180,-360*Math.PI/180,true); ctx.closePath(); ctx.stroke(); ctx.restore();
+          var mg=(K*al+gap/2)*Math.PI/180; S.draw.label(c,"trou "+S.fmt(gap,1)+"°",cx+Math.cos(mg)*s*0.95,cy-Math.sin(mg)*s*0.95,{color:P.red,size:fs-1}); }
+        if(gap<-0.01){ S.draw.label(c,"chevauchement "+S.fmt(-gap,1)+"°",cx,cy-s*1.0-10,{color:P.red,size:fs-1}); }
+        if(perfect){ ctx.save(); ctx.strokeStyle=P.green; ctx.lineWidth=3; ctx.setLineDash([2,5]); ctx.lineCap="round"; ctx.beginPath(); ctx.arc(cx,cy,s*0.3,0,7); ctx.stroke(); ctx.restore(); }
+      } else {
+        /* pavage : on étend de proche en proche par symétrie centrale par rapport au milieu de chaque côté */
+        var Ra=0.115*Math.min(c.W,areaH)*(N===3?1.15:1), ap=Ra*Math.cos(Math.PI/N), ph0=Math.PI/2+Math.PI/N+(N%2?0:0);
+        var seen={}, q0=[{x:cx,y:areaH/2+8,ph:ph0}], out=[], depth=0, key=function(x,y){ return Math.round(x/3)+","+Math.round(y/3); };
+        seen[key(q0[0].x,q0[0].y)]=1; out.push(q0[0]);
+        var front=q0, maxD=N===3?9:N===4?9:6;
+        if(!(N===3||N===4||N===6)) maxD=2;
+        for(depth=0;depth<maxD;depth++){ var nf=[]; front.forEach(function(p){ for(var e=0;e<N;e++){ var an=p.ph+Math.PI/N+e*2*Math.PI/N; var mxx=p.x+ap*Math.cos(an), myy=p.y-ap*Math.sin(an); var nx=2*mxx-p.x, ny=2*myy-p.y, kk=key(nx,ny);
+            if(!seen[kk]){ seen[kk]=1; var np={x:nx,y:ny,ph:p.ph+Math.PI}; nf.push(np); out.push(np); } } }); front=nf; }
+        ctx.save(); ctx.beginPath(); ctx.rect(6,6,c.W-12,areaH-4); ctx.clip();
+        var ok=(N===3||N===4||N===6);
+        out.forEach(function(p,i){ poly(ctx,p.x,p.y,Ra,p.ph,N); ctx.fillStyle=ok?T(cols[(i*7+ (Math.round(p.x/ap)+Math.round(p.y/ap))*3)%3===0?0:1],.6):T(P.acc,.28); if(ok){ var cc=(Math.abs(Math.round(p.x/(ap*.9)))+Math.abs(Math.round(p.y/(ap*.9))))%3; ctx.fillStyle=T(cols[cc],.62); } ctx.fill(); ctx.strokeStyle="#fff"; ctx.lineWidth=2; ctx.stroke(); });
+        ctx.restore();
+        if(!ok){ S.draw.label(c,"n = "+N+" : "+(N===5?"des trous apparaissent":"ça ne se raccorde pas")+" au 2e anneau",c.W/2,16,{color:P.red,size:fs-1}); }
+      }
+      /* jauge des 360° */
+      var gx=18, gw=c.W-36, gh=14; S.draw.rrect(c,gx,gaugeY-gh/2,gw,gh,7); ctx.fillStyle="#eef1f6"; ctx.fill();
+      ctx.save(); S.draw.rrect(c,gx,gaugeY-gh/2,gw,gh,7); ctx.clip();
+      for(var z=0;z<K;z++){ var a0=gx+gw*Math.min(1,z*al/360), a1=gx+gw*Math.min(1,(z+1)*al/360); if(a1>a0){ ctx.fillStyle=T(cols[z%8],.85); ctx.fillRect(a0,gaugeY-gh/2,a1-a0-1.5,gh); } }
+      ctx.restore();
+      ctx.strokeStyle=P.ink; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(gx+gw,gaugeY-gh/2-5); ctx.lineTo(gx+gw,gaugeY+gh/2+5); ctx.stroke();
+      S.draw.text(c,"360°",gx+gw,gaugeY-gh/2-12,{size:fs-2,color:P.ink,align:"right"});
+      if(tot>360) S.draw.label(c,"+"+S.fmt(tot-360,1)+"°",gx+gw-4,gaugeY+gh/2+12,{color:P.red,size:fs-3,align:"right"});
+      S.draw.text(c,K+" × "+S.fmt(al,al%1?1:0)+"° = "+S.fmt(tot,tot%1?1:0)+"°",gx,gaugeY-gh/2-12,{size:fs-1,color:perfect?P.green:P.ink,align:"left",math:true});
+      ro.set(0,S.fmt(al,2)+"°"); ro.set(1,S.fmt(tot,2)+"°"); ro.set(2,perfect?"0° : parfait":gap>0?"trou de "+S.fmt(gap,2)+"°":"recouvrement de "+S.fmt(-gap,2)+"°");
+      if(perfect&&Math.round(K)===K){ found[N]=1; }
+      var nf=Object.keys(found).filter(function(x){return +x<=6;}).length;
+      if(+df.value===1){ nt.set("Défi : "+nf+"/3 polygones qui pavent trouvés ("+Object.keys(found).sort(function(a,b){return a-b;}).map(function(x){return x+" côtés";}).join(", ")+"). "+(nf===3?"Bravo : triangle, carré, hexagone, et personne d'autre !":"Cherche n et le nombre de copies qui donnent 360°."),nf===3?"ok":"");
+      } else if(perfect) nt.set(K+" copies × "+S.fmt(al,2)+"° = 360° : ces polygones se raccordent sans trou ni chevauchement autour du sommet.","ok");
       else if(gap>0) nt.set("Il reste un trou de "+S.fmt(gap,2)+"° : essaie une copie de plus (ou un autre polygone).","warn");
       else nt.set("Les polygones se chevauchent de "+S.fmt(-gap,2)+"° : il y en a trop.","warn");
     });

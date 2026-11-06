@@ -92,37 +92,47 @@ SFA.sim({
 SFA.sim({
   id:"m4-c03-trois-points", ch:"c03", tag:"Manipuler",
   titre:"Une parabole par trois points",
-  resume:"Déplace trois points à la souris ou au doigt : la parabole qui passe par eux se calcule seule.",
-  but:"Fais glisser A, B, C. Observe que trois points d'abscisses différentes déterminent une unique parabole. Essaie de les aligner, ou de mettre deux points à la même abscisse.",
+  resume:"Déplace trois points à la souris ou au doigt : la parabole qui passe par eux se calcule seule. Puis fais-la passer par une cible.",
+  but:"Fais glisser A, B, C. Observe que trois points d'abscisses différentes déterminent une unique parabole. Défi : fais passer la courbe par la cible dorée. Essaie aussi d'aligner les points, ou de mettre deux points à la même abscisse.",
   aRetenir:"Trois points d'abscisses distinctes (non alignés) définissent une seule parabole y = ax² + bx + c : on résout un système de trois équations à trois inconnues.",
   piege:"Si les trois points sont alignés, a = 0 : c'est une droite. Si deux points ont la même abscisse, aucune fonction ne passe par eux (une abscisse = une seule image).",
   build:function(k,S){
-    var c=k.canvas(0,{ratio:.8});
-    var pts=[{x:-2,y:3},{x:0,y:-1},{x:3,y:2}], sel=-1, ax=null;
+    var M=window.M4, c=k.canvas(0,{ratio:.8});
+    var pts=[{x:-2,y:3},{x:0,y:-1},{x:3,y:2}], ax=null, tgt={x:5,y:-4}, won=0, got=false;
     var ro=k.readouts(["Points","a ; b ; c","Équation","Sommet"]);
     var nt=k.note("","");
+    var COL=[P.red,P.green,P.amber], NM=["A","B","C"];
+    k.button("Nouvelle cible",function(){ var xs=[-6,-5,-4,-3,3,4,5,6]; tgt={x:xs[Math.floor(Math.random()*xs.length)],y:Math.floor(Math.random()*11)-5}; got=false; },true);
     k.button("Aligner A, B, C",function(){ pts=[{x:-3,y:-2},{x:0,y:1},{x:3,y:4}]; });
     k.button("Remettre",function(){ pts=[{x:-2,y:3},{x:0,y:-1},{x:3,y:2}]; });
-    c.pointer(function(t,p){
-      if(!ax)return;
-      if(t==="down"){ var best=-1,bd=900; pts.forEach(function(q,i){ var d=Math.pow(ax.X(q.x)-p.x,2)+Math.pow(ax.Y(q.y)-p.y,2); if(d<bd){bd=d;best=i;} }); sel=best; }
-      if((t==="down"||t==="drag")&&sel>=0){ pts[sel].x=Math.max(-7.5,Math.min(7.5,Math.round(ax.ix(p.x)*2)/2)); pts[sel].y=Math.max(-7.5,Math.min(7.5,Math.round(ax.iy(p.y)*2)/2)); k.redraw(); }
-      if(t==="up") sel=-1;
-    });
+    M.grab(c,function(){ return ax?pts.map(function(q,i){ return {id:i,x:ax.X(q.x),y:ax.Y(q.y),r:30}; }):[]; },
+      function(i,px,py){ pts[i].x=M.clamp(Math.round(ax.ix(px)*2)/2,-7.5,7.5); pts[i].y=M.clamp(Math.round(ax.iy(py)*2)/2,-7.5,7.5); k.redraw(); });
     k.draw(function(){
       c.clear();
       ax=S.draw.axes(c,{x0:-8,x1:8,y0:-8,y1:8,xl:"x",yl:"y",stepX:2,stepY:2});
-      var n=["A","B","C"], X=pts.map(function(q){return q.x;});
-      pts.forEach(function(q,i){ S.draw.dot(c,ax.X(q.x),ax.Y(q.y),8,[P.red,P.green,P.amber][i]); S.draw.text(c,n[i]+"("+S.fmt(q.x,1)+" ; "+S.fmt(q.y,1)+")",ax.X(q.x),ax.Y(q.y)-16,{size:12,bg:"rgba(255,255,255,.8)"}); });
-      ro.set(0,pts.map(function(q,i){return n[i]+"("+S.fmt(q.x,1)+" ; "+S.fmt(q.y,1)+")";}).join(" "));
-      if(X[0]===X[1]||X[0]===X[2]||X[1]===X[2]){ ro.set(1,"—"); ro.set(2,"impossible"); ro.set(3,"—"); nt.set("Deux points ont la même abscisse : aucune fonction ne passe par les trois.","warn"); return; }
-      var x1=pts[0].x,y1=pts[0].y,x2=pts[1].x,y2=pts[1].y,x3=pts[2].x,y3=pts[2].y;
-      var d12=(y2-y1)/(x2-x1), d13=(y3-y1)/(x3-x1), A=(d13-d12)/(x3-x2), B=d12-A*(x1+x2), C=y1-d12*x1+A*x1*x2;
-      var f=function(x){return A*x*x+B*x+C;};
-      S.draw.fn(c,ax,f,P.acc,3);
+      var X=pts.map(function(q){return q.x;}), bad=(X[0]===X[1]||X[0]===X[2]||X[1]===X[2]);
+      var A=0,B=0,C=0,f=null,ycol=P.acc;
+      if(!bad){
+        var x1=pts[0].x,y1=pts[0].y,x2=pts[1].x,y2=pts[1].y,x3=pts[2].x,y3=pts[2].y;
+        var d12=(y2-y1)/(x2-x1), d13=(y3-y1)/(x3-x1); A=(d13-d12)/(x3-x2); B=d12-A*(x1+x2); C=y1-d12*x1+A*x1*x2;
+        f=function(x){return A*x*x+B*x+C;};
+        S.draw.fn(c,ax,f,P.acc,3.4);
+      }
+      /* cible */
+      var hit = f && Math.abs(f(tgt.x)-tgt.y)<0.26;
+      if(hit&&!got){ got=true; won++; }
+      S.draw.glow(c,ax.X(tgt.x),ax.Y(tgt.y),24,hit?P.green:P.yellow,.7);
+      S.draw.dot(c,ax.X(tgt.x),ax.Y(tgt.y),7,hit?P.green:P.yellow); M.lab(c,"cible ("+S.fmt(tgt.x,0)+" ; "+S.fmt(tgt.y,0)+")",ax.X(tgt.x),ax.Y(tgt.y)+(tgt.y>5?22:-22),hit?P.green:P.amber,{size:10.5});
+      pts.forEach(function(q,i){ M.handle(c,ax.X(q.x),ax.Y(q.y),COL[i],8); });
+      /* étiquettes placées pour ne pas se chevaucher */
+      var off=[[0,-22],[0,22],[0,-22]];
+      pts.forEach(function(q,i){ var dy=off[i][1]; if(f&&A<0&&i===1) dy=-22; M.lab(c,NM[i]+" ("+S.fmt(q.x,1)+" ; "+S.fmt(q.y,1)+")",ax.X(q.x),ax.Y(q.y)+dy,COL[i],{size:10.5}); });
+      ro.set(0,pts.map(function(q,i){return NM[i]+"("+S.fmt(q.x,1)+" ; "+S.fmt(q.y,1)+")";}).join(" "));
+      if(bad){ ro.set(1,"—"); ro.set(2,"impossible"); ro.set(3,"—"); nt.set("Deux points ont la même abscisse : aucune fonction ne passe par les trois.","warn"); return; }
       ro.set(1,S.fmt(A,3)+" ; "+S.fmt(B,3)+" ; "+S.fmt(C,3)); ro.set(2,"y = "+eq(A,B,C));
       if(Math.abs(A)<1e-9){ ro.set(3,"aucun"); nt.set("Les trois points sont alignés : a = 0, la « parabole » est une droite.","warn"); }
-      else { var xs=-B/(2*A); ro.set(3,"("+S.fmt(xs,2)+" ; "+S.fmt(f(xs),2)+")"); nt.set("Une seule parabole passe par ces trois points. a "+(A>0?"> 0 : ouverte vers le haut.":"< 0 : ouverte vers le bas."),"ok"); }
+      else { var xs=-B/(2*A); ro.set(3,"("+S.fmt(xs,2)+" ; "+S.fmt(f(xs),2)+")");
+        nt.set(hit?"Cible atteinte ! ("+won+" réussie"+(won>1?"s":"")+") Clique « Nouvelle cible ».":"Une seule parabole passe par A, B, C ; a "+(A>0?"> 0 (vers le haut).":"< 0 (vers le bas).")+" Déplace les points pour qu'elle passe par la cible.",hit?"ok":""); }
     });
   }
 });

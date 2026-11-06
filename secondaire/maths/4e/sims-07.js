@@ -18,36 +18,52 @@ SFA.sim({
   aRetenir:"Loi des sinus : a/sin A = b/sin B = c/sin C. Loi des cosinus : a² = b² + c² − 2bc·cos A. Aire = ½·b·c·sin A. Pour A = 90°, cos A = 0 et la loi des cosinus devient a² = b² + c².",
   piege:"Dans la loi des sinus, chaque côté est divisé par le sinus de l'angle OPPOSÉ (a ↔ A). Et un angle obtus a un sinus positif : sin(180° − A) = sin A.",
   build:function(k,S){
-    var c=k.canvas(0,{ratio:.85});
-    var pts=[{x:1,y:1.5},{x:10,y:2},{x:4,y:7.5}], ax=null, sel=-1;
+    var M=window.M4, c=k.canvas(0,{ratio:.9});
+    var pts=[{x:1,y:1.5},{x:10,y:2},{x:4,y:7.5}], ax=null, geo={};
     k.button("Triangle rectangle en A",function(){ pts=[{x:2,y:1.5},{x:9,y:1.5},{x:2,y:6}]; });
+    k.button("Triangle équilatéral",function(){ pts=[{x:2,y:1.5},{x:10,y:1.5},{x:6,y:1.5+4*Math.sqrt(3)}]; });
     k.button("Remettre",function(){ pts=[{x:1,y:1.5},{x:10,y:2},{x:4,y:7.5}]; });
     var ro=k.readouts(["Côtés a ; b ; c","Angles A ; B ; C","Aire","a/sin A ; b/sin B ; c/sin C","a² et b² + c² − 2bc·cos A"]);
     var nt=k.note("","");
-    c.pointer(function(t,p){ if(!ax)return;
-      if(t==="down"){ var best=-1,bd=1600; pts.forEach(function(q,i){ var d=Math.pow(ax.X(q.x)-p.x,2)+Math.pow(ax.Y(q.y)-p.y,2); if(d<bd){bd=d;best=i;} }); sel=best; }
-      if((t==="down"||t==="drag")&&sel>=0){ pts[sel].x=Math.max(0.5,Math.min(11.5,Math.round(ax.ix(p.x)*2)/2)); pts[sel].y=Math.max(0.5,Math.min(9,Math.round(ax.iy(p.y)*2)/2)); k.redraw(); }
-      if(t==="up") sel=-1; });
+    M.grab(c,function(){ return ax?pts.map(function(q,i){ return {id:i,x:ax.X(q.x),y:ax.Y(q.y),r:32}; }):[]; },
+      function(i,px,py){ pts[i].x=M.clamp(Math.round(ax.ix(px)*2)/2,0.5,11.5); pts[i].y=M.clamp(Math.round(ax.iy(py)*2)/2,0.5,9); k.redraw(); });
     k.draw(function(){
       c.clear();
-      ax=S.draw.axes(c,{x0:0,x1:12,y0:0,y1:9.6,stepX:2,stepY:2,equal:true});
-      var A=pts[0],B=pts[1],C=pts[2];
+      ax=S.draw.axes(c,{x0:0,x1:12,y0:0,y1:10.8,stepX:2,stepY:2,equal:true});
+      var A=pts[0],B=pts[1],C=pts[2], X=ax.X, Y=ax.Y, ctx=c.ctx;
       var a=Math.hypot(B.x-C.x,B.y-C.y), b=Math.hypot(A.x-C.x,A.y-C.y), cc=Math.hypot(A.x-B.x,A.y-B.y);
-      var ctx=c.ctx; ctx.fillStyle="rgba(30,63,143,.12)"; ctx.beginPath(); ctx.moveTo(ax.X(A.x),ax.Y(A.y)); ctx.lineTo(ax.X(B.x),ax.Y(B.y)); ctx.lineTo(ax.X(C.x),ax.Y(C.y)); ctx.closePath(); ctx.fill();
-      S.draw.line(c,ax.X(B.x),ax.Y(B.y),ax.X(C.x),ax.Y(C.y),P.red,2.5); S.draw.line(c,ax.X(A.x),ax.Y(A.y),ax.X(C.x),ax.Y(C.y),P.green,2.5); S.draw.line(c,ax.X(A.x),ax.Y(A.y),ax.X(B.x),ax.Y(B.y),P.amber,2.5);
-      var names=["A","B","C"], cols=[P.ink,P.ink,P.ink];
-      pts.forEach(function(q,i){ S.draw.dot(c,ax.X(q.x),ax.Y(q.y),8,P.acc); S.draw.text(c,names[i],ax.X(q.x),ax.Y(q.y)-16,{size:14,color:P.acc}); });
+      M.poly(c,[[X(A.x),Y(A.y)],[X(B.x),Y(B.y)],[X(C.x),Y(C.y)]],S.draw.tint(P.acc,.1));
+      S.draw.line(c,X(B.x),Y(B.y),X(C.x),Y(C.y),P.red,3); S.draw.line(c,X(A.x),Y(A.y),X(C.x),Y(C.y),P.green,3); S.draw.line(c,X(A.x),Y(A.y),X(B.x),Y(B.y),P.amber,3);
       var degen = a<1e-9||b<1e-9||cc<1e-9;
       var area2=Math.abs((B.x-A.x)*(C.y-A.y)-(C.x-A.x)*(B.y-A.y));
-      if(degen||area2<1e-9){ ["—","—"].forEach(function(){}); ro.set(0,F(a,2)+" ; "+F(b,2)+" ; "+F(cc,2)); ro.set(1,"—"); ro.set(2,"0 (sommets alignés)"); ro.set(3,"—"); ro.set(4,"—"); nt.set("Les trois points sont alignés : le triangle est aplati (aire nulle).","warn"); return; }
+      var cen={x:(A.x+B.x+C.x)/3,y:(A.y+B.y+C.y)/3};
+      function out(P0,k0){ var dx=P0.x-cen.x, dy=P0.y-cen.y, n=Math.hypot(dx,dy)||1; return [X(P0.x)+dx/n*k0, Y(P0.y)-dy/n*k0]; }
+      if(degen||area2<1e-9){ pts.forEach(function(q,i){ M.handle(c,X(q.x),Y(q.y),P.acc,7.5); }); ro.set(0,F(a,2)+" ; "+F(b,2)+" ; "+F(cc,2)); ro.set(1,"—"); ro.set(2,"0 (sommets alignés)"); ro.set(3,"—"); ro.set(4,"—"); nt.set("Les trois points sont alignés : le triangle est aplati (aire nulle).","warn"); return; }
       var cosA=(b*b+cc*cc-a*a)/(2*b*cc), cosB=(a*a+cc*cc-b*b)/(2*a*cc), Ar=Math.acos(cosA), Br=Math.acos(cosB), Cr=PI-Ar-Br;
-      var area=0.5*b*cc*Math.sin(Ar);
+      /* arcs d'angle aux sommets */
+      [[A,B,C,Ar],[B,C,A,Br],[C,A,B,Cr]].forEach(function(t,i){
+        var P0=t[0],Q=t[1],R=t[2], a1=Math.atan2(Q.y-P0.y,Q.x-P0.x), a2=Math.atan2(R.y-P0.y,R.x-P0.x), d=a2-a1; while(d>PI)d-=2*PI; while(d<-PI)d+=2*PI;
+        var lo=d>0?a1:a2, hi=lo+Math.abs(d), rr=22;
+        if(Math.abs(t[3]-PI/2)<0.012){ var u=[Math.cos(a1),-Math.sin(a1)], v=[Math.cos(a2),-Math.sin(a2)], px=X(P0.x), py=Y(P0.y), s=13;
+          ctx.save(); ctx.strokeStyle=P.ink; ctx.lineWidth=1.6; ctx.beginPath(); ctx.moveTo(px+u[0]*s,py+u[1]*s); ctx.lineTo(px+(u[0]+v[0])*s,py+(u[1]+v[1])*s); ctx.lineTo(px+v[0]*s,py+v[1]*s); ctx.stroke(); ctx.restore(); }
+        else { M.sector(c,X(P0.x),Y(P0.y),rr,lo,hi,P.violet,.25); M.arc(c,X(P0.x),Y(P0.y),rr,lo,hi,P.violet,2); }
+        var mid=lo+(hi-lo)/2; S.draw.text(c,F(t[3]/D2R,1)+"°",X(P0.x)+Math.cos(mid)*40,Y(P0.y)-Math.sin(mid)*40,{size:11,weight:800,color:P.violet,halo:true}); });
+      /* noms des côtés (à l'opposé du sommet) */
+      var mids=[[B,C,"a = "+F(a,2),P.red,A],[A,C,"b = "+F(b,2),P.green,B],[A,B,"c = "+F(cc,2),P.amber,C]];
+      mids.forEach(function(m){ var mx=(m[0].x+m[1].x)/2, my=(m[0].y+m[1].y)/2, dx=mx-m[4].x, dy=my-m[4].y, n=Math.hypot(dx,dy)||1; M.lab(c,m[2],X(mx)+dx/n*26,Y(my)-dy/n*26,m[3],{size:11}); });
+      pts.forEach(function(q,i){ var o=out(q,24); M.handle(c,X(q.x),Y(q.y),P.acc,7.5); S.draw.text(c,["A","B","C"][i],o[0],o[1],{size:14,weight:800,color:P.acc}); });
+      var area=0.5*b*cc*Math.sin(Ar), kk=a/Math.sin(Ar);
+      S.draw.panel(c,8,8,c.W<420?150:176,56,{shadow:false});
+      S.draw.text(c,"a/sin A = "+F(a/Math.sin(Ar),2),16,22,{size:11,weight:700,color:P.red,align:"left"});
+      S.draw.text(c,"b/sin B = "+F(b/Math.sin(Br),2),16,36,{size:11,weight:700,color:P.green,align:"left"});
+      S.draw.text(c,"c/sin C = "+F(cc/Math.sin(Cr),2),16,50,{size:11,weight:700,color:P.amber,align:"left"});
       ro.set(0,F(a,2)+" ; "+F(b,2)+" ; "+F(cc,2));
       ro.set(1,F(Ar/D2R,1)+"° ; "+F(Br/D2R,1)+"° ; "+F(Cr/D2R,1)+"°");
       ro.set(2,F(area,2)+" u²");
       ro.set(3,F(a/Math.sin(Ar),3)+" ; "+F(b/Math.sin(Br),3)+" ; "+F(cc/Math.sin(Cr),3));
       ro.set(4,F(a*a,2)+" et "+F(b*b+cc*cc-2*b*cc*cosA,2));
-      nt.set(Math.abs(Ar/D2R-90)<0.05||Math.abs(Br/D2R-90)<0.05||Math.abs(Cr/D2R-90)<0.05 ? "Triangle rectangle : la loi des cosinus se réduit au théorème de Pythagore." : (Math.max(Ar,Br,Cr)>PI/2+1e-6 ? "Un angle est obtus (> 90°) : cos négatif, donc le terme −2bc·cos A est positif." : "Les trois angles sont aigus."), Math.abs(Ar/D2R-90)<0.05||Math.abs(Br/D2R-90)<0.05||Math.abs(Cr/D2R-90)<0.05?"ok":"");
+      var rect=Math.abs(Ar/D2R-90)<0.05||Math.abs(Br/D2R-90)<0.05||Math.abs(Cr/D2R-90)<0.05;
+      nt.set(rect ? "Triangle rectangle : la loi des cosinus se réduit au théorème de Pythagore." : (Math.max(Ar,Br,Cr)>PI/2+1e-6 ? "Un angle est obtus (> 90°) : cos négatif, donc le terme −2bc·cos A est positif." : "Les trois angles sont aigus. Les trois rapports a/sin A, b/sin B, c/sin C sont égaux : c'est le diamètre du cercle circonscrit."), rect?"ok":"");
     });
   }
 });
@@ -214,13 +230,13 @@ SFA.sim({
     var ro=k.readouts(["α (en A) ; β (en B)","Angle en T","AT calculé","BT calculé","AT réel","Erreur sur AT"]);
     var nt=k.note("","");
     M.grab(c,function(){ return geo.sc?[{id:"T",x:geo.X(T.x),y:geo.Y(T.y),r:28}]:[]; },
-      function(id,px,py){ T.x=M.clamp(Math.round(geo.ix(px)/5)*5,-150,150); T.y=M.clamp(Math.round(geo.iy(py)/5)*5,35,185); k.redraw(); });
+      function(id,px,py){ T.x=M.clamp(Math.round(geo.ix(px)/5)*5,-150,150); T.y=M.clamp(Math.round(geo.iy(py)/5)*5,35,140); k.redraw(); });
     function tree(x,y,s,col){ var ctx=c.ctx; ctx.save(); ctx.fillStyle="#7a5230"; ctx.fillRect(x-2.5*s,y-4*s,5*s,12*s); ctx.fillStyle=col||"#2f8a56"; ctx.beginPath(); ctx.arc(x,y-11*s,11*s,0,2*Math.PI); ctx.arc(x-7*s,y-5*s,8*s,0,2*Math.PI); ctx.arc(x+7*s,y-5*s,8*s,0,2*Math.PI); ctx.fill(); ctx.restore(); }
     function person(x,y,col){ var ctx=c.ctx; ctx.save(); ctx.fillStyle=col; ctx.beginPath(); ctx.arc(x,y-17,5,0,2*Math.PI); ctx.fill(); ctx.fillRect(x-4,y-11,8,12); ctx.restore(); }
     k.draw(function(){
       M.adapt(c,.95,.78,520);
       var W=c.W,H=c.H,ctx=c.ctx; c.clear();
-      var sc=Math.min((W-16)/330,(H-34)/215); geo.sc=sc;
+      var sc=Math.min((W-16)/330,(H-34)/160); geo.sc=sc;
       var X=function(x){return W/2+x*sc;}, Y=function(y){return H-30-y*sc;};
       geo.X=X; geo.Y=Y; geo.ix=function(px){return (px-W/2)/sc;}; geo.iy=function(py){return (H-30-py)/sc;};
       var dv=d.value, A={x:-dv/2,y:0}, B={x:dv/2,y:0};

@@ -329,7 +329,7 @@ SFA.sim({
       S.draw.line(c,ax.X(0),ax.Y(pp),ax.X(n),ax.Y(pp),P.red,1.5,[4,4]);
       S.draw.line(c,ax.X(n),ax.Y(pp),ax.X(n),ax.Y(0),P.red,1.5,[4,4]);
       M6.handle(S,c,ax.X(n),ax.Y(pp),P.red,false,8);
-      S.draw.label(c,"n = "+S.fmt(n,2)+" demi-vies",ax.X(Math.min(n,7))+12,ax.Y(pp)-16,{size:fs,color:P.red,align:"left"});
+      S.draw.label(c,"n = "+S.fmt(n,2)+" demi-vies",ax.X(Math.min(Math.max(n,0.4),6))+14,Math.max(ax.Y(pp)-16,ax.Y(100)+16),{size:fs,color:P.red,align:"left"});
       /* 100 noyaux : ceux qui restent sont pleins, les autres sont désintégrés */
       var cols=25, rows=4, cell=Math.min(15,(W-24)/cols), oy=gh+14, ox=(W-cols*cell)/2, remain=Math.round(pp);
       for(var i=0;i<100;i++){ var r=Math.floor(i/cols), q=i%cols, x=ox+q*cell+cell/2, y=oy+r*cell+cell/2; ctx.beginPath(); ctx.arc(x,y,cell*0.36,0,6.2832); if(i<pp){ ctx.fillStyle=P.mat; ctx.fill(); } else { ctx.strokeStyle="#c9d1dc"; ctx.lineWidth=1; ctx.stroke(); } }

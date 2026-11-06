@@ -94,14 +94,21 @@ SFA.sim({
     var run = k.loop(function(dt){ var v = X.value + dt * 38; if (v >= 200){ v = 200; run.pause(); } X.set(v); k.redraw(); });
     k.button("▶ Zoom arrière (x → ∞)", function(){ X.set(5); run.play(); }, true);
     var ro = k.readouts(["f(X)", "f(−X)", "ε", "|f(x) − L| < ε dès x ≥"]);
-    var nt = k.note("", "ok");
+    var nt = k.note("", "ok"), axi = null, dg = false;
+    c.pointer(function(t, q){
+      var d = IN[sel.value]; if (!axi || !isFinite(d.lp)) return;
+      if (t === "down") dg = Math.abs(q.y - axi.Y(d.lp + EPS[ei.value])) < 16 || Math.abs(q.y - axi.Y(d.lp - EPS[ei.value])) < 16;
+      if ((t === "down" || t === "drag") && dg){ var e = Math.max(1e-4, Math.abs(axi.iy(q.y) - d.lp)), bi = 0; EPS.forEach(function(v, i){ if (Math.abs(Math.log(v / e)) < Math.abs(Math.log(EPS[bi] / e))) bi = i; }); ei.set(bi); k.redraw(); }
+      if (t === "up") dg = false;
+    });
     k.draw(function(){
       var d = IN[sel.value], x = X.value, eps = EPS[ei.value]; c.clear();
-      var ax = S.draw.axes(c, {x0:-x, x1:x, y0:d.y0, y1:d.y1, xl:"x", yl:"f(x)"});
+      var ax = axi = S.draw.axes(c, {x0:-x, x1:x, y0:d.y0, y1:d.y1, xl:"x", yl:"f(x)"});
       var fin = isFinite(d.lp);
       if (fin){
         var ctx = c.ctx; ctx.fillStyle = "rgba(46,107,85,.18)"; ctx.fillRect(ax.L, ax.Y(d.lp + eps), ax.R - ax.L, Math.max(1.5, ax.Y(d.lp - eps) - ax.Y(d.lp + eps)));
         S.draw.line(c, ax.L, ax.Y(d.lp), ax.R, ax.Y(d.lp), P.green, 1.4, [6, 4]);
+        S.draw.label(c, "↕ tire le bord : ε = " + F(eps, 3), ax.R - 8, Math.min(ax.B - 12, Math.max(ax.T + 12, ax.Y(d.lp + eps) - 14)), {color:P.green, align:"right", size:11});
       }
       if (isFinite(d.lm)) S.draw.line(c, ax.L, ax.Y(d.lm), ax.R, ax.Y(d.lm), P.red, 1, [2, 4]);
       S.draw.fn(c, ax, d.f, P.acc, 2.6);
@@ -183,7 +190,7 @@ SFA.sim({
   id:"m5-c03-saut", ch:"c03", tag:"Niche utile",
   titre:"Saut ou divergence : quand la limite n'existe pas",
   resume:"Limites gauche et droite d'une fonction par morceaux ou d'une fraction.",
-  but:"Mode « Saut » : règle m, p et v pour raccorder les deux morceaux. Modes 1/(x − 2) : change le signe de s et regarde les infinis.",
+  but:"Mode « Saut » : glisse les points vert (limite à droite) et rouge (f(2)) ou règle m, p et v pour raccorder les deux morceaux. Modes 1/(x − 2) : change le signe de s et regarde les infinis.",
   aRetenir:"La limite en a existe si lim à gauche = lim à droite. Avec un dénominateur qui s'annule, on étudie le signe de chaque côté : 1/(x − 2) tend vers −∞ à gauche et +∞ à droite, 1/(x − 2)² vers +∞ des deux côtés.",
   piege:"« 1/0 = ∞ » sans regarder le signe : 1/(x − 2) n'a pas de limite en 2, alors que 1/(x − 2)² a pour limite +∞.",
   build:function(k, S){
@@ -194,16 +201,23 @@ SFA.sim({
     var v = k.slider("v = f(2) (mode Saut)", -3, 6, 0.5, 3, "");
     var s = k.slider("s (modes fraction)", -3, 3, 1, 1, "");
     var ro = k.readouts(["Limite à gauche", "Limite à droite", "f(2)", "Limite en 2"]);
-    var nt = k.note("", "ok");
+    var nt = k.note("", "ok"), axs = null, dm = "";
+    c.pointer(function(t, q){
+      if (!axs || mode.value !== "S") return;
+      var yg = axs.Y(2 * m.value + p.value), yv = axs.Y(v.value);
+      if (t === "down") dm = Math.abs(q.y - yg) < 30 && Math.abs(q.x - axs.X(2)) < 60 && Math.abs(q.y - yg) <= Math.abs(q.y - yv) ? "p" : Math.abs(q.y - yv) < 30 && Math.abs(q.x - axs.X(2)) < 60 ? "v" : "";
+      if ((t === "down" || t === "drag") && dm){ var yy = Math.round(axs.iy(q.y) * 2) / 2; if (dm === "p") p.set(yy - 2 * m.value); else v.set(yy); k.redraw(); }
+      if (t === "up") dm = "";
+    });
     k.draw(function(){
       c.clear(); var md = mode.value, lg, ld, f2, lim, ok;
-      var ax = S.draw.axes(c, {x0:-1, x1:5, y0:-8, y1:12, stepX:1, stepY:2, xl:"x", yl:"f(x)"});
+      var ax = axs = S.draw.axes(c, {x0:-1, x1:5, y0:-8, y1:12, stepX:1, stepY:2, xl:"x", yl:"f(x)"});
       S.draw.line(c, ax.X(2), ax.T, ax.X(2), ax.B, P.light, 1.5, [5, 4]);
       if (md === "S"){
         var fL = function(x){ return x + 1; }, fR = function(x){ return m.value * x + p.value; };
         piece(c, ax, fL, -1, 2, P.acc); piece(c, ax, fR, 2, 5, P.green);
         lg = 3; ld = 2 * m.value + p.value; f2 = v.value;
-        hole(c, ax, 2, lg, P.acc); hole(c, ax, 2, ld, P.green); S.draw.label(c, "lim⁻ = " + F(lg, 1), ax.X(2) - 10, ax.Y(lg) - 14, {color:P.acc, align:"right", size:11}); S.draw.label(c, "lim⁺ = " + F(ld, 1), ax.X(2) + 10, ax.Y(ld) + (ld >= lg ? 16 : -16), {color:P.green, align:"left", size:11}); S.draw.dot(c, ax.X(2), ax.Y(f2), 5, P.red);
+        hole(c, ax, 2, lg, P.acc); hole(c, ax, 2, ld, P.green); S.draw.label(c, "lim⁻ = " + F(lg, 1), ax.X(2) - 10, ax.Y(lg) - 14, {color:P.acc, align:"right", size:11}); S.draw.label(c, "lim⁺ = " + F(ld, 1), ax.X(2) + 10, ax.Y(ld) + (ld >= lg ? 16 : -16), {color:P.green, align:"left", size:11}); S.draw.dot(c, ax.X(2), ax.Y(f2), 6, P.red); S.draw.label(c, "↕ f(2) = " + F(f2, 1), ax.X(2) + 12, ax.Y(f2) + (Math.abs(f2 - ld) < 1.2 ? 30 : 0), {color:P.red, align:"left", size:11});
         ok = lg === ld; lim = ok ? F(lg, 2) : "n'existe pas";
         nt.set(ok ? (f2 === lg ? "Raccord parfait : limite gauche = limite droite = f(2) = " + F(lg, 1) + ". La fonction est continue en 2." : "Les limites gauche et droite valent " + F(lg, 1) + " mais f(2) = " + F(f2, 1) + " : la limite existe, la fonction est discontinue en 2 (point mal placé).") : "Limite gauche " + F(lg, 1) + " ≠ limite droite " + F(ld, 1) + " : saut de " + F(ld - lg, 1) + ", pas de limite en 2.", ok ? "ok" : "warn");
       } else {

@@ -26,10 +26,10 @@ SFA.sim({
       if(fam.value){ for(var j=-3;j<=3;j++){ if(j===cc) continue; S.draw.fn(c,ax,function(x){return d.F(x)+j;},"#c3cde6",1.5); } }
       S.draw.fn(c,ax,d.f,P.green,2,[6,4]);
       S.draw.fn(c,ax,function(x){return d.F(x)+cc;},P.mat,3.4);
-      var m=d.f(x0), dxp=ax.X(x0+1)-ax.X(x0), dyp=-(ax.Y(m)-ax.Y(0)), nrm=Math.hypot(dxp,dyp)||1, ux=dxp/nrm*38, uy=dyp/nrm*38;
+      var m=d.f(x0), dxp=ax.X(x0+1)-ax.X(x0), dyp=-(ax.Y(m)-ax.Y(0)), nrm=Math.hypot(dxp,dyp)||1, ux=dxp/nrm*26, uy=dyp/nrm*26;
       S.draw.line(c,ax.X(x0),ax.T,ax.X(x0),ax.B,"#9aa5b5",1,[3,4]);
       var list=fam.value?[-3,-2,-1,0,1,2,3]:[cc]; if(list.indexOf(cc)<0) list.push(cc);
-      list.forEach(function(j){ var y=d.F(x0)+j, px=ax.X(x0), py=ax.Y(y); if(py<ax.T||py>ax.B) return; S.draw.line(c,px-ux,py-uy,px+ux,py+uy,P.red,2.2); S.draw.dot(c,px,py,j===cc?0:3.5,P.red); });
+      list.forEach(function(j){ var y=d.F(x0)+j, px=ax.X(x0), py=ax.Y(y); if(py<ax.T||py>ax.B) return; S.draw.line(c,px-ux,py-uy,px+ux,py+uy,P.red,1.8); S.draw.dot(c,px,py,j===cc?0:3,P.red); });
       M6.handle(S,c,ax.X(x0),ax.Y(d.F(x0)+cc),P.mat,false,8);
       S.draw.legend(c,[[P.green,"f (pointillés)",true],[P.mat,"F + C (gras)"],[P.red,"tangentes : même pente"]],ax.L+8,ax.T+6);
       ro.set(0,"F(x) = "+d.ex+(cc===0?"":(cc>0?" + ":" − ")+S.fmt(Math.abs(cc),1)));

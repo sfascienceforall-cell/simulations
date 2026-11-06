@@ -13,7 +13,7 @@ SFA.sim({
   aRetenir:"La médiatrice de [AB] est le lieu des points M tels que MA = MB. C'est la droite perpendiculaire à [AB] passant par son milieu. Tout point de cette droite est équidistant de A et B, et réciproquement.",
   piege:"Un lieu, c'est TOUS les points qui vérifient la condition (une droite entière), pas seulement quelques points. Et la médiatrice n'est pas la médiane : elle est perpendiculaire à [AB].",
   build:function(k,S){
-    var c=k.canvas(0,{ratio:.85});
+    var M4=window.M4, c=k.canvas(0,{ratio:.85});
     var A={x:-3,y:-2},B={x:5,y:2},M={x:1,y:5}, marks=[], ax=null, sel=-1;
     k.button("Marquer M",function(){ marks.push({x:M.x,y:M.y}); if(marks.length>60) marks.shift(); },true);
     k.button("Effacer les marques",function(){ marks=[]; });
@@ -27,16 +27,28 @@ SFA.sim({
     function eq(P1){ return Math.abs(Math.pow(P1.x-A.x,2)+Math.pow(P1.y-A.y,2)-Math.pow(P1.x-B.x,2)-Math.pow(P1.y-B.y,2))<1e-9; }
     k.draw(function(){
       c.clear(); ax=S.draw.axes(c,{x0:-10,x1:10,y0:-10,y1:10,stepX:2,stepY:2,equal:true});
-      var degen=(A.x===B.x&&A.y===B.y);
+      var degen=(A.x===B.x&&A.y===B.y), ctx=c.ctx, u=ax.X(1)-ax.X(0);
+      var ma0=Math.hypot(M.x-A.x,M.y-A.y), mb0=Math.hypot(M.x-B.x,M.y-B.y);
       if(!degen){ var mx=(A.x+B.x)/2,my=(A.y+B.y)/2, dx=-(B.y-A.y),dy=B.x-A.x, n=Math.hypot(dx,dy); dx/=n; dy/=n;
-        var ctx=c.ctx; ctx.save(); ctx.beginPath(); ctx.rect(ax.L,ax.T,ax.R-ax.L,ax.B-ax.T); ctx.clip();
-        S.draw.line(c,ax.X(mx-dx*30),ax.Y(my-dy*30),ax.X(mx+dx*30),ax.Y(my+dy*30),P.violet,2.5,[8,5]); ctx.restore();
-        S.draw.dot(c,ax.X(mx),ax.Y(my),4,P.violet); }
-      S.draw.line(c,ax.X(A.x),ax.Y(A.y),ax.X(B.x),ax.Y(B.y),P.ink,2);
+        ctx.save(); ctx.beginPath(); ctx.rect(ax.L,ax.T,ax.R-ax.L,ax.B-ax.T); ctx.clip();
+        /* demi-plans : du côté de A (orange), du côté de B (bleu-vert) */
+        [[A,P.amber],[B,P.teal]].forEach(function(q){ var sg0=((q[0].x-mx)*(-dy)+(q[0].y-my)*dx)>=0?1:-1; ctx.beginPath();
+          ctx.moveTo(ax.X(mx-dx*40),ax.Y(my-dy*40)); ctx.lineTo(ax.X(mx+dx*40),ax.Y(my+dy*40));
+          ctx.lineTo(ax.X(mx+dx*40+(-dy)*sg0*40),ax.Y(my+dy*40+dx*sg0*40)); ctx.lineTo(ax.X(mx-dx*40+(-dy)*sg0*40),ax.Y(my-dy*40+dx*sg0*40)); ctx.closePath();
+          ctx.fillStyle=S.draw.tint(q[1],.07); ctx.fill(); });
+        /* cercles centrés en A et B passant par M */
+        ctx.setLineDash([2,4]); ctx.lineWidth=1.4; ctx.strokeStyle=S.draw.tint(P.amber,.8); ctx.beginPath(); ctx.arc(ax.X(A.x),ax.Y(A.y),ma0*u,0,7); ctx.stroke();
+        ctx.strokeStyle=S.draw.tint(P.teal,.8); ctx.beginPath(); ctx.arc(ax.X(B.x),ax.Y(B.y),mb0*u,0,7); ctx.stroke(); ctx.setLineDash([]);
+        S.draw.line(c,ax.X(mx-dx*30),ax.Y(my-dy*30),ax.X(mx+dx*30),ax.Y(my+dy*30),P.violet,3,[8,5]); ctx.restore();
+        S.draw.dot(c,ax.X(mx),ax.Y(my),5,P.violet); M4.lab(c,"milieu I",ax.X(mx)+(dx>=0?-34:34),ax.Y(my)+(dy>=0?14:-14),P.violet,{size:10.5});
+        var q2=11, ux=(B.x-A.x)/Math.hypot(B.x-A.x,B.y-A.y), uy=(B.y-A.y)/Math.hypot(B.x-A.x,B.y-A.y);
+        ctx.save(); ctx.strokeStyle=P.violet; ctx.lineWidth=1.5; ctx.beginPath(); ctx.moveTo(ax.X(mx)+ux*q2,ax.Y(my)-uy*q2); ctx.lineTo(ax.X(mx)+(ux+dx)*q2,ax.Y(my)-(uy+dy)*q2); ctx.lineTo(ax.X(mx)+dx*q2,ax.Y(my)-dy*q2); ctx.stroke(); ctx.restore(); }
+      S.draw.line(c,ax.X(A.x),ax.Y(A.y),ax.X(B.x),ax.Y(B.y),P.ink,2.2);
       marks.forEach(function(q){ S.draw.dot(c,ax.X(q.x),ax.Y(q.y),5,eq(q)?P.green:P.red); });
-      S.draw.line(c,ax.X(M.x),ax.Y(M.y),ax.X(A.x),ax.Y(A.y),P.amber,1.5,[4,3]); S.draw.line(c,ax.X(M.x),ax.Y(M.y),ax.X(B.x),ax.Y(B.y),P.teal,1.5,[4,3]);
-      S.draw.dot(c,ax.X(A.x),ax.Y(A.y),7,P.ink); S.draw.dot(c,ax.X(B.x),ax.Y(B.y),7,P.ink); S.draw.dot(c,ax.X(M.x),ax.Y(M.y),8,eq(M)?P.green:P.acc);
-      S.draw.text(c,"A",ax.X(A.x)-12,ax.Y(A.y)+12,{size:14}); S.draw.text(c,"B",ax.X(B.x)+12,ax.Y(B.y)-12,{size:14}); S.draw.text(c,"M",ax.X(M.x)+12,ax.Y(M.y)-12,{size:14,color:P.acc});
+      S.draw.line(c,ax.X(M.x),ax.Y(M.y),ax.X(A.x),ax.Y(A.y),P.amber,2.2); S.draw.line(c,ax.X(M.x),ax.Y(M.y),ax.X(B.x),ax.Y(B.y),P.teal,2.2);
+      M4.handle(c,ax.X(A.x),ax.Y(A.y),P.ink,7); M4.handle(c,ax.X(B.x),ax.Y(B.y),P.ink,7); M4.handle(c,ax.X(M.x),ax.Y(M.y),eq(M)?P.green:P.acc,8);
+      M4.lab(c,"A",ax.X(A.x)-14,ax.Y(A.y)+14,P.ink,{size:12}); M4.lab(c,"B",ax.X(B.x)+14,ax.Y(B.y)-14,P.ink,{size:12}); M4.lab(c,"M",ax.X(M.x)+14,ax.Y(M.y)-14,eq(M)?P.green:P.acc,{size:12});
+      M4.lab(c,"MA = "+F(ma0,2),(ax.X(M.x)+ax.X(A.x))/2,(ax.Y(M.y)+ax.Y(A.y))/2-12,P.amber,{size:10.5}); M4.lab(c,"MB = "+F(mb0,2),(ax.X(M.x)+ax.X(B.x))/2,(ax.Y(M.y)+ax.Y(B.y))/2+12,P.teal,{size:10.5});
       var ma=Math.hypot(M.x-A.x,M.y-A.y), mb=Math.hypot(M.x-B.x,M.y-B.y);
       ro.set(0,F(ma,3)); ro.set(1,F(mb,3)); ro.set(2,F(Math.abs(ma-mb),3)); ro.set(3,degen?"—":(eq(M)?"sur la médiatrice":(ma<mb?"plus près de A":"plus près de B")));
       nt.set(degen?"A et B sont confondus : il n'y a pas de médiatrice. Sépare-les.":(eq(M)?"MA = MB : M est sur la médiatrice de [AB].":"M n'est pas sur la médiatrice : MA ≠ MB. Du côté de "+(ma<mb?"A":"B")+" de la médiatrice."),degen?"warn":(eq(M)?"ok":""));
@@ -120,12 +132,16 @@ SFA.sim({
       else { cen=[A[0]/2,0]; rad=A[0]/2; desc="cercle de diamètre [OA]"+(A[0]>R?" (seulement un arc est atteint)":""); }
       if(pr.value){ ctx.save(); ctx.strokeStyle=P.green; ctx.lineWidth=2; ctx.setLineDash([6,5]); ctx.beginPath(); ctx.arc(ax.X(cen[0]),ax.Y(cen[1]),rad*(ax.X(1)-ax.X(0)),0,2*PI); ctx.stroke(); ctx.restore(); }
       var Pp=[R*Math.cos(t.value*D2R),R*Math.sin(t.value*D2R)], M=Mof(t.value,A,ty);
-      S.draw.line(c,ax.X(A[0]),ax.Y(A[1]),ax.X(Pp[0]),ax.Y(Pp[1]),P.grey,1.5,[4,3]);
-      if(ty==="pied") S.draw.line(c,ax.X(0),ax.Y(0),ax.X(M[0]),ax.Y(M[1]),P.amber,1.5,[4,3]);
-      S.draw.dot(c,ax.X(0),ax.Y(0),4,P.ink); S.draw.text(c,"O",ax.X(0)-10,ax.Y(0)+12,{size:13});
-      S.draw.dot(c,ax.X(A[0]),ax.Y(A[1]),6,P.ink); S.draw.text(c,"A",ax.X(A[0]),ax.Y(A[1])+14,{size:13});
-      S.draw.dot(c,ax.X(Pp[0]),ax.Y(Pp[1]),7,P.acc); S.draw.text(c,"P",ax.X(Pp[0])+(Pp[0]>=0?12:-12),ax.Y(Pp[1])-10,{size:13,color:P.acc});
-      S.draw.dot(c,ax.X(M[0]),ax.Y(M[1]),7,P.red); S.draw.text(c,"M",ax.X(M[0])+(M[0]>=cen[0]?12:-12),ax.Y(M[1])-10,{size:13,color:P.red});
+      S.draw.line(c,ax.X(A[0]),ax.Y(A[1]),ax.X(Pp[0]),ax.Y(Pp[1]),P.grey,1.8,[4,3]);
+      if(ty==="pied"){ S.draw.line(c,ax.X(0),ax.Y(0),ax.X(M[0]),ax.Y(M[1]),P.amber,1.8,[4,3]); }
+      S.draw.line(c,ax.X(0),ax.Y(0),ax.X(Pp[0]),ax.Y(Pp[1]),P.acc,1.2,[2,4]);
+      var M4=window.M4;
+      S.draw.dot(c,ax.X(0),ax.Y(0),4,P.ink); M4.lab(c,"O",ax.X(0)-12,ax.Y(0)+13,P.ink,{size:11});
+      S.draw.dot(c,ax.X(A[0]),ax.Y(A[1]),6,P.ink); M4.lab(c,"A",ax.X(A[0]),ax.Y(A[1])+16,P.ink,{size:11});
+      M4.handle(c,ax.X(Pp[0]),ax.Y(Pp[1]),P.acc,7.5); M4.lab(c,"P",ax.X(Pp[0])+(Pp[0]>=0?14:-14),ax.Y(Pp[1])-12,P.acc,{size:11});
+      S.draw.glow(c,ax.X(M[0]),ax.Y(M[1]),20,P.red,.5);
+      S.draw.dot(c,ax.X(M[0]),ax.Y(M[1]),7,P.red); M4.lab(c,"M",ax.X(M[0])+(M[0]>=cen[0]?14:-14),ax.Y(M[1])-12,P.red,{size:11});
+      S.draw.legend(c,[[P.acc,"cercle de P"],[P.red,"trace de M"]].concat(pr.value?[[P.green,"lieu annoncé",true]]:[]),ax.R-8,ax.T+6,{align:"right"});
       ro.set(0,desc); ro.set(1,"("+F(cen[0],2)+" ; 0)"); ro.set(2,F(rad,2));
     });
   }
@@ -148,19 +164,22 @@ SFA.sim({
     var ro=k.readouts(["Équation du cercle","OP","Longueur PT₁ = PT₂","Angle T₁PT₂"]);
     var nt=k.note("","");
     c.pointer(function(t,p){ if(!ax||t==="move")return; Pp.x=snap(ax.ix(p.x),-9,9,0.5); Pp.y=snap(ax.iy(p.y),-9,9,0.5); k.redraw(); });
+    var M4=window.M4;
     k.draw(function(){
       c.clear(); ax=S.draw.axes(c,{x0:-10,x1:10,y0:-10,y1:10,stepX:2,stepY:2,equal:true}); var ctx=c.ctx;
       var H=h.value,K=kk.value,Rr=R.value, u=ax.X(1)-ax.X(0);
-      ctx.strokeStyle=P.acc; ctx.lineWidth=2.5; ctx.beginPath(); ctx.arc(ax.X(H),ax.Y(K),Rr*u,0,2*PI); ctx.stroke();
-      S.draw.dot(c,ax.X(H),ax.Y(K),4,P.ink); S.draw.text(c,"O",ax.X(H)-10,ax.Y(K)+12,{size:13});
+      ctx.save(); ctx.beginPath(); ctx.arc(ax.X(H),ax.Y(K),Rr*u,0,2*PI); ctx.fillStyle=S.draw.tint(P.acc,.08); ctx.fill(); ctx.strokeStyle=P.acc; ctx.lineWidth=2.8; ctx.stroke(); ctx.restore();
+      S.draw.dot(c,ax.X(H),ax.Y(K),4.5,P.ink); M4.lab(c,"O",ax.X(H)-12,ax.Y(K)+13,P.ink,{size:11});
       var dx=Pp.x-H, dy=Pp.y-K, d=Math.hypot(dx,dy);
-      S.draw.dot(c,ax.X(Pp.x),ax.Y(Pp.y),8,P.red); S.draw.text(c,"P",ax.X(Pp.x)+12,ax.Y(Pp.y)-10,{size:14,color:P.red});
+      M4.handle(c,ax.X(Pp.x),ax.Y(Pp.y),P.red,8); M4.lab(c,"P",ax.X(Pp.x)+14,ax.Y(Pp.y)-13,P.red,{size:12});
       ro.set(0,sq("x",H)+" + "+sq("y",K)+" = "+F(Rr*Rr,2)); ro.set(1,F(d,3));
       if(d<Rr-1e-9){ ro.set(2,"—"); ro.set(3,"—"); nt.set("P est à l'intérieur du cercle (OP < R) : aucune tangente.","warn"); return; }
       if(d<1e-9){ return; }
       if(Math.abs(d-Rr)<1e-9){ ro.set(2,"0"); ro.set(3,"180°"); nt.set("P est sur le cercle : une seule tangente, perpendiculaire à OP en P.","warn"); return; }
       var phi=Math.atan2(dy,dx), beta=Math.acos(Rr/d), L=Math.sqrt(d*d-Rr*Rr), T=[[H+Rr*Math.cos(phi+beta),K+Rr*Math.sin(phi+beta)],[H+Rr*Math.cos(phi-beta),K+Rr*Math.sin(phi-beta)]];
-      T.forEach(function(q,i){ S.draw.line(c,ax.X(Pp.x),ax.Y(Pp.y),ax.X(q[0]),ax.Y(q[1]),P.green,2.5); S.draw.line(c,ax.X(H),ax.Y(K),ax.X(q[0]),ax.Y(q[1]),P.amber,2,[4,3]); S.draw.dot(c,ax.X(q[0]),ax.Y(q[1]),6,P.green); S.draw.text(c,"T"+(i+1),ax.X(q[0])+(q[0]>=H?14:-14),ax.Y(q[1])+(q[1]>=K?-12:12),{size:13,color:P.green}); });
+      T.forEach(function(q,i){ S.draw.line(c,ax.X(Pp.x),ax.Y(Pp.y),ax.X(q[0]),ax.Y(q[1]),P.green,2.5); S.draw.line(c,ax.X(H),ax.Y(K),ax.X(q[0]),ax.Y(q[1]),P.amber,2,[4,3]); S.draw.dot(c,ax.X(q[0]),ax.Y(q[1]),6,P.green); M4.lab(c,"T"+(i+1),ax.X(q[0])+(q[0]>=H?18:-18),ax.Y(q[1])+(q[1]>=K?-14:14),P.green,{size:11});
+        var rx=(H-q[0])/Rr, ry=(K-q[1])/Rr, tx=(Pp.x-q[0])/L, ty=(Pp.y-q[1])/L, s2=11, X0=ax.X(q[0]), Y0=ax.Y(q[1]);
+        ctx.save(); ctx.strokeStyle=P.ink; ctx.lineWidth=1.5; ctx.beginPath(); ctx.moveTo(X0+rx*s2,Y0-ry*s2); ctx.lineTo(X0+(rx+tx)*s2,Y0-(ry+ty)*s2); ctx.lineTo(X0+tx*s2,Y0-ty*s2); ctx.stroke(); ctx.restore(); });
       S.draw.line(c,ax.X(H),ax.Y(K),ax.X(Pp.x),ax.Y(Pp.y),P.grey,1,[2,4]);
       ro.set(2,F(L,3)); ro.set(3,F(2*Math.asin(Rr/d)/D2R,1)+"°");
       nt.set("Les deux tangentes mesurent "+F(L,3)+" = √("+F(d*d,2)+" − "+F(Rr*Rr,2)+"). Les rayons OT sont perpendiculaires aux tangentes (triangle OTP rectangle en T).","ok");
@@ -177,25 +196,43 @@ SFA.sim({
   aRetenir:"L'ellipse est le lieu des points M tels que MF₁ + MF₂ = L (constante). Avec foyers (±c ; 0) et L = 2a : b² = a² − c², équation x²/a² + y²/b² = 1. Si c = 0, c'est un cercle de rayon a.",
   piege:"Il faut L > F₁F₂ pour que la ficelle puisse être tendue. Si L = F₁F₂, le lieu est le segment [F₁F₂] ; si L est plus petit, il n'y a aucun point.",
   build:function(k,S){
-    var c=k.canvas(0,{ratio:.85});
+    var M4=window.M4, c=k.canvas(0,{ratio:.85}), geo={}, trail=[];
     var L=k.slider("Longueur de la ficelle L = MF₁ + MF₂",6,18,0.5,10,"");
     var f=k.slider("Distance entre les foyers F₁F₂ = 2c",0,12,0.5,6,"");
     var t=k.slider("Position de M",0,359,1,50,"°");
+    var tr=k.toggle("Laisser la trace du crayon",false,function(){ trail=[]; });
     var ro=k.readouts(["MF₁","MF₂","MF₁ + MF₂","Équation","Excentricité e = c/a"]);
     var nt=k.note("","");
+    k.button("Effacer la trace",function(){ trail=[]; });
+    M4.grab(c,function(){ if(!geo.ax) return []; var cv=Math.min(f.value,L.value)/2; return [{id:"F",x:geo.ax.X(cv),y:geo.ax.Y(0),r:22},{id:"M",x:geo.mx,y:geo.my,r:30}]; },
+      function(id,px,py){ if(id==="F"){ f.set(M4.clamp(Math.round(geo.ax.ix(px)*4)/2,0,Math.min(12,L.value))); trail=[]; }
+        else { var a=Math.atan2(geo.ax.iy(py),geo.ax.ix(px))/D2R; if(a<0)a+=360; t.set(Math.round(a)%360); } k.redraw(); });
     k.draw(function(){
-      c.clear(); var ax=S.draw.axes(c,{x0:-10,x1:10,y0:-10,y1:10,stepX:2,stepY:2,equal:true}), ctx=c.ctx;
-      var Lv=L.value, cv=f.value/2, a=Lv/2;
-      S.draw.dot(c,ax.X(-cv),ax.Y(0),7,P.ink); S.draw.dot(c,ax.X(cv),ax.Y(0),7,P.ink); S.draw.text(c,"F₁",ax.X(-cv),ax.Y(0)+16,{size:13}); S.draw.text(c,"F₂",ax.X(cv),ax.Y(0)+16,{size:13});
-      if(cv>=a-1e-9){ ro.set(0,"—"); ro.set(1,"—"); ro.set(2,"—"); ro.set(3,"—"); ro.set(4,"—"); nt.set(cv>a+1e-9?"La ficelle est plus courte que la distance entre les piquets : impossible, aucun point.":"L = F₁F₂ : la ficelle est tendue en ligne droite, le lieu est le segment [F₁F₂].","warn"); if(Math.abs(cv-a)<1e-9) S.draw.line(c,ax.X(-cv),ax.Y(0),ax.X(cv),ax.Y(0),P.red,3); return; }
-      var b=Math.sqrt(a*a-cv*cv);
-      ctx.strokeStyle=P.acc; ctx.lineWidth=2.8; ctx.beginPath(); for(var i=0;i<=360;i+=2){ var X=a*Math.cos(i*D2R), Y=b*Math.sin(i*D2R); if(i===0) ctx.moveTo(ax.X(X),ax.Y(Y)); else ctx.lineTo(ax.X(X),ax.Y(Y)); } ctx.closePath(); ctx.stroke();
-      var Mx=a*Math.cos(t.value*D2R), My=b*Math.sin(t.value*D2R), d1=Math.hypot(Mx+cv,My), d2=Math.hypot(Mx-cv,My);
-      S.draw.line(c,ax.X(-cv),ax.Y(0),ax.X(Mx),ax.Y(My),P.red,2); S.draw.line(c,ax.X(cv),ax.Y(0),ax.X(Mx),ax.Y(My),P.green,2);
-      S.draw.dot(c,ax.X(Mx),ax.Y(My),8,P.amber); S.draw.text(c,"M",ax.X(Mx)+12,ax.Y(My)-12,{size:14,color:P.amber});
+      var Lv=L.value; f.el.max=Lv; if(f.value>Lv) f.set(Lv);
+      var cv=f.value/2, a=Lv/2, b=Math.sqrt(Math.max(0,a*a-cv*cv)), ctx=c.ctx; c.clear();
+      var R0=Math.max(a+1.5,6), asp=c.H/c.W;
+      var ax=geo.ax=S.draw.axes(c,{x0:-R0,x1:R0,y0:-R0*asp,y1:R0*asp,stepX:R0>9?2:1,stepY:R0>9?2:1,equal:true,hideZero:true});
+      var u=ax.X(1)-ax.X(0);
+      var Mx=a*Math.cos(t.value*D2R), My=b*Math.sin(t.value*D2R); geo.mx=ax.X(Mx); geo.my=ax.Y(My);
+      /* ellipse */
+      ctx.save(); ctx.beginPath(); for(var i=0;i<=360;i+=2){ var X=a*Math.cos(i*D2R), Y=b*Math.sin(i*D2R); i===0?ctx.moveTo(ax.X(X),ax.Y(Y)):ctx.lineTo(ax.X(X),ax.Y(Y)); } ctx.closePath();
+      ctx.fillStyle=S.draw.tint(P.acc,.07); ctx.fill(); ctx.strokeStyle=P.acc; ctx.lineWidth=2.8; ctx.stroke(); ctx.restore();
+      if(tr.value){ if(trail.length>500) trail.shift(); trail.push([Mx,My]); ctx.save(); ctx.strokeStyle=P.red; ctx.lineWidth=1.6; ctx.beginPath(); trail.forEach(function(q,i){ i?ctx.lineTo(ax.X(q[0]),ax.Y(q[1])):ctx.moveTo(ax.X(q[0]),ax.Y(q[1])); }); ctx.stroke(); ctx.restore(); }
+      function pin(x,name){ S.draw.glow(c,ax.X(x),ax.Y(0),18,P.ink,.25); M4.handle(c,ax.X(x),ax.Y(0),P.ink,6.5); M4.lab(c,name,ax.X(x),ax.Y(0)+(name==="F₁"?-18:18),P.ink,{size:11}); }
+      if(cv>=a-1e-9){ ro.set(0,"—"); ro.set(1,"—"); ro.set(2,"—"); ro.set(3,"—"); ro.set(4,"1"); pin(-cv,"F₁"); pin(cv,"F₂"); S.draw.line(c,ax.X(-cv),ax.Y(0),ax.X(cv),ax.Y(0),P.red,3.5); nt.set("L = F₁F₂ : la ficelle est tendue en ligne droite, le lieu est le segment [F₁F₂]. (Il faut L > F₁F₂ pour dessiner une ellipse.)","warn"); return; }
+      var d1=Math.hypot(Mx+cv,My), d2=Math.hypot(Mx-cv,My);
+      S.draw.line(c,ax.X(-cv),ax.Y(0),ax.X(Mx),ax.Y(My),P.red,2.6); S.draw.line(c,ax.X(cv),ax.Y(0),ax.X(Mx),ax.Y(My),P.green,2.6);
+      M4.lab(c,"MF₁ = "+F(d1,2),(ax.X(-cv)+ax.X(Mx))/2,(ax.Y(0)+ax.Y(My))/2-(My>=0?-12:12),P.red,{size:10.5}); M4.lab(c,"MF₂ = "+F(d2,2),(ax.X(cv)+ax.X(Mx))/2,(ax.Y(0)+ax.Y(My))/2+(My>=0?-12:12),P.green,{size:10.5});
+      pin(-cv,"F₁"); pin(cv,"F₂");
+      S.draw.glow(c,ax.X(Mx),ax.Y(My),20,P.amber,.5); M4.handle(c,ax.X(Mx),ax.Y(My),P.amber,8); M4.lab(c,"M",ax.X(Mx)+(Mx>=0?15:-15),ax.Y(My)+(My>=0?-14:14),P.amber,{size:12});
+      /* règle : la ficelle est constante */
+      var bw=c.W-30, bx=15, by=c.H-24, w1=bw*d1/Lv, w2=bw*d2/Lv;
+      S.draw.panel(c,bx-8,by-18,bw+16,36,{shadow:false});
+      ctx.save(); ctx.fillStyle=P.red; ctx.fillRect(bx,by-4,w1,10); ctx.fillStyle=P.green; ctx.fillRect(bx+w1,by-4,w2,10); ctx.restore();
+      S.draw.text(c,"ficelle : "+F(d1,1)+" + "+F(d2,1)+" = "+F(Lv,1),c.W/2,by-11,{size:10.5,weight:800,color:P.ink});
       ro.set(0,F(d1,3)); ro.set(1,F(d2,3)); ro.set(2,F(d1+d2,3)+" = L");
       ro.set(3,"x²/"+F(a*a,2)+" + y²/"+F(b*b,2)+" = 1"); ro.set(4,F(cv/a,3));
-      nt.set(cv<1e-9?"Foyers confondus : l'ellipse devient un cercle de rayon "+F(a,2)+".":"b² = a² − c² = "+F(a*a,2)+" − "+F(cv*cv,2)+" = "+F(b*b,2)+". La somme des distances est constante : "+F(Lv,1)+".","ok");
+      nt.set(cv<1e-9?"Foyers confondus : l'ellipse devient un cercle de rayon "+F(a,2)+".":"b² = a² − c² = "+F(a*a,2)+" − "+F(cv*cv,2)+" = "+F(b*b,2)+". Glisse un foyer ou le point M : la somme des distances reste "+F(Lv,1)+".","ok");
     });
   }
 });
