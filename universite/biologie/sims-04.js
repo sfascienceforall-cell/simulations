@@ -201,3 +201,188 @@ SFA.sim({
     k.note("Modèle linéaire à une variable (perturbation constante, a = 0,1 min⁻¹). La glycémie et la température sont des illustrations de la même logique ; les vraies boucles font intervenir plusieurs hormones ou effecteurs.","warn");
   }
 });
+
+/* BIO3D-BEGIN:s_c04_synapse.js */
+(function(){
+var P = function(S){ return S.draw.palette; };
+/* --- moteur 3D maison (projection perspective, tri en profondeur, rotation à la souris) --- */
+function hx(h){ var n = parseInt(h.slice(1), 16); return [n >> 16, (n >> 8) & 255, n & 255]; }
+function sh(h, f, a){ var q = hx(h); return "rgba(" + q.map(function(v){ return Math.round(f < 0 ? v * (1 + f) : v + (255 - v) * f); }).join(",") + "," + (a === undefined ? 1 : a) + ")"; }
+function V3(c, S, o){
+  o = o || {};
+  var v = {yaw:o.yaw === undefined ? 0.5 : o.yaw, pit:o.pit === undefined ? 0.3 : o.pit, D:o.D || 8, sc:o.sc || 60, ox:0, oy:0, auto:o.auto !== false, q:[], moved:false}, last = null, d0 = null;
+  c.pointer(function(t, p){
+    if (t === "down"){ last = p; d0 = p; v.auto = false; v.moved = false; }
+    else if (t === "drag" && last){ if (Math.abs(p.x - d0.x) + Math.abs(p.y - d0.y) > 5) v.moved = true; v.yaw += (p.x - last.x) * 0.01; v.pit = Math.max(-1.45, Math.min(1.45, v.pit + (p.y - last.y) * 0.01)); last = p; }
+    else if (t === "up"){ last = null; if (!v.moved && v.onclick) v.onclick(p); }
+  });
+  v.P = function(x, y, z){
+    var cy = Math.cos(v.yaw), sy = Math.sin(v.yaw), cp = Math.cos(v.pit), sp = Math.sin(v.pit);
+    var X = x * cy + z * sy, Z = -x * sy + z * cy, Y = y * cp - Z * sp; Z = y * sp + Z * cp;
+    var f = v.D / (v.D - Z);
+    return {x:c.W / 2 + v.ox + X * f * v.sc, y:c.H / 2 + v.oy - Y * f * v.sc, z:Z, f:f};
+  };
+  v.add = function(z, fn){ v.q.push([z, fn]); };
+  v.flush = function(){ v.q.sort(function(a, b){ return a[0] - b[0]; }); for (var i = 0; i < v.q.length; i++) v.q[i][1](); v.q = []; };
+  v.ball = function(x, y, z, r, col, al){
+    var p = v.P(x, y, z), R = Math.max(1, r * p.f * v.sc);
+    v.add(p.z, function(){
+      var g = c.ctx.createRadialGradient(p.x - R * 0.35, p.y - R * 0.35, R * 0.1, p.x, p.y, R);
+      g.addColorStop(0, sh(col, 0.55, al)); g.addColorStop(0.55, sh(col, 0, al)); g.addColorStop(1, sh(col, -0.4, al));
+      c.ctx.fillStyle = g; c.ctx.beginPath(); c.ctx.arc(p.x, p.y, R, 0, 6.2832); c.ctx.fill();
+    });
+    p.R = R; return p;
+  };
+  v.seg = function(a, b, w, col, al, dash){
+    var p = v.P(a[0], a[1], a[2]), q = v.P(b[0], b[1], b[2]);
+    v.add((p.z + q.z) / 2 - 0.001, function(){
+      var x = c.ctx; x.lineCap = "round"; x.strokeStyle = sh(col, 0, al); x.lineWidth = Math.max(1, w * (p.f + q.f) / 2 * v.sc);
+      if (dash) x.setLineDash(dash);
+      x.beginPath(); x.moveTo(p.x, p.y); x.lineTo(q.x, q.y); x.stroke();
+      if (!dash && w * v.sc > 6){ x.strokeStyle = sh(col, 0.5, al); x.lineWidth = x.lineWidth * 0.35; x.beginPath(); x.moveTo(p.x - 1, p.y - 1); x.lineTo(q.x - 1, q.y - 1); x.stroke(); }
+      if (dash) x.setLineDash([]);
+    });
+  };
+  v.label = function(txt, x, y, z, col, size, bg){
+    var p = v.P(x, y, z);
+    v.add(p.z + 50, function(){ S.draw.text(c, txt, p.x, p.y, {size:size || 11, color:col || "#0f1b2d", weight:700, bg:bg}); });
+  };
+  v.spin = function(dt){ if (v.auto) v.yaw += dt * 0.35; };
+  return v;
+}
+
+SFA.sim({
+  id:"ub-c04-3d-synapse-chimique", ch:"c04", tag:"Synapse · 3D",
+  titre:"La synapse chimique en 3D : de l'arrivée du PA au PPSE",
+  resume:"Le PA ouvre les canaux Ca²⁺, les vésicules fusionnent, le neurotransmetteur traverse la fente et ouvre les récepteurs : suis les 6 étapes.",
+  but:"Fais pivoter la synapse, avance étape par étape (ou en automatique), change la concentration extracellulaire de Ca²⁺, le type de synapse et regarde le potentiel postsynaptique se former.",
+  aRetenir:"PA présynaptique → ouverture des canaux Ca²⁺ voltage-dépendants → entrée de Ca²⁺ → fusion des vésicules (exocytose, protéines SNARE) → neurotransmetteur dans la fente (≈ 20 nm) → fixation sur des récepteurs-canaux → entrée de Na⁺ (PPSE, dépolarisant) ou de Cl⁻ (PPSI, hyperpolarisant) → arrêt par recapture ou dégradation enzymatique. La libération dépend très fortement du Ca²⁺ (environ [Ca²⁺]⁴).",
+  piege:"C'est le Ca²⁺, pas le Na⁺, qui déclenche l'exocytose. Un neurotransmetteur n'est pas excitateur ou inhibiteur en soi : c'est le récepteur postsynaptique qui décide (le même neurotransmetteur peut ouvrir des canaux différents). Un PPSE n'est pas un PA : il est gradué, et il n'y a PA que si la somme atteint le seuil (≈ −55 mV). Schéma très simplifié : une vraie synapse libère quelques milliers de molécules par vésicule.",
+  build:function(k,S){
+    var c = k.canvas(430), pal = P(S), v = V3(c, S, {yaw:0.35, pit:0.22, D:12, sc:46});
+    var ca = k.slider("[Ca²⁺] extracellulaire", 0.5, 4, 0.1, 2, "mM");
+    var typ = k.seg("Type de synapse", [["e","Excitatrice (Na⁺)"],["i","Inhibitrice (Cl⁻)"]], "e");
+    var inh = k.toggle("Inhibiteur de dégradation / recapture", false);
+    var auto = k.toggle("Déroulement automatique", true);
+    var ro = k.readouts(["Étape", "P(libération)", "Vésicules libérées", "Pic du potentiel"]);
+    var info = k.note("", "ok");
+    var NAMES = ["1 · Un potentiel d'action arrive dans la terminaison", "2 · Les canaux Ca²⁺ voltage-dépendants s'ouvrent : le Ca²⁺ entre", "3 · Fusion des vésicules avec la membrane : exocytose", "4 · Le neurotransmetteur diffuse dans la fente synaptique", "5 · Il se fixe sur les récepteurs-canaux : entrée d'ions", "6 · Arrêt : dégradation enzymatique ou recapture"];
+    var DUR = [1.0, 1.3, 1.2, 1.3, 2.0, 1.6], ph = 0, pt = 0, ct = 0, seed = 3;
+    function rnd(){ seed = (seed * 16807) % 2147483647; return seed / 2147483647; }
+    var Y1 = 0.7, Y2 = -0.7, RM = 2.1;
+    var docked = [], free = [], i;
+    for (i = 0; i < 4; i++){ var a0 = i / 4 * 6.28 + 0.4; docked.push({x:0.9 * Math.cos(a0), z:0.9 * Math.sin(a0), alive:true}); }
+    for (i = 0; i < 7; i++){ var a1 = rnd() * 6.28, r1 = 0.4 + rnd() * 1.1; free.push({x:r1 * Math.cos(a1), y:1.5 + rnd() * 0.8, z:r1 * Math.sin(a1), ph:rnd() * 6.28}); }
+    var chans = [], recs = [];
+    for (i = 0; i < 4; i++){ var a2 = i / 4 * 6.28 + 1.0; chans.push({x:1.5 * Math.cos(a2), z:1.5 * Math.sin(a2)}); }
+    for (i = 0; i < 4; i++){ var a3 = i / 4 * 6.28 + 0.4; recs.push({x:0.9 * Math.cos(a3), z:0.9 * Math.sin(a3), bound:false}); }
+    for (i = 0; i < 2; i++){ var a4 = i * 3.14 + 0.1; recs.push({x:1.6 * Math.cos(a4), z:1.6 * Math.sin(a4), bound:false}); }
+    var nt = [], caIons = [], postIons = [], nrel = 0, amp = 0, tStart = 0, peak = 0, depol = 0;
+    function enter(p){
+      ph = p; pt = 0;
+      if (p === 0){ ct = 0; nrel = 0; amp = 0; peak = 0; nt = []; recs.forEach(function(r){ r.bound = false; }); docked.forEach(function(d){ d.alive = true; }); }
+      if (p === 1){ for (var q = 0; q < 10; q++) caIons.push({c:chans[q % 4], t:-q * 0.12}); }
+      if (p === 2){
+        var pr = Math.pow(ca.value, 4) / (Math.pow(ca.value, 4) + Math.pow(1.5, 4)); nrel = 0;
+        docked.forEach(function(d){ if (rnd() < pr){ d.alive = false; nrel++; for (var q = 0; q < 6; q++) nt.push({x:d.x + (rnd() - 0.5) * 0.3, y:Y1 - 0.05, z:d.z + (rnd() - 0.5) * 0.3, vy:-0.4 - rnd() * 0.3, bound:-1, a:1}); } });
+        var A0 = 16 * (1 - Math.exp(-nrel * 0.75)); amp = typ.value === "e" ? A0 : -0.45 * A0; if (inh.value) amp *= 1.25;
+      }
+      if (p === 4){ tStart = ct; }
+    }
+    function tau(){ return inh.value ? 3.2 : 1.0; }
+    function vm(s){
+      if (s < 0 || amp === 0) return 0;
+      var tr = 0.2, td = tau(), sp = tr * td / (td - tr) * Math.log(td / tr), g = Math.exp(-s / td) - Math.exp(-s / tr), gp = Math.exp(-sp / td) - Math.exp(-sp / tr);
+      return amp * g / gp;
+    }
+    function nextStep(){ enter((ph + 1) % 6); }
+    function ring(cy, r, N, col, w, al, rz){
+      for (var q = 0; q < N; q++){ var a = q / N * 6.2832, b = (q + 1) / N * 6.2832; v.seg([r * Math.cos(a), cy, r * Math.sin(a)], [r * Math.cos(b), cy, r * Math.sin(b)], w, col, al); }
+    }
+    function R(){
+      c.clear(); v.oy = -22; v.sc = Math.min(60, c.W / 5.4);
+      var pcol = ph <= 1 ? "#f59e0b" : "#0e7490";
+      /* membranes : disques en grillage */
+      [2.1, 1.5, 0.9, 0.3].forEach(function(r){ ring(Y1, r, 28, pcol, 0.045, 0.7); ring(Y2, r, 28, "#2e6b55", 0.045, 0.7); });
+      for (i = 0; i < 12; i++){ var a = i / 12 * 6.2832; v.seg([0.15 * Math.cos(a), Y1, 0.15 * Math.sin(a)], [2.1 * Math.cos(a), Y1, 2.1 * Math.sin(a)], 0.02, pcol, 0.35); v.seg([0.15 * Math.cos(a), Y2, 0.15 * Math.sin(a)], [2.1 * Math.cos(a), Y2, 2.1 * Math.sin(a)], 0.02, "#2e6b55", 0.35); }
+      /* dôme de la terminaison */
+      [20, 40, 60, 78].forEach(function(deg){ var f = deg * Math.PI / 180; ring(Y1 + 1.9 * Math.sin(f), 2.1 * Math.cos(f), 28, pcol, 0.03, 0.45); });
+      for (i = 0; i < 8; i++){ var th = i / 8 * 6.2832; for (var j = 0; j < 8; j++){ var f1 = j / 8 * 1.5708, f2 = (j + 1) / 8 * 1.5708; v.seg([2.1 * Math.cos(f1) * Math.cos(th), Y1 + 1.9 * Math.sin(f1), 2.1 * Math.cos(f1) * Math.sin(th)], [2.1 * Math.cos(f2) * Math.cos(th), Y1 + 1.9 * Math.sin(f2), 2.1 * Math.cos(f2) * Math.sin(th)], 0.03, pcol, 0.4); } }
+      /* canaux Ca2+ (ouverts aux étapes 2-3) */
+      chans.forEach(function(ch){ var open = ph === 1 || (ph === 2 && pt < 0.5); for (var m = 0; m < 6; m++){ var aa = m / 6 * 6.28, g = open ? 0.17 : 0.06; v.ball(ch.x + 0.17 * Math.cos(aa), Y1, ch.z + 0.17 * Math.sin(aa), 0.1, "#0891b2"); v.ball(ch.x + g * Math.cos(aa), Y1 + 0.12, ch.z + g * Math.sin(aa), 0.07, "#164e63"); } });
+      /* récepteurs */
+      var open2 = ph === 4, col2 = typ.value === "e" ? "#16a34a" : "#7c3aed";
+      recs.forEach(function(r){
+        var g = (r.bound && ph >= 4 && ph < 5) ? 0.16 : 0.06;
+        for (var m = 0; m < 6; m++){ var aa = m / 6 * 6.28; v.ball(r.x + 0.17 * Math.cos(aa), Y2, r.z + 0.17 * Math.sin(aa), 0.1, "#2e6b55"); v.ball(r.x + g * Math.cos(aa), Y2 - 0.1, r.z + g * Math.sin(aa), 0.07, col2); }
+        v.ball(r.x, Y2 + 0.16, r.z, 0.06, "#6b7280", 0.6);
+      });
+      /* vésicules */
+      free.forEach(function(f){ var yy = f.y + 0.06 * Math.sin(tt + f.ph); v.ball(f.x, yy, f.z, 0.24, "#7c3aed", 0.9); v.ball(f.x + 0.05, yy + 0.04, f.z, 0.06, "#fde68a"); });
+      docked.forEach(function(d){
+        if (d.alive) { v.ball(d.x, Y1 + 0.3, d.z, 0.26, "#7c3aed"); v.ball(d.x, Y1 + 0.3, d.z + 0.2, 0.06, "#fde68a"); }
+        else if (ph === 2 && pt < 0.6){ var s = pt / 0.6; v.ball(d.x, Y1 + 0.1, d.z, 0.26 * (1 - s) + 0.04, "#a78bfa", 1 - s); }
+      });
+      /* ions Ca2+ */
+      caIons.forEach(function(q){ if (q.t >= 0 && q.t <= 1.1){ v.ball(q.c.x + 0.04 * Math.sin(q.t * 10), Y1 - 0.5 + q.t * 1.3, q.c.z, 0.075, "#06b6d4"); } });
+      /* neurotransmetteurs */
+      nt.forEach(function(n){ if (n.a > 0.02) v.ball(n.x, n.y, n.z, 0.07, "#facc15", n.a); });
+      postIons.forEach(function(q){ if (q.t >= 0 && q.t <= 1) v.ball(q.x, Y2 - 0.1 - q.t * 0.9, q.z, 0.08, typ.value === "e" ? "#2563eb" : "#7c3aed", 1 - q.t * 0.6); });
+      v.label("Terminaison présynaptique", 0, Y1 + 2.15, 0, pal.ink, 11);
+      v.label("fente ≈ 20 nm", 2.6, 0, 0, pal.grey, 10);
+      v.label("Neurone postsynaptique", 0, Y2 - 0.95, 0, pal.ink, 11);
+      v.flush();
+      /* tracé du potentiel postsynaptique */
+      var bx = 36, bw = c.W - 52, by = c.H - 58, bh = 48, T = 8.4, ctx = c.ctx;
+      ctx.fillStyle = "#f8fafc"; ctx.fillRect(bx, by - 6, bw, bh + 10); ctx.strokeStyle = "#cbd5e1"; ctx.strokeRect(bx, by - 6, bw, bh + 10);
+      var vy = function(m){ return by + bh - (m + 78) / 30 * bh; };
+      ctx.strokeStyle = "#dc2626"; ctx.setLineDash([4, 3]); ctx.beginPath(); ctx.moveTo(bx, vy(-55)); ctx.lineTo(bx + bw, vy(-55)); ctx.stroke(); ctx.setLineDash([]);
+      S.draw.text(c, "seuil", bx + bw - 14, vy(-55) - 6, {size:9, color:"#dc2626"});
+      S.draw.text(c, "−70", bx - 14, vy(-70), {size:9, color:pal.grey}); S.draw.text(c, "mV", bx - 14, by - 4, {size:9, color:pal.grey});
+      ctx.strokeStyle = typ.value === "e" ? pal.acc : pal.violet; ctx.lineWidth = 2; ctx.beginPath();
+      for (var s = 0; s <= ct + 0.001 && s <= T; s += 0.08){ var yv = vy(-70 + vm(s - tStart)), xv = bx + s / T * bw; if (s === 0) ctx.moveTo(xv, yv); else ctx.lineTo(xv, yv); }
+      ctx.stroke(); ctx.lineWidth = 1;
+      var pk = 0; for (s = 0; s < 8; s += 0.05) if (Math.abs(vm(s)) > Math.abs(pk)) pk = vm(s);
+      ro.set(0, (ph + 1) + " / 6"); ro.set(1, S.fmt(100 * Math.pow(ca.value, 4) / (Math.pow(ca.value, 4) + Math.pow(1.5, 4)), 0) + " %"); ro.set(2, ph >= 2 ? nrel + " / 4" : "—");
+      ro.set(3, ph >= 4 && amp !== 0 ? S.fmt(-70 + pk, 1) + " mV" : ph >= 4 ? "−70 mV (rien libéré)" : "—");
+      var msg = "<b>" + NAMES[ph] + "</b>";
+      if (ph === 2 && nrel === 0) msg += "<br>Aucune vésicule n'a fusionné cette fois (Ca²⁺ trop faible) : la libération est probabiliste."; 
+      if (ph === 4 && amp !== 0) msg += "<br>" + (typ.value === "e" ? "Entrée de Na⁺ : PPSE (dépolarisation), sous le seuil à lui seul." : "Entrée de Cl⁻ : PPSI (hyperpolarisation), on s'éloigne du seuil.");
+      if (ph === 5) msg += inh.value ? "<br>Dégradation bloquée : le neurotransmetteur persiste, le PPS dure plus longtemps." : "<br>Enzyme (ex. acétylcholinestérase) ou recapture : le signal est bref.";
+      info.set(msg, "ok");
+    }
+    var tt = 0;
+    k.button("Étape suivante", function(){ auto.set(false); nextStep(); }, true);
+    k.button("Nouveau potentiel d'action", function(){ enter(0); });
+    k.draw(R);
+    enter(0);
+    var lp = k.loop(function(dt){
+      tt += dt; v.spin(dt * 0.6);
+      pt += dt / DUR[ph]; ct += dt;
+      if (ph === 0) depol = pt;
+      if (auto.value && pt >= 1) { if (ph === 5 && ct > 8.3) enter(0); else if (ph < 5) nextStep(); else pt = 1; }
+      if (!auto.value && pt > 1) pt = 1;
+      caIons.forEach(function(q){ q.t += dt * 0.9; });
+      nt.forEach(function(n){
+        if (ph >= 2 && ph <= 4 && n.bound < 0){
+          n.vy += (Math.random() - 0.5) * 0.4; n.y += n.vy * dt * 0.9; n.x += (Math.random() - 0.5) * 0.05; n.z += (Math.random() - 0.5) * 0.05;
+          if (n.y > Y1 - 0.02){ n.y = Y1 - 0.02; n.vy = -Math.abs(n.vy); }
+          if (n.y < Y2 + 0.2){
+            var near = null; recs.forEach(function(r){ if (!r.bound && Math.hypot(r.x - n.x, r.z - n.z) < 0.7) near = r; });
+            if (near && ph >= 3){ near.bound = true; n.bound = 1; n.x = near.x; n.y = Y2 + 0.22; n.z = near.z; if (ph === 4 && !postIons.length) for (var q = 0; q < 6; q++) postIons.push({x:near.x, z:near.z, t:-q * 0.25}); }
+            else { n.y = Y2 + 0.22; n.vy = Math.abs(n.vy) + 0.1; }
+          }
+          var rr = Math.hypot(n.x, n.z); if (rr > 2) { n.x *= 2 / rr; n.z *= 2 / rr; }
+        }
+        if (ph === 5){ n.a -= dt * (inh.value ? 0.08 : 0.7); if (n.bound === 1 && ph === 5) { } }
+      });
+      if (ph === 4 && postIons.length < 14 && Math.random() < dt * 4) { var rb = recs.filter(function(r){ return r.bound; }); if (rb.length){ var r0 = rb[Math.floor(Math.random() * rb.length)]; postIons.push({x:r0.x, z:r0.z, t:0}); } }
+      postIons.forEach(function(q){ q.t += dt * 0.8; });
+      if (ph === 5 || ph === 0){ postIons = postIons.filter(function(q){ return q.t < 1; }); }
+      R();
+    }); lp.play();
+  }
+});
+
+})();
+/* BIO3D-END:s_c04_synapse.js */

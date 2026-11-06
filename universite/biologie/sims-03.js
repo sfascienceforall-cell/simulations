@@ -170,3 +170,201 @@ SFA.sim({
     k.note("Concentrations utilisées (mmol/L) : K⁺ᵢ = 140 ; Na⁺ᵢ = 12 ; Na⁺ₒ = 145 ; Cl⁻ᵢ = 10 ; Cl⁻ₒ = 110. Modèle à champ constant (GHK) ; 61,54 mV = 2,303·RT/F à 37 °C.","warn");
   }
 });
+
+/* BIO3D-BEGIN:s_c03_membrane.js */
+(function(){
+var P = function(S){ return S.draw.palette; };
+/* --- moteur 3D maison (projection perspective, tri en profondeur, rotation à la souris) --- */
+function hx(h){ var n = parseInt(h.slice(1), 16); return [n >> 16, (n >> 8) & 255, n & 255]; }
+function sh(h, f, a){ var q = hx(h); return "rgba(" + q.map(function(v){ return Math.round(f < 0 ? v * (1 + f) : v + (255 - v) * f); }).join(",") + "," + (a === undefined ? 1 : a) + ")"; }
+function V3(c, S, o){
+  o = o || {};
+  var v = {yaw:o.yaw === undefined ? 0.5 : o.yaw, pit:o.pit === undefined ? 0.3 : o.pit, D:o.D || 8, sc:o.sc || 60, ox:0, oy:0, auto:o.auto !== false, q:[], moved:false}, last = null, d0 = null;
+  c.pointer(function(t, p){
+    if (t === "down"){ last = p; d0 = p; v.auto = false; v.moved = false; }
+    else if (t === "drag" && last){ if (Math.abs(p.x - d0.x) + Math.abs(p.y - d0.y) > 5) v.moved = true; v.yaw += (p.x - last.x) * 0.01; v.pit = Math.max(-1.45, Math.min(1.45, v.pit + (p.y - last.y) * 0.01)); last = p; }
+    else if (t === "up"){ last = null; if (!v.moved && v.onclick) v.onclick(p); }
+  });
+  v.P = function(x, y, z){
+    var cy = Math.cos(v.yaw), sy = Math.sin(v.yaw), cp = Math.cos(v.pit), sp = Math.sin(v.pit);
+    var X = x * cy + z * sy, Z = -x * sy + z * cy, Y = y * cp - Z * sp; Z = y * sp + Z * cp;
+    var f = v.D / (v.D - Z);
+    return {x:c.W / 2 + v.ox + X * f * v.sc, y:c.H / 2 + v.oy - Y * f * v.sc, z:Z, f:f};
+  };
+  v.add = function(z, fn){ v.q.push([z, fn]); };
+  v.flush = function(){ v.q.sort(function(a, b){ return a[0] - b[0]; }); for (var i = 0; i < v.q.length; i++) v.q[i][1](); v.q = []; };
+  v.ball = function(x, y, z, r, col, al){
+    var p = v.P(x, y, z), R = Math.max(1, r * p.f * v.sc);
+    v.add(p.z, function(){
+      var g = c.ctx.createRadialGradient(p.x - R * 0.35, p.y - R * 0.35, R * 0.1, p.x, p.y, R);
+      g.addColorStop(0, sh(col, 0.55, al)); g.addColorStop(0.55, sh(col, 0, al)); g.addColorStop(1, sh(col, -0.4, al));
+      c.ctx.fillStyle = g; c.ctx.beginPath(); c.ctx.arc(p.x, p.y, R, 0, 6.2832); c.ctx.fill();
+    });
+    p.R = R; return p;
+  };
+  v.seg = function(a, b, w, col, al, dash){
+    var p = v.P(a[0], a[1], a[2]), q = v.P(b[0], b[1], b[2]);
+    v.add((p.z + q.z) / 2 - 0.001, function(){
+      var x = c.ctx; x.lineCap = "round"; x.strokeStyle = sh(col, 0, al); x.lineWidth = Math.max(1, w * (p.f + q.f) / 2 * v.sc);
+      if (dash) x.setLineDash(dash);
+      x.beginPath(); x.moveTo(p.x, p.y); x.lineTo(q.x, q.y); x.stroke();
+      if (!dash && w * v.sc > 6){ x.strokeStyle = sh(col, 0.5, al); x.lineWidth = x.lineWidth * 0.35; x.beginPath(); x.moveTo(p.x - 1, p.y - 1); x.lineTo(q.x - 1, q.y - 1); x.stroke(); }
+      if (dash) x.setLineDash([]);
+    });
+  };
+  v.label = function(txt, x, y, z, col, size, bg){
+    var p = v.P(x, y, z);
+    v.add(p.z + 50, function(){ S.draw.text(c, txt, p.x, p.y, {size:size || 11, color:col || "#0f1b2d", weight:700, bg:bg}); });
+  };
+  v.spin = function(dt){ if (v.auto) v.yaw += dt * 0.35; };
+  return v;
+}
+
+SFA.sim({
+  id:"ub-c03-3d-membrane-pompe-canal", ch:"c03", tag:"Membrane · 3D",
+  titre:"La membrane plasmique en 3D : bicouche, canal K⁺ et pompe Na⁺/K⁺",
+  resume:"Une bicouche fluide, un canal qui s'ouvre, une pompe qui change de conformation : 3 Na⁺ dehors, 2 K⁺ dedans, 1 ATP.",
+  but:"Fais pivoter la membrane. Chauffe-la pour la rendre plus fluide, ouvre le canal K⁺ et suis le cycle de la pompe pas à pas (ou en automatique).",
+  aRetenir:"La bicouche est fluide : les phospholipides diffusent latéralement (plus vite à chaud). Le canal K⁺ est un transport passif selon le gradient : K⁺ sort (plus concentré dedans). La pompe Na⁺/K⁺-ATPase est un transport actif primaire : par cycle, 1 ATP hydrolysé, 3 Na⁺ expulsés et 2 K⁺ importés, contre leurs gradients ; elle est électrogène (+1 charge exportée par cycle).",
+  piege:"Sans ATP, la pompe se bloque (elle n'est pas un canal qui fuit) ; et le canal, lui, ne consomme pas d'ATP mais ne peut que dissiper un gradient. Le canal laisse sortir K⁺ parce que K⁺ est plus concentré dedans, pas parce qu'il serait « attiré » dehors. Les tailles sont schématiques (une vraie bicouche fait ≈ 5 nm d'épaisseur, une pompe est bien plus grosse qu'un lipide).",
+  build:function(k,S){
+    var c = k.canvas(400), pal = P(S), v = V3(c, S, {yaw:0.15, pit:0.3, D:12, sc:40});
+    var temp = k.slider("Température (fluidité)", 0, 100, 1, 40, "%");
+    var opn = k.slider("Ouverture du canal K⁺", 0, 100, 5, 60, "%");
+    var atp = k.toggle("ATP disponible", true);
+    var auto = k.toggle("Pompe en automatique", true);
+    var ro = k.readouts(["Étape de la pompe", "ATP consommés", "Na⁺ expulsés", "K⁺ importés"]);
+    var info = k.note("", "ok");
+    var tt = 0, seed = 7;
+    function rnd(){ seed = (seed * 16807) % 2147483647; return seed / 2147483647; }
+    var lip = [], i, j;
+    var PUMP = [1.45, -0.2], CHAN = [-1.4, 0.3];
+    for (i = 0; i < 11; i++) for (j = 0; j < 8; j++){
+      var x = -2.75 + i * 0.55, z = -1.9 + j * 0.55;
+      var dp = Math.hypot(x - PUMP[0], z - PUMP[1]), dc = Math.hypot(x - CHAN[0], z - CHAN[1]);
+      if (dp < 0.85 || dc < 0.55) continue;
+      lip.push({x:x, z:z, ph:rnd() * 6.28, ph2:rnd() * 6.28, f:0.6 + rnd()});
+    }
+    var ions = [];
+    function mk(kind, side, n){ for (var q = 0; q < n; q++) ions.push({k:kind, s:side, x:-2.8 + rnd() * 5.6, y:(side > 0 ? 1 : -1) * (1.0 + rnd() * 1.6), z:-1.9 + rnd() * 3.8}); }
+    mk("Na", 1, 12); mk("Na", -1, 3); mk("K", -1, 12); mk("K", 1, 3);
+    var cross = [];               /* ions qui traversent le canal */
+    var ph = 0, pt = 0, conf = 0, nATP = 0, nNa = 0, nK = 0, kflux = 0, accum = 0;
+    var NAMES = ["E1 : ouverte côté cytosol, fixe 3 Na⁺ (et l'ATP)", "Phosphorylation : ATP → ADP + P, changement de conformation", "E2 : ouverte côté extérieur, libère 3 Na⁺, fixe 2 K⁺", "Déphosphorylation (P libéré) : retour à E1", "E1 : libère 2 K⁺ dans le cytosol"];
+    var DUR = [1.6, 1.4, 2.0, 1.4, 1.2];
+    function release(kind, side){
+      var idx = -1;
+      for (var q = 0; q < ions.length; q++) if (ions[q].k === kind && ions[q].s === -side){ idx = q; break; }
+      if (idx >= 0) ions.splice(idx, 1);
+      ions.push({k:kind, s:side, x:PUMP[0] + (rnd() - 0.5) * 0.4, y:side * 1.1, z:PUMP[1] + (rnd() - 0.5) * 0.4});
+    }
+    function next(){
+      if (ph === 0 && !atp.value) return;
+      if (ph === 1 && pt < 0.01) nATP++;
+      if (ph === 2){ nNa += 3; for (var q = 0; q < 3; q++) release("Na", 1); }
+      if (ph === 4){ nK += 2; for (q = 0; q < 2; q++) release("K", -1); }
+      ph = (ph + 1) % 5; pt = 0;
+    }
+    function stepPump(dt){
+      if (ph === 0 && !atp.value){ info.set("Sans ATP, la pompe reste bloquée en E1 : elle n'expulse plus le Na⁺ (c'est ce que fait la ouabaïne ou un manque d'énergie).", "warn"); return; }
+      info.set("<b>" + NAMES[ph] + "</b>", "ok");
+      if (auto.value){ pt += dt / DUR[ph]; if (pt >= 1) { next(); } }
+    }
+    function pumpDraw(){
+      var cx = PUMP[0], cz = PUMP[1];
+      /* conformation : 0 = E1 (ouverte dedans), 1 = E2 (ouverte dehors) */
+      var target = ph === 2 ? 1 : ph === 3 ? 0.6 : ph === 1 ? 0.5 : 0;
+      if (ph === 1) target = 0.5 + 0.5 * Math.min(1, pt * 1.2);
+      if (ph === 3) target = 1 - Math.min(1, pt * 1.2);
+      if (ph === 4) target = 0;
+      conf += (target - conf) * 0.12;
+      var col = ph === 1 ? "#d97706" : "#B45309";
+      for (var m = 0; m < 10; m++){
+        var a = m / 10 * 6.2832;
+        var rb = 0.5 - 0.14 * Math.max(0, 1 - conf * 2) * 0, rt = 0.5;
+        /* partie basse : se ferme quand conf > 0,4 ; partie haute : s'ouvre quand conf > 0,5 */
+        var openB = Math.max(0.12, 0.42 * (1 - conf * 1.1)), openT = Math.max(0.12, 0.12 + 0.34 * Math.max(0, conf * 2 - 0.8));
+        v.ball(cx + 0.55 * Math.cos(a), -0.42, cz + 0.55 * Math.sin(a), 0.2, col);
+        v.ball(cx + 0.55 * Math.cos(a), 0.42, cz + 0.55 * Math.sin(a), 0.2, col);
+        v.ball(cx + (0.12 + 0.38 * (1 - 0)) * Math.cos(a) * 1.05, 0, cz + 0.52 * Math.sin(a), 0.22, "#92400e");
+        v.ball(cx + (0.2 + openB) * 0.9 * Math.cos(a + 0.3), -0.26, cz + (0.2 + openB) * 0.9 * Math.sin(a + 0.3), 0.14, "#d97706");
+        v.ball(cx + (0.2 + openT) * 0.9 * Math.cos(a + 0.3), 0.26, cz + (0.2 + openT) * 0.9 * Math.sin(a + 0.3), 0.14, "#d97706");
+      }
+      /* ions liés */
+      var sodium = function(y, al, n){ for (var q = 0; q < n; q++){ var aa = q / n * 6.28 + 0.5; v.ball(cx + 0.2 * Math.cos(aa), y, cz + 0.2 * Math.sin(aa), 0.11, "#2563eb", al); } };
+      var potas = function(y, al, n){ for (var q = 0; q < n; q++){ var aa = q / n * 6.28 + 1.5; v.ball(cx + 0.18 * Math.cos(aa), y, cz + 0.18 * Math.sin(aa), 0.11, "#ea580c", al); } };
+      if (ph === 0) sodium(-0.5 + 0.45 * pt, 1, 3);
+      if (ph === 1) sodium(-0.05, 1, 3);
+      if (ph === 2){ if (pt < 0.55) sodium(0.1 + 0.9 * pt, 1 - pt, 3); if (pt > 0.4) potas(1.1 - 0.7 * Math.min(1, (pt - 0.4) / 0.6), Math.min(1, (pt - 0.4) * 2), 2); }
+      if (ph === 3) potas(0.4 - 0.4 * pt, 1, 2);
+      if (ph === 4) potas(-0.0 - 0.5 * pt, 1 - pt * 0.6, 2);
+      if (ph === 1 || ph === 2) v.label("P", cx + 0.55, 0.5, cz + 0.55, "#b42318", 13);
+    }
+    function chanDraw(){
+      var cx = CHAN[0], cz = CHAN[1], o = opn.value / 100;
+      for (var m = 0; m < 8; m++){
+        var a = m / 8 * 6.2832;
+        v.ball(cx + 0.38 * Math.cos(a), -0.42, cz + 0.38 * Math.sin(a), 0.17, "#0e7490");
+        v.ball(cx + 0.38 * Math.cos(a), 0.42, cz + 0.38 * Math.sin(a), 0.17, "#0e7490");
+        v.ball(cx + 0.38 * Math.cos(a), 0, cz + 0.38 * Math.sin(a), 0.17, "#0e7490");
+        /* porte : se resserre quand le canal est fermé */
+        var g = 0.07 + 0.31 * o; v.ball(cx + g * Math.cos(a), -0.3, cz + g * Math.sin(a), 0.11, "#134e5e");
+      }
+    }
+    function R(){
+      c.clear();
+      v.sc = Math.min(60, c.W / 10.5);
+      /* repères de milieux */
+      var A = v.P(-3.1, 1.6, 0), B = v.P(-3.1, -1.6, 0);
+      S.draw.text(c, "Extracellulaire", 6, 14, {size:11, color:pal.grey, align:"left"});
+      S.draw.text(c, "Cytosol", 6, c.H - 12, {size:11, color:pal.grey, align:"left"});
+      var amp = temp.value / 100 * 0.12;
+      lip.forEach(function(l){
+        var dx = amp * Math.sin(tt * l.f * 2 + l.ph), dz = amp * Math.cos(tt * l.f * 1.7 + l.ph2), ty = 0.05 * temp.value / 100;
+        for (var s = -1; s <= 1; s += 2){
+          var hx2 = l.x + dx * (s > 0 ? 1 : -1), hz = l.z + dz;
+          var top = [hx2, s * 0.58, hz];
+          var sway = amp * 0.7 * Math.sin(tt * 3 * l.f + l.ph);
+          v.seg(top, [hx2 + 0.06 + sway, s * 0.08, hz + 0.05], 0.04, "#cfc7a6", 0.95);
+          v.seg(top, [hx2 - 0.06 - sway, s * 0.08, hz - 0.05], 0.04, "#cfc7a6", 0.95);
+          v.ball(hx2, s * 0.62, hz, 0.13, "#e3b13a");
+        }
+      });
+      chanDraw(); pumpDraw();
+      /* ions du milieu */
+      ions.forEach(function(q){
+        q.x += (rnd() - 0.5) * 0.06; q.z += (rnd() - 0.5) * 0.06; q.y += (rnd() - 0.5) * 0.06;
+        if (q.x < -2.9 || q.x > 2.9) q.x = Math.max(-2.9, Math.min(2.9, q.x));
+        if (q.z < -2 || q.z > 2) q.z = Math.max(-2, Math.min(2, q.z));
+        var lo = q.s > 0 ? 0.95 : -2.7, hi = q.s > 0 ? 2.7 : -0.95;
+        if (q.y < lo) q.y = lo + (lo - q.y); if (q.y > hi) q.y = hi - (q.y - hi);
+        v.ball(q.x, q.y, q.z, 0.1, q.k === "Na" ? "#2563eb" : "#ea580c");
+      });
+      /* ions traversant le canal : K+ sort selon le gradient */
+      cross.forEach(function(q){ v.ball(CHAN[0] + 0.03 * Math.sin(q.t * 9), -1.2 + q.t * 2.6, CHAN[1], 0.1, "#ea580c"); });
+      v.flush();
+      /* légende */
+      var ly = c.H - 30;
+      c.ctx.fillStyle = "#2563eb"; c.ctx.beginPath(); c.ctx.arc(c.W - 98, 14, 5, 0, 6.3); c.ctx.fill();
+      S.draw.text(c, "Na⁺", c.W - 88, 14, {size:11, align:"left", color:pal.ink});
+      c.ctx.fillStyle = "#ea580c"; c.ctx.beginPath(); c.ctx.arc(c.W - 52, 14, 5, 0, 6.3); c.ctx.fill();
+      S.draw.text(c, "K⁺", c.W - 42, 14, {size:11, align:"left", color:pal.ink});
+      ro.set(0, (ph + 1) + " / 5"); ro.set(1, nATP); ro.set(2, nNa); ro.set(3, nK);
+    }
+    k.button("Étape suivante (pompe)", function(){ if (ph === 0 && !atp.value) return; pt = 0; next(); auto.set(false); conf = conf; }, true);
+    k.button("Remettre à zéro", function(){ ph = 0; pt = 0; nATP = nNa = nK = 0; conf = 0; });
+    k.draw(R);
+    var lp = k.loop(function(dt){
+      tt += dt; v.spin(dt * 0.7); stepPump(dt);
+      /* canal K+ : taux ∝ ouverture ; flux net vers l'extérieur */
+      accum += dt * opn.value / 100 * 2.2;
+      while (accum > 1){ accum -= 1; cross.push({t:0}); kflux++; }
+      cross.forEach(function(q){ q.t += dt * 0.7; });
+      cross = cross.filter(function(q){ return q.t < 1; });
+      R();
+    }); lp.play();
+  }
+});
+
+})();
+/* BIO3D-END:s_c03_membrane.js */

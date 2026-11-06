@@ -182,3 +182,191 @@ SFA.sim({
   }
 });
 })();
+
+/*B3D-LIB*/
+window.B3D = window.B3D || (function(){
+  var B = {}, BG = [244,246,251];
+  B.hex = function(h){ h = h.replace("#",""); return [parseInt(h.substr(0,2),16), parseInt(h.substr(2,2),16), parseInt(h.substr(4,2),16)]; };
+  B.mix = function(a,b,t){ return [a[0]+(b[0]-a[0])*t, a[1]+(b[1]-a[1])*t, a[2]+(b[2]-a[2])*t]; };
+  B.css = function(a,al){ return "rgba("+Math.round(a[0])+","+Math.round(a[1])+","+Math.round(a[2])+","+(al===undefined?1:al)+")"; };
+  B.cam = function(yaw,pitch,dist){ return {yaw:yaw, pitch:pitch, dist:dist||7, auto:true, hold:false}; };
+  B.rot = function(cam,x,y,z){
+    var cy=Math.cos(cam.yaw), sy=Math.sin(cam.yaw), cp=Math.cos(cam.pitch), sp=Math.sin(cam.pitch);
+    var x1=cy*x+sy*z, z1=-sy*x+cy*z, y1=cp*y+sp*z1, z2=-sp*y+cp*z1; return [x1,y1,z2];
+  };
+  /* glisser = tourner (souris et doigt) */
+  B.drag = function(c, cam, redraw){
+    c.cv.style.touchAction = "none"; c.cv.style.cursor = "grab";
+    var lx=0, ly=0, dn=false;
+    c.pointer(function(t,p){
+      if (t==="down"){ dn=true; lx=p.x; ly=p.y; cam.hold=true; c.cv.style.cursor="grabbing"; }
+      else if (t==="drag" && dn){ cam.yaw -= (p.x-lx)*0.012; cam.pitch += (p.y-ly)*0.01; cam.pitch = Math.max(-1.45, Math.min(1.45, cam.pitch)); lx=p.x; ly=p.y; if (redraw) redraw(); }
+      else if (t==="up"){ dn=false; cam.hold=false; c.cv.style.cursor="grab"; }
+    });
+  };
+  B.spin = function(cam, dt, speed){ if (cam.auto && !cam.hold) cam.yaw += dt*(speed||0.35); };
+  B.background = function(c){
+    var ctx=c.ctx, g=ctx.createLinearGradient(0,0,0,c.H); g.addColorStop(0,"#fbfcff"); g.addColorStop(1,"#e9eef7");
+    ctx.fillStyle=g; ctx.fillRect(0,0,c.W,c.H);
+  };
+  B.hint = function(c, txt){
+    var ctx=c.ctx; ctx.save(); ctx.font="600 11px Mulish,system-ui,sans-serif"; ctx.fillStyle="#8a95a3"; ctx.textAlign="left"; ctx.textBaseline="alphabetic";
+    ctx.fillText(txt || "Glisse pour tourner la vue en 3D", 10, c.H-10); ctx.restore();
+  };
+  B.scene = function(c, cam, scale, fogD){
+    var items=[], labels=[], ctx=c.ctx, fd=fogD||4;
+    var S = {};
+    S.P = function(p){ var r=B.rot(cam,p[0],p[1],p[2]); var k=cam.dist/(cam.dist+r[2]); return {x:c.W/2+r[0]*k*scale, y:c.H/2-r[1]*k*scale, z:r[2], k:k}; };
+    function fog(z){ return Math.max(0, Math.min(1, (z+fd)/(2*fd)))*0.5; }
+    S.sphere = function(p, r, col, al, ring){
+      var q=S.P(p), rr=r*q.k*scale; if (rr<0.4) return;
+      items.push({z:q.z, f:function(){
+        var base=B.mix(col, BG, fog(q.z));
+        var g=ctx.createRadialGradient(q.x-.35*rr,q.y-.4*rr,rr*.08,q.x,q.y,rr);
+        g.addColorStop(0,B.css(B.mix(base,[255,255,255],.6))); g.addColorStop(.5,B.css(base)); g.addColorStop(1,B.css(B.mix(base,[0,0,20],.42)));
+        ctx.globalAlpha = al===undefined?1:al; ctx.fillStyle=g; ctx.beginPath(); ctx.arc(q.x,q.y,rr,0,6.2832); ctx.fill();
+        if (ring){ ctx.strokeStyle=ring; ctx.lineWidth=Math.max(1,rr*.12); ctx.stroke(); }
+        ctx.globalAlpha=1; }});
+      return q;
+    };
+    S.line = function(a, b, w, col, al, dash){
+      var p=S.P(a), q=S.P(b), z=(p.z+q.z)/2, wd=w*(p.k+q.k)/2*scale;
+      items.push({z:z, f:function(){
+        ctx.globalAlpha = al===undefined?1:al; ctx.lineCap="round"; ctx.strokeStyle=B.css(B.mix(col,BG,fog(z)));
+        if (dash) ctx.setLineDash(dash);
+        ctx.lineWidth=Math.max(.6,wd); ctx.beginPath(); ctx.moveTo(p.x,p.y); ctx.lineTo(q.x,q.y); ctx.stroke(); ctx.setLineDash([]); ctx.globalAlpha=1; }});
+    };
+    /* cylindre ombré entre a et b (rayon r) */
+    S.tube = function(a, b, r, col, al){
+      var p=S.P(a), q=S.P(b), z=(p.z+q.z)/2, wd=2*r*(p.k+q.k)/2*scale;
+      items.push({z:z, f:function(){
+        var base=B.mix(col,BG,fog(z)); ctx.globalAlpha = al===undefined?1:al; ctx.lineCap="round";
+        var ws=[1,.7,.4,.18], cs=[B.mix(base,[0,0,20],.4), B.mix(base,[0,0,20],.12), base, B.mix(base,[255,255,255],.5)];
+        var dx=(q.x-p.x), dy=(q.y-p.y), L=Math.sqrt(dx*dx+dy*dy)||1, nx=-dy/L, ny=dx/L;
+        for (var i=0;i<4;i++){ var off=(i>=2? -0.18:0)*wd/2; ctx.strokeStyle=B.css(cs[i]); ctx.lineWidth=Math.max(.6,wd*ws[i]);
+          ctx.beginPath(); ctx.moveTo(p.x+nx*off,p.y+ny*off); ctx.lineTo(q.x+nx*off,q.y+ny*off); ctx.stroke(); }
+        ctx.globalAlpha=1; }});
+    };
+    /* face plane (liste de points 3D), normale n (3D), ombrage de Lambert */
+    S.poly = function(pts, col, n, al, stroke, back){
+      var ps=pts.map(S.P), z=0; ps.forEach(function(p){ z+=p.z; }); z/=ps.length; if (back) z=99;
+      var sh=0.75;
+      if (n){ var r=B.rot(cam,n[0],n[1],n[2]), L=Math.sqrt(r[0]*r[0]+r[1]*r[1]+r[2]*r[2])||1; var d=(-0.35*r[0]+0.55*r[1]-0.75*r[2])/L; sh=0.55+0.45*Math.abs(d); }
+      items.push({z:z, f:function(){
+        var base=B.mix(col,BG,fog(z)); base=B.mix([0,0,20],base,Math.min(1,sh)); if (sh>1) base=B.mix(base,[255,255,255],sh-1);
+        ctx.globalAlpha=al===undefined?1:al; ctx.fillStyle=B.css(base); ctx.beginPath(); ctx.moveTo(ps[0].x,ps[0].y);
+        for (var i=1;i<ps.length;i++) ctx.lineTo(ps[i].x,ps[i].y); ctx.closePath(); ctx.fill();
+        if (stroke){ ctx.strokeStyle=stroke; ctx.lineWidth=.8; ctx.stroke(); } ctx.globalAlpha=1; }});
+    };
+    S.label = function(p, txt, col, size, dx, dy, align){ labels.push({q:S.P(p), t:txt, c:col||"#0f1b2d", s:size||12, dx:dx||0, dy:dy||0, a:align||"center"}); };
+    S.flush = function(){
+      items.sort(function(a,b){ return b.z-a.z; });
+      for (var i=0;i<items.length;i++) items[i].f();
+      ctx.save(); ctx.textBaseline="middle";
+      labels.forEach(function(l){ ctx.font="700 "+l.s+"px Mulish,system-ui,sans-serif"; ctx.textAlign=l.a;
+        var w=ctx.measureText(l.t).width, x=l.q.x+l.dx, y=l.q.y+l.dy;
+        ctx.fillStyle="rgba(255,255,255,.82)"; var bx = l.a==="center"? x-w/2 : (l.a==="left"? x : x-w); ctx.fillRect(bx-3,y-l.s*.62,w+6,l.s*1.25);
+        ctx.fillStyle=l.c; ctx.fillText(l.t,x,y); });
+      ctx.restore();
+    };
+    return S;
+  };
+  return B;
+})();
+/*B3D-LIB-END*/
+
+/*B3D-ADD:b6-3d-crispr*/
+SFA.sim({
+  id:"b6-3d-crispr", ch:"c05", tag:"3D · CRISPR-Cas9",
+  titre:"CRISPR-Cas9 : des ciseaux moléculaires guidés par un ARN",
+  resume:"Un ARN guide conduit la protéine Cas9 sur une séquence précise de l'ADN, où elle coupe. Teste un bon guide, un mauvais guide, l'absence de PAM et deux types de réparation.",
+  but:"Choisis un ARN guide et fais glisser Cas9 le long de l'ADN (ou lance la recherche automatique). Lis l'appariement guide/ADN dans la bande de séquence. Quand le site est reconnu, avance étape par étape : ouverture, coupure, réparation. Glisse pour tourner la vue.",
+  aRetenir:"CRISPR-Cas9 est un outil d'édition du génome. L'ARN guide (≈ 20 nucléotides) s'apparie par complémentarité avec la séquence cible de l'ADN ; Cas9 ne coupe que s'il y a une bonne correspondance et la séquence PAM (NGG) juste à côté. Les deux brins sont coupés. La cellule répare : soit de façon approximative (des bases insérées ou perdues, le gène est inactivé), soit en utilisant une matrice d'ADN fournie (le gène est corrigé ou modifié). Les applications vont de la recherche à des thérapies (drépanocytose), avec des questions éthiques importantes.",
+  piege:"Cas9 n'est pas un « chercheur de gène » intelligent : c'est la complémentarité de l'ARN guide qui décide de l'endroit. Un guide mal choisi coupe au mauvais endroit ou ne coupe pas, et sans PAM, même un guide parfait ne coupe pas. Couper n'est pas corriger : c'est la réparation qui détermine le résultat.",
+  build:function(k, S){
+    var B = window.B3D, c = k.canvas(380), cam = B.cam(0.3, 0.3, 8);
+    var PRE = "ATCGGA", TGT = "GACCTGAGTCCATGGCTAAC", SUF = "CATTGCA";
+    function flip(ch){ return {A:"T", T:"A", G:"C", C:"G"}[ch]; }
+    var G2 = TGT.split(""); [11, 13, 15, 17].forEach(function(i){ G2[i] = flip(G2[i]); });
+    var GUIDES = {g1:TGT, g2:G2.join(""), g3:"TTGACCGATACGGTCAGTCA"};
+    var gsel = k.select("ARN guide", [["g1","Guide 1 : complémentaire du gène cible"],["g2","Guide 2 : 4 erreurs dans le « germe »"],["g3","Guide 3 : vise un autre gène"]], "g1", function(){ reset(false); });
+    var pam = k.toggle("Séquence PAM (NGG) présente à côté de la cible", true, function(){ reset(false); });
+    var rep = k.seg("Réparation", [["nhej","Approximative (NHEJ)"],["hdr","Avec matrice (HDR)"]], "nhej");
+    var pos = k.slider("Position de Cas9 sur l'ADN", 0, 13, 1, 0, "pb", function(){ if (stage > 0) reset(false); auto = false; });
+    var rot = k.toggle("Rotation automatique", false, function(v){ cam.auto = v; });
+    k.button("Étape suivante", function(){ nextStage(); }, true);
+    k.button("Chercher automatiquement", function(){ reset(false); pos.set(0); auto = true; });
+    k.button("Recommencer", function(){ reset(true); });
+    var ro = k.readouts(["Appariement guide / ADN", "PAM (NGG)", "Étape", "Résultat"]);
+    var nt = k.note("", "");
+    cam.auto = false;
+    var stage = 0, auto = false, tick = 0, T = 0, ins = ["A", "C"], gap = 0, scis = 0;
+    function genome(){ return PRE + TGT + (pam.value ? "TGG" : "TCA") + SUF; }
+    function eval1(p){ var g = GUIDES[gsel.value], gn = genome(), m = 0, seed = true, j; for (j = 0; j < 20; j++){ if (g[j] === gn[p + j]) m++; else if (j >= 10) seed = false; } var pm = gn[p + 21] === "G" && gn[p + 22] === "G"; return {m:m, seed:seed, pam:pm, ok:m >= 18 && seed && pm}; }
+    function reset(full){ stage = 0; gap = 0; if (full){ pos.set(0); auto = false; } ins = [["A", "C", "G", "T"][Math.floor(Math.random() * 4)], ["A", "C", "G", "T"][Math.floor(Math.random() * 4)]]; }
+    function nextStage(){ var e = eval1(pos.value); if (stage === 0){ if (e.ok) stage = 1; else { auto = false; blocked = true; } } else if (stage < 3) stage++; }
+    var blocked = false;
+    var BASEC = {A:B.hex("#2e9e5b"), T:B.hex("#d64545"), G:B.hex("#2563eb"), C:B.hex("#e0a100")};
+    B.drag(c, cam, function(){ render(); });
+    function step(dt){
+      T += dt;
+      if (stage >= 2) gap += ((stage === 2 ? 0.34 : 0.0) - gap) * Math.min(1, dt * 3);
+      if (auto && stage === 0){ tick += dt; if (tick > 0.55){ tick = 0; var e = eval1(pos.value); if (e.ok){ auto = false; stage = 1; } else if (pos.value < 13) pos.set(pos.value + 1); else auto = false; } }
+    }
+    function render(){
+      B.background(c);
+      var gn = genome(), N = gn.length, DX = 0.14, p = pos.value, sc = B.scene(c, cam, Math.min(c.W / 6.4, c.H / 3.2), 4);
+      var cutIdx = p + 16, R = 0.28, e = eval1(p);
+      var xs = function(i){ var x = (i - (N - 1) / 2) * DX; if (stage >= 2){ var gp = (stage === 2 ? 0.2 : 0.0); x += (i <= cutIdx ? -gp : gp); if (stage === 3) x += (i <= cutIdx ? -0.09 : 0.09); } return x; };
+      var OPEN = stage >= 1 && stage <= 2;
+      var prev1 = null, prev2 = null;
+      for (var i = 0; i < N; i++){
+        var a = i * 0.628 + T * 0.4, x = xs(i), op = OPEN && i >= p && i < p + 20 ? 0.33 : 0;
+        var q1 = [x, R * Math.cos(a), R * Math.sin(a)], q2 = [x, -R * Math.cos(a) + op * 0.0 + (op ? 0.0 : 0), -R * Math.sin(a)];
+        if (op){ q2 = [x, -R * Math.cos(a) + 0.25, -R * Math.sin(a) + 0.15]; }
+        if (prev1 && !(stage >= 2 && i === cutIdx + 1)){ sc.tube(prev1, q1, 0.03, B.hex("#1e3f8f")); sc.tube(prev2, q2, 0.03, B.hex("#1e3f8f")); }
+        sc.sphere(q1, 0.055, B.hex("#1e3f8f")); sc.sphere(q2, 0.055, B.hex("#1e3f8f"));
+        var b1 = gn[i], b2 = flip(b1), mid = [(q1[0] + q2[0]) / 2, (q1[1] + q2[1]) / 2, (q1[2] + q2[2]) / 2];
+        if (!op){ sc.tube(q1, mid, 0.025, BASEC[b1]); sc.tube(q2, mid, 0.025, BASEC[b2]); }
+        else { sc.tube(q1, [q1[0], q1[1] * 0.5, q1[2] * 0.5], 0.025, BASEC[b1]); }
+        prev1 = q1; prev2 = q2;
+      }
+      /* bases insérées / matrice */
+      if (stage === 3){ var xm = xs(cutIdx) + 0.07; for (var j = 0; j < 2; j++){ var xx = xm + j * 0.07 * 1.0, aa = (cutIdx + 1 + j) * 0.628 + T * 0.4; var s1 = [xx, R * Math.cos(aa), R * Math.sin(aa)], s2 = [xx, -R * Math.cos(aa), -R * Math.sin(aa)];
+        var col = rep.value === "hdr" ? B.hex("#16a34a") : B.hex("#f97316"); sc.sphere(s1, 0.055, col); sc.sphere(s2, 0.055, col); sc.tube(s1, s2, 0.03, col); } }
+      /* Cas9 + ARN guide */
+      var xc = (p + 9.5 - (N - 1) / 2) * DX, hov = stage === 0 ? 0.62 : 0.5;
+      sc.sphere([xc - 0.2, hov + 0.45, 0.0], 0.62, B.hex("#60a5fa"), 0.42, "#1d4ed8"); sc.sphere([xc + 0.35, hov + 0.35, 0.05], 0.5, B.hex("#94a3b8"), 0.45, "#475569");
+      sc.label([xc, hov + 1.25, 0], "Cas9", "#1d4ed8", 12, 0, 0);
+      for (var g = 0; g < 20; g++){ var gx = (p + g - (N - 1) / 2) * DX, gy = (stage >= 1 ? 0.0 : hov - 0.1) + (stage >= 1 ? 0.0 : 0.04 * Math.sin(g)), mt = GUIDES[gsel.value][g] === gn[p + g];
+        if (stage >= 1){ gx = xs(p + g); var aa2 = (p + g) * 0.628 + T * 0.4; sc.sphere([gx, 0.06 + 0.0, 0.05], 0.05, B.hex("#f97316")); }
+        else sc.sphere([gx, hov - 0.12, 0.1 * Math.sin(g * 0.6)], 0.05, mt ? B.hex("#f97316") : B.hex("#b45309")); }
+      if (stage === 2) sc.label([xs(cutIdx) , 0.62, 0], "coupure", "#b91c1c", 12, 0, 0);
+      if (stage === 3) sc.label([xs(cutIdx), 0.62, 0], rep.value === "hdr" ? "séquence corrigée" : "bases insérées", rep.value === "hdr" ? "#15803d" : "#c2410c", 11, 0, 0);
+      sc.flush(); B.hint(c);
+      /* bande de séquence en 2D */
+      var ctx = c.ctx, cw = Math.min(11, (c.W - 70) / N), x0 = 62, y0 = c.H - 62; ctx.save(); ctx.font = "700 " + Math.max(8, cw - 1) + "px 'JetBrains Mono',monospace"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+      ctx.fillStyle = "#475569"; ctx.textAlign = "right"; ctx.font = "700 10px Mulish,system-ui,sans-serif"; ctx.fillText("ADN 5'→3'", x0 - 6, y0); ctx.fillText("ARN guide", x0 - 6, y0 + 28); ctx.textAlign = "center"; ctx.font = "700 " + Math.max(8, cw - 1) + "px 'JetBrains Mono',monospace";
+      for (var i2 = 0; i2 < N; i2++){ var inT = i2 >= p && i2 < p + 20, inP = i2 >= p + 20 && i2 < p + 23, cx2 = x0 + i2 * cw + cw / 2;
+        if (inT){ ctx.fillStyle = "rgba(249,115,22,.18)"; ctx.fillRect(x0 + i2 * cw, y0 - 9, cw, 18); }
+        if (inP){ ctx.fillStyle = e.pam ? "rgba(22,163,74,.3)" : "rgba(220,38,38,.25)"; ctx.fillRect(x0 + i2 * cw, y0 - 9, cw, 18); }
+        ctx.fillStyle = "#0f1b2d"; ctx.fillText(gn[i2], cx2, y0);
+        if (inT){ var gch = GUIDES[gsel.value][i2 - p], ok = gch === gn[i2]; ctx.fillStyle = ok ? "#16a34a" : "#dc2626"; ctx.fillText(ok ? "|" : "×", cx2, y0 + 14); ctx.fillStyle = "#0f1b2d"; ctx.fillText(gch === "T" ? "U" : gch, cx2, y0 + 28); } }
+      ctx.fillStyle = e.pam ? "#15803d" : "#b91c1c"; ctx.textAlign = "left"; ctx.font = "700 10px Mulish,system-ui,sans-serif"; ctx.fillText(e.pam ? "PAM NGG ✓" : "pas de PAM", x0 + (p + 20) * cw, y0 - 16); ctx.restore();
+      ro.set(0, e.m + " / 20" + (e.seed ? "" : " (germe ✗)")); ro.set(1, e.pam ? "oui" : "non"); ro.set(2, ["Recherche", "Ouverture de l'ADN", "Coupure", "Réparation"][stage]);
+      ro.set(3, stage < 3 ? "—" : (rep.value === "hdr" ? "gène corrigé" : "gène inactivé"));
+      var msg, kind = "";
+      if (stage === 0){ if (blocked && !e.ok){ msg = !e.pam ? "Pas de PAM (NGG) : Cas9 ne s'attache pas, même si le guide correspond. Elle se détache et continue de chercher." : (!e.seed || e.m < 18 ? "L'ARN guide ne s'apparie pas assez avec l'ADN (" + e.m + "/20, germe " + (e.seed ? "bon" : "non conforme") + ") : pas d'ouverture, pas de coupure." : "Pas de coupure ici."); kind = "warn"; }
+        else msg = e.ok ? "Correspondance parfaite et PAM présente : Cas9 peut se fixer. Clique sur « Étape suivante »." : "Cas9 glisse le long de l'ADN en testant les séquences voisines de PAM. Ici : " + e.m + "/20 appariés" + (e.pam ? "" : ", pas de PAM") + ". Déplace-la ou lance la recherche automatique."; }
+      else if (stage === 1) msg = "L'ARN guide s'apparie avec 20 bases de l'ADN, qui s'ouvre localement. Cas9 vérifie la correspondance avant de couper.";
+      else if (stage === 2) msg = "Cas9 coupe les deux brins, environ 3 bases avant la PAM : cassure double-brin.";
+      else msg = rep.value === "hdr" ? "Réparation avec une matrice d'ADN fournie par l'expérimentateur : la séquence voulue (vert) est copiée. Le gène est corrigé ou modifié de façon précise." : "Réparation approximative (NHEJ) : la cellule recolle les extrémités mais des bases sont ajoutées ou perdues (orange). Le gène est décalé, donc inactivé (« knock-out »).";
+      if (stage > 0) blocked = false;
+      nt.set(msg, stage === 3 ? "ok" : kind);
+    }
+    k.draw(render);
+    var L = k.loop(function(dt){ B.spin(cam, dt, 0.25); step(dt); render(); });
+    L.play();
+  }
+});
+/*B3D-ADD-END:b6-3d-crispr*/

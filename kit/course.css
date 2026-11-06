@@ -189,14 +189,24 @@ h3.peek{font:800 12px var(--f,system-ui);letter-spacing:.08em;text-transform:upp
 .qcm .qc.bad{background:#fcebeb!important;border-color:#E24B4A!important;color:#a32d2d!important}
 .qfb{font-size:14px;padding:4px 2px}
 .lvf .btn{padding:5px 10px;font-size:12.5px}
-/* page d'une simulation */
-.simhost{padding:16px 18px 18px}
-.simhost .sim-body{margin-top:0}
+/* page d'une simulation (refonte visuelle novembre 2026) */
+.simhost{padding:16px}
+.simhost .sim-body{margin-top:0;grid-template-columns:minmax(0,1fr) 296px;gap:16px;align-items:start}
+.simhost .sim-body.solo{grid-template-columns:minmax(0,1fr)}
+.simhost .stage{position:sticky;top:66px}
+.simhost .stage canvas{border-radius:12px!important;background:#fff}
+@media (max-width:1100px) and (min-width:981px){.simhost .sim-body{grid-template-columns:minmax(0,1fr) 260px}}
+@media (max-width:860px){.simhost .sim-body{grid-template-columns:minmax(0,1fr)}.simhost .stage{position:static}}
+@media (max-width:520px){.simhost{padding:10px}.simhost .ctrl{padding:12px}.sfa-titlecard{padding:14px 16px}}
 .sp-next{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;margin:14px 0 6px}
-.sp-go{display:block;border:1.5px solid #e8e8e8;border-radius:12px;padding:12px 14px;text-decoration:none;color:#13233a;background:#fff;transition:.15s}
-.sp-go:hover{border-color:#185fa5;transform:translateY(-2px)}
-.sp-go small{display:block;font:700 10.5px var(--f,system-ui);letter-spacing:.06em;text-transform:uppercase;color:#6b7480}
-.sp-go b{font:800 14px/1.3 var(--f,system-ui)}
+.sp-go{display:block;border:1px solid var(--line);border-radius:12px;padding:12px 14px;text-decoration:none;color:#13233a;background:#fff;transition:border-color .15s,transform .15s,box-shadow .15s}
+.sp-go:hover{border-color:var(--acc,#185fa5);transform:translateY(-2px);box-shadow:0 4px 14px rgba(15,27,45,.08)}
+.sp-go small{display:block;font:800 10.5px var(--f-ui);letter-spacing:.06em;text-transform:uppercase;color:#6b7480;margin-bottom:2px}
+.sp-go b{font:800 14px/1.3 var(--f-ui)}
 .sp-go.ex{background:#13233a;border-color:#13233a;color:#fff}.sp-go.ex small{color:#f4c542}
-.sp-chap{display:block;width:100%;padding:8px 12px 2px;clear:both}.sp-chap a{font:800 13px var(--f,system-ui);color:#185fa5;text-decoration:none}
+.sfa-list .sp-chap{display:block;padding:8px 8px 2px;border-top:1px solid var(--line);margin-top:6px}
+.sfa-list .sp-chap a{display:inline-block;padding:4px 0;font:800 13px var(--f-ui);color:var(--acc,#185fa5);text-decoration:none;background:none}
+.sfa-list .sp-chap a:hover{text-decoration:underline;background:none}
+.simpage .sfa-list a.on{background:var(--acc-t,#eef4fb);color:var(--acc,#24428a)}
+.simpage .sfa-list a.on i{color:var(--acc,#24428a)}
 .sfa-list a.on{background:#eef4fb}

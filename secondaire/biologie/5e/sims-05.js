@@ -209,3 +209,198 @@ SFA.sim({
   }
 });
 })();
+
+/*B3D-LIB*/
+window.B3D = window.B3D || (function(){
+  var B = {}, BG = [244,246,251];
+  B.hex = function(h){ h = h.replace("#",""); return [parseInt(h.substr(0,2),16), parseInt(h.substr(2,2),16), parseInt(h.substr(4,2),16)]; };
+  B.mix = function(a,b,t){ return [a[0]+(b[0]-a[0])*t, a[1]+(b[1]-a[1])*t, a[2]+(b[2]-a[2])*t]; };
+  B.css = function(a,al){ return "rgba("+Math.round(a[0])+","+Math.round(a[1])+","+Math.round(a[2])+","+(al===undefined?1:al)+")"; };
+  B.cam = function(yaw,pitch,dist){ return {yaw:yaw, pitch:pitch, dist:dist||7, auto:true, hold:false}; };
+  B.rot = function(cam,x,y,z){
+    var cy=Math.cos(cam.yaw), sy=Math.sin(cam.yaw), cp=Math.cos(cam.pitch), sp=Math.sin(cam.pitch);
+    var x1=cy*x+sy*z, z1=-sy*x+cy*z, y1=cp*y+sp*z1, z2=-sp*y+cp*z1; return [x1,y1,z2];
+  };
+  /* glisser = tourner (souris et doigt) */
+  B.drag = function(c, cam, redraw){
+    c.cv.style.touchAction = "none"; c.cv.style.cursor = "grab";
+    var lx=0, ly=0, dn=false;
+    c.pointer(function(t,p){
+      if (t==="down"){ dn=true; lx=p.x; ly=p.y; cam.hold=true; c.cv.style.cursor="grabbing"; }
+      else if (t==="drag" && dn){ cam.yaw -= (p.x-lx)*0.012; cam.pitch += (p.y-ly)*0.01; cam.pitch = Math.max(-1.45, Math.min(1.45, cam.pitch)); lx=p.x; ly=p.y; if (redraw) redraw(); }
+      else if (t==="up"){ dn=false; cam.hold=false; c.cv.style.cursor="grab"; }
+    });
+  };
+  B.spin = function(cam, dt, speed){ if (cam.auto && !cam.hold) cam.yaw += dt*(speed||0.35); };
+  B.background = function(c){
+    var ctx=c.ctx, g=ctx.createLinearGradient(0,0,0,c.H); g.addColorStop(0,"#fbfcff"); g.addColorStop(1,"#e9eef7");
+    ctx.fillStyle=g; ctx.fillRect(0,0,c.W,c.H);
+  };
+  B.hint = function(c, txt){
+    var ctx=c.ctx; ctx.save(); ctx.font="600 11px Mulish,system-ui,sans-serif"; ctx.fillStyle="#8a95a3"; ctx.textAlign="left"; ctx.textBaseline="alphabetic";
+    ctx.fillText(txt || "Glisse pour tourner la vue en 3D", 10, c.H-10); ctx.restore();
+  };
+  B.scene = function(c, cam, scale, fogD){
+    var items=[], labels=[], ctx=c.ctx, fd=fogD||4;
+    var S = {};
+    S.P = function(p){ var r=B.rot(cam,p[0],p[1],p[2]); var k=cam.dist/(cam.dist+r[2]); return {x:c.W/2+r[0]*k*scale, y:c.H/2-r[1]*k*scale, z:r[2], k:k}; };
+    function fog(z){ return Math.max(0, Math.min(1, (z+fd)/(2*fd)))*0.5; }
+    S.sphere = function(p, r, col, al, ring){
+      var q=S.P(p), rr=r*q.k*scale; if (rr<0.4) return;
+      items.push({z:q.z, f:function(){
+        var base=B.mix(col, BG, fog(q.z));
+        var g=ctx.createRadialGradient(q.x-.35*rr,q.y-.4*rr,rr*.08,q.x,q.y,rr);
+        g.addColorStop(0,B.css(B.mix(base,[255,255,255],.6))); g.addColorStop(.5,B.css(base)); g.addColorStop(1,B.css(B.mix(base,[0,0,20],.42)));
+        ctx.globalAlpha = al===undefined?1:al; ctx.fillStyle=g; ctx.beginPath(); ctx.arc(q.x,q.y,rr,0,6.2832); ctx.fill();
+        if (ring){ ctx.strokeStyle=ring; ctx.lineWidth=Math.max(1,rr*.12); ctx.stroke(); }
+        ctx.globalAlpha=1; }});
+      return q;
+    };
+    S.line = function(a, b, w, col, al, dash){
+      var p=S.P(a), q=S.P(b), z=(p.z+q.z)/2, wd=w*(p.k+q.k)/2*scale;
+      items.push({z:z, f:function(){
+        ctx.globalAlpha = al===undefined?1:al; ctx.lineCap="round"; ctx.strokeStyle=B.css(B.mix(col,BG,fog(z)));
+        if (dash) ctx.setLineDash(dash);
+        ctx.lineWidth=Math.max(.6,wd); ctx.beginPath(); ctx.moveTo(p.x,p.y); ctx.lineTo(q.x,q.y); ctx.stroke(); ctx.setLineDash([]); ctx.globalAlpha=1; }});
+    };
+    /* cylindre ombré entre a et b (rayon r) */
+    S.tube = function(a, b, r, col, al){
+      var p=S.P(a), q=S.P(b), z=(p.z+q.z)/2, wd=2*r*(p.k+q.k)/2*scale;
+      items.push({z:z, f:function(){
+        var base=B.mix(col,BG,fog(z)); ctx.globalAlpha = al===undefined?1:al; ctx.lineCap="round";
+        var ws=[1,.7,.4,.18], cs=[B.mix(base,[0,0,20],.4), B.mix(base,[0,0,20],.12), base, B.mix(base,[255,255,255],.5)];
+        var dx=(q.x-p.x), dy=(q.y-p.y), L=Math.sqrt(dx*dx+dy*dy)||1, nx=-dy/L, ny=dx/L;
+        for (var i=0;i<4;i++){ var off=(i>=2? -0.18:0)*wd/2; ctx.strokeStyle=B.css(cs[i]); ctx.lineWidth=Math.max(.6,wd*ws[i]);
+          ctx.beginPath(); ctx.moveTo(p.x+nx*off,p.y+ny*off); ctx.lineTo(q.x+nx*off,q.y+ny*off); ctx.stroke(); }
+        ctx.globalAlpha=1; }});
+    };
+    /* face plane (liste de points 3D), normale n (3D), ombrage de Lambert */
+    S.poly = function(pts, col, n, al, stroke, back){
+      var ps=pts.map(S.P), z=0; ps.forEach(function(p){ z+=p.z; }); z/=ps.length; if (back) z=99;
+      var sh=0.75;
+      if (n){ var r=B.rot(cam,n[0],n[1],n[2]), L=Math.sqrt(r[0]*r[0]+r[1]*r[1]+r[2]*r[2])||1; var d=(-0.35*r[0]+0.55*r[1]-0.75*r[2])/L; sh=0.55+0.45*Math.abs(d); }
+      items.push({z:z, f:function(){
+        var base=B.mix(col,BG,fog(z)); base=B.mix([0,0,20],base,Math.min(1,sh)); if (sh>1) base=B.mix(base,[255,255,255],sh-1);
+        ctx.globalAlpha=al===undefined?1:al; ctx.fillStyle=B.css(base); ctx.beginPath(); ctx.moveTo(ps[0].x,ps[0].y);
+        for (var i=1;i<ps.length;i++) ctx.lineTo(ps[i].x,ps[i].y); ctx.closePath(); ctx.fill();
+        if (stroke){ ctx.strokeStyle=stroke; ctx.lineWidth=.8; ctx.stroke(); } ctx.globalAlpha=1; }});
+    };
+    S.label = function(p, txt, col, size, dx, dy, align){ labels.push({q:S.P(p), t:txt, c:col||"#0f1b2d", s:size||12, dx:dx||0, dy:dy||0, a:align||"center"}); };
+    S.flush = function(){
+      items.sort(function(a,b){ return b.z-a.z; });
+      for (var i=0;i<items.length;i++) items[i].f();
+      ctx.save(); ctx.textBaseline="middle";
+      labels.forEach(function(l){ ctx.font="700 "+l.s+"px Mulish,system-ui,sans-serif"; ctx.textAlign=l.a;
+        var w=ctx.measureText(l.t).width, x=l.q.x+l.dx, y=l.q.y+l.dy;
+        ctx.fillStyle="rgba(255,255,255,.82)"; var bx = l.a==="center"? x-w/2 : (l.a==="left"? x : x-w); ctx.fillRect(bx-3,y-l.s*.62,w+6,l.s*1.25);
+        ctx.fillStyle=l.c; ctx.fillText(l.t,x,y); });
+      ctx.restore();
+    };
+    return S;
+  };
+  return B;
+})();
+/*B3D-LIB-END*/
+
+/*B3D-ADD:b5-3d-anticorps*/
+SFA.sim({
+  id:"b5-3d-anticorps", ch:"c05", tag:"3D · immunité adaptative",
+  titre:"Sélection clonale : un seul lymphocyte B reconnaît l'antigène",
+  resume:"Parmi quatre lymphocytes B de spécificités différentes, celui qui reconnaît l'antigène se multiplie et fabrique des anticorps. Teste ensuite la 2e rencontre.",
+  but:"Choisis l'antigène du pathogène et avance étape par étape (ou en lecture automatique). Glisse pour tourner la scène. Clique sur « 2e rencontre » à la fin pour comparer la rapidité et l'intensité de la réponse.",
+  aRetenir:"Chaque lymphocyte B porte à sa surface des récepteurs d'une seule spécificité, complémentaires d'un seul antigène (clé et serrure). Quand l'antigène se fixe, seul ce lymphocyte est sélectionné et se multiplie (sélection clonale) ; ses descendants deviennent des plasmocytes (qui sécrètent des milliers d'anticorps identiques) et des lymphocytes mémoire. Les anticorps se fixent sur les pathogènes, les neutralisent, les agglutinent et facilitent leur destruction par les phagocytes. À la 2e rencontre, les cellules mémoire rendent la réponse plus rapide et plus forte : c'est le principe du vaccin.",
+  piege:"Le pathogène ne « fait pas fabriquer » un anticorps sur mesure : les lymphocytes B de toutes les spécificités existent déjà avant la rencontre, l'antigène ne fait que sélectionner celui qui convient. Et un anticorps ne reconnaît qu'un antigène : l'anticorps contre la grippe ne protège pas contre la rougeole.",
+  build:function(k, S){
+    var B = window.B3D, c = k.canvas(380), cam = B.cam(0.3, 0.6, 8.5);
+    var ag = k.seg("Antigène du pathogène", [[0,"A"],[1,"B"],[2,"C"],[3,"D"]], 0, function(){ restart(); });
+    var spd = k.slider("Vitesse", 0.3, 2, 0.1, 1, "×");
+    var auto = k.toggle("Lecture automatique", true);
+    var rot = k.toggle("Rotation automatique", false, function(v){ cam.auto = v; });
+    k.button("Étape suivante", function(){ next(); }, true);
+    k.button("2e rencontre (mémoire)", function(){ second(); });
+    k.button("Recommencer", function(){ restart(); });
+    var ro = k.readouts(["Lymphocytes B sélectionnés", "Plasmocytes", "Anticorps libres", "Pathogènes restants"]);
+    var nt = k.note("", "");
+    cam.auto = false;
+    var COLS = ["#f97316", "#2563eb", "#16a34a", "#9333ea"], NAMES = ["A", "B", "C", "D"];
+    var BC = [0, 1, 2, 3].map(function(i){ var a = i * 1.5708 + 0.785; return {x:1.7 * Math.cos(a), z:1.7 * Math.sin(a), i:i}; });
+    var stage = 0, sp = 0, mem = false, clones = [], abs = [], pat = [], T = 0, nAb = 0;
+    function rnd(){ return Math.random() * 2 - 1; }
+    function restart(){ mem = false; reset(); }
+    function reset(){ stage = 0; sp = 0; clones = []; abs = []; nAb = 0; pat = []; for (var i = 0; i < 6; i++){ var a = i * 1.047; pat.push({x:0.6 * Math.cos(a), y:0.2 * rnd(), z:0.6 * Math.sin(a), st:0, ph:Math.random() * 6, first:i === 0}); } }
+    function second(){ mem = true; reset(); stage = 0; sp = 0; stage = 1; var m = ag.value; clones = []; for (var i = 0; i < 6; i++) clones.push({k:"mem", a:0}); }
+    function next(){ if (stage < 6){ stage++; sp = 0; enter(); } }
+    function enter(){
+      if (stage === 3){ var n = mem ? 14 : 7; clones = clones.filter(function(q){ return q.k === "mem"; }); if (!mem) for (var j = 0; j < 3; j++) clones.push({k:"mem", a:0}); for (var i = 0; i < n; i++) clones.push({k:"pl", a:0}); }
+    }
+    function step(dt0){
+      var dt = dt0 * spd.value; T += dt; sp += dt * (mem ? 0.55 : 0.32);
+      if (auto.value && sp > 1 && stage < 6){ next(); }
+      var m = ag.value, bc = BC[m];
+      pat.forEach(function(p){ p.ph += dt;
+        if (p.st === 0){
+          if (stage < 1){ p.x += Math.cos(p.ph * 1.3 + p.ph) * dt * 0.1; p.z += Math.sin(p.ph * 0.9) * dt * 0.1; p.y = 0.2 * Math.sin(p.ph); }
+          else if (stage === 1 && p.first){ p.x += (bc.x * 0.72 - p.x) * dt * 0.8; p.z += (bc.z * 0.72 - p.z) * dt * 0.8; } else if (stage >= 2 && !p.first){ } else if (stage >= 2){ p.x += (0.3 * Math.cos(p.ph) - p.x) * dt * 0.5; p.z += (0.3 * Math.sin(p.ph) - p.z) * dt * 0.5; }
+        }
+      });
+      if (stage >= 5){ abs.forEach(function(a){ if (!a.bound){ var tg = pat.filter(function(p){ return p.st === 0; }); if (tg.length){ var t = tg[a.tgt % tg.length]; a.x += (t.x - a.x) * dt * 1.4; a.y += (t.y - a.y) * dt * 1.4; a.z += (t.z - a.z) * dt * 1.4; if (Math.hypot(a.x - t.x, a.y - t.y, a.z - t.z) < 0.22){ a.bound = true; t.nb = (t.nb || 0) + 1; } } } });
+        pat.forEach(function(p){ if (p.st === 0 && (p.nb || 0) >= 3) p.st = 1; if (p.st === 1){ p.x += (0 - p.x) * dt * 0.5; p.z += (0 - p.z) * dt * 0.5; p.y += (-0.4 - p.y) * dt * 0.5; p.ph += 0; } });
+      }
+      if (stage >= 4 && abs.length < (mem ? 40 : 18) && Math.random() < dt * (mem ? 22 : 10)){ var pls = clones.filter(function(q){ return q.k === "pl"; }); if (pls.length){ var q = pls[Math.floor(Math.random() * pls.length)]; abs.push({x:q.px || bc.x, y:0.1, z:q.pz || bc.z, tgt:Math.floor(Math.random() * 6), bound:false, ph:Math.random() * 6}); nAb++; } }
+    }
+    B.drag(c, cam, function(){ render(); });
+    function Y(sc, p, col, ph, al){ var c0 = B.hex(col), ca = Math.cos(ph), sa = Math.sin(ph);
+      sc.tube([p[0], p[1] - 0.18, p[2]], [p[0], p[1], p[2]], 0.035, c0, al);
+      sc.tube([p[0], p[1], p[2]], [p[0] + 0.15 * ca, p[1] + 0.17, p[2] + 0.15 * sa], 0.035, c0, al); sc.tube([p[0], p[1], p[2]], [p[0] - 0.15 * ca, p[1] + 0.17, p[2] - 0.15 * sa], 0.035, c0, al); }
+    function render(){
+      B.background(c);
+      var sc = B.scene(c, cam, Math.min(c.W / 7.6, c.H / 5.4), 4.5), m = ag.value;
+      /* plateau */
+      var gr = 3.6; sc.poly([[-gr, -0.5, -gr], [gr, -0.5, -gr], [gr, -0.5, gr], [-gr, -0.5, gr]], B.hex("#e8edf6"), [0, 1, 0], 1, "rgba(100,116,139,.3)", true);
+      /* lymphocytes B naïfs */
+      BC.forEach(function(b, i){
+        var sel = stage >= 2 && i === m, dim = stage >= 2 && i !== m, sz = sel && stage >= 2 ? 0.5 : 0.42, al = dim ? 0.28 : 1;
+        sc.sphere([b.x, 0, b.z], sz, B.hex("#fde68a"), al, sel ? "#b45309" : null);
+        for (var q = 0; q < 6; q++){ var a = q * 1.047 + b.i, rx = b.x + (sz + 0.02) * Math.cos(a) * 0.95, rz = b.z + (sz + 0.02) * Math.sin(a) * 0.95; Y(sc, [rx, 0.25 * (q % 2 ? 1 : -1), rz], COLS[i], a, al); }
+        sc.label([b.x, 0.85, b.z], "B " + NAMES[i], dim ? "#94a3b8" : COLS[i], 11, 0, 0);
+      });
+      /* clones */
+      var bc = BC[m];
+      var dd = Math.hypot(bc.x, bc.z) || 1, ux = bc.x / dd, uz = bc.z / dd, vx = -uz, vz = ux;
+      clones.forEach(function(q, n){
+        var vis = (q.k === "mem" && mem && stage < 3) ? 1 : (stage >= 3 ? Math.min(1, sp * 2 + (stage > 3 ? 1 : 0)) : 0);
+        var row = Math.floor(n / 5), col = n % 5, dist = (0.85 + row * 0.5) * vis, off = (col - 2) * 0.46 * vis;
+        var x = bc.x + ux * dist + vx * off, z = bc.z + uz * dist + vz * off;
+        if (q.k === "pl"){ sc.sphere([x, 0, z], 0.22, B.hex("#fbbf24"), 1, "#92400e"); for (var j = 0; j < 3; j++) sc.sphere([x + 0.09 * Math.cos(j * 2.1), 0.07, z + 0.09 * Math.sin(j * 2.1)], 0.04, B.hex("#b45309")); }
+        else sc.sphere([x, 0, z], 0.19, B.hex("#bef264"), 1, "#4d7c0f");
+        q.px = x; q.pz = z;
+      });
+      /* pathogènes */
+      pat.forEach(function(p){
+        var col = B.hex(COLS[m]);
+        sc.sphere([p.x, p.y, p.z], 0.17, p.st ? B.hex("#94a3b8") : B.hex("#fca5a5"), p.st ? 0.6 : 1, "#7f1d1d");
+        for (var q = 0; q < 6; q++){ var a = q * 1.047 + p.ph * 0.2; sc.sphere([p.x + 0.23 * Math.cos(a), p.y + 0.08 * Math.sin(a * 2), p.z + 0.23 * Math.sin(a)], 0.06, p.st ? B.hex("#94a3b8") : col); }
+      });
+      /* anticorps libres */
+      abs.forEach(function(a){ Y(sc, [a.x, a.y, a.z], COLS[m], a.ph + T * 0.8); });
+      if (stage < 1) sc.label([0, 0.7, 0], "pathogène (antigène " + NAMES[m] + ")", "#7f1d1d", 11, 0, 0);
+      sc.flush(); B.hint(c);
+      var left = pat.filter(function(p){ return p.st === 0; }).length, pls = clones.filter(function(q){ return q.k === "pl"; }).length, nCl = clones.length;
+      ro.set(0, stage >= 2 ? (stage >= 3 ? 1 + nCl : 1) : 0); ro.set(1, stage >= 3 ? pls : 0); ro.set(2, abs.filter(function(a){ return !a.bound; }).length); ro.set(3, left);
+      var ST = ["Un pathogène porteur de l'antigène " + NAMES[m] + " pénètre dans l'organisme. Quatre lymphocytes B de spécificités différentes sont présents (A, B, C, D).",
+        "Reconnaissance : l'antigène " + NAMES[m] + " se fixe sur les récepteurs du lymphocyte B " + NAMES[m] + " (forme complémentaire, comme une clé dans une serrure). Les autres lymphocytes ne le reconnaissent pas.",
+        "Sélection clonale : seul le lymphocyte B " + NAMES[m] + " est activé. Les trois autres restent inchangés.",
+        "Prolifération : le lymphocyte sélectionné se divise en un clone de cellules identiques : des plasmocytes (jaunes) et des cellules mémoire (vertes).",
+        "Les plasmocytes sécrètent un grand nombre d'anticorps identiques, de même spécificité que le récepteur d'origine.",
+        "Neutralisation : les anticorps se fixent sur les antigènes, agglutinent les pathogènes (gris) qui seront détruits par les phagocytes.",
+        "Réponse terminée. Les cellules mémoire (vertes) restent : clique sur « 2e rencontre » pour voir une réponse plus rapide et plus forte."];
+      var s = Math.min(stage, 6);
+      nt.set((mem && stage <= 1 ? "2e rencontre : des cellules mémoire sont déjà là. " : "") + ST[s], stage === 6 ? "ok" : "");
+    }
+    k.draw(render);
+    reset();
+    var L = k.loop(function(dt){ B.spin(cam, dt, 0.25); step(dt); render(); });
+    L.play();
+  }
+});
+/*B3D-ADD-END:b5-3d-anticorps*/

@@ -180,3 +180,194 @@ SFA.sim({
   }
 });
 })();
+
+/*B3D-LIB*/
+window.B3D = window.B3D || (function(){
+  var B = {}, BG = [244,246,251];
+  B.hex = function(h){ h = h.replace("#",""); return [parseInt(h.substr(0,2),16), parseInt(h.substr(2,2),16), parseInt(h.substr(4,2),16)]; };
+  B.mix = function(a,b,t){ return [a[0]+(b[0]-a[0])*t, a[1]+(b[1]-a[1])*t, a[2]+(b[2]-a[2])*t]; };
+  B.css = function(a,al){ return "rgba("+Math.round(a[0])+","+Math.round(a[1])+","+Math.round(a[2])+","+(al===undefined?1:al)+")"; };
+  B.cam = function(yaw,pitch,dist){ return {yaw:yaw, pitch:pitch, dist:dist||7, auto:true, hold:false}; };
+  B.rot = function(cam,x,y,z){
+    var cy=Math.cos(cam.yaw), sy=Math.sin(cam.yaw), cp=Math.cos(cam.pitch), sp=Math.sin(cam.pitch);
+    var x1=cy*x+sy*z, z1=-sy*x+cy*z, y1=cp*y+sp*z1, z2=-sp*y+cp*z1; return [x1,y1,z2];
+  };
+  /* glisser = tourner (souris et doigt) */
+  B.drag = function(c, cam, redraw){
+    c.cv.style.touchAction = "none"; c.cv.style.cursor = "grab";
+    var lx=0, ly=0, dn=false;
+    c.pointer(function(t,p){
+      if (t==="down"){ dn=true; lx=p.x; ly=p.y; cam.hold=true; c.cv.style.cursor="grabbing"; }
+      else if (t==="drag" && dn){ cam.yaw -= (p.x-lx)*0.012; cam.pitch += (p.y-ly)*0.01; cam.pitch = Math.max(-1.45, Math.min(1.45, cam.pitch)); lx=p.x; ly=p.y; if (redraw) redraw(); }
+      else if (t==="up"){ dn=false; cam.hold=false; c.cv.style.cursor="grab"; }
+    });
+  };
+  B.spin = function(cam, dt, speed){ if (cam.auto && !cam.hold) cam.yaw += dt*(speed||0.35); };
+  B.background = function(c){
+    var ctx=c.ctx, g=ctx.createLinearGradient(0,0,0,c.H); g.addColorStop(0,"#fbfcff"); g.addColorStop(1,"#e9eef7");
+    ctx.fillStyle=g; ctx.fillRect(0,0,c.W,c.H);
+  };
+  B.hint = function(c, txt){
+    var ctx=c.ctx; ctx.save(); ctx.font="600 11px Mulish,system-ui,sans-serif"; ctx.fillStyle="#8a95a3"; ctx.textAlign="left"; ctx.textBaseline="alphabetic";
+    ctx.fillText(txt || "Glisse pour tourner la vue en 3D", 10, c.H-10); ctx.restore();
+  };
+  B.scene = function(c, cam, scale, fogD){
+    var items=[], labels=[], ctx=c.ctx, fd=fogD||4;
+    var S = {};
+    S.P = function(p){ var r=B.rot(cam,p[0],p[1],p[2]); var k=cam.dist/(cam.dist+r[2]); return {x:c.W/2+r[0]*k*scale, y:c.H/2-r[1]*k*scale, z:r[2], k:k}; };
+    function fog(z){ return Math.max(0, Math.min(1, (z+fd)/(2*fd)))*0.5; }
+    S.sphere = function(p, r, col, al, ring){
+      var q=S.P(p), rr=r*q.k*scale; if (rr<0.4) return;
+      items.push({z:q.z, f:function(){
+        var base=B.mix(col, BG, fog(q.z));
+        var g=ctx.createRadialGradient(q.x-.35*rr,q.y-.4*rr,rr*.08,q.x,q.y,rr);
+        g.addColorStop(0,B.css(B.mix(base,[255,255,255],.6))); g.addColorStop(.5,B.css(base)); g.addColorStop(1,B.css(B.mix(base,[0,0,20],.42)));
+        ctx.globalAlpha = al===undefined?1:al; ctx.fillStyle=g; ctx.beginPath(); ctx.arc(q.x,q.y,rr,0,6.2832); ctx.fill();
+        if (ring){ ctx.strokeStyle=ring; ctx.lineWidth=Math.max(1,rr*.12); ctx.stroke(); }
+        ctx.globalAlpha=1; }});
+      return q;
+    };
+    S.line = function(a, b, w, col, al, dash){
+      var p=S.P(a), q=S.P(b), z=(p.z+q.z)/2, wd=w*(p.k+q.k)/2*scale;
+      items.push({z:z, f:function(){
+        ctx.globalAlpha = al===undefined?1:al; ctx.lineCap="round"; ctx.strokeStyle=B.css(B.mix(col,BG,fog(z)));
+        if (dash) ctx.setLineDash(dash);
+        ctx.lineWidth=Math.max(.6,wd); ctx.beginPath(); ctx.moveTo(p.x,p.y); ctx.lineTo(q.x,q.y); ctx.stroke(); ctx.setLineDash([]); ctx.globalAlpha=1; }});
+    };
+    /* cylindre ombré entre a et b (rayon r) */
+    S.tube = function(a, b, r, col, al){
+      var p=S.P(a), q=S.P(b), z=(p.z+q.z)/2, wd=2*r*(p.k+q.k)/2*scale;
+      items.push({z:z, f:function(){
+        var base=B.mix(col,BG,fog(z)); ctx.globalAlpha = al===undefined?1:al; ctx.lineCap="round";
+        var ws=[1,.7,.4,.18], cs=[B.mix(base,[0,0,20],.4), B.mix(base,[0,0,20],.12), base, B.mix(base,[255,255,255],.5)];
+        var dx=(q.x-p.x), dy=(q.y-p.y), L=Math.sqrt(dx*dx+dy*dy)||1, nx=-dy/L, ny=dx/L;
+        for (var i=0;i<4;i++){ var off=(i>=2? -0.18:0)*wd/2; ctx.strokeStyle=B.css(cs[i]); ctx.lineWidth=Math.max(.6,wd*ws[i]);
+          ctx.beginPath(); ctx.moveTo(p.x+nx*off,p.y+ny*off); ctx.lineTo(q.x+nx*off,q.y+ny*off); ctx.stroke(); }
+        ctx.globalAlpha=1; }});
+    };
+    /* face plane (liste de points 3D), normale n (3D), ombrage de Lambert */
+    S.poly = function(pts, col, n, al, stroke, back){
+      var ps=pts.map(S.P), z=0; ps.forEach(function(p){ z+=p.z; }); z/=ps.length; if (back) z=99;
+      var sh=0.75;
+      if (n){ var r=B.rot(cam,n[0],n[1],n[2]), L=Math.sqrt(r[0]*r[0]+r[1]*r[1]+r[2]*r[2])||1; var d=(-0.35*r[0]+0.55*r[1]-0.75*r[2])/L; sh=0.55+0.45*Math.abs(d); }
+      items.push({z:z, f:function(){
+        var base=B.mix(col,BG,fog(z)); base=B.mix([0,0,20],base,Math.min(1,sh)); if (sh>1) base=B.mix(base,[255,255,255],sh-1);
+        ctx.globalAlpha=al===undefined?1:al; ctx.fillStyle=B.css(base); ctx.beginPath(); ctx.moveTo(ps[0].x,ps[0].y);
+        for (var i=1;i<ps.length;i++) ctx.lineTo(ps[i].x,ps[i].y); ctx.closePath(); ctx.fill();
+        if (stroke){ ctx.strokeStyle=stroke; ctx.lineWidth=.8; ctx.stroke(); } ctx.globalAlpha=1; }});
+    };
+    S.label = function(p, txt, col, size, dx, dy, align){ labels.push({q:S.P(p), t:txt, c:col||"#0f1b2d", s:size||12, dx:dx||0, dy:dy||0, a:align||"center"}); };
+    S.flush = function(){
+      items.sort(function(a,b){ return b.z-a.z; });
+      for (var i=0;i<items.length;i++) items[i].f();
+      ctx.save(); ctx.textBaseline="middle";
+      labels.forEach(function(l){ ctx.font="700 "+l.s+"px Mulish,system-ui,sans-serif"; ctx.textAlign=l.a;
+        var w=ctx.measureText(l.t).width, x=l.q.x+l.dx, y=l.q.y+l.dy;
+        ctx.fillStyle="rgba(255,255,255,.82)"; var bx = l.a==="center"? x-w/2 : (l.a==="left"? x : x-w); ctx.fillRect(bx-3,y-l.s*.62,w+6,l.s*1.25);
+        ctx.fillStyle=l.c; ctx.fillText(l.t,x,y); });
+      ctx.restore();
+    };
+    return S;
+  };
+  return B;
+})();
+/*B3D-LIB-END*/
+
+/*B3D-ADD:b3-3d-villosite*/
+SFA.sim({
+  id:"b3-3d-villosite", ch:"c04", tag:"3D · absorption",
+  titre:"Une forêt de villosités : où partent les nutriments absorbés ?",
+  resume:"Des villosités de l'intestin grêle en 3D : le glucose et les acides aminés partent dans le sang, les lipides dans la lymphe.",
+  but:"Choisis un nutriment et la concentration dans la lumière de l'intestin. Observe où il est absorbé et par quel vaisseau il quitte la villosité. Supprime les villosités (paroi lisse) et compare le nombre de molécules absorbées. Glisse pour tourner.",
+  aRetenir:"La paroi de l'intestin grêle est couverte de villosités (puis de microvillosités) : cela multiplie la surface d'absorption. Dans chaque villosité, un réseau de capillaires sanguins reçoit le glucose, les acides aminés, l'eau et les sels : ce sang passe par la veine porte puis par le foie avant le reste du corps. Un vaisseau lymphatique central (chylifère) reçoit les lipides (sous forme de petites gouttelettes) : la lymphe rejoint le sang sans passer d'abord par le foie.",
+  piege:"« Tout ce qui est absorbé va dans le sang » est inexact : les lipides empruntent d'abord la lymphe. Et l'absorption n'est pas la digestion : un nutriment doit d'abord être découpé en petites molécules (glucose, acides aminés, acides gras) pour traverser la paroi.",
+  build:function(k, S){
+    var B = window.B3D, c = k.canvas(430), cam = B.cam(0.7, 0.45, 8);
+    var nut = k.seg("Nutriment", [["glu","Glucose"],["aa","Acides aminés"],["lip","Lipides"],["mix","Les trois"]], "mix", function(){ reset(); });
+    var conc = k.slider("Concentration dans la lumière", 10, 100, 5, 60, "%");
+    var vil = k.toggle("Paroi avec villosités", true, function(){ reset(); });
+    var rot = k.toggle("Rotation automatique", false, function(v){ cam.auto = v; });
+    var ro = k.readouts(["Absorbés (cumul)", "Vers le sang (foie)", "Vers la lymphe", "Débit (par 10 s)"]);
+    var nt = k.note("", "");
+    cam.auto = false;
+    var TY = {glu:{c:B.hex("#f59e0b"), n:"glucose"}, aa:{c:B.hex("#7c3aed"), n:"acide aminé"}, lip:{c:B.hex("#facc15"), n:"lipide"}};
+    var VX = [-0.9, 0, 0.9], VH = 1.3, VR = 0.27, P = [], tot = 0, toBlood = 0, toLymph = 0, hist = [], T = 0, acc = 0;
+    function reset(){ P = []; tot = 0; toBlood = 0; toLymph = 0; hist = []; T = 0; acc = 0; }
+    function rnd(){ return Math.random() * 2 - 1; }
+    function pick(){ if (nut.value !== "mix") return nut.value; return ["glu", "aa", "lip"][Math.floor(Math.random() * 3)]; }
+    function step(dt){
+      T += dt; acc += dt * (conc.value / 100) * 14;
+      while (acc >= 1){ acc -= 1; if (P.filter(function(p){ return p.s === 0; }).length < 70) P.push({s:0, t:pick(), x:rnd() * 1.6, y:2.1 + Math.random() * 0.2, z:rnd() * 1.6, vx:rnd(), vz:rnd(), vy:-0.35 - Math.random() * 0.3, u:0}); }
+      P.forEach(function(p){
+        if (p.s === 0){
+          p.vx = 0.95 * p.vx + 0.3 * rnd(); p.vz = 0.95 * p.vz + 0.3 * rnd();
+          p.x += p.vx * dt * 0.8; p.z += p.vz * dt * 0.8; p.y += p.vy * dt;
+          p.x = Math.max(-1.6, Math.min(1.6, p.x)); p.z = Math.max(-1.6, Math.min(1.6, p.z));
+          if (vil.value){
+            for (var i = 0; i < 3; i++) for (var j = 0; j < 3; j++){
+              var d = Math.hypot(p.x - VX[i], p.z - VX[j]);
+              if (p.y < VH + 0.1 && p.y > 0.1 && d < VR + 0.12){ p.s = 1; p.vi = VX[i]; p.vj = VX[j]; p.u = 0; p.ang = Math.atan2(p.z - VX[j], p.x - VX[i]); p.ytop = Math.min(VH, p.y); }
+            }
+            if (p.y < 0.05){ p.y = 0.05; p.vy = Math.abs(p.vy) * 0.6; }
+          } else {
+            if (p.y < 0.05){ if (Math.random() < 0.12){ p.s = 2; p.u = 0; p.vi = p.x; p.vj = p.z; p.y = 0; } else { p.y = 0.05; p.vy = 0.5; } }
+          }
+          if (p.y > 2.4) p.dead = true;
+        } else if (p.s === 1){
+          /* à l'intérieur de la villosité : vers le bas, dans le capillaire ou le chylifère */
+          p.u += dt * 0.9; var f = Math.min(1, p.u);
+          var inner = p.t === "lip" ? 0 : 0.14;
+          p.x = p.vi + inner * Math.cos(p.ang * (1 - f)); p.z = p.vj + inner * Math.sin(p.ang * (1 - f));
+          p.y = p.ytop * (1 - f); if (f >= 1){ p.s = 2; p.u = 0; }
+        } else if (p.s === 2){
+          p.u += dt * 0.5; var g = Math.min(1, p.u), tx = p.t === "lip" ? 1.9 : -1.9;
+          if (g === 1 && !p.counted){ p.counted = true; tot++; if (p.t === "lip") toLymph++; else toBlood++; hist.push(T); }
+          p.x = p.vi + (tx - p.vi) * g; p.y = -0.22 * Math.sin(Math.PI * Math.min(1, g * 1.0)) - 0.02; p.z = p.vj + ((p.t === "lip" ? 1.0 : -1.0) * 1.8 - p.vj) * (g > 0.7 ? (g - 0.7) / 0.3 : 0) * 0.0 + (p.vj) * (1 - g);
+          if (g >= 1){ p.s = 3; p.u = 0; }
+        } else if (p.s === 3){
+          p.u += dt * 0.7; p.z += (p.t === "lip" ? 1 : -1) * dt * 1.2 * 1.0; p.x = p.t === "lip" ? 1.9 : -1.9; p.y = -0.06; if (p.u > 1.6) p.dead = true;
+        }
+      });
+      P = P.filter(function(p){ return !p.dead; });
+      hist = hist.filter(function(h){ return h > T - 10; });
+    }
+    B.drag(c, cam, function(){ render(); });
+    function render(){
+      B.background(c);
+      var sc = B.scene(c, cam, Math.min(c.W / 4.3, c.H / 4.4), 4);
+      var FL = B.hex("#f0c6b4");
+      /* sol : muqueuse */
+      for (var a = -2; a < 2; a++) for (var b = -2; b < 2; b++) sc.poly([[a * 0.85 - 0.0, 0, b * 0.85], [a * 0.85 + 0.85, 0, b * 0.85], [a * 0.85 + 0.85, 0, b * 0.85 + 0.85], [a * 0.85, 0, b * 0.85 + 0.85]], FL, [0, 1, 0], 1, "rgba(160,80,60,.25)", true);
+      /* vaisseaux collecteurs sous la paroi */
+      sc.tube([-1.9, -0.12, -1.9], [-1.9, -0.12, 1.9], 0.07, B.hex("#dc2626")); sc.tube([1.9, -0.12, -1.9], [1.9, -0.12, 1.9], 0.07, B.hex("#f5e6a8"));
+      sc.label([-1.9, -0.4, 1.9], "vers le foie", "#b91c1c", 10, 0, 0); sc.label([1.9, -0.4, 1.9], "vers la lymphe", "#a16207", 10, 0, 0);
+      if (vil.value) for (var i = 0; i < 3; i++) for (var j = 0; j < 3; j++){
+        var x = VX[i], z = VX[j];
+        sc.tube([x, 0, z], [x, VH, z], VR, B.hex("#e9a8a0"), 0.55); sc.sphere([x, VH, z], VR, B.hex("#e9a8a0"), 0.55);
+        sc.tube([x + 0.14, 0, z], [x + 0.14, VH - 0.05, z], 0.05, B.hex("#dc2626")); sc.tube([x - 0.14, 0, z], [x - 0.14, VH - 0.05, z], 0.05, B.hex("#b91c1c"));
+        sc.tube([x, 0, z], [x, VH - 0.1, z], 0.06, B.hex("#fde68a"), 0.9);
+      }
+      P.forEach(function(p){ sc.sphere([p.x, p.y, p.z], p.t === "lip" ? 0.11 : 0.075, TY[p.t].c, 1, p.t === "lip" ? "#a16207" : null); });
+      sc.label([0, 2.4, 0], "lumière de l'intestin", "#0f1b2d", 10, 0, 0);
+      if (vil.value) sc.label([VX[2], VH + 0.45, VX[0]], "villosité", "#0f1b2d", 10, 0, 0);
+      sc.flush(); B.hint(c);
+      var ctx = c.ctx; ctx.save(); ctx.font = "700 11px Mulish,system-ui,sans-serif"; ctx.textBaseline = "middle";
+      [["glucose", "#f59e0b"], ["acide aminé", "#7c3aed"], ["lipide", "#facc15"]].forEach(function(q, n){ ctx.fillStyle = q[1]; ctx.beginPath(); ctx.arc(14, 16 + n * 17, 5, 0, 6.3); ctx.fill(); ctx.fillStyle = "#0f1b2d"; ctx.fillText(q[0], 24, 16 + n * 17); });
+      ctx.fillStyle = "#dc2626"; ctx.fillRect(10, 68, 9, 4); ctx.fillStyle = "#0f1b2d"; ctx.fillText("capillaire sanguin", 24, 70);
+      ctx.fillStyle = "#e8c95a"; ctx.fillRect(10, 85, 9, 4); ctx.fillStyle = "#0f1b2d"; ctx.fillText("chylifère (lymphe)", 24, 87); ctx.restore();
+      ro.set(0, tot); ro.set(1, toBlood); ro.set(2, toLymph); ro.set(3, hist.length);
+      var msg, kind = "";
+      if (!vil.value){ msg = "Paroi lisse : seule la surface plane absorbe. Le débit d'absorption s'effondre : sans villosités, un grêle de 7 m n'absorberait presque rien."; kind = "warn"; }
+      else if (nut.value === "glu") msg = "Le glucose traverse l'épithélium et entre dans un capillaire sanguin : direction la veine porte, puis le foie.";
+      else if (nut.value === "aa") msg = "Les acides aminés suivent la même route que le glucose : capillaire sanguin, veine porte, foie.";
+      else if (nut.value === "lip") msg = "Les lipides (petites gouttelettes) entrent dans le chylifère, vaisseau lymphatique au centre de la villosité : ils rejoignent le sang sans passer d'abord par le foie.";
+      else msg = "Deux routes : glucose et acides aminés vont dans les capillaires (côté gauche, vers le foie), les lipides dans le chylifère (côté droit, lymphe).";
+      nt.set(msg, kind);
+    }
+    k.draw(render);
+    for (var w0 = 0; w0 < 160; w0++) step(0.05);
+    var L = k.loop(function(dt){ B.spin(cam, dt, 0.25); step(dt); render(); });
+    L.play();
+  }
+});
+/*B3D-ADD-END:b3-3d-villosite*/

@@ -199,3 +199,172 @@ SFA.sim({
   }
 });
 })();
+
+/* BIO3D-BEGIN:s_c10_selection.js */
+(function(){
+var P = function(S){ return S.draw.palette; };
+/* --- moteur 3D maison (projection perspective, tri en profondeur, rotation à la souris) --- */
+function hx(h){ var n = parseInt(h.slice(1), 16); return [n >> 16, (n >> 8) & 255, n & 255]; }
+function sh(h, f, a){ var q = hx(h); return "rgba(" + q.map(function(v){ return Math.round(f < 0 ? v * (1 + f) : v + (255 - v) * f); }).join(",") + "," + (a === undefined ? 1 : a) + ")"; }
+function V3(c, S, o){
+  o = o || {};
+  var v = {yaw:o.yaw === undefined ? 0.5 : o.yaw, pit:o.pit === undefined ? 0.3 : o.pit, D:o.D || 8, sc:o.sc || 60, ox:0, oy:0, auto:o.auto !== false, q:[], moved:false}, last = null, d0 = null;
+  c.pointer(function(t, p){
+    if (t === "down"){ last = p; d0 = p; v.auto = false; v.moved = false; }
+    else if (t === "drag" && last){ if (Math.abs(p.x - d0.x) + Math.abs(p.y - d0.y) > 5) v.moved = true; v.yaw += (p.x - last.x) * 0.01; v.pit = Math.max(-1.45, Math.min(1.45, v.pit + (p.y - last.y) * 0.01)); last = p; }
+    else if (t === "up"){ last = null; if (!v.moved && v.onclick) v.onclick(p); }
+  });
+  v.P = function(x, y, z){
+    var cy = Math.cos(v.yaw), sy = Math.sin(v.yaw), cp = Math.cos(v.pit), sp = Math.sin(v.pit);
+    var X = x * cy + z * sy, Z = -x * sy + z * cy, Y = y * cp - Z * sp; Z = y * sp + Z * cp;
+    var f = v.D / (v.D - Z);
+    return {x:c.W / 2 + v.ox + X * f * v.sc, y:c.H / 2 + v.oy - Y * f * v.sc, z:Z, f:f};
+  };
+  v.add = function(z, fn){ v.q.push([z, fn]); };
+  v.flush = function(){ v.q.sort(function(a, b){ return a[0] - b[0]; }); for (var i = 0; i < v.q.length; i++) v.q[i][1](); v.q = []; };
+  v.ball = function(x, y, z, r, col, al){
+    var p = v.P(x, y, z), R = Math.max(1, r * p.f * v.sc);
+    v.add(p.z, function(){
+      var g = c.ctx.createRadialGradient(p.x - R * 0.35, p.y - R * 0.35, R * 0.1, p.x, p.y, R);
+      g.addColorStop(0, sh(col, 0.55, al)); g.addColorStop(0.55, sh(col, 0, al)); g.addColorStop(1, sh(col, -0.4, al));
+      c.ctx.fillStyle = g; c.ctx.beginPath(); c.ctx.arc(p.x, p.y, R, 0, 6.2832); c.ctx.fill();
+    });
+    p.R = R; return p;
+  };
+  v.seg = function(a, b, w, col, al, dash){
+    var p = v.P(a[0], a[1], a[2]), q = v.P(b[0], b[1], b[2]);
+    v.add((p.z + q.z) / 2 - 0.001, function(){
+      var x = c.ctx; x.lineCap = "round"; x.strokeStyle = sh(col, 0, al); x.lineWidth = Math.max(1, w * (p.f + q.f) / 2 * v.sc);
+      if (dash) x.setLineDash(dash);
+      x.beginPath(); x.moveTo(p.x, p.y); x.lineTo(q.x, q.y); x.stroke();
+      if (!dash && w * v.sc > 6){ x.strokeStyle = sh(col, 0.5, al); x.lineWidth = x.lineWidth * 0.35; x.beginPath(); x.moveTo(p.x - 1, p.y - 1); x.lineTo(q.x - 1, q.y - 1); x.stroke(); }
+      if (dash) x.setLineDash([]);
+    });
+  };
+  v.label = function(txt, x, y, z, col, size, bg){
+    var p = v.P(x, y, z);
+    v.add(p.z + 50, function(){ S.draw.text(c, txt, p.x, p.y, {size:size || 11, color:col || "#0f1b2d", weight:700, bg:bg}); });
+  };
+  v.spin = function(dt){ if (v.auto) v.yaw += dt * 0.35; };
+  return v;
+}
+
+SFA.sim({
+  id:"ub-c10-vis-selection-phalenes", ch:"c10", tag:"Sélection · animé",
+  titre:"Sélection naturelle sur une population : les phalènes du bouleau",
+  resume:"Des oiseaux mangent les phalènes les plus visibles : suis génération après génération la fréquence de l'allèle sombre, avec la dérive en prime.",
+  but:"Règle la couleur de l'écorce (pollution), la pression de prédation et la taille de la population, puis lance les générations : compare la population simulée à la prédiction déterministe.",
+  aRetenir:"Sélection naturelle : les génotypes dont les porteurs survivent mieux (valeur sélective w plus élevée) deviennent plus fréquents. Avec l'allèle sombre D dominant (DD et Dd sombres, dd clair), p' = p·w<sub>sombre</sub> / w̄ avec w̄ = (1 − q²)·w<sub>sombre</sub> + q²·w<sub>clair</sub>. Sur écorce claire, le clair est favorisé ; sur écorce noircie, le sombre. Dans une petite population, la dérive ajoute du hasard : la fréquence peut s'écarter de la prédiction, voire fixer un allèle.",
+  piege:"La sélection n'a pas de but et les individus ne s'adaptent pas : ils survivent ou non, ce sont les fréquences alléliques de la population qui changent. L'environnement (couleur de l'écorce) fixe quel phénotype est avantagé, il ne « fabrique » pas la mutation. Et un allèle dominant n'est pas forcément le plus fréquent : seule la valeur sélective compte. Modèle simplifié : accouplement au hasard, générations discrètes, prédation selon le contraste avec l'écorce.",
+  build:function(k,S){
+    var c = k.canvas(470), pal = P(S);
+    var bark = k.slider("Écorce (0 = claire, 100 = noircie)", 0, 100, 5, 20, "");
+    var pre = k.slider("Pression de prédation", 10, 90, 5, 60, "%");
+    var nn = k.slider("Taille de la population (individus)", 20, 200, 10, 60, "");
+    var p0 = k.slider("Fréquence initiale de l'allèle sombre (D)", 0.05, 0.95, 0.05, 0.3, "");
+    var auto = k.toggle("Enchaîner les générations", false);
+    var ro = k.readouts(["Génération", "Fréquence p(D)", "Fitness sombres / clairs", "Phénotype sombre"]);
+    var info = k.note("", "ok");
+    var seed = 4;
+    function rnd(){ seed = (seed * 16807) % 2147483647; return seed / 2147483647; }
+    var moths = [], hist = [], gen = 0, p = p0.value, phase = 0, tm = 0, birds = [], running = false, tt = 0, lastN = 0;
+    function fit(){
+      var b = bark.value / 100, s = pre.value / 100;
+      var vd = Math.abs(0.12 - (0.9 - 0.8 * b)), vl = Math.abs(0.85 - (0.9 - 0.8 * b));   /* contraste avec l'écorce (ton 0 = noir, 1 = blanc) */
+      return {wd:1 - s * vd / 0.9 * 1.0, wl:1 - s * vl / 0.9 * 1.0, vd:vd, vl:vl};
+    }
+    function spawn(){
+      moths = [];
+      var N = nn.value;
+      for (var i = 0; i < N; i++){
+        var g = (rnd() < p ? 1 : 0) + (rnd() < p ? 1 : 0);   /* nombre d'allèles D */
+        moths.push({g:g, dark:g > 0, x:30 + rnd() * (c.W - 60), y:30 + rnd() * (c.H * 0.56 - 40), r:rnd() * 6.28, eaten:false, a:1, tgt:null});
+      }
+      lastN = N;
+    }
+    function reset(){ seed = 4; p = p0.value; gen = 0; hist = [p]; phase = 0; tm = 0; birds = []; running = false; spawn(); }
+    function predict(from, n){
+      var f = fit(), out = [from], q = from;
+      for (var i = 0; i < n; i++){ var qq = 1 - q, wb = (1 - qq * qq) * f.wd + qq * qq * f.wl; q = q * f.wd / wb; out.push(q); }
+      return out;
+    }
+    function R(){
+      c.clear(); var ctx = c.ctx, H1 = Math.round(c.H * 0.6);
+      var b = bark.value / 100, tone = Math.round(235 - 190 * b);
+      /* écorce */
+      ctx.fillStyle = "rgb(" + tone + "," + tone + "," + Math.round(tone * 0.95) + ")"; ctx.fillRect(0, 0, c.W, H1);
+      ctx.strokeStyle = "rgba(0,0,0,0.13)"; ctx.lineWidth = 2;
+      for (var x = 8; x < c.W; x += 26){ ctx.beginPath(); ctx.moveTo(x, 0); for (var y = 0; y <= H1; y += 16) ctx.lineTo(x + 5 * Math.sin(y * 0.09 + x), y); ctx.stroke(); }
+      /* phalènes */
+      moths.forEach(function(m){
+        if (m.a <= 0.02) return;
+        ctx.save(); ctx.translate(m.x, m.y); ctx.rotate(m.r); ctx.globalAlpha = m.a;
+        var col = m.dark ? "#2b2b30" : "#f0eee6", edge = m.dark ? "#000" : "#a9a69a";
+        ctx.fillStyle = col; ctx.strokeStyle = edge; ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.moveTo(0, -3); ctx.lineTo(-11, 5); ctx.lineTo(-7, 9); ctx.lineTo(0, 5); ctx.lineTo(7, 9); ctx.lineTo(11, 5); ctx.closePath(); ctx.fill(); ctx.stroke();
+        ctx.beginPath(); ctx.ellipse(0, 1, 2.2, 7, 0, 0, 6.3); ctx.fillStyle = m.dark ? "#000" : "#8a8678"; ctx.fill();
+        ctx.restore();
+      });
+      /* oiseaux */
+      birds.forEach(function(bd){
+        ctx.save(); ctx.translate(bd.x, bd.y); ctx.fillStyle = "#b45309"; ctx.strokeStyle = "#7c2d12"; ctx.lineWidth = 1.5;
+        ctx.beginPath(); ctx.ellipse(0, 0, 12, 7, 0, 0, 6.3); ctx.fill(); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(10, -2); ctx.lineTo(19, 1); ctx.lineTo(10, 3); ctx.closePath(); ctx.fillStyle = "#facc15"; ctx.fill();
+        ctx.beginPath(); ctx.moveTo(-3, -2); ctx.lineTo(-8, -13 + 4 * Math.sin(tt * 20)); ctx.lineTo(3, -3); ctx.fillStyle = "#92400e"; ctx.fill(); ctx.restore();
+      });
+      /* graphique p(t) */
+      var ax = S.draw.axes(c, {x0:0, x1:Math.max(10, hist.length + 2), y0:0, y1:1, l:40, r:12, t:H1 + 18, b:26, stepY:0.25, xl:"génération"});
+      var pr = predict(hist[0], Math.max(10, hist.length + 2));
+      c.ctx.save(); c.ctx.setLineDash([5, 4]); c.ctx.strokeStyle = pal.grey; c.ctx.lineWidth = 2; c.ctx.beginPath();
+      pr.forEach(function(q, i){ var X = ax.X(i), Y = ax.Y(q); if (i) c.ctx.lineTo(X, Y); else c.ctx.moveTo(X, Y); }); c.ctx.stroke(); c.ctx.restore();
+      c.ctx.strokeStyle = pal.acc; c.ctx.lineWidth = 2.5; c.ctx.beginPath();
+      hist.forEach(function(q, i){ var X = ax.X(i), Y = ax.Y(q); if (i) c.ctx.lineTo(X, Y); else c.ctx.moveTo(X, Y); }); c.ctx.stroke();
+      hist.forEach(function(q, i){ S.draw.dot(c, ax.X(i), ax.Y(q), 3.5, pal.acc); });
+      S.draw.text(c, "p(D) : simulée (bleu) · prédite sans dérive (pointillés)", ax.L + 6, H1 + 28, {size:10.5, align:"left", color:pal.grey});
+      var f = fit(), nd = moths.filter(function(m){ return m.dark; }).length;
+      ro.set(0, gen); ro.set(1, S.fmt(p, 3)); ro.set(2, S.fmt(f.wd, 2) + " / " + S.fmt(f.wl, 2)); ro.set(3, S.fmt(nd / Math.max(1, moths.length) * 100, 0) + " %");
+      var fav = f.wd > f.wl + 0.01 ? "les sombres sont favorisés (mieux camouflés)" : f.wl > f.wd + 0.01 ? "les clairs sont favorisés (mieux camouflés)" : "aucun phénotype n'est favorisé";
+      var s = f.wd - f.wl;
+      info.set("Écorce " + (b < 0.4 ? "claire" : b > 0.6 ? "noircie" : "intermédiaire") + " : " + fav + ". Coefficient de sélection contre le moins bien camouflé : s ≈ " + S.fmt(Math.abs(s), 2) + ". " + (phase === 1 ? "Les oiseaux chassent…" : phase === 2 ? "Les survivants se reproduisent : nouvelle fréquence allélique." : ""), "ok");
+    }
+    function cycle(dt){
+      tm += dt;
+      if (phase === 0){ if (tm > 0.8){ phase = 1; tm = 0; var f = fit(), cand = [];
+          moths.forEach(function(m){ var w = m.dark ? f.wd : f.wl; if (rnd() > w) m.eaten = true; });
+          cand = moths.filter(function(m){ return m.eaten; }); birds = [];
+          var nb = Math.min(3, Math.max(1, Math.ceil(cand.length / 8)));
+          for (var i = 0; i < nb; i++) birds.push({x:-30 - i * 40, y:20 + i * 40, hits:cand.filter(function(_, j){ return j % nb === i; }), k:0, t:0});
+        } }
+      else if (phase === 1){
+        var done = true;
+        birds.forEach(function(bd){
+          var m = bd.hits[bd.k];
+          if (!m){ bd.x += 260 * dt; bd.y -= 40 * dt; return; }
+          done = false; bd.x += (m.x - bd.x) * Math.min(1, dt * 4.5); bd.y += (m.y - bd.y) * Math.min(1, dt * 4.5);
+          if (Math.hypot(m.x - bd.x, m.y - bd.y) < 10){ m.a = 0; bd.k++; }
+        });
+        if (done && birds.every(function(b2){ return b2.x > c.W + 20 || !b2.hits[b2.k]; }) && (tm > 0.5)){ if (birds.every(function(b2){ return !b2.hits[b2.k]; })){ phase = 2; tm = 0; birds = []; } }
+        if (tm > 6){ moths.forEach(function(m){ if (m.eaten) m.a = 0; }); phase = 2; tm = 0; birds = []; }
+      }
+      else if (phase === 2){
+        if (tm > 0.9){
+          var surv = moths.filter(function(m){ return !m.eaten; }), tot = 0, dd = 0;
+          surv.forEach(function(m){ dd += m.g; tot += 2; });
+          if (tot === 0) { p = p; } else p = dd / tot;
+          gen++; hist.push(p); spawn(); phase = 0; tm = 0;
+          if (!auto.value) running = false;
+        }
+      }
+    }
+    k.button("Génération suivante", function(){ if (!running){ running = true; phase = 0; tm = 0; } }, true);
+    k.button("Réinitialiser", function(){ reset(); });
+    var pp = p0.el;
+    p0.el.addEventListener("change", function(){ reset(); });
+    nn.el.addEventListener("change", function(){ reset(); });
+    reset(); k.draw(R);
+    var lp = k.loop(function(dt){ tt += dt; if (auto.value && !running) running = true; if (running) cycle(dt * 1.0); moths.forEach(function(m){ if (!m.eaten) m.r += (rnd() - 0.5) * 0.02; }); R(); }); lp.play();
+  }
+});
+
+})();
+/* BIO3D-END:s_c10_selection.js */

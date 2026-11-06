@@ -189,3 +189,208 @@ SFA.sim({
   }
 });
 })();
+
+/*B3D-LIB*/
+window.B3D = window.B3D || (function(){
+  var B = {}, BG = [244,246,251];
+  B.hex = function(h){ h = h.replace("#",""); return [parseInt(h.substr(0,2),16), parseInt(h.substr(2,2),16), parseInt(h.substr(4,2),16)]; };
+  B.mix = function(a,b,t){ return [a[0]+(b[0]-a[0])*t, a[1]+(b[1]-a[1])*t, a[2]+(b[2]-a[2])*t]; };
+  B.css = function(a,al){ return "rgba("+Math.round(a[0])+","+Math.round(a[1])+","+Math.round(a[2])+","+(al===undefined?1:al)+")"; };
+  B.cam = function(yaw,pitch,dist){ return {yaw:yaw, pitch:pitch, dist:dist||7, auto:true, hold:false}; };
+  B.rot = function(cam,x,y,z){
+    var cy=Math.cos(cam.yaw), sy=Math.sin(cam.yaw), cp=Math.cos(cam.pitch), sp=Math.sin(cam.pitch);
+    var x1=cy*x+sy*z, z1=-sy*x+cy*z, y1=cp*y+sp*z1, z2=-sp*y+cp*z1; return [x1,y1,z2];
+  };
+  /* glisser = tourner (souris et doigt) */
+  B.drag = function(c, cam, redraw){
+    c.cv.style.touchAction = "none"; c.cv.style.cursor = "grab";
+    var lx=0, ly=0, dn=false;
+    c.pointer(function(t,p){
+      if (t==="down"){ dn=true; lx=p.x; ly=p.y; cam.hold=true; c.cv.style.cursor="grabbing"; }
+      else if (t==="drag" && dn){ cam.yaw -= (p.x-lx)*0.012; cam.pitch += (p.y-ly)*0.01; cam.pitch = Math.max(-1.45, Math.min(1.45, cam.pitch)); lx=p.x; ly=p.y; if (redraw) redraw(); }
+      else if (t==="up"){ dn=false; cam.hold=false; c.cv.style.cursor="grab"; }
+    });
+  };
+  B.spin = function(cam, dt, speed){ if (cam.auto && !cam.hold) cam.yaw += dt*(speed||0.35); };
+  B.background = function(c){
+    var ctx=c.ctx, g=ctx.createLinearGradient(0,0,0,c.H); g.addColorStop(0,"#fbfcff"); g.addColorStop(1,"#e9eef7");
+    ctx.fillStyle=g; ctx.fillRect(0,0,c.W,c.H);
+  };
+  B.hint = function(c, txt){
+    var ctx=c.ctx; ctx.save(); ctx.font="600 11px Mulish,system-ui,sans-serif"; ctx.fillStyle="#8a95a3"; ctx.textAlign="left"; ctx.textBaseline="alphabetic";
+    ctx.fillText(txt || "Glisse pour tourner la vue en 3D", 10, c.H-10); ctx.restore();
+  };
+  B.scene = function(c, cam, scale, fogD){
+    var items=[], labels=[], ctx=c.ctx, fd=fogD||4;
+    var S = {};
+    S.P = function(p){ var r=B.rot(cam,p[0],p[1],p[2]); var k=cam.dist/(cam.dist+r[2]); return {x:c.W/2+r[0]*k*scale, y:c.H/2-r[1]*k*scale, z:r[2], k:k}; };
+    function fog(z){ return Math.max(0, Math.min(1, (z+fd)/(2*fd)))*0.5; }
+    S.sphere = function(p, r, col, al, ring){
+      var q=S.P(p), rr=r*q.k*scale; if (rr<0.4) return;
+      items.push({z:q.z, f:function(){
+        var base=B.mix(col, BG, fog(q.z));
+        var g=ctx.createRadialGradient(q.x-.35*rr,q.y-.4*rr,rr*.08,q.x,q.y,rr);
+        g.addColorStop(0,B.css(B.mix(base,[255,255,255],.6))); g.addColorStop(.5,B.css(base)); g.addColorStop(1,B.css(B.mix(base,[0,0,20],.42)));
+        ctx.globalAlpha = al===undefined?1:al; ctx.fillStyle=g; ctx.beginPath(); ctx.arc(q.x,q.y,rr,0,6.2832); ctx.fill();
+        if (ring){ ctx.strokeStyle=ring; ctx.lineWidth=Math.max(1,rr*.12); ctx.stroke(); }
+        ctx.globalAlpha=1; }});
+      return q;
+    };
+    S.line = function(a, b, w, col, al, dash){
+      var p=S.P(a), q=S.P(b), z=(p.z+q.z)/2, wd=w*(p.k+q.k)/2*scale;
+      items.push({z:z, f:function(){
+        ctx.globalAlpha = al===undefined?1:al; ctx.lineCap="round"; ctx.strokeStyle=B.css(B.mix(col,BG,fog(z)));
+        if (dash) ctx.setLineDash(dash);
+        ctx.lineWidth=Math.max(.6,wd); ctx.beginPath(); ctx.moveTo(p.x,p.y); ctx.lineTo(q.x,q.y); ctx.stroke(); ctx.setLineDash([]); ctx.globalAlpha=1; }});
+    };
+    /* cylindre ombré entre a et b (rayon r) */
+    S.tube = function(a, b, r, col, al){
+      var p=S.P(a), q=S.P(b), z=(p.z+q.z)/2, wd=2*r*(p.k+q.k)/2*scale;
+      items.push({z:z, f:function(){
+        var base=B.mix(col,BG,fog(z)); ctx.globalAlpha = al===undefined?1:al; ctx.lineCap="round";
+        var ws=[1,.7,.4,.18], cs=[B.mix(base,[0,0,20],.4), B.mix(base,[0,0,20],.12), base, B.mix(base,[255,255,255],.5)];
+        var dx=(q.x-p.x), dy=(q.y-p.y), L=Math.sqrt(dx*dx+dy*dy)||1, nx=-dy/L, ny=dx/L;
+        for (var i=0;i<4;i++){ var off=(i>=2? -0.18:0)*wd/2; ctx.strokeStyle=B.css(cs[i]); ctx.lineWidth=Math.max(.6,wd*ws[i]);
+          ctx.beginPath(); ctx.moveTo(p.x+nx*off,p.y+ny*off); ctx.lineTo(q.x+nx*off,q.y+ny*off); ctx.stroke(); }
+        ctx.globalAlpha=1; }});
+    };
+    /* face plane (liste de points 3D), normale n (3D), ombrage de Lambert */
+    S.poly = function(pts, col, n, al, stroke, back){
+      var ps=pts.map(S.P), z=0; ps.forEach(function(p){ z+=p.z; }); z/=ps.length; if (back) z=99;
+      var sh=0.75;
+      if (n){ var r=B.rot(cam,n[0],n[1],n[2]), L=Math.sqrt(r[0]*r[0]+r[1]*r[1]+r[2]*r[2])||1; var d=(-0.35*r[0]+0.55*r[1]-0.75*r[2])/L; sh=0.55+0.45*Math.abs(d); }
+      items.push({z:z, f:function(){
+        var base=B.mix(col,BG,fog(z)); base=B.mix([0,0,20],base,Math.min(1,sh)); if (sh>1) base=B.mix(base,[255,255,255],sh-1);
+        ctx.globalAlpha=al===undefined?1:al; ctx.fillStyle=B.css(base); ctx.beginPath(); ctx.moveTo(ps[0].x,ps[0].y);
+        for (var i=1;i<ps.length;i++) ctx.lineTo(ps[i].x,ps[i].y); ctx.closePath(); ctx.fill();
+        if (stroke){ ctx.strokeStyle=stroke; ctx.lineWidth=.8; ctx.stroke(); } ctx.globalAlpha=1; }});
+    };
+    S.label = function(p, txt, col, size, dx, dy, align){ labels.push({q:S.P(p), t:txt, c:col||"#0f1b2d", s:size||12, dx:dx||0, dy:dy||0, a:align||"center"}); };
+    S.flush = function(){
+      items.sort(function(a,b){ return b.z-a.z; });
+      for (var i=0;i<items.length;i++) items[i].f();
+      ctx.save(); ctx.textBaseline="middle";
+      labels.forEach(function(l){ ctx.font="700 "+l.s+"px Mulish,system-ui,sans-serif"; ctx.textAlign=l.a;
+        var w=ctx.measureText(l.t).width, x=l.q.x+l.dx, y=l.q.y+l.dy;
+        ctx.fillStyle="rgba(255,255,255,.82)"; var bx = l.a==="center"? x-w/2 : (l.a==="left"? x : x-w); ctx.fillRect(bx-3,y-l.s*.62,w+6,l.s*1.25);
+        ctx.fillStyle=l.c; ctx.fillText(l.t,x,y); });
+      ctx.restore();
+    };
+    return S;
+  };
+  return B;
+})();
+/*B3D-LIB-END*/
+
+/*B3D-ADD:b3-3d-feuille*/
+SFA.sim({
+  id:"b3-3d-feuille", ch:"c07", tag:"3D · feuille",
+  titre:"Une feuille en 3D : un bloc découpé et ses stomates qui s'ouvrent",
+  resume:"Un bloc de feuille que tu tournes et coupes : tissus, stomates et échanges de gaz (CO₂, O₂, vapeur d'eau) selon la lumière et l'eau.",
+  but:"Fais glisser le curseur « Coupe » pour ouvrir le bloc et surligne chaque tissu. Règle la lumière et l'eau du sol : les stomates s'ouvrent ou se ferment, les gaz circulent. Retourne la feuille pour voir les stomates côté inférieur.",
+  aRetenir:"De haut en bas : épiderme supérieur (protège, cuticule cireuse), tissu palissadique (cellules allongées, riches en chloroplastes : l'essentiel de la photosynthèse), tissu lacuneux (cellules arrondies séparées par des lacunes d'air : circulation des gaz), épiderme inférieur avec les stomates. Les nervures contiennent le xylème (eau et sels minéraux montent) et le phloème (sucres). Les stomates laissent entrer le CO₂ et sortir O₂ et vapeur d'eau : ouverts, la feuille photosynthétise mais perd de l'eau.",
+  piege:"Les stomates ne sont pas des trous permanents : ce sont deux cellules de garde qui s'ouvrent ou se ferment. Fermés, ils économisent l'eau mais arrêtent l'entrée de CO₂, donc la photosynthèse. Et ils se trouvent surtout sous la feuille, pas dessus.",
+  build:function(k, S){
+    var B = window.B3D, c = k.canvas(440), cam = B.cam(0.55, 0.4, 8);
+    var cut = k.slider("Coupe", 0, 100, 5, 45, "%");
+    var tis = k.select("Surligner un tissu", [["all","Tous les tissus"],["epi","Épiderme supérieur"],["pal","Tissu palissadique"],["lac","Tissu lacuneux"],["ner","Nervure (xylème et phloème)"],["inf","Épiderme inférieur et stomates"]], "all");
+    var lum = k.slider("Lumière", 0, 100, 5, 80, "%");
+    var eau = k.slider("Eau disponible dans le sol", 0, 100, 5, 70, "%");
+    var rot = k.toggle("Rotation automatique", false, function(v){ cam.auto = v; });
+    k.button("Retourner la feuille", function(){ flip = !flip; }, true);
+    var ro = k.readouts(["Ouverture des stomates", "CO₂ entrant", "O₂ produit", "Vapeur d'eau perdue"]);
+    var nt = k.note("", "");
+    cam.auto = false;
+    var flip = false, apS = 0.5, parts = [], T = 0, spawn = {a:0, b:0, c:0};
+    var X0 = -1.6, X1 = 1.6, Z1 = 1.2;
+    var Y = {epi:[0.55, 0.68], pal:[0.12, 0.55], lac:[-0.35, 0.12], inf:[-0.48, -0.35]};
+    var COL = {epi:B.hex("#d9ecd2"), pal:B.hex("#6fbf5a"), lac:B.hex("#a9d98e"), inf:B.hex("#d9ecd2")};
+    var NAMES = {epi:"épiderme supérieur", pal:"tissu palissadique", lac:"tissu lacuneux", inf:"épiderme inférieur", ner:"nervure"};
+    var FUNC = {all:"", epi:"Épiderme supérieur : une seule couche de cellules transparentes recouvertes d'une cuticule cireuse. Il protège et laisse passer la lumière.",
+      pal:"Tissu palissadique : cellules allongées serrées, pleines de chloroplastes, juste sous la lumière. C'est là que se fait l'essentiel de la photosynthèse.",
+      lac:"Tissu lacuneux : cellules arrondies avec de grands espaces d'air (lacunes). Les gaz y circulent vers et depuis les stomates ; il fait aussi un peu de photosynthèse.",
+      ner:"Nervure : le xylème (bleu) amène l'eau et les sels minéraux depuis la racine ; le phloème (jaune) transporte les sucres fabriqués vers le reste de la plante.",
+      inf:"Épiderme inférieur : il porte la plupart des stomates. Chaque stomate est formé de deux cellules de garde qui règlent l'ouverture."};
+    var seed = 7; function rr(){ seed = (seed * 9301 + 49297) % 233280; return seed / 233280; }
+    var LAC = []; for (var i = 0; i < 12; i++) for (var j = 0; j < 3; j++) LAC.push([X0 + 0.14 + i * 0.27 + (rr() - 0.5) * 0.08, -0.3 + j * 0.15 + (rr() - 0.5) * 0.05, rr()]);
+    var STS = [[-1.1, 0.5], [0.8, 0.4], [-0.2, 0.9], [1.2, -0.1], [-1.2, -0.5], [0.3, -0.6]];
+    function zc(){ return -1.2 + cut.value / 100 * 2.3; }
+    B.drag(c, cam, function(){ render(); });
+    function box(x0, x1, y0, y1, z0, z1, col, al){
+      var z = z0;
+      sc.poly([[x0, y1, z0], [x1, y1, z0], [x1, y1, z1], [x0, y1, z1]], col, [0, 1, 0], al);
+      sc.poly([[x0, y0, z0], [x1, y0, z0], [x1, y0, z1], [x0, y0, z1]], col, [0, -1, 0], al);
+      sc.poly([[x0, y0, z1], [x1, y0, z1], [x1, y1, z1], [x0, y1, z1]], col, [0, 0, 1], al);
+      sc.poly([[x0, y0, z0], [x0, y1, z0], [x0, y1, z1], [x0, y0, z1]], col, [-1, 0, 0], al);
+      sc.poly([[x1, y0, z0], [x1, y1, z0], [x1, y1, z1], [x1, y0, z1]], col, [1, 0, 0], al);
+      sc.poly([[x0, y0, z0], [x1, y0, z0], [x1, y1, z0], [x0, y1, z0]], col, [0, 0, -1], al, "rgba(60,90,50,.5)", true);
+    }
+    var sc;
+    function al(t){ return tis.value === "all" || tis.value === t ? 1 : 0.22; }
+    function step(dt){
+      T += dt;
+      var light = lum.value / 100, water = eau.value / 100, target = (light > 0.08 ? Math.min(1, light / 0.55) : 0) * Math.min(1, water / 0.5);
+      apS += (target - apS) * Math.min(1, dt * 1.6);
+      var zcut = zc(), sts = STS.filter(function(s){ return s[1] >= zcut + 0.1; }).concat([[0.3, zcut + 0.0]]);
+      spawn.a += dt * 3.5 * apS; spawn.b += dt * 3.5 * apS * light; spawn.c += dt * 4 * apS;
+      while (spawn.a >= 1){ spawn.a -= 1; var s = sts[Math.floor(Math.random() * sts.length)]; parts.push({t:"co2", x:s[0], z:s[1], u:0}); }
+      while (spawn.b >= 1){ spawn.b -= 1; var s2 = sts[Math.floor(Math.random() * sts.length)]; parts.push({t:"o2", x:s2[0], z:s2[1], u:0}); }
+      while (spawn.c >= 1){ spawn.c -= 1; var s3 = sts[Math.floor(Math.random() * sts.length)]; parts.push({t:"h2o", x:s3[0], z:s3[1], u:0}); }
+      parts.forEach(function(p){ p.u += dt * 0.45; });
+      parts = parts.filter(function(p){ return p.u < 1 && p.z >= zcut - 0.01; });
+    }
+    function pos(p){
+      var u = p.u, x = p.x, z = p.z;
+      if (p.t === "co2"){ return u < 0.5 ? [x, -1.4 + (-0.42 + 1.4) * (u / 0.5), z] : [x + 0.1 * (u - 0.5) * 2, -0.42 + (0.3 + 0.42) * ((u - 0.5) / 0.5), z]; }
+      if (p.t === "o2"){ return u < 0.5 ? [x + 0.1 - 0.1 * (u / 0.5), 0.3 + (-0.42 - 0.3) * (u / 0.5), z] : [x, -0.42 + (-1.4 + 0.42) * ((u - 0.5) / 0.5), z]; }
+      return u < 0.4 ? [x - 0.1 + 0.1 * (u / 0.4), -0.1 + (-0.42 + 0.1) * (u / 0.4), z] : [x, -0.42 + (-1.3 + 0.42) * ((u - 0.4) / 0.6), z];
+    }
+    function render(){
+      B.background(c);
+      var tgt = flip ? -0.95 : 0.4; if (Math.abs(cam.pitch - tgt) > 0.02 && !cam.hold) cam.pitch += (tgt - cam.pitch) * 0.12;
+      sc = B.scene(c, cam, Math.min(c.W / 4.2, c.H / 3.6), 4);
+      var zcut = zc(), x0 = X0, x1 = X1;
+      ["epi", "pal", "lac", "inf"].forEach(function(t){ box(x0, x1, Y[t][0], Y[t][1], zcut, Z1, COL[t], al(t)); });
+      /* cuticule */
+      sc.poly([[x0, 0.69, zcut], [x1, 0.69, zcut], [x1, 0.69, Z1], [x0, 0.69, Z1]], B.hex("#7dd3fc"), [0, 1, 0], 0.35 * al("epi"));
+      /* face de coupe : cellules */
+      var zf = zcut - 0.005, a;
+      for (a = 0; a < 11; a++){ var xa = x0 + a * 0.29 + 0.01; sc.poly([[xa, 0.57, zf], [xa + 0.27, 0.57, zf], [xa + 0.27, 0.66, zf], [xa, 0.66, zf]], B.hex("#eaf5e5"), null, al("epi"), "#7aa36d"); }
+      for (a = 0; a < 16; a++){ var xp = x0 + a * 0.2 + 0.02; sc.poly([[xp, 0.14, zf], [xp + 0.17, 0.14, zf], [xp + 0.17, 0.53, zf], [xp, 0.53, zf]], B.hex("#9bd67f"), null, al("pal"), "#4d8a3a");
+        for (var q = 0; q < 3; q++) sc.sphere([xp + 0.085, 0.22 + q * 0.12, zf - 0.02], 0.035, B.hex("#15803d"), al("pal")); }
+      LAC.forEach(function(L){ sc.sphere([L[0], L[1], zf - 0.03], 0.1, B.hex("#bfe3a3"), al("lac"), "#5e9f46"); if (L[2] > 0.4) sc.sphere([L[0] + 0.02, L[1], zf - 0.06], 0.03, B.hex("#15803d"), al("lac")); });
+      var open = apS;
+      for (a = 0; a < 11; a++){ var xi = x0 + a * 0.29 + 0.01, isSt = Math.abs(xi + 0.135 - 0.3) < 0.2; if (isSt) continue; sc.poly([[xi, -0.47, zf], [xi + 0.27, -0.47, zf], [xi + 0.27, -0.36, zf], [xi, -0.36, zf]], B.hex("#eaf5e5"), null, al("inf"), "#7aa36d"); }
+      /* stomate coupé : deux cellules de garde */
+      var gw = 0.025 + 0.05 * open; sc.sphere([0.3 - gw - 0.06, -0.415, zf - 0.03], 0.075, B.hex("#2f9e44"), al("inf"), "#14532d"); sc.sphere([0.3 + gw + 0.06, -0.415, zf - 0.03], 0.075, B.hex("#2f9e44"), al("inf"), "#14532d");
+      /* nervure */
+      sc.tube([-0.55, -0.02, zcut], [-0.55, -0.02, Z1], 0.16, B.hex("#cbd5e1"), 0.5 * al("ner") + 0.5 * (tis.value === "ner" ? 1 : 0));
+      sc.tube([-0.55, 0.02, zcut], [-0.55, 0.02, Z1], 0.07, B.hex("#60a5fa"), al("ner")); sc.tube([-0.55, -0.1, zcut], [-0.55, -0.1, Z1], 0.05, B.hex("#fbbf24"), al("ner"));
+      sc.sphere([-0.55, 0.02, zcut - 0.01], 0.07, B.hex("#60a5fa"), al("ner")); sc.sphere([-0.55, -0.1, zcut - 0.01], 0.05, B.hex("#fbbf24"), al("ner"));
+      /* stomates à la surface inférieure */
+      STS.forEach(function(s){ if (s[1] < zcut + 0.1) return; var g = 0.02 + 0.05 * open; sc.sphere([s[0] - g - 0.05, -0.49, s[1]], 0.06, B.hex("#2f9e44"), al("inf"), "#14532d"); sc.sphere([s[0] + g + 0.05, -0.49, s[1]], 0.06, B.hex("#2f9e44"), al("inf"), "#14532d"); });
+      /* rayons de lumière */
+      var li = lum.value / 100; for (a = 0; a < 5; a++){ var lx = -1.3 + a * 0.65, off = (T * 0.8 + a * 0.3) % 1; sc.line([lx, 1.9 - 0.2 * off, 0.3], [lx, 1.0 - 0.2 * off, 0.3], 0.06, B.hex("#facc15"), 0.15 + 0.8 * li); }
+      /* gaz */
+      var GC = {co2:B.hex("#475569"), o2:B.hex("#ef4444"), h2o:B.hex("#38bdf8")};
+      parts.forEach(function(p){ sc.sphere(pos(p), p.t === "o2" ? 0.065 : 0.06, GC[p.t]); });
+      sc.label([1.5, 1.95, 0.3], "lumière", "#a16207", 10, 0, 0);
+      if (tis.value !== "all" && tis.value !== "ner") sc.label([x1 + 0.05, (Y[tis.value][0] + Y[tis.value][1]) / 2, zcut], NAMES[tis.value], "#14532d", 10, 6, 0, "left");
+      if (tis.value === "ner") sc.label([-0.55, 0.3, zcut], "xylème / phloème", "#1d4ed8", 10, 0, -4);
+      sc.flush(); B.hint(c);
+      var ctx = c.ctx; ctx.save(); ctx.font = "700 11px Mulish,system-ui,sans-serif"; ctx.textBaseline = "middle";
+      [["CO₂ (entre)", "#475569"], ["O₂ (sort)", "#ef4444"], ["vapeur d'eau (sort)", "#38bdf8"]].forEach(function(q, n){ ctx.fillStyle = q[1]; ctx.beginPath(); ctx.arc(14, 16 + n * 17, 5, 0, 6.3); ctx.fill(); ctx.fillStyle = "#0f1b2d"; ctx.fillText(q[0], 24, 16 + n * 17); }); ctx.restore();
+      var light = lum.value / 100;
+      ro.set(0, S.fmt(apS * 100, 0) + " %"); ro.set(1, S.fmt(apS * 100, 0) + " %"); ro.set(2, S.fmt(apS * light * 100, 0) + " %"); ro.set(3, S.fmt(apS * 100, 0) + " %");
+      var msg = FUNC[tis.value], kind = "";
+      if (!msg){ msg = "Sous la lumière, les cellules de garde se gonflent et ouvrent le stomate : le CO₂ entre, l'O₂ et la vapeur d'eau sortent."; }
+      if (light < 0.08){ msg = "Dans l'obscurité, les stomates se ferment : pas de photosynthèse, donc ni entrée de CO₂ ni production d'O₂. " + (tis.value === "all" ? "" : FUNC[tis.value]); kind = "warn"; }
+      else if (eau.value < 25){ msg = "Sol sec : les stomates se ferment pour économiser l'eau. Bonne nouvelle pour l'eau, mauvaise pour la photosynthèse (plus de CO₂ qui entre). C'est le dilemme de la feuille. " + (tis.value === "all" ? "" : FUNC[tis.value]); kind = "warn"; }
+      nt.set(msg, kind);
+    }
+    k.draw(render);
+    var L = k.loop(function(dt){ B.spin(cam, dt, 0.25); step(dt); render(); });
+    L.play();
+  }
+});
+/*B3D-ADD-END:b3-3d-feuille*/

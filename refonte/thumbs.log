@@ -5,3 +5,19 @@ ERR b4-c09-traduction 'NoneType' object has no attribute 'screenshot'
 ERR b4-c09-transcription 'NoneType' object has no attribute 'screenshot'
 secondaire/biologie/4e 36
 secondaire/biologie/5e 40
+secondaire/biologie/6e 40
+secondaire/chimie/3e 40
+secondaire/chimie/4e 40
+secondaire/chimie/5e 40
+secondaire/chimie/6e 41
+secondaire/maths/3e 40
+secondaire/maths/4e 49
+secondaire/maths/5e 40
+secondaire/maths/6e 40
+secondaire/physique/3e 40
+secondaire/physique/4e 40
+secondaire/physique/5e 40
+secondaire/physique/6e 40
+universite/chimie 56
+universite/biologie 57
+universite/statistique 48

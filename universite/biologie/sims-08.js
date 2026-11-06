@@ -217,3 +217,161 @@ SFA.sim({
   }
 });
 })();
+
+/* BIO3D-BEGIN:s_c08_mitose.js */
+(function(){
+var P = function(S){ return S.draw.palette; };
+/* --- moteur 3D maison (projection perspective, tri en profondeur, rotation à la souris) --- */
+function hx(h){ var n = parseInt(h.slice(1), 16); return [n >> 16, (n >> 8) & 255, n & 255]; }
+function sh(h, f, a){ var q = hx(h); return "rgba(" + q.map(function(v){ return Math.round(f < 0 ? v * (1 + f) : v + (255 - v) * f); }).join(",") + "," + (a === undefined ? 1 : a) + ")"; }
+function V3(c, S, o){
+  o = o || {};
+  var v = {yaw:o.yaw === undefined ? 0.5 : o.yaw, pit:o.pit === undefined ? 0.3 : o.pit, D:o.D || 8, sc:o.sc || 60, ox:0, oy:0, auto:o.auto !== false, q:[], moved:false}, last = null, d0 = null;
+  c.pointer(function(t, p){
+    if (t === "down"){ last = p; d0 = p; v.auto = false; v.moved = false; }
+    else if (t === "drag" && last){ if (Math.abs(p.x - d0.x) + Math.abs(p.y - d0.y) > 5) v.moved = true; v.yaw += (p.x - last.x) * 0.01; v.pit = Math.max(-1.45, Math.min(1.45, v.pit + (p.y - last.y) * 0.01)); last = p; }
+    else if (t === "up"){ last = null; if (!v.moved && v.onclick) v.onclick(p); }
+  });
+  v.P = function(x, y, z){
+    var cy = Math.cos(v.yaw), sy = Math.sin(v.yaw), cp = Math.cos(v.pit), sp = Math.sin(v.pit);
+    var X = x * cy + z * sy, Z = -x * sy + z * cy, Y = y * cp - Z * sp; Z = y * sp + Z * cp;
+    var f = v.D / (v.D - Z);
+    return {x:c.W / 2 + v.ox + X * f * v.sc, y:c.H / 2 + v.oy - Y * f * v.sc, z:Z, f:f};
+  };
+  v.add = function(z, fn){ v.q.push([z, fn]); };
+  v.flush = function(){ v.q.sort(function(a, b){ return a[0] - b[0]; }); for (var i = 0; i < v.q.length; i++) v.q[i][1](); v.q = []; };
+  v.ball = function(x, y, z, r, col, al){
+    var p = v.P(x, y, z), R = Math.max(1, r * p.f * v.sc);
+    v.add(p.z, function(){
+      var g = c.ctx.createRadialGradient(p.x - R * 0.35, p.y - R * 0.35, R * 0.1, p.x, p.y, R);
+      g.addColorStop(0, sh(col, 0.55, al)); g.addColorStop(0.55, sh(col, 0, al)); g.addColorStop(1, sh(col, -0.4, al));
+      c.ctx.fillStyle = g; c.ctx.beginPath(); c.ctx.arc(p.x, p.y, R, 0, 6.2832); c.ctx.fill();
+    });
+    p.R = R; return p;
+  };
+  v.seg = function(a, b, w, col, al, dash){
+    var p = v.P(a[0], a[1], a[2]), q = v.P(b[0], b[1], b[2]);
+    v.add((p.z + q.z) / 2 - 0.001, function(){
+      var x = c.ctx; x.lineCap = "round"; x.strokeStyle = sh(col, 0, al); x.lineWidth = Math.max(1, w * (p.f + q.f) / 2 * v.sc);
+      if (dash) x.setLineDash(dash);
+      x.beginPath(); x.moveTo(p.x, p.y); x.lineTo(q.x, q.y); x.stroke();
+      if (!dash && w * v.sc > 6){ x.strokeStyle = sh(col, 0.5, al); x.lineWidth = x.lineWidth * 0.35; x.beginPath(); x.moveTo(p.x - 1, p.y - 1); x.lineTo(q.x - 1, q.y - 1); x.stroke(); }
+      if (dash) x.setLineDash([]);
+    });
+  };
+  v.label = function(txt, x, y, z, col, size, bg){
+    var p = v.P(x, y, z);
+    v.add(p.z + 50, function(){ S.draw.text(c, txt, p.x, p.y, {size:size || 11, color:col || "#0f1b2d", weight:700, bg:bg}); });
+  };
+  v.spin = function(dt){ if (v.auto) v.yaw += dt * 0.35; };
+  return v;
+}
+
+SFA.sim({
+  id:"ub-c08-3d-mitose-fuseau", ch:"c08", tag:"Mitose · 3D",
+  titre:"La mitose en 3D : chromosomes, fuseau et cytocinèse",
+  resume:"Une cellule 2n = 6 qui se divise, avec son fuseau, ses kinétochores et la séparation des chromatides : joue la division, bloque-la, fais-la rater.",
+  but:"Fais défiler la division avec le curseur (ou en lecture), tourne la cellule, puis teste le nocodazole (poison du fuseau) ou une non-disjonction : compte les chromosomes de chaque cellule fille.",
+  aRetenir:"Prophase : condensation, rupture de l'enveloppe nucléaire (en fin de prophase), centrosomes aux pôles. Prométaphase : les microtubules du fuseau s'attachent aux kinétochores. Métaphase : alignement sur la plaque. Anaphase : la séparase coupe la cohésine, les chromatides sœurs migrent vers les pôles. Télophase : décondensation, enveloppes nucléaires, cytocinèse. Quantité d'ADN : 4c de la fin de S à l'anaphase (2n = 6 chromosomes à 2 chromatides), 2c dans chaque cellule fille (6 chromosomes à 1 chromatide).",
+  piege:"Le nombre de chromosomes ne double pas en anaphase « en réalité » : on compte un chromosome par centromère, donc il passe de 6 à 12 chromosomes dans la cellule entière, alors que la quantité d'ADN reste 4c jusqu'à la cytocinèse. Les chromatides sœurs sont identiques (sauf mutation) : ce n'est pas le brassage de la méiose. Le point de contrôle du fuseau empêche l'anaphase tant que tous les kinétochores ne sont pas attachés. Taille des chromosomes et durée très schématiques.",
+  build:function(k,S){
+    var c = k.canvas(420), pal = P(S), v = V3(c, S, {yaw:0.35, pit:0.3, D:11, sc:50});
+    var prog = k.slider("Progression de la division", 0, 100, 0.5, 4, "%");
+    var cond = k.seg("Condition", [["n","Normale"],["m","Nocodazole"],["d","Non-disjonction"]], "n");
+    var fib = k.toggle("Montrer le fuseau", true);
+    var spd = k.slider("Vitesse de lecture", 0.2, 3, 0.1, 1, "×");
+    var ro = k.readouts(["Phase", "Chromosomes", "Chromatides", "ADN par cellule"]);
+    var info = k.note("", "ok");
+    var playing = true, tt = 0, seed = 21;
+    function rnd(){ seed = (seed * 16807) % 2147483647; return seed / 2147483647; }
+    function ss(a, b, u){ var x = Math.max(0, Math.min(1, (u - a) / (b - a))); return x * x * (3 - 2 * x); }
+    var SZ = [1.0, 1.0, 0.8, 0.8, 0.55, 0.55], COL = ["#2563eb", "#dc2626", "#2563eb", "#dc2626", "#2563eb", "#dc2626"];
+    var chr = [];
+    for (var i = 0; i < 6; i++){
+      var a = rnd() * 6.28, b = Math.acos(2 * rnd() - 1), rr = 0.35 + rnd() * 0.4;
+      var a2 = rnd() * 6.28, b2 = Math.acos(2 * rnd() - 1), r2 = 0.5 + rnd() * 1.1, ea = rnd() * 6.28, eb = Math.acos(2 * rnd() - 1);
+      var ph = i / 6 * 6.2832, rp = (i % 2) ? 0.95 : 0.5;
+      chr.push({S:[rr * Math.sin(b) * Math.cos(a) * 0.9, rr * Math.cos(b), rr * Math.sin(b) * Math.sin(a)], W:[r2 * Math.sin(b2) * Math.cos(a2) * 1.3, r2 * Math.cos(b2), r2 * Math.sin(b2) * Math.sin(a2)],
+        M:[0, rp * Math.cos(ph), rp * Math.sin(ph)], E0:[Math.sin(eb) * Math.cos(ea), Math.cos(eb), Math.sin(eb) * Math.sin(ea)], R:[0, Math.cos(ph), Math.sin(ph)], ph:rnd() * 6.28});
+    }
+    function norm(a){ var l = Math.hypot(a[0], a[1], a[2]) || 1; return [a[0] / l, a[1] / l, a[2] / l]; }
+    function phase(u){
+      return u < 0.1 ? "Interphase (G2)" : u < 0.27 ? "Prophase" : u < 0.42 ? "Prométaphase" : u < 0.56 ? "Métaphase" : u < 0.7 ? "Anaphase" : u < 0.82 ? "Télophase" : "Cytocinèse";
+    }
+    function R(){
+      c.clear(); v.sc = Math.min(56, c.W / 8.2);
+      var cd = cond.value, u0 = prog.value / 100, u = cd === "m" ? Math.min(u0, 0.40) : u0;
+      var cnd = ss(0.08, 0.28, u) * (1 - 0.8 * ss(0.74, 0.92, u));
+      var A = ss(0.57, 0.67, u), Bv = ss(0.62, 0.76, u), Tel = ss(0.76, 0.95, u), Pinch = ss(0.74, 0.97, u);
+      var Px = 0.35 + 1.65 * ss(0.06, 0.4, u) + 0.7 * Bv, aC = 2.9 + 0.9 * Bv;
+      /* cellule : maillage ellipsoïdal pincé au milieu */
+      var rad = function(x){ var q = 1 - (x / aC) * (x / aC); if (q <= 0) return 0; return 2.05 * Math.sqrt(q) * (1 - 0.85 * Pinch * Math.exp(-(x * x) / 0.35)); };
+      var NX = 14, th, j;
+      for (var ix = 1; ix < NX; ix++){ var x = -aC + 2 * aC * ix / NX, r = rad(x); for (j = 0; j < 20; j++){ var t1 = j / 20 * 6.2832, t2 = (j + 1) / 20 * 6.2832; v.seg([x, r * Math.cos(t1), r * Math.sin(t1)], [x, r * Math.cos(t2), r * Math.sin(t2)], 0.02, "#16a34a", 0.3); } }
+      for (j = 0; j < 8; j++){ th = j / 8 * 6.2832; for (ix = 0; ix < 20; ix++){ var xa = -aC + 2 * aC * (ix + 0.02) / 20, xb = -aC + 2 * aC * (ix + 0.98) / 20, ra = rad(xa), rb = rad(xb); v.seg([xa, ra * Math.cos(th), ra * Math.sin(th)], [xb, rb * Math.cos(th), rb * Math.sin(th)], 0.02, "#16a34a", 0.3); } }
+      /* enveloppes nucléaires */
+      function env(cx, rr, al, col){ if (al < 0.03) return; for (var q = 0; q < 3; q++){ for (var m = 0; m < 22; m++){ var t1 = m / 22 * 6.2832, t2 = (m + 1) / 22 * 6.2832, yy = (q - 1) * rr * 0.6, r3 = Math.sqrt(rr * rr - yy * yy);
+        v.seg([cx + r3 * Math.cos(t1), yy, r3 * Math.sin(t1)], [cx + r3 * Math.cos(t2), yy, r3 * Math.sin(t2)], 0.03, col, al);
+        v.seg([cx + yy, r3 * Math.cos(t1), r3 * Math.sin(t1)], [cx + yy, r3 * Math.cos(t2), r3 * Math.sin(t2)], 0.02, col, al * 0.6); } } }
+      env(0, 1.15, 1 - ss(0.18, 0.30, u), "#3b5fc0");
+      env(-1.9 - 0.4 * Bv, 0.95, Tel, "#3b5fc0"); env(1.9 + 0.4 * Bv, 0.95, Tel, "#3b5fc0");
+      /* centrosomes + asters */
+      [-1, 1].forEach(function(sg){
+        var px = sg * Px; v.ball(px, 0, 0, 0.16, "#7c3aed");
+        if (u > 0.2) for (var q = 0; q < 7; q++){ var aa = q / 7 * 6.2832, bb = 0.8 + q * 0.4; v.seg([px, 0, 0], [px + sg * 0.35, 0.35 * Math.cos(aa), 0.35 * Math.sin(aa)], 0.015, "#a78bfa", 0.6); }
+      });
+      var fiberOn = fib.value && cd !== "m" && u > 0.27 && u < 0.78;
+      var attach = ss(0.28, 0.46, u), nd = 0, left = 0, right = 0;
+      /* chromosomes */
+      chr.forEach(function(ch, i){
+        var sz = SZ[i], base, e, sep = 0;
+        var go = ss(0.28, 0.52, u), bump = Math.sin(Math.PI * go);
+        if (cd === "m") go = ss(0.28, 0.42, u) * 0.12 + 0;
+        base = [ch.S[0] * (1 - go) + ch.M[0] * go + ch.W[0] * bump * 0.5, ch.S[1] * (1 - go) + ch.M[1] * go + ch.W[1] * bump * 0.5, ch.S[2] * (1 - go) + ch.M[2] * go + ch.W[2] * bump * 0.5];
+        if (cd === "m" && u > 0.28){ var f0 = ss(0.28, 0.4, u); base = [ch.S[0] * (1 - f0) + ch.W[0] * f0 * 1.1, ch.S[1] * (1 - f0) + ch.W[1] * f0 * 1.1, ch.S[2] * (1 - f0) + ch.W[2] * f0 * 1.1]; }
+        var pg = ss(0.34, 0.5, u); e = norm([ch.E0[0] * (1 - pg) + ch.R[0] * pg, ch.E0[1] * (1 - pg) + ch.R[1] * pg, ch.E0[2] * (1 - pg) + ch.R[2] * pg]);
+        var L = 1.45 * sz, nondisj = (cd === "d" && i === 2);
+        var sc = 1 - 0.35 * A - 0.2 * Tel;
+        for (var s2 = -1; s2 <= 1; s2 += 2){
+          var pole = nondisj ? 1 : s2;
+          var Kx = base[0] + (A > 0 ? pole * (0.14 + 1.25 * A + 0.35 * Bv + 0.3 * Tel) : 0), off = (A > 0 && !nondisj) ? 0 : s2 * 0.07 * (u > 0.1 ? 1 : 0.5);
+          if (nondisj && A > 0) off = s2 * 0.09;
+          var K = [Kx + off, base[1] * (A > 0 ? sc : 1), base[2] * (A > 0 ? sc : 1)], V = A * 0.85 * (1 - 0.5 * Tel);
+          var prev = null, w = 0.04 + 0.09 * cnd, wob = (1 - cnd) * 0.3;
+          for (var q = 0; q <= 6; q++){
+            var t = -0.35 * L + q / 6 * L, at = Math.abs(t);
+            var P0 = [K[0] + (-pole) * at * V + (A > 0 ? 0 : s2 * 0.1 * at / L * cnd) + wob * Math.sin(t * 6 + ch.ph + tt * 1.3) * 0.5, K[1] + e[1] * t * (1 - V) + wob * Math.sin(t * 5 + ch.ph * 2 + tt) * 0.5, K[2] + e[2] * t * (1 - V) + wob * Math.cos(t * 4 + ch.ph + tt * 1.1) * 0.5];
+            if (prev) v.seg(prev, P0, w, COL[i], 0.95);
+            prev = P0;
+          }
+          v.ball(K[0], K[1], K[2], 0.1, "#f59e0b");
+          if (fiberOn && attach > i * 0.14 + 0.05 && !(cd === "m")) v.seg([pole * Px, 0, 0], K, 0.022, "#7c3aed", 0.6);
+          if (A > 0.6) { if (K[0] > 0) right++; else left++; }
+        }
+      });
+      v.flush();
+      /* lecture des résultats */
+      var ph = phase(u), nChr = u < 0.57 ? 6 : 12, nChd = u < 0.57 ? 12 : 12, dna = u < 0.85 ? "4c" : "2c (par fille)";
+      var msg = "";
+      if (u >= 0.85){
+        if (cd === "d") { nChr = "7 et 5"; nChd = "7 et 5"; dna = "≈ 2,3c et 1,7c"; msg = "Non-disjonction : les deux chromatides du chromosome 3 sont parties vers le même pôle : une fille a 7 chromosomes (trisomie), l'autre 5 (monosomie) : aneuploïdie."; }
+        else { nChr = "6 + 6"; nChd = "6 + 6"; msg = "Deux cellules filles identiques à la cellule mère : 2n = 6 chromosomes, 2c d'ADN chacune."; }
+      }
+      if (cd === "m" && u0 > 0.4) { ph = "Prométaphase (bloquée)"; nChr = 6; nChd = 12; dna = "4c"; msg = "Nocodazole : le fuseau ne se forme pas, les kinétochores ne s'attachent pas, le point de contrôle du fuseau bloque la cellule avant l'anaphase (c'est le principe de certaines chimiothérapies)."; }
+      if (!msg) msg = u < 0.1 ? "Les chromosomes sont répliqués (2 chromatides sœurs chacun) mais décondensés : on ne les voit pas distinctement. Les centrosomes sont dupliqués." : u < 0.27 ? "Les chromosomes se condensent ; les deux centrosomes migrent vers les pôles ; l'enveloppe nucléaire se désagrège." : u < 0.42 ? "Les microtubules du fuseau capturent les kinétochores (un par chromatide), chaque chromosome est attaché aux deux pôles." : u < 0.56 ? "Tous les chromosomes sont alignés sur la plaque équatoriale, sous tension : le point de contrôle est satisfait." : u < 0.7 ? "La séparase clive la cohésine : les chromatides sœurs deviennent des chromosomes fils et sont tirées vers les pôles (anaphase A) ; les pôles s'écartent (anaphase B)." : "Décondensation, nouvelles enveloppes nucléaires, l'anneau d'actine-myosine pince la cellule (cytocinèse).";
+      ro.set(0, ph); ro.set(1, nChr); ro.set(2, nChd); ro.set(3, dna);
+      info.set(msg, cd === "m" && u0 > 0.4 ? "warn" : cd === "d" && u >= 0.85 ? "bad" : "ok");
+    }
+    k.button("Lecture / pause", function(){ playing = !playing; }, true);
+    k.button("Recommencer", function(){ prog.set(4); playing = true; });
+    k.draw(R);
+    var lp = k.loop(function(dt){
+      tt += dt; if (v.auto) v.yaw = 0.35 + 0.55 * Math.sin(tt * 0.35);
+      if (playing){ var cur = prog.value + dt * 5.5 * spd.value; if (cur >= 100) { cur = 100; playing = false; } prog.set(cur); }
+      R();
+    }); lp.play();
+  }
+});
+
+})();
+/* BIO3D-END:s_c08_mitose.js */

@@ -1,9 +1,21 @@
 /* SFA · page dédiée à une simulation (même gabarit que les pages de chimie) — novembre 2026.
    Chargée après sfa-sec.js, page.js du cours et le fichier sims-NN.js du chapitre. window.SFA_SIMPAGE = id de la simulation. */
-document.addEventListener("DOMContentLoaded", function () {
-  "use strict";
+(function () {
+"use strict";
+/* Charge les fichiers sims-NN.js du cours qui manquent (dans l'ordre) ; again = recharger aussi ceux déjà présents. */
+function loadCourse(again, cb) {
+  var M = window.SFA.meta, have = {}, todo = [], redo = [];
+  Array.prototype.forEach.call(document.scripts, function (s) { var m = /sims-(\d+)\.js/.exec(s.src || ""); if (m) have[m[1]] = 1; });
+  for (var i = 1; i <= Math.max(M && M.chapitres ? M.chapitres.length : 1, 1); i++) { var nn = String(i).padStart(2, "0"); if (!have[nn]) todo.push(nn); else if (again) redo.push(nn); }
+  todo = todo.concat(redo);
+  var left = todo.length; if (!left) { cb(); return; }
+  todo.forEach(function (nn) { var s = document.createElement("script"); s.async = false; s.src = "../sims-" + nn + ".js"; s.onload = s.onerror = function () { if (--left === 0) cb(); }; document.head.appendChild(s); });
+}
+var retried = false;
+function start() {
   var S = window.SFA, M = S.meta, id = window.SFA_SIMPAGE;
   var d = S.sims.filter(function (s) { return s.id === id; })[0];
+  if (!d && !retried) { retried = true; loadCourse(true, start); return; }
   if (!d) { document.body.innerHTML = "<p style='padding:30px'>Simulation introuvable.</p>"; return; }
   var ci = 0; M.chapitres.forEach(function (c, i) { if (c.id === d.ch) ci = i; });
   var c = M.chapitres[ci];
@@ -30,5 +42,21 @@ document.addEventListener("DOMContentLoaded", function () {
     '<div class="sp-chap"><a href="../#c=' + ci + '">Tout le chapitre ' + (ci + 1) + " →</a></div></div>" +
     '<div class="sfa-promo"><small>Envie d\'aller plus loin ?</small><b>La prépa concours médecine SFA : le cours complet, les exercices type examen corrigés et le suivi.</b><a href="' + prepa + '">Voir la prépa concours médecine</a></div></aside></div></div>' +
     '<footer class="sfa-foot">Science For All · ' + esc(M.court || M.titre) + "</footer>";
-  S.mount(d, document.getElementById("host"));
-});
+  var host = document.getElementById("host");
+  var kit = S.mount(d, host);
+  /* Certaines simulations utilisent des aides communes définies dans le fichier d'un autre chapitre
+     (ex. B4, C4 dans sims-01.js). Si la construction échoue faute d'une telle aide, on charge les autres
+     fichiers sims-NN.js du cours puis on reconstruit la simulation. */
+  var bad = host.querySelector(".note.bad");
+  if (bad && !retried && /is not (defined|a function)|Cannot read prop|undefined/.test(bad.textContent)) {
+    retried = true;
+    if (kit) kit._alive = false;
+    loadCourse(false, function () {
+      host.innerHTML = "";
+      S.sims = S.sims.filter(function (s) { return s === d || s.id !== d.id; });   /* pas de doublon de la simulation */
+      S.mount(d, host);
+    });
+  }
+}
+document.addEventListener("DOMContentLoaded", start);
+})();

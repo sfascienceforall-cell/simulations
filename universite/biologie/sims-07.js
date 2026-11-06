@@ -222,3 +222,349 @@ SFA.sim({
   }
 });
 })();
+
+
+
+
+
+
+
+
+
+/* BIO3D-BEGIN:s_c07_adn.js */
+(function(){
+var P = function(S){ return S.draw.palette; };
+/* --- moteur 3D maison (projection perspective, tri en profondeur, rotation à la souris) --- */
+function hx(h){ var n = parseInt(h.slice(1), 16); return [n >> 16, (n >> 8) & 255, n & 255]; }
+function sh(h, f, a){ var q = hx(h); return "rgba(" + q.map(function(v){ return Math.round(f < 0 ? v * (1 + f) : v + (255 - v) * f); }).join(",") + "," + (a === undefined ? 1 : a) + ")"; }
+function V3(c, S, o){
+  o = o || {};
+  var v = {yaw:o.yaw === undefined ? 0.5 : o.yaw, pit:o.pit === undefined ? 0.3 : o.pit, D:o.D || 8, sc:o.sc || 60, ox:0, oy:0, auto:o.auto !== false, q:[], moved:false}, last = null, d0 = null;
+  c.pointer(function(t, p){
+    if (t === "down"){ last = p; d0 = p; v.auto = false; v.moved = false; }
+    else if (t === "drag" && last){ if (Math.abs(p.x - d0.x) + Math.abs(p.y - d0.y) > 5) v.moved = true; v.yaw += (p.x - last.x) * 0.01; v.pit = Math.max(-1.45, Math.min(1.45, v.pit + (p.y - last.y) * 0.01)); last = p; }
+    else if (t === "up"){ last = null; if (!v.moved && v.onclick) v.onclick(p); }
+  });
+  v.P = function(x, y, z){
+    var cy = Math.cos(v.yaw), sy = Math.sin(v.yaw), cp = Math.cos(v.pit), sp = Math.sin(v.pit);
+    var X = x * cy + z * sy, Z = -x * sy + z * cy, Y = y * cp - Z * sp; Z = y * sp + Z * cp;
+    var f = v.D / (v.D - Z);
+    return {x:c.W / 2 + v.ox + X * f * v.sc, y:c.H / 2 + v.oy - Y * f * v.sc, z:Z, f:f};
+  };
+  v.add = function(z, fn){ v.q.push([z, fn]); };
+  v.flush = function(){ v.q.sort(function(a, b){ return a[0] - b[0]; }); for (var i = 0; i < v.q.length; i++) v.q[i][1](); v.q = []; };
+  v.ball = function(x, y, z, r, col, al){
+    var p = v.P(x, y, z), R = Math.max(1, r * p.f * v.sc);
+    v.add(p.z, function(){
+      var g = c.ctx.createRadialGradient(p.x - R * 0.35, p.y - R * 0.35, R * 0.1, p.x, p.y, R);
+      g.addColorStop(0, sh(col, 0.55, al)); g.addColorStop(0.55, sh(col, 0, al)); g.addColorStop(1, sh(col, -0.4, al));
+      c.ctx.fillStyle = g; c.ctx.beginPath(); c.ctx.arc(p.x, p.y, R, 0, 6.2832); c.ctx.fill();
+    });
+    p.R = R; return p;
+  };
+  v.seg = function(a, b, w, col, al, dash){
+    var p = v.P(a[0], a[1], a[2]), q = v.P(b[0], b[1], b[2]);
+    v.add((p.z + q.z) / 2 - 0.001, function(){
+      var x = c.ctx; x.lineCap = "round"; x.strokeStyle = sh(col, 0, al); x.lineWidth = Math.max(1, w * (p.f + q.f) / 2 * v.sc);
+      if (dash) x.setLineDash(dash);
+      x.beginPath(); x.moveTo(p.x, p.y); x.lineTo(q.x, q.y); x.stroke();
+      if (!dash && w * v.sc > 6){ x.strokeStyle = sh(col, 0.5, al); x.lineWidth = x.lineWidth * 0.35; x.beginPath(); x.moveTo(p.x - 1, p.y - 1); x.lineTo(q.x - 1, q.y - 1); x.stroke(); }
+      if (dash) x.setLineDash([]);
+    });
+  };
+  v.label = function(txt, x, y, z, col, size, bg){
+    var p = v.P(x, y, z);
+    v.add(p.z + 50, function(){ S.draw.text(c, txt, p.x, p.y, {size:size || 11, color:col || "#0f1b2d", weight:700, bg:bg}); });
+  };
+  v.spin = function(dt){ if (v.auto) v.yaw += dt * 0.35; };
+  return v;
+}
+
+SFA.sim({
+  id:"ub-c07-3d-adn-fourche-replication", ch:"c07", tag:"ADN · 3D",
+  titre:"La double hélice d'ADN en 3D et la fourche de réplication",
+  resume:"Une hélice qui tourne et se réplique : hélicase, brin continu, fragments d'Okazaki, amorces d'ARN, ligase. Semi-conservatif.",
+  but:"Fais tourner la double hélice, compare procaryote et eucaryote, retire la ligase ou masque les amorces, et lis combien de tours l'hélicase doit dérouler par seconde.",
+  aRetenir:"La double hélice (pas de 3,4 nm, 10,5 pb par tour, deux brins antiparallèles) s'ouvre sous l'hélicase. Les ADN polymérases n'allongent qu'en 5'→3' et à partir d'une amorce d'ARN : un brin est synthétisé en continu (brin avancé), l'autre en fragments d'Okazaki (≈ 1 000 à 2 000 nt chez les procaryotes, 100 à 200 chez les eucaryotes) : amorces retirées, trous comblés, coupures scellées par l'ADN ligase. Chaque ADN fille garde un brin parental : réplication semi-conservative (Meselson et Stahl).",
+  piege:"La polymérase ne peut pas démarrer seule : sans amorce d'ARN (primase), pas de réplication. Et les fragments d'Okazaki ne sont pas sur « l'autre côté » par magie : ils sont dus à l'orientation 5'→3' de la polymérase face à un brin matrice antiparallèle. Vitesse et longueur d'animation non à l'échelle ; seuls le pas de l'hélice (10,5 pb) et les rapports de taille des fragments sont respectés.",
+  build:function(k,S){
+    var c = k.canvas(420), pal = P(S), v = V3(c, S, {yaw:0.35, pit:0.28, D:11, sc:48});
+    var org = k.seg("Organisme", [["p","Procaryote"],["e","Eucaryote"]], "p");
+    var spd = k.slider("Vitesse d'animation", 0, 2, 0.1, 1, "×");
+    var lig = k.toggle("ADN ligase active", true);
+    var prim = k.toggle("Montrer les amorces d'ARN", true);
+    var bas = k.toggle("Montrer les bases (A, T, G, C)", true);
+    var ro = k.readouts(["Vitesse de la fourche", "Tours déroulés / s", "Taille d'un fragment", "Fragments / s"]);
+    var info = k.note("", "ok");
+    var DS = 1.5 / 10.5, K = 2 * Math.PI / 1.5, RP = 0.34, RD = 0.3, L = 3.3, AL = 0.62;
+    var s0 = 0, tt = 0, ca = Math.cos(AL), sa = Math.sin(AL);
+    var BC = ["#22c55e", "#eab308", "#0ea5e9", "#f472b6"], BN = ["A", "T", "G", "C"];
+    function base(j){ var x = Math.sin(j * 12.9898 + 1.7) * 43758.5453; return Math.floor((x - Math.floor(x)) * 4); }
+    /* position d'un point à l'abscisse s sur l'axe, angle th, pour l'hélice d'un tronçon (0 parent, 1 fille A, 2 fille B) */
+    function pt(seg, s, th, r){
+      var cs = Math.cos(th), sn = Math.sin(th);
+      if (seg === 0) return [s, r * cs, r * sn];
+      var dy = seg === 1 ? sa : -sa, d = [ca, dy, 0], u = [0, 0, 1], w = [dy, -ca, 0];   /* w = d × u */
+      if (seg === 2){ w = [-sa * -1 * 0 + (-sa) * 1 * 0 + (-sa), -ca, 0]; w = [-sa, -ca, 0]; w = [ -sa, -ca, 0 ]; w = [d[1] * u[2] - d[2] * u[1], d[2] * u[0] - d[0] * u[2], 0]; }
+      else w = [d[1] * u[2] - d[2] * u[1], d[2] * u[0] - d[0] * u[2], 0];
+      return [d[0] * s + r * (cs * u[0] + sn * w[0]), d[1] * s + r * (cs * u[1] + sn * w[1]), d[2] * s + r * (cs * u[2] + sn * w[2])];
+    }
+    function R(){
+      c.clear(); v.sc = Math.min(58, c.W / 8.2); v.ox = -8;
+      var Lf = org.value === "p" ? 1.5 : 0.5, pl = 0.3, cph = (s0 / Lf) % 1;
+      var COLP1 = "#1e3f8f", COLP2 = "#0e7490", NEWL = "#dc2626", NEWD = "#f97316", PRIM = "#a21caf";
+      /* troncs : 0 parent (s<0), 1 fille A (s>0), 2 fille B (s>0) */
+      [0, 1, 2].forEach(function(sg){
+        var smin = sg === 0 ? -L : 0.02, smax = sg === 0 ? -0.02 : L;
+        var jmin = Math.ceil((smin - s0) / DS), jmax = Math.floor((smax - s0) / DS);
+        var prev = {};
+        for (var j = jmin; j <= jmax; j++){
+          var s = j * DS + s0, th = K * j * DS, r = sg === 0 ? RP : RD, b = base(j);
+          /* brin 1 (angle th) et brin 2 (angle th + π) */
+          var A1 = pt(sg, s, th, r), A2 = pt(sg, s, th + Math.PI, r);
+          var has1 = true, has2 = true, c1, c2, b1 = b, b2 = b ^ 1, pr1 = false, pr2 = false, nick = false;
+          if (sg === 0){ c1 = COLP1; c2 = COLP2; }
+          else if (sg === 1){ c1 = COLP1; c2 = NEWL; }              /* fille A : brin parental 1 + brin avancé continu */
+          else {
+            c1 = NEWD; c2 = COLP2; b1 = b;                           /* fille B : brin parental 2 + fragments */
+            var m = Math.floor((s / Lf) - cph);  /* fragment : borne b_m = (m + cph)·Lf */
+            var rel = s - (m + cph) * Lf;          /* distance depuis le début du fragment courant */
+            var bm = (m + cph) * Lf;
+            if (m < 0) { bm = 0; rel = s; }
+            if (s < 0.02) has1 = false;
+            if (prim.value && rel < pl && s < 1.25 * Lf + 0.5 && s > 0.02 && (bm > -1e-6 || m < 0)) pr1 = true;
+            if (!lig.value && rel < 0.06 && m >= 0) nick = true;
+            if (lig.value && rel < 0.06 && m >= 0 && s < 1.8 * Lf) nick = true;
+          }
+          if (sg === 2 && !has1){ }
+          /* barreaux */
+          if (bas.value){
+            var mid = pt(sg, s, th, 0), cc = [mid[0], mid[1], mid[2]];
+            if (has1) v.seg(A1, cc, 0.05, BC[b1]); if (has2) v.seg(A2, cc, 0.05, sg === 2 || sg === 0 || sg === 1 ? BC[sg === 2 ? b2 : b2] : BC[b2]);
+          } else v.seg(A1, A2, 0.03, "#cbd5e1", 0.6);
+          /* squelette */
+          var key = j;
+          if (prev.A1 && has1 && !(nick && sg === 2)) v.seg(prev.A1, A1, 0.085, pr1 ? PRIM : c1);
+          else if (prev.A1 && has1 && nick && sg === 2) v.ball(A1[0], A1[1], A1[2], 0.07, "#ef4444");
+          if (prev.A2 && has2) v.seg(prev.A2, A2, 0.085, c2);
+          prev.A1 = has1 ? A1 : null; prev.A2 = A2;
+          if (has1) v.ball(A1[0], A1[1], A1[2], 0.055, pr1 ? PRIM : c1);
+          v.ball(A2[0], A2[1], A2[2], 0.055, c2);
+        }
+      });
+      /* hélicase et polymérases */
+      var hp = v.ball(0, 0, 0, 0.3, "#7c3aed", 0.9);
+      v.label("Hélicase", -0.1, 0.6, 0.4, "#5B21B6", 11);
+      v.ball(0.55 * ca, 0.55 * sa, 0, 0.2, "#dc2626"); v.label("Brin continu (pol)", 2.0, 1.75, 0, "#b42318", 10);
+      v.ball(cph * Lf * ca + 0.1, -(cph * Lf + 0.1) * sa, 0, 0.2, "#f97316"); 
+      v.label("ADN parental", -1.9, 0.75, 0, "#1e3f8f", 11);
+      v.label("Brin discontinu : fragments d'Okazaki", 2.0, -2.0, 0, "#c2410c", 10);
+      v.flush();
+      /* légende */
+      var lg = [["#1e3f8f","parent"],["#0e7490","parent"],["#dc2626","nouveau (continu)"],["#f97316","nouveau (discontinu)"],[PRIM,"amorce ARN"]];
+      S.draw.text(c, "Bases :", 6, c.H - 40, {size:10, align:"left", color:pal.grey});
+      BN.forEach(function(n, i){ c.ctx.fillStyle = BC[i]; c.ctx.fillRect(48 + i * 26, c.H - 46, 10, 10); S.draw.text(c, n, 62 + i * 26, c.H - 40, {size:10, align:"left"}); });
+      S.draw.text(c, "bleu / vert : brins parentaux · rouge / orange : brins néoformés", 6, c.H - 20, {size:10, align:"left", color:pal.grey});
+      S.draw.text(c, "Glisse pour tourner la molécule", 6, 12, {size:10, align:"left", color:pal.grey});
+      var sp = org.value === "p" ? 1000 : 50, lf = org.value === "p" ? 1500 : 150;
+      ro.set(0, S.fmt(sp, 0) + " pb/s"); ro.set(1, S.fmt(sp / 10.5, 1)); ro.set(2, "≈ " + S.fmt(lf, 0) + " nt"); ro.set(3, S.fmt(sp / lf, 2));
+      info.set(lig.value ? (org.value === "p" ? "Procaryote : fourche très rapide (≈ 1000 pb/s), longs fragments d'Okazaki ; l'hélicase doit dérouler ≈ 95 tours d'hélice par seconde." : "Eucaryote : fourche plus lente (≈ 50 pb/s), fragments courts (≈ 150 nt, un par nucléosome), nombreuses origines de réplication.") : "Sans ADN ligase, les coupures entre fragments ne sont pas scellées : le brin néoformé reste discontinu (points rouges) et se fragmente (cassures).", lig.value ? "ok" : "bad");
+    }
+    k.draw(R);
+    var lp = k.loop(function(dt){ tt += dt; v.spin(dt); s0 += dt * spd.value * (org.value === "p" ? 0.5 : 0.22); R(); }); lp.play();
+  }
+});
+
+})();
+/* BIO3D-END:s_c07_adn.js */
+
+/* BIO3D-BEGIN:s_c07_ribosome.js */
+(function(){
+var P = function(S){ return S.draw.palette; };
+/* --- moteur 3D maison (projection perspective, tri en profondeur, rotation à la souris) --- */
+function hx(h){ var n = parseInt(h.slice(1), 16); return [n >> 16, (n >> 8) & 255, n & 255]; }
+function sh(h, f, a){ var q = hx(h); return "rgba(" + q.map(function(v){ return Math.round(f < 0 ? v * (1 + f) : v + (255 - v) * f); }).join(",") + "," + (a === undefined ? 1 : a) + ")"; }
+function V3(c, S, o){
+  o = o || {};
+  var v = {yaw:o.yaw === undefined ? 0.5 : o.yaw, pit:o.pit === undefined ? 0.3 : o.pit, D:o.D || 8, sc:o.sc || 60, ox:0, oy:0, auto:o.auto !== false, q:[], moved:false}, last = null, d0 = null;
+  c.pointer(function(t, p){
+    if (t === "down"){ last = p; d0 = p; v.auto = false; v.moved = false; }
+    else if (t === "drag" && last){ if (Math.abs(p.x - d0.x) + Math.abs(p.y - d0.y) > 5) v.moved = true; v.yaw += (p.x - last.x) * 0.01; v.pit = Math.max(-1.45, Math.min(1.45, v.pit + (p.y - last.y) * 0.01)); last = p; }
+    else if (t === "up"){ last = null; if (!v.moved && v.onclick) v.onclick(p); }
+  });
+  v.P = function(x, y, z){
+    var cy = Math.cos(v.yaw), sy = Math.sin(v.yaw), cp = Math.cos(v.pit), sp = Math.sin(v.pit);
+    var X = x * cy + z * sy, Z = -x * sy + z * cy, Y = y * cp - Z * sp; Z = y * sp + Z * cp;
+    var f = v.D / (v.D - Z);
+    return {x:c.W / 2 + v.ox + X * f * v.sc, y:c.H / 2 + v.oy - Y * f * v.sc, z:Z, f:f};
+  };
+  v.add = function(z, fn){ v.q.push([z, fn]); };
+  v.flush = function(){ v.q.sort(function(a, b){ return a[0] - b[0]; }); for (var i = 0; i < v.q.length; i++) v.q[i][1](); v.q = []; };
+  v.ball = function(x, y, z, r, col, al){
+    var p = v.P(x, y, z), R = Math.max(1, r * p.f * v.sc);
+    v.add(p.z, function(){
+      var g = c.ctx.createRadialGradient(p.x - R * 0.35, p.y - R * 0.35, R * 0.1, p.x, p.y, R);
+      g.addColorStop(0, sh(col, 0.55, al)); g.addColorStop(0.55, sh(col, 0, al)); g.addColorStop(1, sh(col, -0.4, al));
+      c.ctx.fillStyle = g; c.ctx.beginPath(); c.ctx.arc(p.x, p.y, R, 0, 6.2832); c.ctx.fill();
+    });
+    p.R = R; return p;
+  };
+  v.seg = function(a, b, w, col, al, dash){
+    var p = v.P(a[0], a[1], a[2]), q = v.P(b[0], b[1], b[2]);
+    v.add((p.z + q.z) / 2 - 0.001, function(){
+      var x = c.ctx; x.lineCap = "round"; x.strokeStyle = sh(col, 0, al); x.lineWidth = Math.max(1, w * (p.f + q.f) / 2 * v.sc);
+      if (dash) x.setLineDash(dash);
+      x.beginPath(); x.moveTo(p.x, p.y); x.lineTo(q.x, q.y); x.stroke();
+      if (!dash && w * v.sc > 6){ x.strokeStyle = sh(col, 0.5, al); x.lineWidth = x.lineWidth * 0.35; x.beginPath(); x.moveTo(p.x - 1, p.y - 1); x.lineTo(q.x - 1, q.y - 1); x.stroke(); }
+      if (dash) x.setLineDash([]);
+    });
+  };
+  v.label = function(txt, x, y, z, col, size, bg){
+    var p = v.P(x, y, z);
+    v.add(p.z + 50, function(){ S.draw.text(c, txt, p.x, p.y, {size:size || 11, color:col || "#0f1b2d", weight:700, bg:bg}); });
+  };
+  v.spin = function(dt){ if (v.auto) v.yaw += dt * 0.35; };
+  return v;
+}
+
+SFA.sim({
+  id:"ub-c07-3d-ribosome-traduction", ch:"c07", tag:"Traduction · 3D",
+  titre:"Le ribosome en 3D : lire l'ARNm, ajouter un acide aminé à la fois",
+  resume:"Sites A, P et E, arrivée de l'ARNt, liaison peptidique, translocation, terminaison : suis le cycle d'élongation codon par codon.",
+  but:"Choisis un ARNm (sauvage ou muté) ou écris le tien, avance étape par étape ou en automatique, tourne le ribosome et observe la chaîne polypeptidique sortir par le tunnel.",
+  aRetenir:"Le ribosome (grande et petite sous-unités) lit l'ARNm de 5' vers 3', un codon à la fois. Cycle d'élongation : (1) l'ARNt aminoacylé dont l'anticodon est complémentaire entre au site A (aidé par EF-Tu·GTP) ; (2) la grande sous-unité catalyse la liaison peptidique (ribozyme) : la chaîne passe sur l'ARNt du site A ; (3) translocation (EF-G·GTP) : l'ARNm avance d'un codon, A → P, P → E, et l'ARNt déchargé quitte. Un codon stop (UAA, UAG, UGA) est reconnu par un facteur de terminaison, pas par un ARNt : la chaîne est libérée.",
+  piege:"Aucun ARNt ne reconnaît les codons stop. Une mutation qui insère ou supprime une base (non multiple de 3) décale tout le cadre de lecture en aval ; une substitution, elle, ne change qu'un codon (silencieuse, faux-sens ou non-sens). Les sous-unités sont schématisées par des nuages de billes et le tunnel n'est pas à l'échelle.",
+  build:function(k,S){
+    var c = k.canvas(430), pal = P(S), v = V3(c, S, {yaw:0.25, pit:0.2, D:12, sc:50, auto:false});
+    var WILD = "AUGGCUUACGAACUGAAAUGGUAA";
+    var PRE = {w:WILD, s:"AUGGCUUACGAGCUGAAAUGGUAA", m:"AUGGCUUACGUACUGAAAUGGUAA", n:"AUGGCUUAAGAACUGAAAUGGUAA", f:"AUGAGCUUACGAACUGAAAUGGUAA"};
+    var NOTE = {w:"ARNm sauvage : Met-Ala-Tyr-Glu-Leu-Lys-Trp puis stop.", s:"Mutation silencieuse : GAA → GAG, toujours Glu : même protéine.", m:"Mutation faux-sens : GAA → GUA : Glu devient Val.", n:"Mutation non-sens : UAC → UAA : stop prématuré, protéine tronquée (Met-Ala).", f:"Décalage du cadre de lecture : un A inséré après AUG : tout le message en aval est changé."};
+    var seqIn = null;
+    var TAB = "FFLLSSSSYY**CC*WLLLLPPPPHHQQRRRRIIIMTTTTNNKKSSRRVVVVAAAADDEEGGGG", B = "UCAG";
+    var N3 = {F:"Phe",L:"Leu",S:"Ser",Y:"Tyr",C:"Cys",W:"Trp",P:"Pro",H:"His",Q:"Gln",R:"Arg",I:"Ile",M:"Met",T:"Thr",N:"Asn",K:"Lys",V:"Val",A:"Ala",D:"Asp",E:"Glu",G:"Gly","*":"Stop"};
+    var AC = {F:"#f97316",L:"#fb923c",S:"#10b981",Y:"#14b8a6",C:"#eab308",W:"#a855f7",P:"#6366f1",H:"#3b82f6",Q:"#0ea5e9",R:"#2563eb",I:"#f43f5e",M:"#16a34a",T:"#34d399",N:"#06b6d4",K:"#1d4ed8",V:"#ef4444",A:"#f59e0b",D:"#dc2626",E:"#e11d48",G:"#9ca3af"};
+    var BC = {A:"#22c55e", U:"#eab308", G:"#0ea5e9", C:"#f472b6"}, COMP = {A:"U", U:"A", G:"C", C:"G"};
+    var seq = WILD, nCod = 8, ic = 0, ics = 0, stage = 0, sp = 0, bond = false, done = "", gtp = 0, stepping = false, relT = 0, startOff = 0, seed = 9;
+    function rnd(){ seed = (seed * 16807) % 2147483647; return seed / 2147483647; }
+    function aaOf(j){ var cd = seq.substr(3 * j, 3); if (cd.length < 3) return null; var a = B.indexOf(cd[0]), b = B.indexOf(cd[1]), d = B.indexOf(cd[2]); if (a < 0 || b < 0 || d < 0) return null; return TAB[16 * a + 4 * b + d]; }
+    var sel = k.select("ARNm", [["w","Sauvage"],["s","Mutation silencieuse"],["m","Mutation faux-sens"],["n","Mutation non-sens"],["f","Insertion d'un A (décalage)"]], "w", function(x){ inp.set(PRE[x]); load(PRE[x]); curNote = NOTE[x]; });
+    var curNote = NOTE.w;
+    var inp = k.input("Ou ta séquence ARNm (5'→3')", WILD, function(x){ load(x); curNote = "Séquence personnalisée."; });
+    var spd = k.slider("Vitesse", 0.3, 3, 0.1, 1, "×");
+    var auto = k.toggle("Déroulement automatique", false);
+    var ro = k.readouts(["Codon A", "Acide aminé", "Longueur de la chaîne", "GTP consommés"]);
+    var info = k.note("", "ok");
+    function load(x){
+      x = String(x).toUpperCase().replace(/T/g, "U").replace(/[^ACGU]/g, "");
+      var p = x.indexOf("AUG"); startOff = p < 0 ? 0 : p;
+      seq = p < 0 ? x : x.slice(p); nCod = Math.floor(seq.length / 3);
+      ic = 0; ics = 0; stage = 0; sp = 0; bond = false; done = (p < 0 || nCod < 1) ? "Pas de codon d'initiation AUG dans cette séquence : le ribosome ne démarre pas." : ""; gtp = 0; stepping = false; relT = 0;
+    }
+    function isStop(j){ return aaOf(j) === "*"; }
+    function peptide(){ var h = bond ? ic + 1 : ic, out = []; for (var j = 0; j <= h; j++){ var a = aaOf(j); if (a && a !== "*") out.push(a); } return out; }
+    /* nuages */
+    function cloud(n, rx, ry, rz, cy){ var o = []; for (var i = 0; i < n; i++){ var th = rnd() * 6.28, ph = Math.acos(2 * rnd() - 1), r = Math.pow(rnd(), 0.33); o.push([rx * r * Math.sin(ph) * Math.cos(th), cy + ry * r * Math.cos(ph), rz * r * Math.sin(ph) * Math.sin(th), 0.38 + rnd() * 0.12]); } return o; }
+    var big = cloud(30, 1.85, 0.8, 1.0, 0.7), small = cloud(22, 1.7, 0.42, 0.85, -0.85);
+    var Dx = 1.0, YM = -0.4;
+    function trna(j, x, y, z, al, ph2){
+      var a = aaOf(j) || "M", cd = seq.substr(3 * j, 3);
+      for (var m = 0; m < 3; m++){ var cx = x + (m - 1) * 0.3; v.ball(cx, y + 0.0, z, 0.095, BC[COMP[cd[m]]], al); }
+      v.seg([x, y + 0.1, z], [x, y + 0.65, z], 0.1, "#0e7490", al); v.seg([x, y + 0.65, z], [x - 0.22, y + 1.15, z], 0.1, "#0e7490", al); v.seg([x, y + 0.65, z], [x + 0.25, y + 1.0, z + 0.1], 0.08, "#0e7490", al * 0.8);
+      v.ball(x - 0.22, y + 1.2, z, 0.16, AC[a] || "#999", al);
+      v.label(N3[a], x - 0.55, y + 1.28, z, "#0f1b2d", 10);
+      return [x - 0.22, y + 1.2, z];
+    }
+    var tunnel = [[0, 0], [-0.6, 0.5], [-1.5, 1.0], [-2.4, 1.4], [-3.3, 1.9]];
+    function chainDraw(att, aas, rel){
+      /* chemin : point d'attache, puis le tunnel vers la gauche et le haut */
+      var pts = [[att[0], att[1], att[2]], [att[0] - 0.1, att[1] + 0.8, 0.1], [-1.4, 1.75, 0.0], [-2.3, 2.15, 0.2], [-3.2, 2.55, 0.0], [-4.2, 2.9, 0.3]];
+      var cum = [0], i; for (i = 1; i < pts.length; i++) cum.push(cum[i - 1] + Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1], pts[i][2] - pts[i - 1][2]));
+      var prev = null;
+      for (var b = 0; b < aas.length; b++){
+        var d = Math.min(b * 0.3 + 0.0, cum[cum.length - 1]), q = 1; while (q < cum.length - 1 && cum[q] < d) q++;
+        var f = (d - cum[q - 1]) / (cum[q] - cum[q - 1] || 1), P0 = pts[q - 1], P1 = pts[q];
+        var px = P0[0] + (P1[0] - P0[0]) * f - (rel ? rel * 1.2 : 0), py = P0[1] + (P1[1] - P0[1]) * f + (rel ? rel * 0.8 : 0), pz = P0[2] + (P1[2] - P0[2]) * f + 0.08 * Math.sin(b * 1.7);
+        var al = rel ? Math.max(0, 1 - rel * 0.8) : 1;
+        if (prev) v.seg(prev, [px, py, pz], 0.06, "#6b7280", al);
+        v.ball(px, py, pz, 0.14, AC[aas[aas.length - 1 - b]] || "#999", al); prev = [px, py, pz];
+      }
+    }
+    function R(){
+      c.clear(); v.sc = Math.min(62, c.W / 7.7); v.oy = 22; v.ox = 24;
+      /* sous-unités */
+      big.forEach(function(b){ v.ball(b[0], b[1], b[2], b[3], "#60a5fa", 0.15); });
+      small.forEach(function(b){ v.ball(b[0], b[1], b[2], b[3], "#fbbf24", 0.18); });
+      /* ARNm */
+      var last = null;
+      for (var n = -5 * 3 - 1; n < (nCod + 6) * 3; n++){
+        var j = Math.floor(n / 3), x = (j - ics) * Dx + ((n % 3 + 3) % 3 - 1) * 0.3;
+        if (x < -3.5 || x > 3.7) { last = null; continue; }
+        var ch = n >= 0 && n < nCod * 3 + (seq.length % 3) ? seq[n] : null, pos = [x, YM - 0.35, 0];
+        if (n >= 0 && n < seq.length){ if (last) v.seg(last, pos, 0.05, "#475569", 0.95); v.ball(pos[0], pos[1], pos[2], 0.12, BC[ch]); v.label(ch, pos[0], pos[1] - 0.3, 0, "#0f1b2d", 9); last = pos; }
+        else if (n < 0 || n >= seq.length){ if (last) v.seg(last, pos, 0.04, "#94a3b8", 0.6); v.ball(pos[0], pos[1], pos[2], 0.07, "#cbd5e1", 0.7); last = pos; }
+      }
+      v.label("5'", -3.4, YM - 0.35, 0, pal.grey, 11); v.label("3'", 3.55, YM - 0.35, 0, pal.grey, 11);
+      v.label("E", -Dx, -1.75, 0, "#475569", 12); v.label("P", 0, -1.75, 0, "#475569", 12); v.label("A", Dx, -1.75, 0, "#475569", 12);
+      /* ARNt : codons ic-2 .. ic+1 */
+      var holderPos = null, holder = bond ? ic + 1 : ic;
+      for (var q = ic - 2; q <= ic + 1; q++){
+        if (q < 0 || q >= nCod) continue;
+        var xq = (q - ics) * Dx, al = 1, yq = YM + 0.05, zq = 0;
+        if (q === ic + 1 && stage === 0 && !isStop(q)){ var e = 1 - Math.pow(1 - Math.min(1, sp), 2); xq = Dx + (1 - e) * 1.6; yq += (1 - e) * 1.4; zq = (1 - e) * 1.5; al = 0.35 + 0.65 * e; }
+        else if (q === ic + 1 && isStop(q)) continue;
+        if (xq < -1.2 * Dx){ al = Math.max(0, 1 - (-1.2 * Dx - xq) * 1.6); yq += (-1.2 * Dx - xq) * 0.5; zq += (-1.2 * Dx - xq) * 0.7; }
+        if (al <= 0.02) continue;
+        var at = trna(q, xq, yq, zq, al);
+        if (q === holder) holderPos = at;
+      }
+      /* facteur de terminaison */
+      var rf = false;
+      if (isStop(ic + 1) && ic + 1 < nCod && !done.length || (isStop(ic + 1) && done)){
+        var e2 = stage === 0 ? 1 - Math.pow(1 - Math.min(1, sp), 2) : 1;
+        v.ball(Dx + (1 - e2) * 1.6, YM + 0.4 + (1 - e2) * 1.4, (1 - e2) * 1.5, 0.3, "#16a34a", 0.4 + 0.6 * e2); v.label("RF", Dx + (1 - e2) * 1.6, YM + 0.4 + (1 - e2) * 1.4, (1 - e2) * 1.5, "#fff", 11); rf = true;
+      }
+      /* peptide */
+      var aas = peptide();
+      if (holderPos) chainDraw(holderPos, aas, 0);
+      else if (relT > 0) chainDraw([-0.2, YM + 0.8, 0], aas, relT);
+      if (stage === 1 && sp > 0.4 && sp < 0.85 && !isStop(ic + 1)) v.ball(0.5 * Dx, YM + 1.05, 0.2, 0.25, "#fde047", 0.8 * Math.sin((sp - 0.4) / 0.45 * 3.14));
+      v.flush();
+      if (rf && stage >= 1 && stage <= 2) S.draw.text(c, "Terminaison : le facteur RF libère la chaîne", c.W / 2, c.H - 14, {size:11, color:pal.green});
+      var cdA = seq.substr(3 * (ic + 1), 3), aa2 = aaOf(ic + 1);
+      ro.set(0, cdA.length === 3 ? cdA : "—"); ro.set(1, aa2 ? (aa2 === "*" ? "Stop (RF)" : N3[aa2]) : "—"); ro.set(2, aas.length + " aa"); ro.set(3, gtp);
+      var txt = peptide().map(function(a){ return N3[a]; }).join("–");
+      var m = "<b>Chaîne : </b>" + (txt || "—") + "<br>";
+      if (done) m += "<b>" + done + "</b>";
+      else if (stage === 0) m += isStop(ic + 1) ? "Étape 1 : le codon A est un codon stop : un facteur de terminaison (RF) entre au site A, aucun ARNt ne le reconnaît." : "Étape 1 : un ARNt-" + N3[aa2] + " (anticodon 3'-" + cdA.split("").map(function(x){ return COMP[x]; }).join("") + "-5') se fixe au codon " + cdA + " du site A (EF-Tu·GTP).";
+      else if (stage === 1) m += isStop(ic + 1) ? "Étape 2 : hydrolyse de la liaison ARNt–peptide : la chaîne est libérée." : "Étape 2 : liaison peptidique catalysée par l'ARN ribosomique : la chaîne passe sur l'ARNt du site A.";
+      else m += isStop(ic + 1) ? "Étape 3 : dissociation des sous-unités, fin de la traduction." : "Étape 3 : translocation (EF-G·GTP) : le ribosome avance d'un codon, l'ARNt déchargé sort par E.";
+      info.set(curNote + "<br>" + m, done ? "warn" : "ok");
+    }
+    function advance(dt){
+      if (done) return;
+      var run = auto.value || stepping; if (!run) return;
+      sp += dt * spd.value / 1.3;
+      if (stage === 1 && sp > 0.5) bond = true;
+      if (stage === 1 && sp > 0.5 && isStop(ic + 1)){ relT += dt * spd.value * 0.7; }
+      if (sp >= 1){
+        sp = 0; stepping = false;
+        if (stage === 0){ stage = 1; if (!isStop(ic + 1)) gtp++; }
+        else if (stage === 1){ stage = 2; }
+        else {
+          if (isStop(ic + 1)){ done = "Traduction terminée : protéine de " + peptide().length + " acides aminés."; relT = Math.max(relT, 0.01); stage = 2; return; }
+          ic++; stage = 0; bond = false; gtp++;
+          if (ic + 1 >= nCod || seq.substr(3 * (ic + 1), 3).length < 3){ done = "Fin de l'ARNm sans codon stop : la traduction ne se termine pas correctement (ribosome bloqué, chaîne non libérée)."; }
+        }
+        if (stage === 2 && isStop(ic + 1)){ stepping = auto.value; }
+      }
+      if (stage === 2){ var tgt = isStop(ic + 1) ? ic : ic + 1; ics = ic + (isStop(ic + 1) ? 0 : (1 - Math.pow(1 - Math.min(1, sp), 2))); } else ics = ic;
+    }
+    k.button("Étape suivante", function(){ auto.set(false); if (!done) stepping = true; }, true);
+    k.button("Recommencer", function(){ load(inp.value); });
+    load(WILD); k.draw(R);
+    var lp = k.loop(function(dt){ advance(dt); if (done && relT > 0 && relT < 1.5) relT += dt; v.spin(dt); R(); }); lp.play();
+  }
+});
+
+})();
+/* BIO3D-END:s_c07_ribosome.js */

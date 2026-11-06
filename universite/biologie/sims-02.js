@@ -144,3 +144,176 @@ SFA.sim({
     });
   }
 });
+
+/* BIO3D-BEGIN:s_c02_cellule.js */
+(function(){
+var P = function(S){ return S.draw.palette; };
+/* --- moteur 3D maison (projection perspective, tri en profondeur, rotation à la souris) --- */
+function hx(h){ var n = parseInt(h.slice(1), 16); return [n >> 16, (n >> 8) & 255, n & 255]; }
+function sh(h, f, a){ var q = hx(h); return "rgba(" + q.map(function(v){ return Math.round(f < 0 ? v * (1 + f) : v + (255 - v) * f); }).join(",") + "," + (a === undefined ? 1 : a) + ")"; }
+function V3(c, S, o){
+  o = o || {};
+  var v = {yaw:o.yaw === undefined ? 0.5 : o.yaw, pit:o.pit === undefined ? 0.3 : o.pit, D:o.D || 8, sc:o.sc || 60, ox:0, oy:0, auto:o.auto !== false, q:[], moved:false}, last = null, d0 = null;
+  c.pointer(function(t, p){
+    if (t === "down"){ last = p; d0 = p; v.auto = false; v.moved = false; }
+    else if (t === "drag" && last){ if (Math.abs(p.x - d0.x) + Math.abs(p.y - d0.y) > 5) v.moved = true; v.yaw += (p.x - last.x) * 0.01; v.pit = Math.max(-1.45, Math.min(1.45, v.pit + (p.y - last.y) * 0.01)); last = p; }
+    else if (t === "up"){ last = null; if (!v.moved && v.onclick) v.onclick(p); }
+  });
+  v.P = function(x, y, z){
+    var cy = Math.cos(v.yaw), sy = Math.sin(v.yaw), cp = Math.cos(v.pit), sp = Math.sin(v.pit);
+    var X = x * cy + z * sy, Z = -x * sy + z * cy, Y = y * cp - Z * sp; Z = y * sp + Z * cp;
+    var f = v.D / (v.D - Z);
+    return {x:c.W / 2 + v.ox + X * f * v.sc, y:c.H / 2 + v.oy - Y * f * v.sc, z:Z, f:f};
+  };
+  v.add = function(z, fn){ v.q.push([z, fn]); };
+  v.flush = function(){ v.q.sort(function(a, b){ return a[0] - b[0]; }); for (var i = 0; i < v.q.length; i++) v.q[i][1](); v.q = []; };
+  v.ball = function(x, y, z, r, col, al){
+    var p = v.P(x, y, z), R = Math.max(1, r * p.f * v.sc);
+    v.add(p.z, function(){
+      var g = c.ctx.createRadialGradient(p.x - R * 0.35, p.y - R * 0.35, R * 0.1, p.x, p.y, R);
+      g.addColorStop(0, sh(col, 0.55, al)); g.addColorStop(0.55, sh(col, 0, al)); g.addColorStop(1, sh(col, -0.4, al));
+      c.ctx.fillStyle = g; c.ctx.beginPath(); c.ctx.arc(p.x, p.y, R, 0, 6.2832); c.ctx.fill();
+    });
+    p.R = R; return p;
+  };
+  v.seg = function(a, b, w, col, al, dash){
+    var p = v.P(a[0], a[1], a[2]), q = v.P(b[0], b[1], b[2]);
+    v.add((p.z + q.z) / 2 - 0.001, function(){
+      var x = c.ctx; x.lineCap = "round"; x.strokeStyle = sh(col, 0, al); x.lineWidth = Math.max(1, w * (p.f + q.f) / 2 * v.sc);
+      if (dash) x.setLineDash(dash);
+      x.beginPath(); x.moveTo(p.x, p.y); x.lineTo(q.x, q.y); x.stroke();
+      if (!dash && w * v.sc > 6){ x.strokeStyle = sh(col, 0.5, al); x.lineWidth = x.lineWidth * 0.35; x.beginPath(); x.moveTo(p.x - 1, p.y - 1); x.lineTo(q.x - 1, q.y - 1); x.stroke(); }
+      if (dash) x.setLineDash([]);
+    });
+  };
+  v.label = function(txt, x, y, z, col, size, bg){
+    var p = v.P(x, y, z);
+    v.add(p.z + 50, function(){ S.draw.text(c, txt, p.x, p.y, {size:size || 11, color:col || "#0f1b2d", weight:700, bg:bg}); });
+  };
+  v.spin = function(dt){ if (v.auto) v.yaw += dt * 0.35; };
+  return v;
+}
+
+SFA.sim({
+  id:"ub-c02-3d-cellule-organites", ch:"c02", tag:"Cellule · 3D",
+  titre:"Visite en 3D d'une cellule eucaryote",
+  resume:"Une cellule en coupe qui tourne : repère le noyau, les mitochondries, le RE, le Golgi… et suis une vésicule de sécrétion.",
+  but:"Fais pivoter la cellule à la souris, clique sur un organite (ou choisis-le dans la liste) pour lire sa fonction et sa taille. Lance le mode quiz pour t'entraîner à les reconnaître.",
+  aRetenir:"Le noyau (5 à 10 µm) contient l'ADN ; les mitochondries (≈ 1 à 2 µm) font l'ATP ; le RE rugueux (ribosomes) fabrique les protéines destinées à la sécrétion ou aux membranes ; l'appareil de Golgi les modifie, les trie et les emballe en vésicules ; les lysosomes (pH ≈ 5) digèrent. La voie de sécrétion : RE → vésicule → Golgi (cis → trans) → vésicule → membrane plasmique (exocytose).",
+  piege:"Le Golgi n'est pas un « RE de plus » : c'est un empilement de saccules aplatis, avec un côté d'entrée (cis, vers le RE) et un côté de sortie (trans). Et la mitochondrie n'est pas un sac de ribosomes : elle a sa membrane interne en crêtes et son propre ADN circulaire. Les proportions sont schématiques : une vraie cellule contient des centaines de mitochondries.",
+  build:function(k,S){
+    var c = k.canvas(380), pal = P(S), v = V3(c, S, {yaw:0.5, pit:0.35, D:10, sc:62});
+    var sel = "noyau";
+    var info = k.note("Clique sur un organite.", "ok");
+    var memb = k.toggle("Membrane plasmique (grillage)", true);
+    var sec = k.toggle("Animer la voie de sécrétion", true);
+    var ro = k.readouts(["Organite", "Taille typique", "Rôle"]);
+    var quiz = {on:false, target:null, ok:0, tot:0};
+    var O = {
+      noyau:{n:"Noyau", col:"#1e3f8f", size:"5 à 10 µm", role:"ADN, transcription", txt:"Noyau : enveloppe double percée de pores, chromatine, nucléole (fabrique les sous-unités des ribosomes). Il contient l'ADN et on y fait la transcription."},
+      mito:{n:"Mitochondrie", col:"#b42318", size:"1 à 2 µm", role:"ATP (respiration)", txt:"Mitochondries : double membrane, crêtes de la membrane interne (chaîne respiratoire, ATP synthase), matrice (cycle de Krebs), ADN propre : héritage de l'endosymbiose."},
+      re:{n:"Réticulum endoplasmique", col:"#0e7490", size:"réseau (plusieurs µm)", role:"Synthèse protéique / lipides", txt:"RE : réseau de saccules continu avec l'enveloppe nucléaire. Rugueux (ribosomes) : protéines sécrétées et membranaires ; lisse : lipides, détoxication, stockage du Ca²⁺."},
+      golgi:{n:"Appareil de Golgi", col:"#B45309", size:"1 à 3 µm (piles)", role:"Modification, tri", txt:"Golgi : pile de saccules aplatis, face cis (réception depuis le RE) et face trans (expédition). Glycosylation, tri, empaquetage en vésicules."},
+      lyso:{n:"Lysosome", col:"#8a6d00", size:"0,1 à 1 µm", role:"Digestion (pH ≈ 5)", txt:"Lysosomes : vésicules acides (pH ≈ 5) pleines d'hydrolases ; digèrent les macromolécules, les organites usés et ce qui est phagocyté."},
+      ves:{n:"Vésicule de sécrétion", col:"#5B21B6", size:"50 à 200 nm", role:"Transport vers la membrane", txt:"Vésicules : bourgeonnent d'un compartiment et fusionnent avec le suivant (RE → Golgi → membrane plasmique : exocytose)."}
+    };
+    var items = [["noyau","Noyau"],["mito","Mitochondries"],["re","Réticulum"],["golgi","Golgi"],["lyso","Lysosomes"],["ves","Vésicules"]];
+    var s1 = k.select("Organite à étudier", items, "noyau", function(x){ sel = x; upd(); });
+    var mit = [[1.2,-0.9,1.0,0.5],[1.4,0.9,-0.4,2.3],[-1.0,-1.2,-1.2,1.0],[0.2,1.5,1.2,3.6],[-1.5,0.5,1.0,0.2]];
+    var lys = [[0.6,-1.6,0.2],[-1.8,-0.2,-0.5],[1.7,0.1,1.2],[-0.6,1.6,-1.4]];
+    var tt = 0, pick = [];
+    function upd(){
+      var o = O[sel]; info.set(o.txt, "ok"); ro.set(0, o.n); ro.set(1, o.size); ro.set(2, o.role);
+    }
+    function hi(id){ return sel === id; }
+    function colr(id, base){ return hi(id) ? "#f4c542" : base; }
+    function ring(cx, cy, cz, r, plane, col, w, al, N){
+      for (var i = 0; i < N; i++){
+        var a = i / N * 6.2832, b = (i + 1) / N * 6.2832, p, q;
+        if (plane === 0){ p = [cx + r * Math.cos(a), cy + r * Math.sin(a), cz]; q = [cx + r * Math.cos(b), cy + r * Math.sin(b), cz]; }
+        else if (plane === 1){ p = [cx + r * Math.cos(a), cy, cz + r * Math.sin(a)]; q = [cx + r * Math.cos(b), cy, cz + r * Math.sin(b)]; }
+        else { p = [cx, cy + r * Math.cos(a), cz + r * Math.sin(a)]; q = [cx, cy + r * Math.cos(b), cz + r * Math.sin(b)]; }
+        v.seg(p, q, w, col, al);
+      }
+    }
+    function mitoDraw(m, i){
+      var a = [m[0] - 0.35 * Math.cos(m[3]), m[1], m[2] - 0.35 * Math.sin(m[3])], b = [m[0] + 0.35 * Math.cos(m[3]), m[1], m[2] + 0.35 * Math.sin(m[3])];
+      v.seg(a, b, 0.34, colr("mito", "#b42318"), 1);
+      v.seg(a, b, 0.2, colr("mito", "#e08a80"), 1);
+      for (var j = -2; j <= 2; j++){ var f = j / 2 * 0.28; var cx = m[0] + f * Math.cos(m[3]), cz = m[2] + f * Math.sin(m[3]); v.seg([cx, m[1] - 0.12, cz], [cx, m[1] + 0.12, cz], 0.05, "#7a1a12", 0.85); }
+      var p = v.P(m[0], m[1], m[2]); pick.push(["mito", p.x, p.y, 28 * p.f]);
+    }
+    function R(){
+      c.clear(); pick = [];
+      var Rc = 2.5;
+      if (memb.value){
+        var latY = [-1.6, -0.8, 0, 0.8, 1.6];
+        latY.forEach(function(y){ ring(0, y, 0, Math.sqrt(Rc * Rc - y * y), 1, "#16a34a", 0.022, 0.3, 30); });
+        for (i = 0; i < 6; i++){ var ph = i / 6 * 3.1416; for (j = 0; j < 30; j++){ var a = j / 30 * 6.2832, b = (j + 1) / 30 * 6.2832; v.seg([Rc * Math.cos(a) * Math.cos(ph), Rc * Math.sin(a), Rc * Math.cos(a) * Math.sin(ph)], [Rc * Math.cos(b) * Math.cos(ph), Rc * Math.sin(b), Rc * Math.cos(b) * Math.sin(ph)], 0.022, "#16a34a", 0.3); } }
+      }
+      /* noyau + nucléole + pores */
+      var np = v.ball(-0.5, 0.15, 0, 0.95, colr("noyau", "#3b5fc0"), 0.55); pick.push(["noyau", np.x, np.y, np.R]);
+      v.ball(-0.35, 0.3, 0.2, 0.3, colr("noyau", "#0f2a66"));
+      /* mitochondries */
+      mit.forEach(mitoDraw);
+      /* RE : feuillets autour du noyau */
+      for (var i = 0; i < 4; i++){
+        var rr = 1.15 + i * 0.13, w0 = i * 0.9 + 0.3;
+        for (var j = 0; j < 14; j++){
+          var a1 = w0 + j * 0.14, a2 = a1 + 0.14;
+          v.seg([-0.5 + rr * Math.cos(a1) * 1.0, 0.15 - 0.3 + 0.12 * i, rr * Math.sin(a1)], [-0.5 + rr * Math.cos(a2), 0.15 - 0.3 + 0.12 * i, rr * Math.sin(a2)], 0.1, colr("re", "#0e7490"), 0.95);
+        }
+        var q = v.P(-0.5 + rr * Math.cos(w0 + 1), 0.15 - 0.3 + 0.12 * i, rr * Math.sin(w0 + 1)); pick.push(["re", q.x, q.y, 14 * q.f]);
+      }
+      /* Golgi : 5 saccules empilés */
+      for (i = 0; i < 5; i++){
+        for (j = 0; j < 10; j++){
+          var t1 = -0.6 + j * 0.13, t2 = t1 + 0.13;
+          v.seg([1.0 + i * 0.16 + 0.35 * t1 * t1, 0.5 + t1 * 0.9 - 1.1, -0.5 - i * 0.12], [1.0 + i * 0.16 + 0.35 * t2 * t2, 0.5 + t2 * 0.9 - 1.1, -0.5 - i * 0.12], 0.09 - i * 0.004, colr("golgi", "#B45309"), 1);
+        }
+      }
+      var gp = v.P(1.35, -0.8, -0.85); pick.push(["golgi", gp.x, gp.y, 26 * gp.f]);
+      /* lysosomes */
+      lys.forEach(function(l){ var p = v.ball(l[0], l[1], l[2], 0.17, colr("lyso", "#d4a017")); pick.push(["lyso", p.x, p.y, p.R + 3]); });
+      /* vésicules de sécrétion : RE (-0.5+1.2,-0.15,0.2) -> Golgi cis -> trans -> membrane */
+      if (sec.value){
+        for (i = 0; i < 4; i++){
+          var u = (tt * 0.12 + i / 4) % 1, pos;
+          var A = [0.55, -0.15, 0.1], B = [1.0, -1.1, -0.5], C = [1.9, -1.0, -1.0], D = [2.2, -0.2, -1.1];
+          var s = u * 3, f2;
+          if (s < 1){ f2 = s; pos = [A[0] + (B[0] - A[0]) * f2, A[1] + (B[1] - A[1]) * f2, A[2] + (B[2] - A[2]) * f2]; }
+          else if (s < 2){ f2 = s - 1; pos = [B[0] + (C[0] - B[0]) * f2, B[1] + (C[1] - B[1]) * f2, B[2] + (C[2] - B[2]) * f2]; }
+          else { f2 = s - 2; pos = [C[0] + (D[0] - C[0]) * f2, C[1] + (D[1] - C[1]) * f2, C[2] + (D[2] - C[2]) * f2]; }
+          var p2 = v.ball(pos[0], pos[1], pos[2], 0.1, colr("ves", "#7c3aed")); pick.push(["ves", p2.x, p2.y, p2.R + 4]);
+        }
+      }
+      v.flush();
+      /* étiquette de l'organite choisi */
+      pick.forEach(function(q){ if (q[0] === sel){ } });
+      var best = null; pick.forEach(function(q){ if (q[0] === sel && (!best || q[3] > best[3])) best = q; });
+      if (best) S.draw.text(c, O[sel].n, c.W / 2, 16, {size:13, color:pal.ink, bg:"#fff7d6"});
+      if (quiz.on) S.draw.text(c, "Quiz : clique sur « " + O[quiz.target].n + " »   (" + quiz.ok + "/" + quiz.tot + ")", c.W / 2, c.H - 14, {size:12, color:pal.acc, bg:"#e8eefc"});
+    }
+    v.onclick = function(p){
+      var best = null, bd = 1e9;
+      pick.forEach(function(q){ var d = Math.hypot(p.x - q[1], p.y - q[2]); if (d < q[3] + 6 && d < bd){ bd = d; best = q; } });
+      if (!best) return;
+      if (quiz.on){
+        quiz.tot++;
+        if (best[0] === quiz.target){ quiz.ok++; info.set("Bravo : c'est bien « " + O[best[0]].n + " ». " + O[best[0]].txt, "ok"); }
+        else info.set("Non, tu as cliqué sur « " + O[best[0]].n + " ». Cherche « " + O[quiz.target].n + " » : " + O[quiz.target].role + ".", "bad");
+        quiz.target = items[Math.floor(Math.random() * items.length)][0];
+      } else { sel = best[0]; s1.set(sel); upd(); }
+    };
+    k.button("Mode quiz : on / off", function(){
+      quiz.on = !quiz.on; quiz.ok = 0; quiz.tot = 0; quiz.target = items[Math.floor(Math.random() * items.length)][0];
+      if (!quiz.on) upd();
+    }, true);
+    upd();
+    k.draw(R);
+    var lp = k.loop(function(dt){ tt += dt; v.spin(dt); R(); }); lp.play();
+  }
+});
+
+})();
+/* BIO3D-END:s_c02_cellule.js */

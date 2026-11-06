@@ -188,3 +188,209 @@ SFA.sim({
     });
   }
 });
+
+/*B3D-LIB*/
+window.B3D = window.B3D || (function(){
+  var B = {}, BG = [244,246,251];
+  B.hex = function(h){ h = h.replace("#",""); return [parseInt(h.substr(0,2),16), parseInt(h.substr(2,2),16), parseInt(h.substr(4,2),16)]; };
+  B.mix = function(a,b,t){ return [a[0]+(b[0]-a[0])*t, a[1]+(b[1]-a[1])*t, a[2]+(b[2]-a[2])*t]; };
+  B.css = function(a,al){ return "rgba("+Math.round(a[0])+","+Math.round(a[1])+","+Math.round(a[2])+","+(al===undefined?1:al)+")"; };
+  B.cam = function(yaw,pitch,dist){ return {yaw:yaw, pitch:pitch, dist:dist||7, auto:true, hold:false}; };
+  B.rot = function(cam,x,y,z){
+    var cy=Math.cos(cam.yaw), sy=Math.sin(cam.yaw), cp=Math.cos(cam.pitch), sp=Math.sin(cam.pitch);
+    var x1=cy*x+sy*z, z1=-sy*x+cy*z, y1=cp*y+sp*z1, z2=-sp*y+cp*z1; return [x1,y1,z2];
+  };
+  /* glisser = tourner (souris et doigt) */
+  B.drag = function(c, cam, redraw){
+    c.cv.style.touchAction = "none"; c.cv.style.cursor = "grab";
+    var lx=0, ly=0, dn=false;
+    c.pointer(function(t,p){
+      if (t==="down"){ dn=true; lx=p.x; ly=p.y; cam.hold=true; c.cv.style.cursor="grabbing"; }
+      else if (t==="drag" && dn){ cam.yaw -= (p.x-lx)*0.012; cam.pitch += (p.y-ly)*0.01; cam.pitch = Math.max(-1.45, Math.min(1.45, cam.pitch)); lx=p.x; ly=p.y; if (redraw) redraw(); }
+      else if (t==="up"){ dn=false; cam.hold=false; c.cv.style.cursor="grab"; }
+    });
+  };
+  B.spin = function(cam, dt, speed){ if (cam.auto && !cam.hold) cam.yaw += dt*(speed||0.35); };
+  B.background = function(c){
+    var ctx=c.ctx, g=ctx.createLinearGradient(0,0,0,c.H); g.addColorStop(0,"#fbfcff"); g.addColorStop(1,"#e9eef7");
+    ctx.fillStyle=g; ctx.fillRect(0,0,c.W,c.H);
+  };
+  B.hint = function(c, txt){
+    var ctx=c.ctx; ctx.save(); ctx.font="600 11px Mulish,system-ui,sans-serif"; ctx.fillStyle="#8a95a3"; ctx.textAlign="left"; ctx.textBaseline="alphabetic";
+    ctx.fillText(txt || "Glisse pour tourner la vue en 3D", 10, c.H-10); ctx.restore();
+  };
+  B.scene = function(c, cam, scale, fogD){
+    var items=[], labels=[], ctx=c.ctx, fd=fogD||4;
+    var S = {};
+    S.P = function(p){ var r=B.rot(cam,p[0],p[1],p[2]); var k=cam.dist/(cam.dist+r[2]); return {x:c.W/2+r[0]*k*scale, y:c.H/2-r[1]*k*scale, z:r[2], k:k}; };
+    function fog(z){ return Math.max(0, Math.min(1, (z+fd)/(2*fd)))*0.5; }
+    S.sphere = function(p, r, col, al, ring){
+      var q=S.P(p), rr=r*q.k*scale; if (rr<0.4) return;
+      items.push({z:q.z, f:function(){
+        var base=B.mix(col, BG, fog(q.z));
+        var g=ctx.createRadialGradient(q.x-.35*rr,q.y-.4*rr,rr*.08,q.x,q.y,rr);
+        g.addColorStop(0,B.css(B.mix(base,[255,255,255],.6))); g.addColorStop(.5,B.css(base)); g.addColorStop(1,B.css(B.mix(base,[0,0,20],.42)));
+        ctx.globalAlpha = al===undefined?1:al; ctx.fillStyle=g; ctx.beginPath(); ctx.arc(q.x,q.y,rr,0,6.2832); ctx.fill();
+        if (ring){ ctx.strokeStyle=ring; ctx.lineWidth=Math.max(1,rr*.12); ctx.stroke(); }
+        ctx.globalAlpha=1; }});
+      return q;
+    };
+    S.line = function(a, b, w, col, al, dash){
+      var p=S.P(a), q=S.P(b), z=(p.z+q.z)/2, wd=w*(p.k+q.k)/2*scale;
+      items.push({z:z, f:function(){
+        ctx.globalAlpha = al===undefined?1:al; ctx.lineCap="round"; ctx.strokeStyle=B.css(B.mix(col,BG,fog(z)));
+        if (dash) ctx.setLineDash(dash);
+        ctx.lineWidth=Math.max(.6,wd); ctx.beginPath(); ctx.moveTo(p.x,p.y); ctx.lineTo(q.x,q.y); ctx.stroke(); ctx.setLineDash([]); ctx.globalAlpha=1; }});
+    };
+    /* cylindre ombré entre a et b (rayon r) */
+    S.tube = function(a, b, r, col, al){
+      var p=S.P(a), q=S.P(b), z=(p.z+q.z)/2, wd=2*r*(p.k+q.k)/2*scale;
+      items.push({z:z, f:function(){
+        var base=B.mix(col,BG,fog(z)); ctx.globalAlpha = al===undefined?1:al; ctx.lineCap="round";
+        var ws=[1,.7,.4,.18], cs=[B.mix(base,[0,0,20],.4), B.mix(base,[0,0,20],.12), base, B.mix(base,[255,255,255],.5)];
+        var dx=(q.x-p.x), dy=(q.y-p.y), L=Math.sqrt(dx*dx+dy*dy)||1, nx=-dy/L, ny=dx/L;
+        for (var i=0;i<4;i++){ var off=(i>=2? -0.18:0)*wd/2; ctx.strokeStyle=B.css(cs[i]); ctx.lineWidth=Math.max(.6,wd*ws[i]);
+          ctx.beginPath(); ctx.moveTo(p.x+nx*off,p.y+ny*off); ctx.lineTo(q.x+nx*off,q.y+ny*off); ctx.stroke(); }
+        ctx.globalAlpha=1; }});
+    };
+    /* face plane (liste de points 3D), normale n (3D), ombrage de Lambert */
+    S.poly = function(pts, col, n, al, stroke, back){
+      var ps=pts.map(S.P), z=0; ps.forEach(function(p){ z+=p.z; }); z/=ps.length; if (back) z=99;
+      var sh=0.75;
+      if (n){ var r=B.rot(cam,n[0],n[1],n[2]), L=Math.sqrt(r[0]*r[0]+r[1]*r[1]+r[2]*r[2])||1; var d=(-0.35*r[0]+0.55*r[1]-0.75*r[2])/L; sh=0.55+0.45*Math.abs(d); }
+      items.push({z:z, f:function(){
+        var base=B.mix(col,BG,fog(z)); base=B.mix([0,0,20],base,Math.min(1,sh)); if (sh>1) base=B.mix(base,[255,255,255],sh-1);
+        ctx.globalAlpha=al===undefined?1:al; ctx.fillStyle=B.css(base); ctx.beginPath(); ctx.moveTo(ps[0].x,ps[0].y);
+        for (var i=1;i<ps.length;i++) ctx.lineTo(ps[i].x,ps[i].y); ctx.closePath(); ctx.fill();
+        if (stroke){ ctx.strokeStyle=stroke; ctx.lineWidth=.8; ctx.stroke(); } ctx.globalAlpha=1; }});
+    };
+    S.label = function(p, txt, col, size, dx, dy, align){ labels.push({q:S.P(p), t:txt, c:col||"#0f1b2d", s:size||12, dx:dx||0, dy:dy||0, a:align||"center"}); };
+    S.flush = function(){
+      items.sort(function(a,b){ return b.z-a.z; });
+      for (var i=0;i<items.length;i++) items[i].f();
+      ctx.save(); ctx.textBaseline="middle";
+      labels.forEach(function(l){ ctx.font="700 "+l.s+"px Mulish,system-ui,sans-serif"; ctx.textAlign=l.a;
+        var w=ctx.measureText(l.t).width, x=l.q.x+l.dx, y=l.q.y+l.dy;
+        ctx.fillStyle="rgba(255,255,255,.82)"; var bx = l.a==="center"? x-w/2 : (l.a==="left"? x : x-w); ctx.fillRect(bx-3,y-l.s*.62,w+6,l.s*1.25);
+        ctx.fillStyle=l.c; ctx.fillText(l.t,x,y); });
+      ctx.restore();
+    };
+    return S;
+  };
+  return B;
+})();
+/*B3D-LIB-END*/
+
+/*B3D-ADD:b4-3d-adn*/
+SFA.sim({
+  id:"b4-3d-adn", ch:"c08", tag:"3D · réplication",
+  titre:"La double hélice en 3D et sa réplication semi-conservative",
+  resume:"Tourne la double hélice, puis fais avancer la fourche de réplication : une molécule devient deux molécules identiques.",
+  but:"Glisse pour tourner la molécule. Avance la fourche (curseur ou lecture) : l'hélicase ouvre la double hélice, l'ADN polymérase construit un brin neuf (orange) en face de chaque brin ancien (bleu).",
+  aRetenir:"L'ADN est une double hélice de deux brins antiparallèles unis par des paires de bases : A–T (2 liaisons) et G–C (3 liaisons). La réplication est semi-conservative : chaque molécule fille garde un brin ancien et reçoit un brin neuf. Les deux molécules filles sont identiques à la molécule mère, car chaque base ancienne impose sa base complémentaire.",
+  piege:"« Semi-conservative » ne veut pas dire que la moitié de l'ADN est perdue : chaque molécule fille est complète (deux brins), mais un seul des deux est neuf. Et A ne s'apparie jamais avec C ni G avec T.",
+  build:function(k, S){
+    var B = window.B3D, c = k.canvas(440), cam = B.cam(0.5, 0.18, 8);
+    var N = 30, DH = 0.2, R = 0.5, TW = 0.628, SEQ = "ATGCGTACCTAGGCATTCGAATGCCGTAAC";
+    var COMP = {A:"T", T:"A", G:"C", C:"G"};
+    var BASE = {A:B.hex("#2e9e5b"), T:B.hex("#d64545"), G:B.hex("#2563eb"), C:B.hex("#e0a100")};
+    var OLD = B.hex("#1e3f8f"), NEW = B.hex("#ea7a1a"), NEU = B.hex("#64748b");
+    var prog = k.slider("Avancement de la fourche", 0, 100, 1, 0, "%");
+    var colo = k.toggle("Colorer brins anciens / neufs", true);
+    var rot = k.toggle("Rotation automatique", true, function(v){ cam.auto = v; });
+    var ro = k.readouts(["Paires de bases copiées", "Molécules filles", "Brins anciens par molécule"]);
+    var nt = k.note("", "");
+    var playing = false, free = [];
+    for (var i = 0; i < 7; i++) free.push({ph:Math.random()*6.3, b:"ATGC"[i % 4]});
+    k.button("Lecture / pause", function(){ playing = !playing; if (playing && prog.value >= 100) prog.set(0); }, true);
+    k.button("Recommencer", function(){ prog.set(0); playing = false; });
+    B.drag(c, cam, function(){ render(); });
+    function yy(i){ return (N / 2 - i) * DH; }
+    function pos(i, ang, shift){ return [R * Math.sin(ang) + shift, yy(i), -R * Math.cos(ang)]; }
+    var tclock = 0;
+    function render(){
+      B.background(c);
+      var sc = B.scene(c, cam, c.H * 0.115, 4);
+      var f = N - (prog.value / 100) * N;      /* indice de la fourche : i < f = ADN parent */
+      var fi = Math.floor(f);
+      var useCol = colo.value;
+      var cOld1 = useCol ? OLD : NEU, cOld2 = useCol ? OLD : NEU, cNew = useCol ? NEW : NEU;
+      function sep(i){ return i < f ? 0 : 1.15 * Math.min(1, (i - f) / 7); }
+      var prev = {};
+      for (var i = 0; i < N; i++){
+        var a1 = -i * TW, a2 = a1 + Math.PI, s = sep(i), b1 = SEQ[i], b2 = COMP[b1];
+        var p1 = pos(i, a1, -s), p2 = pos(i, a2, s);
+        var par = i < f, open = (i >= f - 2 && i < f);
+        /* brin ancien 1 et brin ancien 2 */
+        var q1 = pos(i, a1, -s), q2 = pos(i, a2, par ? 0 : s);
+        if (par){ q1 = pos(i, a1, 0); }
+        var cur = {o1:q1, o2:q2};
+        if (i > 0){
+          sc.tube(prev.o1, cur.o1, 0.075, cOld1);
+          sc.tube(prev.o2, cur.o2, 0.075, cOld2);
+        }
+        sc.sphere(cur.o1, 0.11, cOld1); sc.sphere(cur.o2, 0.11, cOld2);
+        /* barreaux */
+        if (par){
+          var mid = [(q1[0] + q2[0]) / 2, q1[1], (q1[2] + q2[2]) / 2], g = open ? 0.28 : 0;
+          var m1 = [q1[0] + (mid[0] - q1[0]) * (1 - g), q1[1], q1[2] + (mid[2] - q1[2]) * (1 - g)];
+          var m2 = [q2[0] + (mid[0] - q2[0]) * (1 - g), q2[1], q2[2] + (mid[2] - q2[2]) * (1 - g)];
+          if (g){ m1 = [q1[0] + (mid[0] - q1[0]) * 0.55, q1[1], q1[2] + (mid[2] - q1[2]) * 0.55]; m2 = [q2[0] + (mid[0] - q2[0]) * 0.55, q2[1], q2[2] + (mid[2] - q2[2]) * 0.55]; }
+          sc.tube(q1, m1, 0.05, BASE[b1]); sc.tube(q2, m2, 0.05, BASE[b2]);
+          if (!g){ sc.sphere(mid, 0.05, B.hex("#f8fafc")); }
+        } else if (i >= f + 1){
+          /* brins neufs : en face de chaque brin ancien */
+          var n1 = pos(i, a2, -s), n2 = pos(i, a1, s);
+          var pn = prev.n1 ? prev : null;
+          if (prev.n1 && prev.ok){ sc.tube(prev.n1, n1, 0.075, cNew); sc.tube(prev.n2, n2, 0.075, cNew); }
+          sc.sphere(n1, 0.11, cNew); sc.sphere(n2, 0.11, cNew);
+          sc.tube(q1, [(q1[0] + n1[0]) / 2, q1[1], (q1[2] + n1[2]) / 2], 0.05, BASE[b1]);
+          sc.tube(n1, [(q1[0] + n1[0]) / 2, q1[1], (q1[2] + n1[2]) / 2], 0.05, BASE[b2]);
+          sc.tube(q2, [(q2[0] + n2[0]) / 2, q2[1], (q2[2] + n2[2]) / 2], 0.05, BASE[b2]);
+          sc.tube(n2, [(q2[0] + n2[0]) / 2, q2[1], (q2[2] + n2[2]) / 2], 0.05, BASE[b1]);
+          cur.n1 = n1; cur.n2 = n2; cur.ok = true;
+        } else if (i >= f){
+          /* juste derrière la fourche : bases exposées, nucléotides libres attendus */
+          sc.tube(q1, [q1[0] + (-q1[0] * 0 + 0.0), q1[1], q1[2]], 0.01, BASE[b1]);
+          var e1 = [q1[0] * 0.55 + (-s * 0.45), q1[1], q1[2] * 0.55], e2 = [q2[0] * 0.55 + (s * 0.45), q2[1], q2[2] * 0.55];
+          sc.tube(q1, e1, 0.05, BASE[b1]); sc.tube(q2, e2, 0.05, BASE[b2]);
+        }
+        prev = cur;
+      }
+      /* nucléotides libres autour de la fourche + enzymes */
+      if (prog.value > 0 && prog.value < 100){
+        var fy = yy(f), fs = 0.0;
+        for (var j = 0; j < free.length; j++){
+          var fr = free[j], ang = fr.ph + tclock * 1.3, side = j % 2 ? 1 : -1;
+          var P = [side * (1.25 + 0.35 * Math.sin(ang * 0.7)) + side * 0.2, fy - 0.45 - 0.25 * j % 1.2 - 0.2 * Math.sin(ang), 0.8 * Math.cos(ang)];
+          sc.sphere(P, 0.1, BASE[fr.b], 0.9);
+        }
+        sc.sphere([0, fy + 0.18, 0], 0.34, B.hex("#8b5cf6"), 0.9);
+        sc.label([0, fy + 0.18, 0], "hélicase", "#5b21b6", 12, 0, -26);
+        sc.label([-1.25, fy - 0.9, 0], "ADN polymérase", "#b45309", 11, -4, 0, "right");
+      }
+      if (prog.value === 0) sc.label([0, yy(0) + 0.6, 0], "ADN parent", "#0f1b2d", 12, 0, 0);
+      if (prog.value > 50){ sc.label([-1.6, yy(N - 1) - 0.4, 0], "molécule fille 1", "#1e3f8f", 12, 0, 0); sc.label([1.6, yy(N - 1) - 0.4, 0], "molécule fille 2", "#1e3f8f", 12, 0, 0); }
+      sc.flush();
+      /* légende */
+      var ctx = c.ctx, lx = 12, ly = c.H - 64; ctx.save(); ctx.font = "700 11px Mulish,system-ui,sans-serif"; ctx.textBaseline = "middle";
+      [["A", "#2e9e5b"], ["T", "#d64545"], ["G", "#2563eb"], ["C", "#e0a100"]].forEach(function(q, n){ ctx.fillStyle = q[1]; ctx.beginPath(); ctx.arc(lx + 8 + n * 34, ly, 7, 0, 6.3); ctx.fill(); ctx.fillStyle = "#fff"; ctx.textAlign = "center"; ctx.fillText(q[0], lx + 8 + n * 34, ly + 1); });
+      ctx.textAlign = "left"; ctx.fillStyle = "#1e3f8f"; ctx.fillText("■ brin ancien", lx, ly + 24); ctx.fillStyle = "#ea7a1a"; ctx.fillText("■ brin neuf", lx + 86, ly + 24);
+      ctx.restore();
+      B.hint(c);
+      var done = Math.round(prog.value / 100 * N);
+      ro.set(0, done + " / " + N); ro.set(1, prog.value >= 100 ? "2 (terminée)" : (prog.value === 0 ? "1 (mère)" : "en cours")); ro.set(2, "1 ancien + 1 neuf");
+      if (prog.value === 0) nt.set("Avant la réplication : une seule molécule, deux brins complémentaires. Avance la fourche.", "");
+      else if (prog.value < 100) nt.set("L'hélicase ouvre la double hélice. Face à chaque base ancienne, l'ADN polymérase place la base complémentaire (A–T, G–C). Regarde : les deux nouvelles molécules sont déjà identiques entre elles.", "");
+      else nt.set("Réplication terminée : deux molécules identiques, chacune formée d'un brin ancien (bleu) et d'un brin neuf (orange). C'est le principe semi-conservatif (expérience de Meselson et Stahl).", "ok");
+    }
+    k.draw(render);
+    var L = k.loop(function(dt){
+      tclock += dt; B.spin(cam, dt);
+      if (playing){ var v = prog.value + dt * 6; if (v >= 100){ v = 100; playing = false; } prog.set(v); }
+      render();
+    });
+    L.play();
+  }
+});
+/*B3D-ADD-END:b4-3d-adn*/

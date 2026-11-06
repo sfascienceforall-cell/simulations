@@ -171,3 +171,202 @@ SFA.sim({
   }
 });
 })();
+
+/*B3D-LIB*/
+window.B3D = window.B3D || (function(){
+  var B = {}, BG = [244,246,251];
+  B.hex = function(h){ h = h.replace("#",""); return [parseInt(h.substr(0,2),16), parseInt(h.substr(2,2),16), parseInt(h.substr(4,2),16)]; };
+  B.mix = function(a,b,t){ return [a[0]+(b[0]-a[0])*t, a[1]+(b[1]-a[1])*t, a[2]+(b[2]-a[2])*t]; };
+  B.css = function(a,al){ return "rgba("+Math.round(a[0])+","+Math.round(a[1])+","+Math.round(a[2])+","+(al===undefined?1:al)+")"; };
+  B.cam = function(yaw,pitch,dist){ return {yaw:yaw, pitch:pitch, dist:dist||7, auto:true, hold:false}; };
+  B.rot = function(cam,x,y,z){
+    var cy=Math.cos(cam.yaw), sy=Math.sin(cam.yaw), cp=Math.cos(cam.pitch), sp=Math.sin(cam.pitch);
+    var x1=cy*x+sy*z, z1=-sy*x+cy*z, y1=cp*y+sp*z1, z2=-sp*y+cp*z1; return [x1,y1,z2];
+  };
+  /* glisser = tourner (souris et doigt) */
+  B.drag = function(c, cam, redraw){
+    c.cv.style.touchAction = "none"; c.cv.style.cursor = "grab";
+    var lx=0, ly=0, dn=false;
+    c.pointer(function(t,p){
+      if (t==="down"){ dn=true; lx=p.x; ly=p.y; cam.hold=true; c.cv.style.cursor="grabbing"; }
+      else if (t==="drag" && dn){ cam.yaw -= (p.x-lx)*0.012; cam.pitch += (p.y-ly)*0.01; cam.pitch = Math.max(-1.45, Math.min(1.45, cam.pitch)); lx=p.x; ly=p.y; if (redraw) redraw(); }
+      else if (t==="up"){ dn=false; cam.hold=false; c.cv.style.cursor="grab"; }
+    });
+  };
+  B.spin = function(cam, dt, speed){ if (cam.auto && !cam.hold) cam.yaw += dt*(speed||0.35); };
+  B.background = function(c){
+    var ctx=c.ctx, g=ctx.createLinearGradient(0,0,0,c.H); g.addColorStop(0,"#fbfcff"); g.addColorStop(1,"#e9eef7");
+    ctx.fillStyle=g; ctx.fillRect(0,0,c.W,c.H);
+  };
+  B.hint = function(c, txt){
+    var ctx=c.ctx; ctx.save(); ctx.font="600 11px Mulish,system-ui,sans-serif"; ctx.fillStyle="#8a95a3"; ctx.textAlign="left"; ctx.textBaseline="alphabetic";
+    ctx.fillText(txt || "Glisse pour tourner la vue en 3D", 10, c.H-10); ctx.restore();
+  };
+  B.scene = function(c, cam, scale, fogD){
+    var items=[], labels=[], ctx=c.ctx, fd=fogD||4;
+    var S = {};
+    S.P = function(p){ var r=B.rot(cam,p[0],p[1],p[2]); var k=cam.dist/(cam.dist+r[2]); return {x:c.W/2+r[0]*k*scale, y:c.H/2-r[1]*k*scale, z:r[2], k:k}; };
+    function fog(z){ return Math.max(0, Math.min(1, (z+fd)/(2*fd)))*0.5; }
+    S.sphere = function(p, r, col, al, ring){
+      var q=S.P(p), rr=r*q.k*scale; if (rr<0.4) return;
+      items.push({z:q.z, f:function(){
+        var base=B.mix(col, BG, fog(q.z));
+        var g=ctx.createRadialGradient(q.x-.35*rr,q.y-.4*rr,rr*.08,q.x,q.y,rr);
+        g.addColorStop(0,B.css(B.mix(base,[255,255,255],.6))); g.addColorStop(.5,B.css(base)); g.addColorStop(1,B.css(B.mix(base,[0,0,20],.42)));
+        ctx.globalAlpha = al===undefined?1:al; ctx.fillStyle=g; ctx.beginPath(); ctx.arc(q.x,q.y,rr,0,6.2832); ctx.fill();
+        if (ring){ ctx.strokeStyle=ring; ctx.lineWidth=Math.max(1,rr*.12); ctx.stroke(); }
+        ctx.globalAlpha=1; }});
+      return q;
+    };
+    S.line = function(a, b, w, col, al, dash){
+      var p=S.P(a), q=S.P(b), z=(p.z+q.z)/2, wd=w*(p.k+q.k)/2*scale;
+      items.push({z:z, f:function(){
+        ctx.globalAlpha = al===undefined?1:al; ctx.lineCap="round"; ctx.strokeStyle=B.css(B.mix(col,BG,fog(z)));
+        if (dash) ctx.setLineDash(dash);
+        ctx.lineWidth=Math.max(.6,wd); ctx.beginPath(); ctx.moveTo(p.x,p.y); ctx.lineTo(q.x,q.y); ctx.stroke(); ctx.setLineDash([]); ctx.globalAlpha=1; }});
+    };
+    /* cylindre ombré entre a et b (rayon r) */
+    S.tube = function(a, b, r, col, al){
+      var p=S.P(a), q=S.P(b), z=(p.z+q.z)/2, wd=2*r*(p.k+q.k)/2*scale;
+      items.push({z:z, f:function(){
+        var base=B.mix(col,BG,fog(z)); ctx.globalAlpha = al===undefined?1:al; ctx.lineCap="round";
+        var ws=[1,.7,.4,.18], cs=[B.mix(base,[0,0,20],.4), B.mix(base,[0,0,20],.12), base, B.mix(base,[255,255,255],.5)];
+        var dx=(q.x-p.x), dy=(q.y-p.y), L=Math.sqrt(dx*dx+dy*dy)||1, nx=-dy/L, ny=dx/L;
+        for (var i=0;i<4;i++){ var off=(i>=2? -0.18:0)*wd/2; ctx.strokeStyle=B.css(cs[i]); ctx.lineWidth=Math.max(.6,wd*ws[i]);
+          ctx.beginPath(); ctx.moveTo(p.x+nx*off,p.y+ny*off); ctx.lineTo(q.x+nx*off,q.y+ny*off); ctx.stroke(); }
+        ctx.globalAlpha=1; }});
+    };
+    /* face plane (liste de points 3D), normale n (3D), ombrage de Lambert */
+    S.poly = function(pts, col, n, al, stroke, back){
+      var ps=pts.map(S.P), z=0; ps.forEach(function(p){ z+=p.z; }); z/=ps.length; if (back) z=99;
+      var sh=0.75;
+      if (n){ var r=B.rot(cam,n[0],n[1],n[2]), L=Math.sqrt(r[0]*r[0]+r[1]*r[1]+r[2]*r[2])||1; var d=(-0.35*r[0]+0.55*r[1]-0.75*r[2])/L; sh=0.55+0.45*Math.abs(d); }
+      items.push({z:z, f:function(){
+        var base=B.mix(col,BG,fog(z)); base=B.mix([0,0,20],base,Math.min(1,sh)); if (sh>1) base=B.mix(base,[255,255,255],sh-1);
+        ctx.globalAlpha=al===undefined?1:al; ctx.fillStyle=B.css(base); ctx.beginPath(); ctx.moveTo(ps[0].x,ps[0].y);
+        for (var i=1;i<ps.length;i++) ctx.lineTo(ps[i].x,ps[i].y); ctx.closePath(); ctx.fill();
+        if (stroke){ ctx.strokeStyle=stroke; ctx.lineWidth=.8; ctx.stroke(); } ctx.globalAlpha=1; }});
+    };
+    S.label = function(p, txt, col, size, dx, dy, align){ labels.push({q:S.P(p), t:txt, c:col||"#0f1b2d", s:size||12, dx:dx||0, dy:dy||0, a:align||"center"}); };
+    S.flush = function(){
+      items.sort(function(a,b){ return b.z-a.z; });
+      for (var i=0;i<items.length;i++) items[i].f();
+      ctx.save(); ctx.textBaseline="middle";
+      labels.forEach(function(l){ ctx.font="700 "+l.s+"px Mulish,system-ui,sans-serif"; ctx.textAlign=l.a;
+        var w=ctx.measureText(l.t).width, x=l.q.x+l.dx, y=l.q.y+l.dy;
+        ctx.fillStyle="rgba(255,255,255,.82)"; var bx = l.a==="center"? x-w/2 : (l.a==="left"? x : x-w); ctx.fillRect(bx-3,y-l.s*.62,w+6,l.s*1.25);
+        ctx.fillStyle=l.c; ctx.fillText(l.t,x,y); });
+      ctx.restore();
+    };
+    return S;
+  };
+  return B;
+})();
+/*B3D-LIB-END*/
+
+/*B3D-ADD:b3-3d-coeur*/
+SFA.sim({
+  id:"b3-3d-coeur", ch:"c05", tag:"3D · cycle cardiaque",
+  titre:"Un battement de cœur en 3D, synchronisé avec les pressions et le volume",
+  resume:"Un cœur 3D qui bat et, dessous, le diagramme de Wiggers : valves, pression du ventricule gauche, volume et ECG au même instant.",
+  but:"Lance le film (ralenti) ou avance phase par phase. Change la fréquence cardiaque : la diastole raccourcit, le ventricule se remplit moins, le débit finit par plafonner. Glisse sur le cœur pour le tourner.",
+  aRetenir:"Un cycle cardiaque a 3 temps : systole des oreillettes (elles finissent de remplir les ventricules), systole des ventricules (valves auriculo-ventriculaires fermées, puis ouverture des valves de l'aorte et de l'artère pulmonaire : éjection), puis diastole (tout le cœur se relâche et se remplit). Les valves imposent un sens unique au sang. Débit cardiaque = fréquence × volume d'éjection systolique (≈ 5 L/min au repos). Modèle simplifié du cœur gauche.",
+  piege:"Le sang rouge n'est pas « dans le cœur gauche parce qu'il est propre » : le cœur gauche reçoit le sang oxygéné des poumons, le cœur droit le sang pauvre en O₂ des organes. Et quand la fréquence monte beaucoup, c'est la diastole qui raccourcit le plus : le ventricule n'a plus le temps de se remplir, donc plus de fréquence ne veut plus dire plus de débit.",
+  build:function(k, S){
+    var B = window.B3D, c = k.canvas(340), w = k.canvas(250), cam = B.cam(0.35, 0.1, 8);
+    var fc = k.slider("Fréquence cardiaque", 45, 190, 5, 75, "bpm");
+    var spd = k.slider("Vitesse du film", 0.1, 1, 0.05, 0.35, "×");
+    var rot = k.toggle("Rotation automatique", false, function(v){ cam.auto = v; });
+    var ro = k.readouts(["Phase", "Volume d'éjection", "Débit cardiaque", "Systole / diastole"]);
+    var nt = k.note("", "");
+    cam.auto = false;
+    var t = 0, playing = true, PH = ["Systole des oreillettes", "Contraction isovolumétrique", "Éjection", "Relaxation isovolumétrique", "Remplissage (diastole)"];
+    var PCOL = ["#fde68a", "#fecaca", "#fca5a5", "#bfdbfe", "#dbeafe"];
+    k.button("Lecture / pause", function(){ playing = !playing; }, true);
+    k.button("Phase suivante", function(){ var m = model(); var s = m.st, i = 0; for (var q = 0; q < 5; q++) if (t >= s[q]) i = q; t = s[(i + 1) % 5] + 0.002; playing = false; });
+    B.drag(c, cam, function(){ render(); });
+    function model(){
+      var T = 60 / fc.value, sc = Math.sqrt(T / 0.8), ta = Math.min(0.1 * sc, T * 0.14), ts = Math.min(0.3 * sc, T * 0.42);
+      var te = ta + 0.12 * ts, tc = ta + 0.7 * ts, tE = ta + ts, Td = T - tE;
+      var ESV = 55, g = function(x){ return 1 - Math.exp(-x / 0.14); };
+      var EDVpre = ESV + (130 - 20 - ESV) * g(Td), EDV = EDVpre + 20 * Math.min(1, ta / 0.1), SV = EDV - ESV;
+      var e0 = Math.exp(-(T - tc + te) / 0.6), P0 = 65 + 20.3 * e0 / (1 - e0), Pc = P0 + 20.3;
+      return {T:T, ta:ta, ts:ts, te:te, tc:tc, tE:tE, Td:Td, ESV:ESV, EDVpre:EDVpre, EDV:EDV, SV:SV, P0:P0, Pc:Pc, st:[0, ta, te, tc, tE], g:g};
+    }
+    function at(m, x){      /* valeurs à l'instant x du cycle */
+      var ph, V, Pv, Pao, a = 0;
+      if (x < m.ta){ ph = 0; a = x / m.ta; V = m.EDVpre + (m.EDV - m.EDVpre) * (1 - Math.cos(Math.PI * a)) / 2; Pv = 6 + 4 * Math.sin(Math.PI * a); }
+      else if (x < m.te){ ph = 1; V = m.EDV; var r = (x - m.ta) / (m.te - m.ta); Pv = 10 + (m.P0 - 10) * r * r; }
+      else if (x < m.tc){ ph = 2; var u = (x - m.te) / (m.tc - m.te); V = m.EDV - m.SV * (1 - Math.cos(Math.PI * u)) / 2; Pv = m.P0 + 45 * Math.sin(Math.PI * u * 0.85); }
+      else if (x < m.tE){ ph = 3; V = m.ESV; Pv = 8 + (m.Pc - 8) * Math.exp(-(x - m.tc) / 0.035); }
+      else { ph = 4; var tau = x - m.tE; V = m.ESV + (m.EDVpre - m.ESV) * m.g(tau) / m.g(m.Td); Pv = 6 + 3 * (tau / m.Td); }
+      if (ph === 2) Pao = Pv;
+      else { var tauC = (x >= m.tc ? x - m.tc : x + m.T - m.tc); Pao = 65 + (m.Pc - 65) * Math.exp(-tauC / 0.6) + (ph === 3 && x - m.tc < 0.05 ? 3 * Math.sin(Math.PI * (x - m.tc) / 0.05) : 0); }
+      return {ph:ph, V:V, Pv:Pv, Pao:Pao, a:a};
+    }
+    function ecg(m, x){
+      function bump(c0, wd, h){ return h * Math.exp(-Math.pow((x - c0) / wd, 2)); }
+      return bump(m.ta * 0.45, m.ta * 0.25, 0.15) + bump(m.ta - 0.005 > 0 ? m.ta + 0.012 : m.ta, 0.008, -0.12) + bump(m.ta + 0.03, 0.012, 1) + bump(m.ta + 0.046, 0.01, -0.22) + bump(m.ta + 0.7 * m.ts * 0.85, m.ts * 0.14, 0.3);
+    }
+    function render(){
+      var m = model(), x = t % m.T, v = at(m, x), ph = v.ph;
+      /* --- cœur 3D --- */
+      B.background(c);
+      var sc = B.scene(c, cam, Math.min(c.W / 4.6, c.H / 5.6), 4);
+      var RED = B.hex("#dc2626"), BLU = B.hex("#2563eb"), DRED = B.hex("#b91c1c"), DBLU = B.hex("#1d4ed8");
+      var atr = 0.42 - 0.12 * (ph === 0 ? Math.sin(Math.PI * v.a) : 0) + (ph >= 1 && ph <= 3 ? 0.05 : 0);
+      var vr = 0.34 + 0.46 * Math.cbrt(v.V / 125), vrR = 0.3 + 0.42 * Math.cbrt(v.V / 125);
+      var LA = [0.95, 0.95, -0.15], RA = [-0.95, 0.95, 0.1], LV = [0.6, -0.65, -0.1], RV = [-0.65, -0.55, 0.3];
+      /* vaisseaux */
+      sc.tube([-1.0, 1.2, 0.1], [-1.2, 2.0, 0.1], 0.17, DBLU); sc.label([-1.25, 2.25, 0.1], "veine cave", "#1d4ed8", 10, 0, 0);
+      sc.tube([1.0, 1.1, -0.2], [1.35, 1.7, -0.3], 0.15, DRED); sc.label([1.4, 1.95, -0.3], "veines pulm.", "#b91c1c", 10, 0, 0);
+      sc.tube([0.3, 0.1, 0.45], [0.05, 1.5, 0.5], 0.2, RED); sc.tube([0.05, 1.5, 0.5], [-0.3, 2.0, 0.5], 0.2, RED); sc.tube([-0.3, 2.0, 0.5], [-0.65, 1.8, 0.5], 0.2, RED); sc.label([0.0, 2.25, 0.5], "aorte", "#b91c1c", 10, 0, 0);
+      sc.tube([-0.3, 0.1, 0.6], [-0.25, 1.1, 0.8], 0.17, BLU); sc.tube([-0.25, 1.1, 0.8], [0.5, 1.5, 0.8], 0.17, BLU); sc.label([0.55, 1.75, 0.8], "art. pulm.", "#1d4ed8", 10, 0, 0);
+      /* cavités */
+      sc.sphere(RA, atr, BLU, 0.92); sc.sphere(LA, atr, RED, 0.92);
+      sc.sphere(RV, vrR, DBLU, 0.95); sc.sphere(LV, vr, DRED, 0.95);
+      sc.label(RA, "OD", "#fff", 11, 0, 0); sc.label(LA, "OG", "#fff", 11, 0, 0); sc.label([RV[0], RV[1], RV[2] - 0.4], "VD", "#fff", 11, 0, 0); sc.label([LV[0], LV[1], LV[2] - 0.5], "VG", "#fff", 12, 0, 0);
+      /* valves : ouverte (vert) ou fermée (rouge) */
+      var avOpen = (ph === 0 || ph === 4), aoOpen = ph === 2;
+      function valve(p, open, nm){ sc.sphere(p, 0.12, open ? B.hex("#16a34a") : B.hex("#f59e0b"), 1, "#fff"); }
+      valve([0.85, 0.25, -0.2], avOpen); valve([-0.85, 0.25, 0.1], avOpen); valve([0.35, 0.15, -0.1], aoOpen); valve([-0.35, 0.15, 0.35], aoOpen);
+      /* flux de sang */
+      var q, n;
+      if (ph === 2) for (q = 0; q < 5; q++){ n = ((t * 2 + q / 5) % 1); sc.sphere([0.4 - 0.1 * n, 0.2 + 2.0 * n, -0.15], 0.07, B.hex("#fecaca")); }
+      if (avOpen) for (q = 0; q < 4; q++){ n = ((t * 2 + q / 4) % 1); sc.sphere([0.7 - 0.2 * n, 1.0 - 1.4 * n, -0.15], 0.07, B.hex("#fecaca")); sc.sphere([-0.7 + 0.15 * n, 1.0 - 1.4 * n, 0.15], 0.07, B.hex("#bfdbfe")); }
+      sc.flush(); B.hint(c);
+      var ctx = c.ctx; ctx.save(); ctx.font = "800 12px Mulish,system-ui,sans-serif"; ctx.fillStyle = "#0f1b2d"; ctx.fillText(PH[ph], 10, 18);
+      ctx.font = "600 11px Mulish,system-ui,sans-serif"; ctx.fillStyle = "#16a34a"; ctx.fillText("● valve ouverte", 10, c.H - 44); ctx.fillStyle = "#f59e0b"; ctx.fillText("● valve fermée", 10, c.H - 28); ctx.restore();
+      /* --- diagramme de Wiggers --- */
+      w.clear(); var W = w.W, H = w.H, L = 44, R = W - 10, pw = R - L, c2 = w.ctx;
+      var rows = [{y:8, h:34, n:"ECG"}, {y:50, h:110, n:"Pression (mmHg)"}, {y:168, h:70, n:"Volume VG (mL)"}];
+      function X(tt){ return L + tt / m.T * pw; }
+      var bounds = [[0, m.ta], [m.ta, m.te], [m.te, m.tc], [m.tc, m.tE], [m.tE, m.T]];
+      bounds.forEach(function(b, i){ c2.fillStyle = PCOL[i]; c2.globalAlpha = 0.45; c2.fillRect(X(b[0]), 6, X(b[1]) - X(b[0]), 234); c2.globalAlpha = 1; });
+      c2.font = "700 10px Mulish,system-ui,sans-serif"; c2.fillStyle = "#475569"; c2.textAlign = "left";
+      rows.forEach(function(r){ c2.fillText(r.n, 4, r.y + 8); });
+      c2.strokeStyle = "#94a3b8"; c2.lineWidth = 1; rows.forEach(function(r){ c2.strokeRect(L, r.y, pw, r.h); });
+      function trace(r, f, lo, hi, col, lw){ c2.beginPath(); for (var i = 0; i <= 160; i++){ var tt = m.T * i / 160, val = f(tt), px = X(tt), py = r.y + r.h - (val - lo) / (hi - lo) * r.h; if (i) c2.lineTo(px, py); else c2.moveTo(px, py); } c2.strokeStyle = col; c2.lineWidth = lw || 2; c2.stroke(); }
+      trace(rows[0], function(tt){ return ecg(m, tt); }, -0.4, 1.2, "#0f1b2d", 1.6);
+      trace(rows[1], function(tt){ return at(m, tt).Pao; }, 0, 135, "#475569", 2);
+      trace(rows[1], function(tt){ return at(m, tt).Pv; }, 0, 135, "#dc2626", 2.2);
+      trace(rows[2], function(tt){ return at(m, tt).V; }, 40, 140, "#2563eb", 2.2);
+      c2.font = "700 10px Mulish,system-ui,sans-serif"; c2.fillStyle = "#dc2626"; c2.fillText("VG", X(m.te) + 4, rows[1].y + 22); c2.fillStyle = "#475569"; c2.fillText("aorte", X(m.T) - 36, rows[1].y + rows[1].h - ((m.P0 + 8 - 0) / 135) * rows[1].h - 6);
+      c2.fillStyle = "#64748b"; c2.fillText("0", L - 8, 248); c2.fillText(S.fmt(m.T, 2) + " s", R - 36, 248);
+      c2.strokeStyle = "#0f1b2d"; c2.lineWidth = 1.5; c2.setLineDash([4, 3]); c2.beginPath(); c2.moveTo(X(x), 4); c2.lineTo(X(x), 240); c2.stroke(); c2.setLineDash([]);
+      /* lecture */
+      ro.set(0, PH[ph]); ro.set(1, S.fmt(m.SV, 0) + " mL"); ro.set(2, S.fmt(m.SV * fc.value / 1000, 1) + " L/min"); ro.set(3, S.fmt((m.ta + m.ts), 2) + " s / " + S.fmt(m.Td, 2) + " s");
+      var msgs = ["Les oreillettes se contractent et finissent de remplir les ventricules (≈ 20 % du remplissage). Les valves auriculo-ventriculaires sont ouvertes, celles de l'aorte fermées.",
+        "Les ventricules commencent à se contracter : toutes les valves sont fermées, la pression monte sans que le volume change (isovolumétrique).",
+        "La pression du ventricule dépasse celle de l'aorte : la valve aortique s'ouvre et le sang est éjecté. Le volume chute de " + S.fmt(m.SV, 0) + " mL.",
+        "La valve aortique se referme (le « dicrote » sur la pression de l'aorte) : le ventricule se relâche, toutes les valves fermées, pression qui s'effondre.",
+        "Le cœur est relâché : les valves auriculo-ventriculaires s'ouvrent, le sang des oreillettes remplit passivement les ventricules."];
+      var warn = fc.value > 150 ? " Fréquence très élevée : la diastole ne dure plus que " + S.fmt(m.Td, 2) + " s, le remplissage est incomplet et le volume d'éjection baisse." : "";
+      nt.set(msgs[ph] + warn, warn ? "warn" : "");
+    }
+    k.draw(render);
+    var Lp = k.loop(function(dt){ B.spin(cam, dt, 0.25); if (playing) t += dt * spd.value; render(); });
+    Lp.play();
+  }
+});
+/*B3D-ADD-END:b3-3d-coeur*/

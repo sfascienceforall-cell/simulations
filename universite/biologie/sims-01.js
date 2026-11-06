@@ -157,3 +157,114 @@ SFA.sim({
     });
   }
 });
+
+/* BIO3D-BEGIN:s_c01_helice.js */
+(function(){
+var P = function(S){ return S.draw.palette; };
+/* --- moteur 3D maison (projection perspective, tri en profondeur, rotation à la souris) --- */
+function hx(h){ var n = parseInt(h.slice(1), 16); return [n >> 16, (n >> 8) & 255, n & 255]; }
+function sh(h, f, a){ var q = hx(h); return "rgba(" + q.map(function(v){ return Math.round(f < 0 ? v * (1 + f) : v + (255 - v) * f); }).join(",") + "," + (a === undefined ? 1 : a) + ")"; }
+function V3(c, S, o){
+  o = o || {};
+  var v = {yaw:o.yaw === undefined ? 0.5 : o.yaw, pit:o.pit === undefined ? 0.3 : o.pit, D:o.D || 8, sc:o.sc || 60, ox:0, oy:0, auto:o.auto !== false, q:[], moved:false}, last = null, d0 = null;
+  c.pointer(function(t, p){
+    if (t === "down"){ last = p; d0 = p; v.auto = false; v.moved = false; }
+    else if (t === "drag" && last){ if (Math.abs(p.x - d0.x) + Math.abs(p.y - d0.y) > 5) v.moved = true; v.yaw += (p.x - last.x) * 0.01; v.pit = Math.max(-1.45, Math.min(1.45, v.pit + (p.y - last.y) * 0.01)); last = p; }
+    else if (t === "up"){ last = null; if (!v.moved && v.onclick) v.onclick(p); }
+  });
+  v.P = function(x, y, z){
+    var cy = Math.cos(v.yaw), sy = Math.sin(v.yaw), cp = Math.cos(v.pit), sp = Math.sin(v.pit);
+    var X = x * cy + z * sy, Z = -x * sy + z * cy, Y = y * cp - Z * sp; Z = y * sp + Z * cp;
+    var f = v.D / (v.D - Z);
+    return {x:c.W / 2 + v.ox + X * f * v.sc, y:c.H / 2 + v.oy - Y * f * v.sc, z:Z, f:f};
+  };
+  v.add = function(z, fn){ v.q.push([z, fn]); };
+  v.flush = function(){ v.q.sort(function(a, b){ return a[0] - b[0]; }); for (var i = 0; i < v.q.length; i++) v.q[i][1](); v.q = []; };
+  v.ball = function(x, y, z, r, col, al){
+    var p = v.P(x, y, z), R = Math.max(1, r * p.f * v.sc);
+    v.add(p.z, function(){
+      var g = c.ctx.createRadialGradient(p.x - R * 0.35, p.y - R * 0.35, R * 0.1, p.x, p.y, R);
+      g.addColorStop(0, sh(col, 0.55, al)); g.addColorStop(0.55, sh(col, 0, al)); g.addColorStop(1, sh(col, -0.4, al));
+      c.ctx.fillStyle = g; c.ctx.beginPath(); c.ctx.arc(p.x, p.y, R, 0, 6.2832); c.ctx.fill();
+    });
+    p.R = R; return p;
+  };
+  v.seg = function(a, b, w, col, al, dash){
+    var p = v.P(a[0], a[1], a[2]), q = v.P(b[0], b[1], b[2]);
+    v.add((p.z + q.z) / 2 - 0.001, function(){
+      var x = c.ctx; x.lineCap = "round"; x.strokeStyle = sh(col, 0, al); x.lineWidth = Math.max(1, w * (p.f + q.f) / 2 * v.sc);
+      if (dash) x.setLineDash(dash);
+      x.beginPath(); x.moveTo(p.x, p.y); x.lineTo(q.x, q.y); x.stroke();
+      if (!dash && w * v.sc > 6){ x.strokeStyle = sh(col, 0.5, al); x.lineWidth = x.lineWidth * 0.35; x.beginPath(); x.moveTo(p.x - 1, p.y - 1); x.lineTo(q.x - 1, q.y - 1); x.stroke(); }
+      if (dash) x.setLineDash([]);
+    });
+  };
+  v.label = function(txt, x, y, z, col, size, bg){
+    var p = v.P(x, y, z);
+    v.add(p.z + 50, function(){ S.draw.text(c, txt, p.x, p.y, {size:size || 11, color:col || "#0f1b2d", weight:700, bg:bg}); });
+  };
+  v.spin = function(dt){ if (v.auto) v.yaw += dt * 0.35; };
+  return v;
+}
+
+SFA.sim({
+  id:"ub-c01-3d-helice-alpha", ch:"c01", tag:"Protéines · 3D",
+  titre:"L'hélice α en 3D : un ressort tenu par des liaisons H",
+  resume:"Fais tourner l'hélice, étire-la, casse ses liaisons hydrogène : 3,6 acides aminés par tour, liaison i → i+4.",
+  but:"Glisse pour faire pivoter la molécule. Ajoute des acides aminés, puis augmente la dénaturation (chaleur, urée) : les liaisons H se rompent et la chaîne s'étire.",
+  aRetenir:"Dans l'hélice α, chaque C=O forme une liaison hydrogène avec le N–H situé 4 acides aminés plus loin (i → i+4). Il y a 3,6 résidus par tour, un pas de 0,54 nm (0,15 nm par résidu) et les chaînes latérales pointent vers l'extérieur. Ce sont des liaisons faibles mais nombreuses : leur somme stabilise la structure secondaire.",
+  piege:"Ce ne sont pas les chaînes latérales qui tiennent l'hélice, mais les liaisons H du squelette peptidique (donc possibles pour presque tous les acides aminés). Dénaturer ne casse pas les liaisons peptidiques : la séquence (structure primaire) reste intacte. Les distances sont à l'échelle, mais les atomes sont simplifiés (seuls les Cα et les groupes C=O sont figurés).",
+  build:function(k,S){
+    var c = k.canvas(380), pal = P(S), v = V3(c, S, {yaw:0.6, pit:0.25, D:9});
+    var n = k.slider("Acides aminés dans la chaîne", 8, 30, 1, 18, "");
+    var den = k.slider("Dénaturation (chaleur, urée)", 0, 100, 1, 0, "%");
+    var hb = k.toggle("Montrer les liaisons hydrogène", true);
+    var sc = k.toggle("Montrer les chaînes latérales", true);
+    var ro = k.readouts(["Longueur", "Tours", "Liaisons H", "Structure"]);
+    var cols = [pal.acc, pal.teal, pal.violet, pal.amber, pal.green];
+    k.note("Modèle simplifié : la transition hélice → chaîne étirée est représentée de façon continue ; en réalité elle est coopérative (« tout ou presque rien »).", "warn");
+    function pos(i, d, N){
+      var th = i * 100 * Math.PI / 180, hel = [0.23 * Math.cos(th), i * 0.15, 0.23 * Math.sin(th)];
+      var ext = [(i % 2 ? 0.1 : -0.1) * Math.cos(0.5), i * 0.33, (i % 2 ? 0.07 : -0.07)];
+      var cy = ((N - 1) * (0.15 * (1 - d) + 0.33 * d)) / 2;
+      return [hel[0] * (1 - d) + ext[0] * d, hel[1] * (1 - d) + ext[1] * d - cy, hel[2] * (1 - d) + ext[2] * d];
+    }
+    function R(){
+      c.clear(); var N = n.value, d = den.value / 100;
+      var len = (N - 1) * (0.15 * (1 - d) + 0.33 * d);
+      v.sc = Math.min(c.H * 0.8 / Math.max(len + 0.8, 2.5), 150);
+      var pts = []; for (var i = 0; i < N; i++) pts.push(pos(i, d, N));
+      var nH = 0;
+      for (i = 0; i < N - 1; i++) v.seg(pts[i], pts[i + 1], 0.07, "#8a95a3", 1);
+      for (i = 0; i < N; i++){
+        var th = i * 100 * Math.PI / 180, p = pts[i];
+        v.ball(p[0], p[1], p[2], 0.09, "#4b5563");
+        var oc = [p[0], p[1] + 0.1 * (1 - d), p[2]];
+        v.ball(oc[0] + 0.08 * Math.cos(th) * (1 - d), oc[1] + 0.05, oc[2] + 0.08 * Math.sin(th) * (1 - d), 0.075, pal.red);
+        if (sc.value){
+          var r = 0.26 + 0.12 * (1 - d) * 0 , out = [p[0] + Math.cos(th) * 0.3, p[1], p[2] + Math.sin(th) * 0.3];
+          if (d > 0.5) out = [p[0] + (i % 2 ? 0.28 : -0.28), p[1], p[2] + (i % 2 ? 0.2 : -0.2)];
+          v.seg(p, out, 0.04, "#8a95a3", 0.9);
+          v.ball(out[0], out[1], out[2], 0.11, cols[i % 5]);
+        }
+      }
+      var formed = d < 0.5;
+      if (hb.value) for (i = 0; i + 4 < N; i++){
+        var a = pts[i], b = pts[i + 4], dist = Math.sqrt(Math.pow(a[0] - b[0], 2) + Math.pow(a[1] - b[1], 2) + Math.pow(a[2] - b[2], 2));
+        if (formed){ nH++; v.seg([a[0], a[1] + 0.1, a[2]], [b[0], b[1] - 0.02, b[2]], 0.03, pal.amber, 0.9, [3, 3]); }
+        else if (d < 0.8) v.seg([a[0], a[1] + 0.1, a[2]], [b[0], b[1], b[2]], 0.02, pal.amber, 0.25, [2, 6]);
+      }
+      if (!hb.value && formed) nH = N - 4;
+      v.flush();
+      S.draw.text(c, "Cα gris · C=O rouge", c.W / 2, c.H - 28, {size:11, color:pal.grey});
+      S.draw.text(c, "liaison H i → i+4 : pointillés orange", c.W / 2, c.H - 12, {size:11, color:pal.grey});
+      ro.set(0, S.fmt(len, 2) + " nm"); ro.set(1, formed ? S.fmt(N / 3.6, 1) : "—"); ro.set(2, nH + " / " + Math.max(0, N - 4)); 
+      ro.set(3, d < 0.05 ? "hélice α" : d < 0.5 ? "hélice qui s'étire" : "chaîne dénaturée");
+    }
+    k.draw(R);
+    var lp = k.loop(function(dt){ v.spin(dt); R(); }); lp.play();
+  }
+});
+
+})();
+/* BIO3D-END:s_c01_helice.js */

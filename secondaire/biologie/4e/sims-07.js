@@ -149,3 +149,195 @@ SFA.sim({
     });
   }
 });
+
+/*B3D-LIB*/
+window.B3D = window.B3D || (function(){
+  var B = {}, BG = [244,246,251];
+  B.hex = function(h){ h = h.replace("#",""); return [parseInt(h.substr(0,2),16), parseInt(h.substr(2,2),16), parseInt(h.substr(4,2),16)]; };
+  B.mix = function(a,b,t){ return [a[0]+(b[0]-a[0])*t, a[1]+(b[1]-a[1])*t, a[2]+(b[2]-a[2])*t]; };
+  B.css = function(a,al){ return "rgba("+Math.round(a[0])+","+Math.round(a[1])+","+Math.round(a[2])+","+(al===undefined?1:al)+")"; };
+  B.cam = function(yaw,pitch,dist){ return {yaw:yaw, pitch:pitch, dist:dist||7, auto:true, hold:false}; };
+  B.rot = function(cam,x,y,z){
+    var cy=Math.cos(cam.yaw), sy=Math.sin(cam.yaw), cp=Math.cos(cam.pitch), sp=Math.sin(cam.pitch);
+    var x1=cy*x+sy*z, z1=-sy*x+cy*z, y1=cp*y+sp*z1, z2=-sp*y+cp*z1; return [x1,y1,z2];
+  };
+  /* glisser = tourner (souris et doigt) */
+  B.drag = function(c, cam, redraw){
+    c.cv.style.touchAction = "none"; c.cv.style.cursor = "grab";
+    var lx=0, ly=0, dn=false;
+    c.pointer(function(t,p){
+      if (t==="down"){ dn=true; lx=p.x; ly=p.y; cam.hold=true; c.cv.style.cursor="grabbing"; }
+      else if (t==="drag" && dn){ cam.yaw -= (p.x-lx)*0.012; cam.pitch += (p.y-ly)*0.01; cam.pitch = Math.max(-1.45, Math.min(1.45, cam.pitch)); lx=p.x; ly=p.y; if (redraw) redraw(); }
+      else if (t==="up"){ dn=false; cam.hold=false; c.cv.style.cursor="grab"; }
+    });
+  };
+  B.spin = function(cam, dt, speed){ if (cam.auto && !cam.hold) cam.yaw += dt*(speed||0.35); };
+  B.background = function(c){
+    var ctx=c.ctx, g=ctx.createLinearGradient(0,0,0,c.H); g.addColorStop(0,"#fbfcff"); g.addColorStop(1,"#e9eef7");
+    ctx.fillStyle=g; ctx.fillRect(0,0,c.W,c.H);
+  };
+  B.hint = function(c, txt){
+    var ctx=c.ctx; ctx.save(); ctx.font="600 11px Mulish,system-ui,sans-serif"; ctx.fillStyle="#8a95a3"; ctx.textAlign="left"; ctx.textBaseline="alphabetic";
+    ctx.fillText(txt || "Glisse pour tourner la vue en 3D", 10, c.H-10); ctx.restore();
+  };
+  B.scene = function(c, cam, scale, fogD){
+    var items=[], labels=[], ctx=c.ctx, fd=fogD||4;
+    var S = {};
+    S.P = function(p){ var r=B.rot(cam,p[0],p[1],p[2]); var k=cam.dist/(cam.dist+r[2]); return {x:c.W/2+r[0]*k*scale, y:c.H/2-r[1]*k*scale, z:r[2], k:k}; };
+    function fog(z){ return Math.max(0, Math.min(1, (z+fd)/(2*fd)))*0.5; }
+    S.sphere = function(p, r, col, al, ring){
+      var q=S.P(p), rr=r*q.k*scale; if (rr<0.4) return;
+      items.push({z:q.z, f:function(){
+        var base=B.mix(col, BG, fog(q.z));
+        var g=ctx.createRadialGradient(q.x-.35*rr,q.y-.4*rr,rr*.08,q.x,q.y,rr);
+        g.addColorStop(0,B.css(B.mix(base,[255,255,255],.6))); g.addColorStop(.5,B.css(base)); g.addColorStop(1,B.css(B.mix(base,[0,0,20],.42)));
+        ctx.globalAlpha = al===undefined?1:al; ctx.fillStyle=g; ctx.beginPath(); ctx.arc(q.x,q.y,rr,0,6.2832); ctx.fill();
+        if (ring){ ctx.strokeStyle=ring; ctx.lineWidth=Math.max(1,rr*.12); ctx.stroke(); }
+        ctx.globalAlpha=1; }});
+      return q;
+    };
+    S.line = function(a, b, w, col, al, dash){
+      var p=S.P(a), q=S.P(b), z=(p.z+q.z)/2, wd=w*(p.k+q.k)/2*scale;
+      items.push({z:z, f:function(){
+        ctx.globalAlpha = al===undefined?1:al; ctx.lineCap="round"; ctx.strokeStyle=B.css(B.mix(col,BG,fog(z)));
+        if (dash) ctx.setLineDash(dash);
+        ctx.lineWidth=Math.max(.6,wd); ctx.beginPath(); ctx.moveTo(p.x,p.y); ctx.lineTo(q.x,q.y); ctx.stroke(); ctx.setLineDash([]); ctx.globalAlpha=1; }});
+    };
+    /* cylindre ombré entre a et b (rayon r) */
+    S.tube = function(a, b, r, col, al){
+      var p=S.P(a), q=S.P(b), z=(p.z+q.z)/2, wd=2*r*(p.k+q.k)/2*scale;
+      items.push({z:z, f:function(){
+        var base=B.mix(col,BG,fog(z)); ctx.globalAlpha = al===undefined?1:al; ctx.lineCap="round";
+        var ws=[1,.7,.4,.18], cs=[B.mix(base,[0,0,20],.4), B.mix(base,[0,0,20],.12), base, B.mix(base,[255,255,255],.5)];
+        var dx=(q.x-p.x), dy=(q.y-p.y), L=Math.sqrt(dx*dx+dy*dy)||1, nx=-dy/L, ny=dx/L;
+        for (var i=0;i<4;i++){ var off=(i>=2? -0.18:0)*wd/2; ctx.strokeStyle=B.css(cs[i]); ctx.lineWidth=Math.max(.6,wd*ws[i]);
+          ctx.beginPath(); ctx.moveTo(p.x+nx*off,p.y+ny*off); ctx.lineTo(q.x+nx*off,q.y+ny*off); ctx.stroke(); }
+        ctx.globalAlpha=1; }});
+    };
+    /* face plane (liste de points 3D), normale n (3D), ombrage de Lambert */
+    S.poly = function(pts, col, n, al, stroke, back){
+      var ps=pts.map(S.P), z=0; ps.forEach(function(p){ z+=p.z; }); z/=ps.length; if (back) z=99;
+      var sh=0.75;
+      if (n){ var r=B.rot(cam,n[0],n[1],n[2]), L=Math.sqrt(r[0]*r[0]+r[1]*r[1]+r[2]*r[2])||1; var d=(-0.35*r[0]+0.55*r[1]-0.75*r[2])/L; sh=0.55+0.45*Math.abs(d); }
+      items.push({z:z, f:function(){
+        var base=B.mix(col,BG,fog(z)); base=B.mix([0,0,20],base,Math.min(1,sh)); if (sh>1) base=B.mix(base,[255,255,255],sh-1);
+        ctx.globalAlpha=al===undefined?1:al; ctx.fillStyle=B.css(base); ctx.beginPath(); ctx.moveTo(ps[0].x,ps[0].y);
+        for (var i=1;i<ps.length;i++) ctx.lineTo(ps[i].x,ps[i].y); ctx.closePath(); ctx.fill();
+        if (stroke){ ctx.strokeStyle=stroke; ctx.lineWidth=.8; ctx.stroke(); } ctx.globalAlpha=1; }});
+    };
+    S.label = function(p, txt, col, size, dx, dy, align){ labels.push({q:S.P(p), t:txt, c:col||"#0f1b2d", s:size||12, dx:dx||0, dy:dy||0, a:align||"center"}); };
+    S.flush = function(){
+      items.sort(function(a,b){ return b.z-a.z; });
+      for (var i=0;i<items.length;i++) items[i].f();
+      ctx.save(); ctx.textBaseline="middle";
+      labels.forEach(function(l){ ctx.font="700 "+l.s+"px Mulish,system-ui,sans-serif"; ctx.textAlign=l.a;
+        var w=ctx.measureText(l.t).width, x=l.q.x+l.dx, y=l.q.y+l.dy;
+        ctx.fillStyle="rgba(255,255,255,.82)"; var bx = l.a==="center"? x-w/2 : (l.a==="left"? x : x-w); ctx.fillRect(bx-3,y-l.s*.62,w+6,l.s*1.25);
+        ctx.fillStyle=l.c; ctx.fillText(l.t,x,y); });
+      ctx.restore();
+    };
+    return S;
+  };
+  return B;
+})();
+/*B3D-LIB-END*/
+
+/*B3D-ADD:b4-3d-atp*/
+SFA.sim({
+  id:"b4-3d-atp", ch:"c07", tag:"3D · chaîne respiratoire",
+  titre:"L'ATP synthase : un moteur rotatif alimenté par un gradient de H⁺",
+  resume:"Dans la membrane interne de la mitochondrie, les électrons pompent des H⁺ ; ceux-ci repassent par l'ATP synthase qui tourne et fabrique l'ATP.",
+  but:"Règle l'apport en électrons (NADH, dioxygène) et observe le gradient de H⁺, la rotation du moteur et l'ATP produit. Ajoute du cyanure (bloque le complexe IV) ou un découpleur (membrane qui fuit) et compare. Glisse pour tourner la vue.",
+  aRetenir:"La chaîne respiratoire (complexes I, III, IV) transporte les électrons du NADH jusqu'au dioxygène, qui devient de l'eau. L'énergie libérée pompe des H⁺ vers l'espace intermembranaire : le gradient de H⁺ est une réserve d'énergie. Les H⁺ reviennent dans la matrice par l'ATP synthase, qui tourne et fabrique l'ATP (ADP + Pi → ATP). La respiration cellulaire produit ainsi la grande majorité de l'ATP (environ 30 à 32 par glucose).",
+  piege:"Le dioxygène n'est pas consommé pour « fabriquer l'ATP » directement : il sert d'accepteur final d'électrons. Sans O₂ (ou avec du cyanure), la chaîne s'arrête, le gradient s'effondre et l'ATP synthase ne tourne plus. Un découpleur fait l'inverse : on consomme plus de O₂ mais on fabrique moins d'ATP (la chaleur remplace l'ATP). Modèle simplifié, rotation au ralenti (réelle : environ 100 tours par seconde).",
+  build:function(k, S){
+    var B = window.B3D, c = k.canvas(340), cam = B.cam(0.35, 0.3, 8);
+    var flow = k.slider("Apport d'électrons (NADH, O₂)", 0, 100, 5, 80, "%");
+    var cn = k.toggle("Cyanure : bloque le complexe IV", false);
+    var dec = k.toggle("Découpleur : la membrane devient fuyante", false);
+    var rot = k.toggle("Rotation automatique", false, function(v){ cam.auto = v; });
+    var ro = k.readouts(["Gradient de H⁺", "ATP synthase", "ATP produit (cumul)", "O₂ consommé"]);
+    var nt = k.note("", "");
+    k.button("Remettre à zéro", function(){ p = 0; atp = 0; th = 0; parts = []; ats = []; }, true);
+    cam.auto = false;
+    var p = 0.05, th = 0, atp = 0, T = 0, parts = [], ats = [], lastThird = 0;
+    var CX = [-1.5, -0.55, 0.4], AX = 1.55;
+    var PATH = [[-1.5,-0.5],[-1.0,0.25],[-0.55,-0.5],[-0.1,0.25],[0.4,-0.5]];
+    function pathPt(u){ var n = PATH.length - 1, s = u * n, i = Math.min(n - 1, Math.floor(s)), f = s - i; return [PATH[i][0] + (PATH[i+1][0] - PATH[i][0]) * f, PATH[i][1] + (PATH[i+1][1] - PATH[i][1]) * f]; }
+    function rnd(){ return Math.random() * 2 - 1; }
+    function step(dt){
+      T += dt;
+      var e = flow.value / 100 * (cn.value ? 0 : 1), leak = dec.value ? 3 : 0.05;
+      var om = 3.3 * Math.max(0, p - 0.1);
+      p += (1.2 * e * (1 - p) - leak * p - 0.2 * om) * dt; p = Math.max(0, Math.min(1, p));
+      om = 3.3 * Math.max(0, p - 0.1);
+      th += om * 6.2832 * dt * 0.5; atp += 3 * om * dt * 0.5 * 1.0;
+      var third = Math.floor(th / 2.0944);
+      if (third > lastThird){ ats.push({x:AX + 0.15, y:-1.1, z:0.2, vx:0.5 * rnd() + 0.3, vy:-0.5, vz:rnd() * 0.5, life:2.2}); } lastThird = third;
+      /* H+ : cible = gradient */
+      var free = parts.filter(function(q){ return q.k === "free" || q.k === "pump"; }).length, target = Math.round(p * 46);
+      if (free < target && Math.random() < 0.6 && e > 0){ var cx = CX[Math.floor(Math.random() * 3)]; parts.push({k:"pump", x:cx + rnd() * 0.15, y:-0.4, z:rnd() * 0.3, tx:cx + rnd() * 0.9, tz:rnd() * 0.9, ty:0.5 + Math.random() * 1.3}); }
+      if (free > target){ for (var i = 0; i < parts.length; i++) if (parts[i].k === "free"){ parts[i].k = (dec.value || Math.random() < 0.2) ? "leak" : "flow"; parts[i].lx = dec.value ? rnd() * 1.9 : AX; parts[i].lz = dec.value ? rnd() * 0.8 : 0; break; } }
+      parts.forEach(function(q){
+        if (q.k === "pump"){ q.y += 1.6 * dt; q.x += (q.tx - q.x) * 1.5 * dt; q.z += (q.tz - q.z) * 1.5 * dt; if (q.y >= q.ty) q.k = "free"; }
+        else if (q.k === "free"){ q.x += rnd() * 0.9 * dt; q.z += rnd() * 0.9 * dt; q.y += rnd() * 0.7 * dt; q.x = Math.max(-2.1, Math.min(2.1, q.x)); q.z = Math.max(-1, Math.min(1, q.z)); q.y = Math.max(0.35, Math.min(1.9, q.y)); }
+        else { q.x += (q.lx - q.x) * 3 * dt; q.z += (q.lz - q.z) * 3 * dt; q.y -= 1.4 * dt; if (q.y < -1.9) q.dead = true; }
+      });
+      parts = parts.filter(function(q){ return !q.dead; });
+      ats.forEach(function(a){ a.x += a.vx * dt; a.y += a.vy * dt; a.z += a.vz * dt; a.life -= dt; }); ats = ats.filter(function(a){ return a.life > 0; });
+    }
+    B.drag(c, cam, function(){ render(); });
+    function render(){
+      B.background(c);
+      var sc = B.scene(c, cam, Math.min(c.W / 5.4, c.H / 4.3), 5), e = flow.value / 100 * (cn.value ? 0 : 1);
+      var HEAD = B.hex("#f2d98a"), TAIL = B.hex("#d9a441");
+      for (var i = 0; i < 11; i++) for (var j = 0; j < 5; j++){
+        var x = -2.0 + i * 0.4, z = (j - 2) * 0.4, skip = false;
+        if (Math.abs(z) < 0.45){ CX.forEach(function(cx){ if (Math.abs(x - cx) < 0.5) skip = true; }); if (Math.abs(x - AX) < 0.55) skip = true; }
+        if (skip) continue;
+        [1, -1].forEach(function(s){ sc.line([x, s * 0.03, z], [x, s * 0.3, z], 0.05, TAIL); sc.sphere([x, s * 0.36, z], 0.12, HEAD); });
+      }
+      /* complexes */
+      var COLS = [B.hex("#7c3aed"), B.hex("#2563eb"), B.hex("#16a34a")], NAMES = ["I", "III", "IV"];
+      CX.forEach(function(cx, n){
+        sc.tube([cx, -0.55, 0], [cx, 0.55, 0], 0.32, COLS[n]); sc.sphere([cx, 0.55, 0], 0.32, COLS[n]); sc.sphere([cx, -0.55, 0], 0.32, COLS[n]);
+        sc.label([cx, 0, -0.4], NAMES[n], "#0f1b2d", 13, 0, 0);
+      });
+      /* électrons */
+      for (var q = 0; q < 8; q++){
+        var u = cn.value ? 0.12 + 0.55 * q / 8 : ((T * (0.1 + 0.35 * e) + q / 8) % 1);
+        if (!cn.value && e <= 0) u = 0.1 + 0.8 * q / 8;
+        var pt = pathPt(u); if (e > 0 || cn.value) sc.sphere([pt[0], pt[1], 0.45], 0.075, B.hex("#facc15"), 1, "#a16207");
+      }
+      /* O2 -> H2O au complexe IV */
+      if (e > 0.02) sc.label([CX[2] - 0.2, -1.1, 0], "O₂ + e⁻ + H⁺ → H₂O", "#16a34a", 10, 0, 0);
+      else if (cn.value) sc.label([CX[2], -1.05, 0], "bloqué !", "#b91c1c", 12, 0, 0);
+      /* ATP synthase */
+      var ac = B.hex("#ea7a1a"), ac2 = B.hex("#f59e0b");
+      for (var a = 0; a < 8; a++){ var an = th + a * 0.7854; sc.sphere([AX + 0.27 * Math.cos(an), 0, 0.27 * Math.sin(an)], 0.1, a === 0 ? B.hex("#dc2626") : ac); }
+      sc.tube([AX + 0.14 * Math.cos(th), -0.1, 0.14 * Math.sin(th)], [AX, -0.75, 0], 0.07, B.hex("#475569"));
+      sc.tube([AX + 0.5, 0.3, 0], [AX + 0.4, -1.05, 0], 0.06, B.hex("#94a3b8"));
+      for (var h = 0; h < 3; h++){ var ah = h * 2.0944 + 0.5; sc.sphere([AX + 0.22 * Math.cos(ah), -1.0, 0.22 * Math.sin(ah)], 0.24, ac2); }
+      sc.label([AX, 0.75, 0], "ATP synthase", "#b45309", 11, 0, 0);
+      sc.label([AX, -1.55, 0], "ADP + Pi → ATP", "#b45309", 10, 0, 0);
+      /* particules */
+      parts.forEach(function(r){ sc.sphere([r.x, r.y, r.z], 0.07, B.hex("#e11d48")); });
+      ats.forEach(function(a){ sc.sphere([a.x, a.y, a.z], 0.13, B.hex("#fb923c"), Math.min(1, a.life)); });
+      sc.label([-0.3, 1.85, 0], "Espace intermembranaire", "#be123c", 11, 0, 0);
+      sc.label([-1.3, -1.8, 0], "Matrice", "#0f1b2d", 11, 0, 0);
+      sc.flush(); B.hint(c);
+      var om = 3.3 * Math.max(0, p - 0.1);
+      ro.set(0, S.fmt(p * 100, 0) + " %"); ro.set(1, om > 0.02 ? S.fmt(om * 0.5, 1) + " tr/s (ralenti)" : "à l'arrêt"); ro.set(2, S.fmt(atp, 0)); ro.set(3, S.fmt(flow.value * (cn.value ? 0 : 1) * (1 - 0.6 * p) * (dec.value ? 1.0 : 1) , 0) + " %");
+      var msg, kind = "";
+      if (cn.value){ msg = "Le cyanure bloque le complexe IV : les électrons s'accumulent, plus d'eau formée, plus de pompage. Le gradient de H⁺ s'effondre et l'ATP synthase s'arrête."; kind = "bad"; }
+      else if (flow.value === 0){ msg = "Sans électrons (sans nutriments ni O₂), aucun H⁺ n'est pompé : pas de gradient, pas d'ATP."; kind = "warn"; }
+      else if (dec.value){ msg = "Découpleur : les H⁺ repassent par la membrane sans passer par l'ATP synthase. Le gradient reste bas, peu d'ATP, mais la chaîne tourne à fond (O₂ consommé élevé) et l'énergie part en chaleur."; kind = "warn"; }
+      else msg = "Les complexes I, III et IV pompent les H⁺ vers le haut. Ils reviennent par l'ATP synthase : chaque tour du rotor (point rouge) fait environ 3 ATP.";
+      nt.set(msg, kind);
+    }
+    k.draw(render);
+    var L = k.loop(function(dt){ B.spin(cam, dt, 0.25); step(dt); render(); });
+    L.play();
+  }
+});
+/*B3D-ADD-END:b4-3d-atp*/

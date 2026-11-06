@@ -203,3 +203,303 @@ SFA.sim({
   }
 });
 })();
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/* BIO3D-BEGIN:s_c06_atpsynthase.js */
+(function(){
+var P = function(S){ return S.draw.palette; };
+/* --- moteur 3D maison (projection perspective, tri en profondeur, rotation à la souris) --- */
+function hx(h){ var n = parseInt(h.slice(1), 16); return [n >> 16, (n >> 8) & 255, n & 255]; }
+function sh(h, f, a){ var q = hx(h); return "rgba(" + q.map(function(v){ return Math.round(f < 0 ? v * (1 + f) : v + (255 - v) * f); }).join(",") + "," + (a === undefined ? 1 : a) + ")"; }
+function V3(c, S, o){
+  o = o || {};
+  var v = {yaw:o.yaw === undefined ? 0.5 : o.yaw, pit:o.pit === undefined ? 0.3 : o.pit, D:o.D || 8, sc:o.sc || 60, ox:0, oy:0, auto:o.auto !== false, q:[], moved:false}, last = null, d0 = null;
+  c.pointer(function(t, p){
+    if (t === "down"){ last = p; d0 = p; v.auto = false; v.moved = false; }
+    else if (t === "drag" && last){ if (Math.abs(p.x - d0.x) + Math.abs(p.y - d0.y) > 5) v.moved = true; v.yaw += (p.x - last.x) * 0.01; v.pit = Math.max(-1.45, Math.min(1.45, v.pit + (p.y - last.y) * 0.01)); last = p; }
+    else if (t === "up"){ last = null; if (!v.moved && v.onclick) v.onclick(p); }
+  });
+  v.P = function(x, y, z){
+    var cy = Math.cos(v.yaw), sy = Math.sin(v.yaw), cp = Math.cos(v.pit), sp = Math.sin(v.pit);
+    var X = x * cy + z * sy, Z = -x * sy + z * cy, Y = y * cp - Z * sp; Z = y * sp + Z * cp;
+    var f = v.D / (v.D - Z);
+    return {x:c.W / 2 + v.ox + X * f * v.sc, y:c.H / 2 + v.oy - Y * f * v.sc, z:Z, f:f};
+  };
+  v.add = function(z, fn){ v.q.push([z, fn]); };
+  v.flush = function(){ v.q.sort(function(a, b){ return a[0] - b[0]; }); for (var i = 0; i < v.q.length; i++) v.q[i][1](); v.q = []; };
+  v.ball = function(x, y, z, r, col, al){
+    var p = v.P(x, y, z), R = Math.max(1, r * p.f * v.sc);
+    v.add(p.z, function(){
+      var g = c.ctx.createRadialGradient(p.x - R * 0.35, p.y - R * 0.35, R * 0.1, p.x, p.y, R);
+      g.addColorStop(0, sh(col, 0.55, al)); g.addColorStop(0.55, sh(col, 0, al)); g.addColorStop(1, sh(col, -0.4, al));
+      c.ctx.fillStyle = g; c.ctx.beginPath(); c.ctx.arc(p.x, p.y, R, 0, 6.2832); c.ctx.fill();
+    });
+    p.R = R; return p;
+  };
+  v.seg = function(a, b, w, col, al, dash){
+    var p = v.P(a[0], a[1], a[2]), q = v.P(b[0], b[1], b[2]);
+    v.add((p.z + q.z) / 2 - 0.001, function(){
+      var x = c.ctx; x.lineCap = "round"; x.strokeStyle = sh(col, 0, al); x.lineWidth = Math.max(1, w * (p.f + q.f) / 2 * v.sc);
+      if (dash) x.setLineDash(dash);
+      x.beginPath(); x.moveTo(p.x, p.y); x.lineTo(q.x, q.y); x.stroke();
+      if (!dash && w * v.sc > 6){ x.strokeStyle = sh(col, 0.5, al); x.lineWidth = x.lineWidth * 0.35; x.beginPath(); x.moveTo(p.x - 1, p.y - 1); x.lineTo(q.x - 1, q.y - 1); x.stroke(); }
+      if (dash) x.setLineDash([]);
+    });
+  };
+  v.label = function(txt, x, y, z, col, size, bg){
+    var p = v.P(x, y, z);
+    v.add(p.z + 50, function(){ S.draw.text(c, txt, p.x, p.y, {size:size || 11, color:col || "#0f1b2d", weight:700, bg:bg}); });
+  };
+  v.spin = function(dt){ if (v.auto) v.yaw += dt * 0.35; };
+  return v;
+}
+
+SFA.sim({
+  id:"ub-c06-3d-atp-synthase", ch:"c06", tag:"ATP synthase · 3D",
+  titre:"L'ATP synthase en 3D : un moteur rotatif alimenté par les protons",
+  resume:"Les H⁺ font tourner l'anneau c et l'axe γ ; à chaque tiers de tour, un ATP est libéré (changement de liaison de Boyer).",
+  but:"Fais pivoter le moteur. Règle la force protonmotrice Δp, la taille de l'anneau c et l'énergie qu'exige l'ATP, puis observe le sens et la vitesse de rotation, et les trois états des sous-unités β.",
+  aRetenir:"Les protons passent de l'espace intermembranaire vers la matrice par le canal de la sous-unité a et font tourner l'anneau c (Fo) ; l'axe γ tourne avec lui dans F1 et force les 3 sous-unités β à changer de conformation : ouverte (libère l'ATP), lâche (fixe ADP + Pi), serrée (forme l'ATP). Un tour complet = 3 ATP ; un anneau de n sous-unités c consomme n H⁺ par tour, soit n/3 H⁺ par ATP (8 chez les mammifères : 2,7 ; 10 chez la levure ; 14 dans le chloroplaste : 4,7). Pour synthétiser, il faut Δp ≥ ΔG(ATP) / (n·F).",
+  piege:"Ce n'est pas le flux de H⁺ qui « fabrique » l'ATP chimiquement : il fait tourner une pièce mécanique, et la rotation déforme les sites catalytiques. L'enzyme est réversible : si Δp tombe sous le seuil, elle hydrolyse l'ATP et pompe des H⁺ (d'où des inhibiteurs comme IF1). L'oligomycine bloque Fo : la rotation s'arrête. Vitesse d'animation fortement ralentie (le moteur réel tourne à des dizaines de tours par seconde) ; le rendement ATP/NADH réel inclut aussi le transport du phosphate (≈ +1 H⁺ par ATP).",
+  build:function(k,S){
+    var c = k.canvas(430), pal = P(S), v = V3(c, S, {yaw:0.5, pit:0.42, D:13, sc:46, auto:false});
+    var dp = k.slider("Force protonmotrice Δp", 80, 250, 5, 220, "mV");
+    var dg = k.slider("ΔG de synthèse de l'ATP", 40, 65, 1, 50, "kJ/mol");
+    var csz = k.seg("Anneau c (nombre de sous-unités)", [["8","c₈ mammifère"],["10","c₁₀ levure"],["14","c₁₄ chloroplaste"]], "8");
+    var oli = k.toggle("Oligomycine (bloque Fo)", false);
+    var ro = k.readouts(["H⁺ par ATP", "Δp minimal", "Sens", "ATP net produits"]);
+    var info = k.note("", "ok");
+    var phi = 0, nATP = 0, tt = 0, seed = 5, parts = [], emit = 0, bg = [];
+    function rnd(){ seed = (seed * 16807) % 2147483647; return seed / 2147483647; }
+    for (var i = 0; i < 40; i++) bg.push({x:-3 + rnd() * 6, y:1.0 + rnd() * 2.2, z:-2.2 + rnd() * 4.4});
+    for (i = 0; i < 6; i++) bg.push({x:-3 + rnd() * 6, y:-3.4 + rnd() * 0.6, z:-2.2 + rnd() * 4.4});
+    var mem = [];
+    for (i = -5; i <= 5; i++) for (var j = -4; j <= 4; j++){ if (Math.hypot(i * 0.62, j * 0.62) < 1.75) continue; mem.push([i * 0.62, j * 0.62]); }
+    var TWO = 2 * Math.PI;
+    function omega(){
+      var n = +csz.value, nH = n / 3, thr = dg.value * 1000 / (nH * 96485) * 1000;
+      if (oli.value) return 0;
+      return Math.max(-1, Math.min(1, (dp.value - thr) / 40)) * 1.9;
+    }
+    function R(){
+      c.clear(); v.sc = Math.min(52, c.W / 6.2); v.oy = -8;
+      var n = +csz.value, nH = n / 3, thr = dg.value * 1000 / (nH * 96485) * 1000, w = omega();
+      var rc = 0.3 + 0.047 * n, cw = Math.min(0.28, TWO * rc / n * 0.42);
+      /* membrane */
+      mem.forEach(function(m){ v.ball(m[0], 0.5, m[1], 0.12, "#e3b13a", 0.8); v.ball(m[0], -0.5, m[1], 0.12, "#e3b13a", 0.8); v.seg([m[0], 0.5, m[1]], [m[0], 0.1, m[1]], 0.06, "#cfc7a6", 0.9); v.seg([m[0], -0.5, m[1]], [m[0], -0.1, m[1]], 0.06, "#cfc7a6", 0.9); });
+      /* anneau c */
+      for (var q = 0; q < n; q++){
+        var th = phi + q / n * TWO, ex = ((th - 0) % TWO + TWO) % TWO / TWO;
+        var x = rc * Math.cos(th), z = rc * Math.sin(th), prot = ex < 1 - 1 / n;
+        v.seg([x, -0.5, z], [x, 0.5, z], cw, q === 0 ? "#dc2626" : "#0e7490", 1);
+        if (prot) v.ball(x * 1.18, 0.22, z * 1.18, 0.1, "#ffffff");
+      }
+      /* sous-unité a avec ses demi-canaux */
+      var ax = (rc + cw + 0.18);
+      v.seg([ax, -0.5, 0.18], [ax, 0.5, 0.18], 0.5, "#b42318", 1); v.seg([ax, -0.5, -0.2], [ax, 0.5, -0.2], 0.5, "#b42318", 1);
+      v.label("a", ax + 0.35, 0.1, 0, "#7f1d1d", 12);
+      /* bras périphérique b (stator) jusqu'à F1 */
+      v.seg([ax + 0.1, -0.5, 0], [ax + 0.3, -1.9, 0], 0.13, "#6b7280", 1);
+      v.label("b (stator)", ax + 0.9, -1.2, 0, pal.grey, 10);
+      /* axe γ (tourne) */
+      v.seg([0, -0.5, 0], [0, -1.35, 0], 0.15, "#5B21B6", 1);
+      v.seg([0, -1.35, 0], [0.3 * Math.cos(phi), -2.15, 0.3 * Math.sin(phi)], 0.15, "#5B21B6", 1);
+      v.seg([0, -0.5, 0], [rc * 0.9 * Math.cos(phi), -0.52, rc * 0.9 * Math.sin(phi)], 0.1, "#5B21B6", 1);
+      /* F1 : 3 α (gris) + 3 β (colorés par l'état) sur deux étages */
+      var stateTxt = [];
+      for (q = 0; q < 3; q++){
+        var ab = Math.PI / 2 + q * TWO / 3 + 0.2, aa = ab + TWO / 6;
+        var d = (((phi - ab) % TWO) + TWO) % TWO / TWO, st = d < 1 / 3 ? 0 : d < 2 / 3 ? 1 : 2;
+        var colB = ["#16a34a", "#f59e0b", "#dc2626"][st];
+        [-1.5, -2.0].forEach(function(y){ v.ball(0.62 * Math.cos(ab), y, 0.62 * Math.sin(ab), 0.4, colB); v.ball(0.62 * Math.cos(aa), y, 0.62 * Math.sin(aa), 0.4, "#9ca3af"); });
+      }
+      /* protons */
+      bg.forEach(function(b){ b.x += (rnd() - 0.5) * 0.05; b.z += (rnd() - 0.5) * 0.05; b.y += (rnd() - 0.5) * 0.05; if (Math.abs(b.x) > 3) b.x *= 0.98; if (Math.abs(b.z) > 2.3) b.z *= 0.98; if (b.y > 0) { if (b.y < 0.9) b.y = 0.9; if (b.y > 3.2) b.y = 3.2; } else { if (b.y > -2.9) b.y = -2.9; if (b.y < -3.8) b.y = -3.8; }
+        v.ball(b.x, b.y, b.z, 0.07, "#fb923c", 0.85); });
+      parts.forEach(function(p){ var y = w >= 0 ? 1.4 - p.t * 2.5 : -1.1 + p.t * 2.5; if (p.t >= 0 && p.t <= 1) v.ball(ax + 0.02, y, 0.0, 0.1, "#fb923c"); });
+      v.label("Espace intermembranaire : H⁺ nombreux", 0, 3.5, 0, pal.ink, 11);
+      v.label("Matrice : peu de H⁺", 1.4, -3.9, 0, pal.ink, 11);
+      v.flush();
+      /* légende */
+      [["#16a34a","β ouverte (libère ATP)"],["#f59e0b","β lâche (ADP + Pi)"],["#dc2626","β serrée (forme ATP)"]].forEach(function(l, i){
+        c.ctx.fillStyle = l[0]; c.ctx.beginPath(); c.ctx.arc(10, c.H - 58 + i * 16, 5, 0, 6.3); c.ctx.fill(); S.draw.text(c, l[1], 20, c.H - 58 + i * 16, {size:10.5, align:"left", color:pal.ink}); });
+      ro.set(0, S.fmt(nH, 1)); ro.set(1, S.fmt(thr, 0) + " mV"); ro.set(2, oli.value ? "bloqué" : w > 0.02 ? "synthèse" : w < -0.02 ? "hydrolyse" : "équilibre"); ro.set(3, S.fmt(nATP, 0));
+      if (oli.value) info.set("Oligomycine : Fo est bloqué, l'anneau c ne tourne plus, le gradient de H⁺ n'est plus dissipé par l'ATP synthase.", "warn");
+      else if (w > 0.02) info.set("Δp (" + dp.value + " mV) dépasse le seuil de " + S.fmt(thr, 0) + " mV : les protons font tourner le rotor, 1 ATP libéré à chaque tiers de tour (" + n + " H⁺ par tour).", "ok");
+      else if (w < -0.02) info.set("Δp est sous le seuil (" + S.fmt(thr, 0) + " mV) : l'enzyme tourne à l'envers, hydrolyse l'ATP et pompe des H⁺ (vitesse réduite).", "bad");
+      else info.set("Δp ≈ seuil : synthèse et hydrolyse s'équilibrent, pas de rotation nette.", "warn");
+    }
+    k.button("Tourner la vue : auto / manuel", function(){ v.auto = !v.auto; });
+    k.draw(R);
+    var lp = k.loop(function(dt){
+      tt += dt; v.spin(dt); var w = omega(), step = Math.floor(phi / (TWO / 3));
+      phi += w * dt; var st2 = Math.floor(phi / (TWO / 3)); nATP += st2 - step; if (nATP < 0) nATP = 0;
+      emit += Math.abs(w) / TWO * (+csz.value) * dt;
+      while (emit > 1){ emit -= 1; parts.push({t:0}); }
+      parts.forEach(function(p){ p.t += dt * 1.5; }); parts = parts.filter(function(p){ return p.t < 1; });
+      R();
+    }); lp.play();
+  }
+});
+
+})();
+/* BIO3D-END:s_c06_atpsynthase.js */
+
+/* BIO3D-BEGIN:s_c06_krebs.js */
+(function(){
+var P = function(S){ return S.draw.palette; };
+/* --- moteur 3D maison (projection perspective, tri en profondeur, rotation à la souris) --- */
+function hx(h){ var n = parseInt(h.slice(1), 16); return [n >> 16, (n >> 8) & 255, n & 255]; }
+function sh(h, f, a){ var q = hx(h); return "rgba(" + q.map(function(v){ return Math.round(f < 0 ? v * (1 + f) : v + (255 - v) * f); }).join(",") + "," + (a === undefined ? 1 : a) + ")"; }
+function V3(c, S, o){
+  o = o || {};
+  var v = {yaw:o.yaw === undefined ? 0.5 : o.yaw, pit:o.pit === undefined ? 0.3 : o.pit, D:o.D || 8, sc:o.sc || 60, ox:0, oy:0, auto:o.auto !== false, q:[], moved:false}, last = null, d0 = null;
+  c.pointer(function(t, p){
+    if (t === "down"){ last = p; d0 = p; v.auto = false; v.moved = false; }
+    else if (t === "drag" && last){ if (Math.abs(p.x - d0.x) + Math.abs(p.y - d0.y) > 5) v.moved = true; v.yaw += (p.x - last.x) * 0.01; v.pit = Math.max(-1.45, Math.min(1.45, v.pit + (p.y - last.y) * 0.01)); last = p; }
+    else if (t === "up"){ last = null; if (!v.moved && v.onclick) v.onclick(p); }
+  });
+  v.P = function(x, y, z){
+    var cy = Math.cos(v.yaw), sy = Math.sin(v.yaw), cp = Math.cos(v.pit), sp = Math.sin(v.pit);
+    var X = x * cy + z * sy, Z = -x * sy + z * cy, Y = y * cp - Z * sp; Z = y * sp + Z * cp;
+    var f = v.D / (v.D - Z);
+    return {x:c.W / 2 + v.ox + X * f * v.sc, y:c.H / 2 + v.oy - Y * f * v.sc, z:Z, f:f};
+  };
+  v.add = function(z, fn){ v.q.push([z, fn]); };
+  v.flush = function(){ v.q.sort(function(a, b){ return a[0] - b[0]; }); for (var i = 0; i < v.q.length; i++) v.q[i][1](); v.q = []; };
+  v.ball = function(x, y, z, r, col, al){
+    var p = v.P(x, y, z), R = Math.max(1, r * p.f * v.sc);
+    v.add(p.z, function(){
+      var g = c.ctx.createRadialGradient(p.x - R * 0.35, p.y - R * 0.35, R * 0.1, p.x, p.y, R);
+      g.addColorStop(0, sh(col, 0.55, al)); g.addColorStop(0.55, sh(col, 0, al)); g.addColorStop(1, sh(col, -0.4, al));
+      c.ctx.fillStyle = g; c.ctx.beginPath(); c.ctx.arc(p.x, p.y, R, 0, 6.2832); c.ctx.fill();
+    });
+    p.R = R; return p;
+  };
+  v.seg = function(a, b, w, col, al, dash){
+    var p = v.P(a[0], a[1], a[2]), q = v.P(b[0], b[1], b[2]);
+    v.add((p.z + q.z) / 2 - 0.001, function(){
+      var x = c.ctx; x.lineCap = "round"; x.strokeStyle = sh(col, 0, al); x.lineWidth = Math.max(1, w * (p.f + q.f) / 2 * v.sc);
+      if (dash) x.setLineDash(dash);
+      x.beginPath(); x.moveTo(p.x, p.y); x.lineTo(q.x, q.y); x.stroke();
+      if (!dash && w * v.sc > 6){ x.strokeStyle = sh(col, 0.5, al); x.lineWidth = x.lineWidth * 0.35; x.beginPath(); x.moveTo(p.x - 1, p.y - 1); x.lineTo(q.x - 1, q.y - 1); x.stroke(); }
+      if (dash) x.setLineDash([]);
+    });
+  };
+  v.label = function(txt, x, y, z, col, size, bg){
+    var p = v.P(x, y, z);
+    v.add(p.z + 50, function(){ S.draw.text(c, txt, p.x, p.y, {size:size || 11, color:col || "#0f1b2d", weight:700, bg:bg}); });
+  };
+  v.spin = function(dt){ if (v.auto) v.yaw += dt * 0.35; };
+  return v;
+}
+
+SFA.sim({
+  id:"ub-c06-vis-cycle-krebs", ch:"c06", tag:"Krebs · animé",
+  titre:"Le cycle de Krebs animé : suis les carbones",
+  resume:"Un jeton parcourt les 8 réactions ; NADH, FADH₂, GTP et CO₂ apparaissent, et chaque carbone est suivi tour après tour.",
+  but:"Lance l'animation ou avance réaction par réaction. Coupe l'O₂, ajoute du malonate, augmente la charge énergétique, et regarde d'où viennent réellement les CO₂.",
+  aRetenir:"Un tour : acétyl-CoA (C₂) + oxaloacétate (C₄) → citrate (C₆) ; 2 décarboxylations (isocitrate DH et α-cétoglutarate DH) libèrent 2 CO₂ ; on récolte 3 NADH, 1 FADH₂ (succinate DH, complexe II) et 1 GTP/ATP, et l'oxaloacétate est régénéré. Par glucose (2 acétyl-CoA) : 2 tours, soit 6 NADH, 2 FADH₂, 2 GTP, 4 CO₂. Le cycle n'utilise pas O₂ directement, mais dépend de lui pour régénérer NAD⁺ et FAD.",
+  piege:"Les 2 CO₂ d'un tour ne proviennent pas des 2 carbones de l'acétyl-CoA qui vient d'entrer, mais de carbones entrés plus tôt (ceux de l'oxaloacétate) : regarde les couleurs. Et sans O₂, le cycle s'arrête, même si aucune de ses réactions ne consomme O₂ : il n'y a plus de NAD⁺. Le modèle donne au cycle un réservoir de NAD⁺ limité (5) et de FAD (2) pour rendre ce blocage visible vite ; une vraie cellule en a plus.",
+  build:function(k,S){
+    var c = k.canvas(500), pal = P(S);
+    var spd = k.slider("Vitesse", 0.3, 3, 0.1, 1.2, "×");
+    var chg = k.slider("Charge énergétique (ATP, NADH élevés)", 0, 100, 5, 0, "%");
+    var o2 = k.toggle("O₂ présent (chaîne respiratoire active)", true);
+    var mal = k.toggle("Malonate (inhibe la succinate déshydrogénase)", false);
+    var auto = k.toggle("Animation automatique", true);
+    var ro = k.readouts(["Tours", "NADH", "FADH₂", "GTP", "CO₂", "ATP équiv."]);
+    var info = k.note("", "ok");
+    var NODES = ["Oxaloacétate C₄","Citrate C₆","Isocitrate C₆","α-cétoglutarate C₅","Succinyl-CoA C₄","Succinate C₄","Fumarate C₄","Malate C₄"];
+    var ENZ = ["citrate synthase","aconitase","isocitrate déshydrogénase","α-cétoglutarate déshydrogénase","succinyl-CoA synthétase","succinate déshydrogénase","fumarase","malate déshydrogénase"];
+    var PROD = ["+ acétyl-CoA (C₂)","isomérisation","NADH + CO₂","NADH + CO₂","GTP (≈ ATP)","FADH₂","+ H₂O","NADH"];
+    var PCOL = [pal.amber, pal.grey, pal.red, pal.red, pal.green, pal.violet, pal.grey, pal.red];
+    var TC = ["#9ca3af","#2563eb","#dc2626","#16a34a","#f59e0b","#7c3aed","#0891b2"];
+    var s = 0, p = 0, turn = 0, nadh = 0, fadh = 0, gtp = 0, co2 = 0, nadPool = 0, fadPool = 0;
+    var pool = [0, 0, 0, 0], out = [], stall = "", seed = 11, msg = "";
+    function rnd(){ seed = (seed * 16807) % 2147483647; return seed / 2147483647; }
+    var newC = [];
+    function blocked(){
+      if (s === 5 && mal.value) return "Malonate : la succinate déshydrogénase est inhibée (inhibiteur compétitif du succinate) : le succinate s'accumule, le cycle s'arrête ici.";
+      if ((s === 2 || s === 3 || s === 7) && nadPool >= 5) return "Plus de NAD⁺ disponible : sans O₂ la chaîne respiratoire ne réoxyde plus le NADH, la déshydrogénase attend.";
+      if (s === 5 && fadPool >= 2) return "Plus de FAD disponible : sans O₂, le FADH₂ n'est pas réoxydé.";
+      return "";
+    }
+    function finish(){
+      if (s === 0){ turn++; newC = [turn, turn]; msg = "Citrate synthase : l'acétyl-CoA du tour " + turn + " entre (carbones de couleur n°" + turn + "). Le citrate a 6 carbones : 4 anciens + 2 nouveaux."; }
+      if (s === 1) msg = "Aconitase : le citrate est isomérisé en isocitrate (même nombre de carbones).";
+      if (s === 2 || s === 3){
+        var i = Math.floor(rnd() * pool.length), t = pool.splice(i, 1)[0]; out.push(t); co2++; nadh++; nadPool++;
+        msg = "Décarboxylation : un CO₂ part, et son carbone vient du tour " + (t === 0 ? "0 (oxaloacétate de départ)" : t) + (t < turn ? ", pas de l'acétyl-CoA qui vient d'entrer (tour " + turn + ")." : ", ce qui est possible seulement après la symétrisation du succinate.") + " 1 NADH formé.";
+        if (s === 3){ pool = pool.concat(newC); newC = []; }
+      }
+      if (s === 4){ gtp++; msg = "Succinyl-CoA synthétase : phosphorylation au niveau du substrat : 1 GTP (≈ 1 ATP)."; }
+      if (s === 5){ fadh++; fadPool++; msg = "Succinate déshydrogénase (complexe II, membrane interne) : 1 FADH₂."; }
+      if (s === 6) msg = "Fumarase : hydratation de la double liaison, fumarate → malate.";
+      if (s === 7){ nadh++; nadPool++; msg = "Malate déshydrogénase : 1 NADH et l'oxaloacétate est régénéré, prêt pour un nouveau tour."; }
+      s = (s + 1) % 8; p = 0;
+    }
+    function pos(i, cx, cy, Rr){ var a = (-90 + i * 45) * Math.PI / 180; return [cx + Rr * Math.cos(a), cy + Rr * Math.sin(a), a]; }
+    function R(){
+      c.clear(); var ctx = c.ctx;
+      var cx = c.W / 2, cy = 190, Rr = Math.min(c.W * 0.31, 140), fs = c.W < 380 ? 9.5 : 11;
+      for (var i = 0; i < 8; i++){
+        var a0 = (-90 + i * 45 + 11) * Math.PI / 180, a1 = (-90 + (i + 1) * 45 - 11) * Math.PI / 180, on = (i === s);
+        ctx.strokeStyle = on ? pal.acc : "#b6c0cd"; ctx.lineWidth = on ? 3 : 2; ctx.beginPath(); ctx.arc(cx, cy, Rr, a0, a1); ctx.stroke();
+        var ex = cx + Rr * Math.cos(a1), ey = cy + Rr * Math.sin(a1), tg = a1 + Math.PI / 2;
+        ctx.fillStyle = on ? pal.acc : "#b6c0cd"; ctx.beginPath(); ctx.moveTo(ex + 7 * Math.cos(tg), ey + 7 * Math.sin(tg)); ctx.lineTo(ex + 4 * Math.cos(tg + 2.2), ey + 4 * Math.sin(tg + 2.2)); ctx.lineTo(ex + 4 * Math.cos(tg - 2.2), ey + 4 * Math.sin(tg - 2.2)); ctx.fill();
+        var am = (-90 + i * 45 + 22.5) * Math.PI / 180, lx = cx + (Rr + 34) * Math.cos(am), ly = cy + (Rr + 34) * Math.sin(am);
+        var al = Math.cos(am) > 0.3 ? "left" : Math.cos(am) < -0.3 ? "right" : "center";
+        S.draw.text(c, PROD[i], lx + (al === "left" ? -14 : al === "right" ? 14 : 0), ly, {size:fs - 0.5, color:on ? PCOL[i] : "#6b7280", weight:on ? 800 : 700, align:al});
+      }
+      for (i = 0; i < 8; i++){
+        var q = pos(i, cx, cy, Rr), act = (i === s && p < 0.5) || (i === (s + 1) % 8 && p >= 0.5);
+        ctx.fillStyle = act ? "#e8eefc" : "#ffffff"; ctx.strokeStyle = act ? pal.acc : "#8a95a3"; ctx.lineWidth = act ? 2.5 : 1.5;
+        ctx.beginPath(); ctx.arc(q[0], q[1], 9, 0, 6.3); ctx.fill(); ctx.stroke();
+        var out2 = Math.cos(q[2]) > 0.3 ? "left" : Math.cos(q[2]) < -0.3 ? "right" : "center";
+        S.draw.text(c, NODES[i], q[0] + (out2 === "left" ? 14 : out2 === "right" ? -14 : 0), q[1] + (out2 === "center" ? (Math.sin(q[2]) < 0 ? -18 : 18) : 0), {size:fs, align:out2 === "left" ? "left" : out2 === "right" ? "right" : "center", color:act ? pal.acc : pal.ink});
+      }
+      /* jeton */
+      var f = (s + p), tq = pos(f, cx, cy, Rr); ctx.fillStyle = "#f4c542"; ctx.strokeStyle = "#92400e"; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(tq[0], tq[1], 7, 0, 6.3); ctx.fill(); ctx.stroke();
+      S.draw.text(c, "Tour " + turn, cx, cy - 18, {size:16, color:pal.ink});
+      S.draw.text(c, ENZ[s], cx, cy + 2, {size:fs - 0.5, color:pal.acc, weight:800});
+      S.draw.text(c, "réaction " + (s + 1) + " / 8", cx, cy + 20, {size:fs - 1, color:pal.grey});
+      /* carbones */
+      var y0 = 372;
+      S.draw.text(c, "Carbones du cycle (couleur = tour d'entrée)", 8, y0, {size:fs, align:"left", color:pal.ink});
+      var all = pool.concat(newC);
+      all.forEach(function(t, j){ ctx.fillStyle = TC[t % 7]; ctx.beginPath(); ctx.arc(20 + j * 22, y0 + 20, 8, 0, 6.3); ctx.fill(); S.draw.text(c, t === 0 ? "0" : String(t), 20 + j * 22, y0 + 20, {size:9, color:"#fff"}); });
+      S.draw.text(c, "CO₂ libérés (tour d'origine du carbone)", 8, y0 + 50, {size:fs, align:"left", color:pal.ink});
+      out.slice(-14).forEach(function(t, j){ ctx.fillStyle = TC[t % 7]; ctx.beginPath(); ctx.arc(20 + j * 22, y0 + 70, 8, 0, 6.3); ctx.fill(); S.draw.text(c, t === 0 ? "0" : String(t), 20 + j * 22, y0 + 70, {size:9, color:"#fff"}); });
+      if (!out.length) S.draw.text(c, "(aucun pour l'instant)", 20, y0 + 70, {size:fs - 1, align:"left", color:pal.grey});
+      var b = blocked();
+      ro.set(0, turn); ro.set(1, nadh); ro.set(2, fadh); ro.set(3, gtp); ro.set(4, co2); ro.set(5, S.fmt(2.5 * nadh + 1.5 * fadh + gtp, 1));
+      if (b && p === 0) info.set("<b>Bloqué.</b> " + b, "bad"); else info.set(msg || "Appuie sur « Étape suivante » ou laisse tourner l'animation.", "ok");
+    }
+    function rate(){ var r = spd.value; if (s === 2 || s === 3) r *= (1 - 0.88 * chg.value / 100); return r; }
+    k.button("Étape suivante", function(){ auto.set(false); if (!blocked()) { p = 1; finish(); } }, true);
+    k.button("Remettre à zéro", function(){ s = 0; p = 0; turn = 0; nadh = fadh = gtp = co2 = nadPool = fadPool = 0; pool = [0,0,0,0]; out = []; newC = []; msg = ""; });
+    k.draw(R);
+    var lp = k.loop(function(dt){
+      if (o2.value){ var r = Math.min(nadPool, dt * 3); nadPool -= r; var r2 = Math.min(fadPool, dt * 3); fadPool -= r2; }
+      if (auto.value && !blocked()){ p += dt * rate() / 1.1; if (p >= 1){ finish(); } }
+      R();
+    }); lp.play();
+  }
+});
+
+})();
+/* BIO3D-END:s_c06_krebs.js */
