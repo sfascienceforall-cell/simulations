@@ -81,7 +81,7 @@ SFA.sim({
       var bw=Math.min(W*.62,320), x0=(W-bw)/2-W*.06, base=H*.78, hmax=H*.62, sw=bw/3-6;
       var vals=[a,b,t], nm=["Lumière","CO₂","Température"], col=["#f2c14e","#8f9bad","#e0603f"], dk=["#b98a1a","#5e6a7d","#a8381d"], sub=[L.value+" %",C.value+" ppm",Tt.value+" °C"];
       GE=[]; g.fillStyle="#a9d6ee"; g.fillRect(x0-6,base-hmax*mn,bw+12,hmax*mn);
-      g.fillStyle="rgba(255,255,255,.35)"; g.fillRect(x0-6,base-hmax*mn,bw+12,3); D.line(cb,x0-14,base-hmax*mn,x0+bw+14,base-hmax*mn,"#2f7fd1",2,[5,4]); D.label(cb,"niveau = photosynthèse",x0-14,base-hmax*mn-14,{size:10.5,color:"#1f5f8f",align:"left"});
+      g.fillStyle="rgba(255,255,255,.35)"; g.fillRect(x0-6,base-hmax*mn,bw+12,3); D.line(cb,x0-14,base-hmax*mn,x0+bw+14,base-hmax*mn,"#2f7fd1",2,[5,4]);
       vals.forEach(function(v,i){ var x=x0+i*(sw+9), h=Math.max(10,hmax*v), top=base-h;
         GE.push({x:x,w:sw,top:top,base:base,hmax:hmax});
         var gr=g.createLinearGradient(x,0,x+sw,0); gr.addColorStop(0,col[i]); gr.addColorStop(.5,"#fff7"); gr.addColorStop(1,col[i]);

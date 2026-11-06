@@ -7,6 +7,10 @@
   function mix(h, f){ var n = parseInt(h.slice(1), 16), r = n >> 16, g = (n >> 8) & 255, b = n & 255;
     function m(v){ return Math.round(f < 0 ? v * (1 + f) : v + (255 - v) * f); } return "rgb(" + m(r) + "," + m(g) + "," + m(b) + ")"; }
   B.mix = mix;
+  /* notation scientifique en texte brut (exposants Unicode) pour le canevas */
+  B.sci = function(x, d){ if (!isFinite(x) || x === 0) return S.fmt(x, d); var e = Math.floor(Math.log10(Math.abs(x))), m = x / Math.pow(10, e);
+    if (e >= -2 && e <= 4) return S.fmt(x, x < 10 ? 2 : 0); var sup = {"-":"⁻","0":"⁰","1":"¹","2":"²","3":"³","4":"⁴","5":"⁵","6":"⁶","7":"⁷","8":"⁸","9":"⁹"};
+    return S.fmt(m, d == null ? 1 : d) + "·10" + String(e).split("").map(function(ch){ return sup[ch]; }).join(""); };
   /* fond doux dégradé (vertical) : bg(c, haut, bas) */
   B.bg = function(c, top, bot){ var g = c.ctx.createLinearGradient(0, 0, 0, c.H); g.addColorStop(0, top || "#f6f9fd"); g.addColorStop(1, bot || "#eaf1f9"); c.ctx.fillStyle = g; c.ctx.fillRect(0, 0, c.W, c.H); };
   /* bille ombrée (molécule, ion, atome) */
@@ -135,7 +139,7 @@ SFA.sim({
     function ph(h,p){ return 6.1+Math.log10(h/(0.03*p)); }
     k.draw(function(){
       c.clear(); var ctx=c.ctx;
-      var ax=S.draw.axes(c,{x0:10,x1:100,y0:6.2,y1:8.2,stepX:10,stepY:0.2,xl:"pCO₂ (mmHg)",yl:"pH"});
+      var ax=S.draw.axes(c,{t:28,x0:10,x1:100,y0:6.2,y1:8.2,stepX:10,stepY:0.2,xl:"pCO₂ (mmHg)",yl:"pH"});
       ctx.fillStyle="rgba(46,107,85,.13)"; ctx.fillRect(ax.X(35),ax.Y(7.45),ax.X(45)-ax.X(35),ax.Y(7.35)-ax.Y(7.45));
       [[12,P.grey],[24,P.green],[36,P.grey]].forEach(function(o){
         S.draw.fn(c,ax,function(p){return ph(o[0],p);},o[1],o[0]===24?2.6:1.6,o[0]===24?null:[5,4]);
@@ -174,7 +178,7 @@ SFA.sim({
       c.clear();
       var pKa=parseFloat(sel.value), Ct=C.value, r=Math.pow(10,p0.value-pKa), HA=Ct/(1+r), A=Ct-HA;
       function phAfter(x){ var a=A-x, ha=HA+x; return pKa+Math.log10(a/ha); }
-      var ax=S.draw.axes(c,{x0:-40,x1:40,y0:4,y1:10,stepX:10,stepY:1,xl:"acide fort ajouté (mmol/L)",yl:"pH"});
+      var ax=S.draw.axes(c,{t:28,x0:-40,x1:40,y0:4,y1:10,stepX:10,stepY:1,xl:"acide fort ajouté (mmol/L)",yl:"pH"});
       var lo=-HA, hi=A; var eps=0.02;
       var ctx=c.ctx; ctx.save(); ctx.beginPath(); ctx.rect(ax.L,ax.T,ax.R-ax.L,ax.B-ax.T); ctx.clip();
       ctx.strokeStyle=P.acc; ctx.lineWidth=2.6; ctx.beginPath(); var st=false;

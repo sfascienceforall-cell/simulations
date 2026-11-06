@@ -105,7 +105,7 @@ SFA.sim({
       var last = null, prev = Math.exp(1) - Math.pow(1, N); for (var q = 1.0; q <= 400; q += 0.01){ var dd2 = q - N * Math.log(q); if (dd2 > 0 && prev <= 0) last = q; prev = dd2; }
       var xr = Math.min(xs.value, X); D.line(c, Xp(xr), T, Xp(xr), B, "#c2c9d3", 1.3, [4, 4]); D.dot(c, Xp(xr), Yp(f1(xr)), 5, P.acc); D.dot(c, Xp(xr), Yp(f2(xr)), 5, P.red);
       if (last !== null && last <= X){ D.dot(c, Xp(last), Yp(f1(last)), 6.5, P.amber); }
-      lab(c, "eˣ", L + 10, T + 10, P.acc, 13, "left"); lab(c, "x^" + N, L + 10, T + 28, P.red, 13, "left"); lab(c, "ln x", L + 10, T + 46, P.green, 13, "left");
+      lab(c, "eˣ", L + 10, T + 10, P.acc, 13, "left"); lab(c, "x" + String(N).replace(/\d/g, function(d){ return "⁰¹²³⁴⁵⁶⁷⁸⁹"[d]; }), L + 10, T + 28, P.red, 13, "left"); lab(c, "ln x", L + 10, T + 46, P.green, 13, "left");
       ro.set(0, last === null ? "—" : "x ≈ " + F(last, 2)); ro.set(1, S.sci(Math.exp(xr))); ro.set(2, S.sci(Math.pow(xr, N))); ro.set(3, S.sci(Math.exp(xr) / Math.pow(xr, N)));
       nt.set(last === null ? "Pour ce n et cette fenêtre, eˣ domine déjà partout (avant x ≈ 1 il n'y a pas de croisement utile)." : "Après x ≈ " + F(last, 1) + ", eˣ > xⁿ pour toujours. Augmente n : le croisement recule, mais il existe.", "");
     });

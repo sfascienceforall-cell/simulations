@@ -4,16 +4,17 @@ SFA.sim({
   id:"ub-c04-potentiel-action", ch:"c04", tag:"Excitabilité · classique",
   titre:"Potentiel d'action : seuil, tout ou rien et période réfractaire",
   resume:"Modèle de Hodgkin-Huxley : un stimulus sous le seuil ne donne rien ; au-dessus, un pic de même taille.",
-  but:"Fais varier l'intensité du stimulus, active un second stimulus à intervalle réglable et bloque les canaux Na⁺ (TTX) ou K⁺ (TEA).",
+  but:"Glisse sur la courbe pour suivre un instant : les canaux Na⁺ et K⁺ s'ouvrent ou se ferment sous tes yeux. Fais varier l'intensité du stimulus, active un second stimulus à intervalle réglable et bloque les canaux Na⁺ (TTX) ou K⁺ (TEA).",
   aRetenir:"Seuil : en dessous, la dépolarisation s'éteint ; au-dessus, un potentiel d'action d'amplitude fixe (≈ 100 mV) se déclenche : loi du tout ou rien. L'intensité est codée par la fréquence, pas par l'amplitude. Phase ascendante : ouverture des canaux Na⁺ voltage-dépendants ; repolarisation : inactivation de Na⁺ et ouverture de K⁺ ; période réfractaire : canaux Na⁺ inactivés. TTX bloque Na⁺ (pas de pic) ; TEA bloque K⁺ (repolarisation retardée).",
   piege:"Un stimulus plus fort ne donne pas un potentiel d'action plus grand, mais éventuellement plus fréquent. Pendant la période réfractaire absolue, aucun stimulus (même très fort) ne déclenche un second potentiel d'action.",
   build:function(k,S){
-    var P=S.draw.palette, c=k.canvas(330);
+    var P=S.draw.palette, c=k.canvas(470);
     var I1=k.slider("Intensité du stimulus",0,40,0.5,10,"µA/cm²");
     var du=k.slider("Durée du stimulus",0.2,5,0.1,1,"ms");
     var tw=k.toggle("Second stimulus identique",false);
     var dl=k.slider("Délai du second stimulus",3,24,0.5,6,"ms");
     var dr=k.seg("Toxine",[["none","Aucune"],["ttx","TTX (bloque Na⁺)"],["tea","TEA (bloque K⁺)"]],"none");
+    var B=S.bio, tcur=0, auto=true, cache=null, ckey='';
     var ro=k.readouts(["Potentiel maximal","Nombre de potentiels d'action","Verdict"]);
     function run(){
       var gNa=120*(dr.value==="ttx"?0:1), gK=36*(dr.value==="tea"?0:1), gL=0.3, ENa=50, EK=-77, EL=-54.387, dt=0.01, V=-65;
@@ -23,7 +24,7 @@ SFA.sim({
       function bm(V){return 4*Math.exp(-(V+65)/18);}
       function ah(V){return 0.07*Math.exp(-(V+65)/20);}
       function bh(V){return 1/(1+Math.exp(-(V+35)/10));}
-      var n=an(V)/(an(V)+bn(V)), m=am(V)/(am(V)+bm(V)), h=ah(V)/(ah(V)+bh(V)), out=[], sp=0, up=false, mx=-100;
+      var n=an(V)/(an(V)+bn(V)), m=am(V)/(am(V)+bm(V)), h=ah(V)/(ah(V)+bh(V)), out=[], om=[], oh=[], on=[], sp=0, up=false, mx=-100;
       for(var i=0;i<=3000;i++){
         var t=i*dt, I=0;
         if(t>=2&&t<2+du.value) I+=I1.value;
@@ -32,24 +33,56 @@ SFA.sim({
         m+=dt*(am(V)*(1-m)-bm(V)*m); h+=dt*(ah(V)*(1-h)-bh(V)*h); n+=dt*(an(V)*(1-n)-bn(V)*n); V+=dt*dV;
         if(!isFinite(V)) V=-65;
         if(V>mx) mx=V; if(V>0&&!up){sp++;up=true;} if(V<-20) up=false;
-        if(i%10===0) out.push(V);
+        if(i%10===0){ out.push(V); om.push(m); oh.push(h); on.push(n); }
       }
-      return {v:out,sp:sp,mx:mx};
+      return {v:out,m:om,h:oh,n:on,sp:sp,mx:mx};
     }
-    k.draw(function(){
-      c.clear(); var r=run(), ax=S.draw.axes(c,{x0:0,x1:30,y0:-80,y1:50,stepX:5,stepY:20,xl:"temps (ms)",yl:"Vm (mV)"}), ctx=c.ctx;
-      /* stimulus */
+    c.pointer(function(t,p){ if(t==="down"||t==="drag"){ auto=false; var gh=c.H*.58, px=Math.max(0,Math.min(1,(p.x-46)/(c.W-62))); tcur=px*30; k.redraw(); } });
+    function frame(dt){
+      var ctx=c.ctx, W=c.W, H=c.H, GH=Math.round(H*.58); c.clear(); B.bg(c,"#fbfdff","#f1f5fa");
+      var key=[I1.value,du.value,tw.value,dl.value,dr.value].join(); if(key!==ckey){ ckey=key; cache=run(); auto=true; tcur=0; }
+      var r=cache; if(auto){ tcur+=dt*5; if(tcur>32) tcur=0; }
+      var tc=Math.max(0,Math.min(29.99,tcur)), ix=Math.min(r.v.length-1,Math.round(tc*10));
+      var fake={ctx:ctx,W:W,H:GH}, ax=S.draw.axes(fake,{x0:0,x1:30,y0:-80,y1:50,stepX:5,stepY:20,xl:"temps (ms)",yl:"Vm (mV)",t:26});
       ctx.fillStyle="rgba(180,83,9,.18)"; ctx.fillRect(ax.X(2),ax.T,Math.max(2,ax.X(2+du.value)-ax.X(2)),ax.B-ax.T);
       if(tw.value) ctx.fillRect(ax.X(2+dl.value),ax.T,Math.max(2,ax.X(2+dl.value+du.value)-ax.X(2+dl.value)),ax.B-ax.T);
-      S.draw.line(c,ax.L,ax.Y(-65),ax.R,ax.Y(-65),"#c8d1de",1,[4,4]);
-      ctx.save(); ctx.beginPath(); ctx.rect(ax.L,ax.T,ax.R-ax.L,ax.B-ax.T); ctx.clip(); ctx.strokeStyle=P.acc; ctx.lineWidth=2.4; ctx.beginPath();
+      S.draw.line(c,ax.L,ax.Y(-65),ax.R,ax.Y(-65),"#c8d1de",1,[4,4]); S.draw.text(c,"repos −65",ax.R-4,ax.Y(-65)+10,{size:9.5,color:P.grey,align:"right"});
+      S.draw.line(c,ax.L,ax.Y(-55),ax.R,ax.Y(-55),"rgba(192,50,29,.4)",1,[2,4]); S.draw.text(c,"seuil ≈ −55",ax.L+6,ax.Y(-55)-7,{size:9.5,color:P.red,align:"left"});
+      ctx.save(); ctx.beginPath(); ctx.rect(ax.L,ax.T,ax.R-ax.L,ax.B-ax.T); ctx.clip(); ctx.strokeStyle=P.acc; ctx.lineWidth=2.6; ctx.beginPath();
       r.v.forEach(function(v,i){ var x=ax.X(i*0.1), y=ax.Y(v); if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y); }); ctx.stroke(); ctx.restore();
-      S.draw.text(c,"bandes orange : stimulus",ax.R-6,ax.T+10,{size:10,color:P.amber,align:"right"});
+      S.draw.line(c,ax.X(tc),ax.T,ax.X(tc),ax.B,P.ink,1.2,[3,3]); S.draw.dot(c,ax.X(tc),ax.Y(r.v[ix]),6,P.red);
+      S.draw.label(c,S.fmt(r.v[ix],0)+" mV",Math.min(ax.X(tc)+10,ax.R-40),Math.max(ax.T+10,ax.Y(r.v[ix])-14),{color:P.red,align:"left"});
+      S.draw.text(c,"orange : stimulus · glisse pour explorer",ax.R-4,ax.T+8,{size:9.5,color:P.amber,align:"right"});
+      /* coupe de membrane : canaux */
+      var my=GH+78, m=r.m[ix], h=r.h[ix], nn=r.n[ix];
+      var act=Math.pow(m,3), inact=1-h, kopen=Math.pow(nn,4);
+      ctx.fillStyle="#fff1d6"; ctx.fillRect(8,GH+14,W-16,my-GH-14-14); ctx.fillStyle="#d8e6fa"; ctx.fillRect(8,my+14,W-16,H-my-22);
+      ctx.fillStyle="#f2e3b8"; ctx.fillRect(8,my-14,W-16,28); for(var x=14;x<W-8;x+=12){ B.ball(c,x,my-12,3.6,"#e8b94a"); B.ball(c,x,my+12,3.6,"#e8b94a"); }
+      S.draw.text(c,"extérieur (Na⁺ ++)",14,GH+26,{align:"left",size:10,color:"#a2650c"}); S.draw.text(c,"cytoplasme (K⁺ ++)",14,H-16,{align:"left",size:10,color:"#2c5aa0"});
+      function channel(cx,col,open,label,ion,dirDown,plug){
+        var gap=6+open*18; ctx.fillStyle=col; ctx.fillRect(cx-gap/2-18,my-18,18,36); ctx.fillRect(cx+gap/2,my-18,18,36); ctx.fillStyle="rgba(255,255,255,.0)";
+        /* porte d'activation */
+        ctx.fillStyle=B.mix(col,-.2); ctx.fillRect(cx-8-0,my-22,0,0);
+        S.draw.rrect(c,cx-gap/2,my-3+(open>.15?-17:-3)*(dirDown?1:-1)*0-(open>.15?24:0),gap,6,3); ctx.fillStyle="#2c3a4e"; ctx.fill();
+        if(plug!=null){ B.ball(c,cx,my+22-plug*0,0.01,col); var by=my+20-plug*0; ctx.save(); ctx.globalAlpha=Math.min(1,.2+plug); B.ball(c,cx+4,my+19,8,P.violet); ctx.restore(); }
+        S.draw.text(c,label,cx,my-30,{size:11,color:col});
+        var flux=open*(plug!=null?(1-plug):1); var nf=Math.round(flux*6);
+        for(var q=0;q<nf;q++){ var u=((tt0*1.2+q/Math.max(1,nf))%1), y=dirDown?my-40+u*80:my+40-u*80; B.ball(c,cx+(q%2?4:-4),y,5.5,ion==="Na"?P.acc:P.amber,{text:ion==="Na"?"Na⁺":"K⁺",size:6.5}); }
+      }
+      var tt0=tc;
+      channel(W*.3,P.acc,act,"canal Na⁺",  "Na",true,inact);
+      channel(W*.7,P.amber,kopen,"canal K⁺","K",false,null);
+      /* jauges */
+      var gx=W*.5, gy=GH+34; [["m³ (activation Na⁺)",act,P.acc],["1−h (inactivation Na⁺)",inact,P.violet],["n⁴ (ouverture K⁺)",kopen,P.amber]].forEach(function(g,q){ var yy=GH+22+q*0; });
+      var gw=Math.min(110,W*.2), x0=W-gw-14; [["m³",act,P.acc],["1−h",inact,P.violet],["n⁴",kopen,P.amber]].forEach(function(g,q){ var yy=my+30+q*12; if(W>420){ ctx.fillStyle="rgba(255,255,255,.7)"; ctx.fillRect(x0,yy-4,gw,8); ctx.fillStyle=g[2]; ctx.fillRect(x0,yy-4,gw*g[1],8); S.draw.text(c,g[0],x0-6,yy,{size:9.5,color:g[2],align:"right"}); } });
       var verdict = dr.value==="ttx"?"aucun pic (Na⁺ bloqué)":r.sp===0?"sous le seuil : pas de potentiel d'action":r.sp===1?"un potentiel d'action":r.sp+" potentiels d'action";
       if(tw.value&&r.sp===1) verdict+=" : le 2ᵉ stimulus tombe en période réfractaire";
       ro.set(0,S.fmt(r.mx,1)+" mV"); ro.set(1,String(r.sp)); ro.set(2,verdict);
-    });
-    k.note("Modèle d'axone géant de calmar à 6,3 °C (Hodgkin-Huxley, 1952), tension de repos −65 mV. À 37 °C chez les mammifères, tout est beaucoup plus rapide (pic en < 1 ms). Seuil de ≈ 7 µA/cm² pour un stimulus de 1 ms.","warn");
+    }
+    k.button("▶ Rejouer",function(){ auto=true; tcur=0; },true);
+    k.draw(function(){ frame(0); });
+    var lp=k.loop(function(dt){ frame(dt); }); lp.play();
+    k.note("Modèle d'axone géant de calmar à 6,3 °C (Hodgkin-Huxley, 1952), tension de repos −65 mV. À 37 °C chez les mammifères, tout est beaucoup plus rapide (pic en < 1 ms). Seuil de ≈ 7 µA/cm² pour un stimulus de 1 ms. Les canaux dessinés montrent les variables de portes du modèle (m³, 1−h, n⁴).","warn");
   }
 });
 
@@ -156,7 +189,7 @@ SFA.sim({
       for(var s=0;s<=T/dt;s++){ var t=s*dt; V=rest+(V-rest)*Math.exp(-dt/tau.value);
         while(ei<ev.length&&ev[ei][0]<=t){ if(ref<=0) V=Math.max(-85,V+ev[ei][1]); ei++; }
         ref-=dt; if(V>=th&&ref<=0){ sp.push(t); V=rest; ref=3; tr.push(0); } else tr.push(V); }
-      var ax=S.draw.axes(c,{x0:0,x1:T,y0:-90,y1:10,stepX:25,stepY:10,xl:"temps (ms)",yl:"Vm (mV)"});
+      var ax=S.draw.axes(c,{t:28,x0:0,x1:T,y0:-90,y1:10,stepX:25,stepY:10,xl:"temps (ms)",yl:"Vm (mV)"});
       S.draw.line(c,ax.L,ax.Y(th),ax.R,ax.Y(th),P.red,1.5,[6,4]); S.draw.text(c,"seuil −55 mV",ax.R-4,ax.Y(th)-8,{size:10,color:P.red,align:"right"});
       ctx.save(); ctx.beginPath(); ctx.rect(ax.L,ax.T,ax.R-ax.L,ax.B-ax.T); ctx.clip(); ctx.strokeStyle=P.acc; ctx.lineWidth=1.8; ctx.beginPath();
       tr.forEach(function(v,i){ var x=ax.X(i*dt), y=ax.Y(v); if(i===0)ctx.moveTo(x,y); else ctx.lineTo(x,y); }); ctx.stroke(); ctx.restore();
@@ -187,7 +220,7 @@ SFA.sim({
       c.clear(); var g=G.value, a=0.1, isG=sc.value==="gly", D=isG?0.06:0.4, set=isG?1.0:37, pos=md.value==="pos";
       var Gp=g; var x=0, pts=[], cap=10*D/a, runaway=false, mx=0;
       for(var t=0;t<=60;t+=0.1){ var d=(t>=5&&(!tmp.value||t<30))?D:0; var rate=pos? d+a*(Gp-1)*x : d-a*(1+g)*x; x+=0.1*rate; if(x>cap){ x=cap; runaway=true; } pts.push(x); if(Math.abs(x)>mx) mx=Math.abs(x); }
-      var ymax=pos?cap*1.05:D/a*1.2, ax=S.draw.axes(c,{x0:0,x1:60,y0:-ymax*0.05,y1:ymax,xl:"temps (min)",yl:"écart à la consigne ("+(isG?"g/L":"°C")+")"});
+      var ymax=pos?cap*1.05:D/a*1.2, ax=S.draw.axes(c,{t:28,x0:0,x1:60,y0:-ymax*0.05,y1:ymax,xl:"temps (min)",yl:"écart à la consigne ("+(isG?"g/L":"°C")+")"});
       S.draw.line(c,ax.L,ax.Y(D/a),ax.R,ax.Y(D/a),P.grey,1.4,[5,4]); S.draw.text(c,"sans régulation : "+S.fmt(D/a,2),ax.R-4,ax.Y(D/a)-8,{size:10,color:P.grey,align:"right"});
       var ctx=c.ctx; ctx.save(); ctx.beginPath(); ctx.rect(ax.L,ax.T,ax.R-ax.L,ax.B-ax.T); ctx.clip(); ctx.strokeStyle=pos?P.red:P.acc; ctx.lineWidth=2.6; ctx.beginPath();
       pts.forEach(function(p,i){ var xx=ax.X(i*0.1), yy=ax.Y(p); if(i===0)ctx.moveTo(xx,yy); else ctx.lineTo(xx,yy); }); ctx.stroke(); ctx.restore();

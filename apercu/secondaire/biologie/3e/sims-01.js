@@ -65,6 +65,11 @@ window.B3H = (function(){
   A.prairie = function(c,hor){ var g=c.ctx, W=c.W, H=c.H; hor = hor==null ? .62 : hor;
     var s=g.createLinearGradient(0,0,0,H*hor); s.addColorStop(0,"#d6ecfb"); s.addColorStop(1,"#f4fbf2"); g.fillStyle=s; g.fillRect(0,0,W,H*hor+1);
     var p=g.createLinearGradient(0,H*hor,0,H); p.addColorStop(0,"#bfe3a8"); p.addColorStop(1,"#8fcb7e"); g.fillStyle=p; g.fillRect(0,H*hor,W,H*(1-hor)); };
+  /* pastille ronde avec l'illustration : badge(c, nom, x, y, r, bord) */
+  A.badge = function(c,name,x,y,r,ring){ var g=c.ctx; g.save(); g.shadowColor="rgba(15,27,45,.18)"; g.shadowBlur=6; g.shadowOffsetY=1.5; g.beginPath(); g.arc(x,y,r,0,6.3); g.fillStyle="#fffdf6"; g.fill(); g.restore();
+    g.save(); g.beginPath(); g.arc(x,y,r-1,0,6.3); g.clip();
+    if (name==="plancton"){ [[-.3,-.2,.14,"#4fae6b"],[.25,-.25,.12,"#6bc37e"],[-.05,.25,.16,"#3f9a5a"],[.3,.2,.1,"#7fd08f"]].forEach(function(q){ ell(g,x+q[0]*r*1.4,y+q[1]*r*1.4,q[2]*r*1.6,q[2]*r*1.6,q[3],INK); }); } else A.draw(name,c,x,y+(name==="herbe"?r*.12:0),r*1.5,1);
+    g.restore(); g.beginPath(); g.arc(x,y,r,0,6.3); g.strokeStyle=ring||"#9aa8ba"; g.lineWidth=2.2; g.stroke(); };
   A.draw = function(name,c,x,y,s,d,col){ if (A[name]) A[name](c,x,y,s,d,col); };
   return A;
 })();
@@ -220,7 +225,7 @@ SFA.sim({
         if (which.value===i && yr.value>=10){ g.strokeStyle=P.red; g.lineWidth=2; g.beginPath(); g.moveTo(x-r*.5,y-r*.5); g.lineTo(x+r*.5,y+r*.5); g.moveTo(x+r*.5,y-r*.5); g.lineTo(x-r*.5,y+r*.5); g.stroke(); }
         D.label(cn,NM[i]+" "+(dead?"0":S.fmt(pc,0))+" %",x,y+r+12,{size:11.5,color:pc>115?P.green:pc<85?P.red:P.ink}); }
       D.label(cn,"année "+Math.round(yr.value)+(yr.value<10?" · avant le changement":""),8,13,{size:11.5,color:P.ink,align:"left"});
-      D.text(cn,"flèche : de l'être mangé vers le mangeur",W-8,13,{size:10.5,color:P.grey,align:"right"});
+      D.text(cn,"flèche : de l'être mangé vers le mangeur",W/2,H-6,{size:10.5,color:P.grey});
     }
     k.draw(function(){
       c.clear(); var out = run(), ym = 120;

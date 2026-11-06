@@ -124,7 +124,7 @@ SFA.sim({
         var ok=dcm>=6; (ok?pel:sup).push(o[0]);
         S.draw.text(c,o[0],8,y,{size:12,color:o[3],align:"left"});
         ctx.fillStyle=ok?o[3]:"#c8d1de"; var w=Math.max(2,X(Math.max(dcm,1e-4))-left); ctx.fillRect(left,y-10,Math.min(w,right-left),20);
-        var lab=(dcm<0.01?dcm.toExponential(1).replace(".",",").replace("e-","·10^-"):dcm>=1000?dcm.toExponential(1).replace(".",",").replace("e+","·10^"):S.fmt(dcm,dcm<1?2:1))+" cm"; var wc=Math.min(w,right-left);
+        var lab=(dcm<0.01?S.bio.sci(dcm,1):dcm>=1000?S.bio.sci(dcm,1):S.fmt(dcm,dcm<1?2:1))+" cm"; var wc=Math.min(w,right-left);
         if(wc>110) S.draw.text(c,lab,left+wc-6,y,{size:11,color:ok?"#fff":P.ink,align:"right"}); else S.draw.text(c,lab,left+wc+6,y,{size:11,color:P.ink,align:"left"});
       });
       S.draw.line(c,X(6),40,X(6),c.H-20,P.red,1.8,[5,4]); S.draw.text(c,"6 cm = fond du tube",X(6)-4,c.H-12,{size:10,color:P.red,align:"right"});

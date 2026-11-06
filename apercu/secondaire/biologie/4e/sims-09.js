@@ -265,35 +265,49 @@ SFA.sim({
   id:"b4-c09-polysome", ch:"c09", tag:"Polysome · animation",
   titre:"Polysome : plusieurs ribosomes sur un même ARNm",
   resume:"Charge plusieurs ribosomes sur un ARNm et calcule le nombre de protéines produites.",
-  but:"Règle la longueur du gène, la vitesse des ribosomes, leur nombre et la durée de vie de l'ARNm. Regarde les chaînes s'allonger et le compteur de protéines.",
+  but:"Règle la longueur du gène, la vitesse des ribosomes, leur nombre et la durée de vie de l'ARNm. Touche l'ARNm pour y poser un ribosome de plus. Regarde les chaînes s'allonger et le compteur de protéines.",
   aRetenir:"Plusieurs ribosomes lisent le même ARNm en même temps (polysome). Une protéine de L acides aminés demande un temps L ÷ v. Avec N ribosomes, il sort une protéine toutes les (L ÷ v) ÷ N secondes : débit = N·v ÷ L. Plus l'ARNm vit longtemps, plus il donne de protéines.",
   piege:"Les ribosomes ne peuvent pas se chevaucher : environ un ribosome par 10 codons au maximum. Vitesses d'ordre de grandeur : ≈ 20 aa/s chez les bactéries, ≈ 5 aa/s chez les eucaryotes. Régime établi supposé.",
   build:function(k, S){
-    var c = k.canvas(0, {ratio:.8});
+    var P = S.draw.palette, c = k.canvas(0, {ratio:.92});
     var L = k.slider("Longueur de la protéine", 50, 500, 10, 200, "acides aminés");
     var v = k.slider("Vitesse du ribosome", 2, 20, 1, 5, "aa/s");
     var N = k.slider("Ribosomes sur l'ARNm", 1, 50, 1, 5, "");
     var T = k.slider("Durée de vie de l'ARNm", 30, 1800, 30, 300, "s");
     var ro = k.readouts(["Temps pour 1 protéine", "Débit", "Protéines produites", "Ribosomes maximum"]);
     var nt = k.note("", "");
-    var st = {t:0, done:0, ph:0};
-    var lp = k.loop(function(dt){ var Nn = Math.min(N.value, Math.floor(L.value / 10)); st.ph += dt * v.value / L.value; if (st.ph >= 1){ st.ph -= 1; } st.t += dt; st.done = Math.floor(st.t * Nn * v.value / L.value); k.redraw(); });
+    var st = {t:0, done:0, ph:0, out:[]}, geo = {};
+    var lp = k.loop(function(dt){
+      var Nn = Math.min(N.value, Math.floor(L.value / 10)), before = st.t * Nn * v.value / L.value;
+      st.ph += dt * v.value / L.value; if (st.ph >= 1) st.ph -= 1; st.t += dt; st.done = Math.floor(st.t * Nn * v.value / L.value);
+      var nb = Math.floor(st.t * Nn * v.value / L.value) - Math.floor(before); for (var q = 0; q < nb; q++) st.out.push({t:0, dx:(Math.random() - .5) * 20});
+      st.out.forEach(function(o){ o.t += dt; }); st.out = st.out.filter(function(o){ return o.t < 1.6; });
+      k.redraw();
+    });
     lp.play();
-    k.button("↺ Remettre à zéro", function(){ st.t = 0; st.ph = 0; st.done = 0; }, true);
+    k.button("↺ Remettre à zéro", function(){ st.t = 0; st.ph = 0; st.done = 0; st.out = []; }, true);
+    c.pointer(function(type, p){ if (type === "down" && geo.y && Math.abs(p.y - geo.y) < 30){ N.set(Math.min(50, N.value + 1)); k.redraw(); } });
+    function ribo(x, y, s){ var ctx = c.ctx; ctx.beginPath(); ctx.ellipse(x, y - s * 0.55, s * 0.95, s * 0.7, 0, 0, 6.2832); var g = ctx.createLinearGradient(0, y - 2 * s, 0, y); g.addColorStop(0, "#d6cbf2"); g.addColorStop(1, "#a692dc"); ctx.fillStyle = g; ctx.fill(); ctx.strokeStyle = "#6a58a8"; ctx.lineWidth = 1.5; ctx.stroke(); ctx.beginPath(); ctx.ellipse(x, y + s * 0.05, s * 0.8, s * 0.42, 0, 0, 6.2832); ctx.fillStyle = "#8f7bd0"; ctx.fill(); ctx.stroke(); }
     k.draw(function(){
       c.clear(); var ctx = c.ctx, W = c.W, H = c.H, Lc = L.value, vv = v.value, Nmax = Math.floor(Lc / 10), Nn = Math.min(N.value, Nmax);
-      var x0 = 20, x1 = W - 20, y0 = H * 0.3, hh = H * 0.34;
-      S.draw.line(c, x0, y0 + hh, x1, y0 + hh, B4.pal.violet, 5); B4.txt(c, "5'", x0 - 8, y0 + hh, B4.pal.violet, 12); B4.txt(c, "3'", x1 + 8, y0 + hh, B4.pal.violet, 12);
-      B4.txt(c, "ARNm (" + Lc * 3 + " nucléotides)", x0, y0 + hh + 22, B4.pal.violet, 12, "left");
+      var x0 = 26, x1 = W - 26, y0 = H * 0.78, chH = H * 0.5;
+      geo = {y:y0};
+      var bg = ctx.createLinearGradient(0, 0, 0, H); bg.addColorStop(0, "#f8f5fd"); bg.addColorStop(1, "#efeaf8"); ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
+      /* ARNm */
+      ctx.strokeStyle = P.violet; ctx.lineWidth = 5; ctx.lineCap = "round"; ctx.beginPath(); ctx.moveTo(x0 - 12, y0 + 8); ctx.lineTo(x1 + 12, y0 + 8); ctx.stroke();
+      S.draw.text(c, "5'", x0 - 18, y0 + 24, {size:11, color:P.violet}); S.draw.text(c, "3'", x1 + 18, y0 + 24, {size:11, color:P.violet}); S.draw.text(c, "ARNm (" + Lc * 3 + " nucléotides) · touche-le pour ajouter un ribosome", W / 2, y0 + 28, {size:10, color:P.violet});
       for (var i = 0; i < Nn; i++){
-        var f = (st.ph + i / Nn) % 1, x = x0 + f * (x1 - x0);
-        B4.ell(c, x, y0 + hh - 7, 9, 7, "rgba(148,163,184,.8)", "#475569", 1.5);
-        S.draw.line(c, x, y0 + hh - 13, x - 4 - 14 * f, y0 + hh - 13 - hh * 0.9 * f - 4, B4.pal.green, 2.5);
+        var f = (st.ph + i / Nn) % 1, x = x0 + f * (x1 - x0), hh = f * chH, nb = Math.max(1, Math.round(f * 14));
+        ctx.strokeStyle = "#5cae82"; ctx.lineWidth = 2.4; ctx.lineJoin = "round"; ctx.beginPath(); ctx.moveTo(x, y0 - 18);
+        for (var q = 1; q <= 20; q++){ var u = q / 20; ctx.lineTo(x - 14 * f * u + Math.sin(u * 14 + i) * 3 * f, y0 - 18 - hh * u); } ctx.stroke();
+        for (q = 1; q <= nb; q++){ var uu = q / nb; S.draw.dot(c, x - 14 * f * uu + Math.sin(uu * 14 + i) * 3 * f, y0 - 18 - hh * uu, 3, q % 2 ? "#2f8a5e" : "#e8a317"); }
+        ribo(x, y0 + 4, 11);
       }
-      B4.txt(c, "chaînes d'acides aminés de plus en plus longues →", W / 2, 14, B4.pal.green, 12);
-      var t1 = Lc / vv, rate = Nn * vv / Lc, tot = Math.max(0, (T.value - t1)) * rate + 0;
-      var lifeT = T.value, n1 = Math.floor(Math.max(0, lifeT - t1) * rate);
-      B4.txt(c, "Protéines terminées depuis le début : " + st.done, W / 2, H - 14, B4.pal.ink, 13);
+      /* protéines libérées */
+      st.out.forEach(function(o){ var u = o.t / 1.6, xx = x1 + 6 + o.dx * 0.5, yy = y0 - 20 - u * H * 0.35; ctx.save(); ctx.globalAlpha = 1 - u * u; S.draw.glow(c, xx, yy, 14, P.green, 0.5); ctx.beginPath(); ctx.arc(xx, yy, 7, 0, 6.2832); ctx.fillStyle = "#4aa877"; ctx.fill(); ctx.strokeStyle = "#1f6b43"; ctx.stroke(); ctx.restore(); });
+      S.draw.label(c, "chaînes d'acides aminés de plus en plus longues →", W / 2, 14, {color:P.green, size:10.5});
+      var t1 = Lc / vv, rate = Nn * vv / Lc, lifeT = T.value, n1 = Math.floor(Math.max(0, lifeT - t1) * rate);
+      S.draw.label(c, "Protéines terminées : " + st.done, W - 10, H * 0.14, {color:P.ink, size:13, align:"right"});
       ro.set(0, S.fmt(t1, 0) + " s"); ro.set(1, S.fmt(rate * 60, 1) + " / min"); ro.set(2, "≈ " + S.fmt(n1, 0) + " pendant " + S.fmt(lifeT, 0) + " s"); ro.set(3, Nmax);
       nt.set((N.value > Nmax ? "Trop de ribosomes pour cette longueur : un ribosome occupe ≈ 10 codons, seuls " + Nmax + " tiennent. " : "") + "Un ribosome met " + S.fmt(t1, 0) + " s (= " + Lc + " ÷ " + vv + "). Avec " + Nn + " ribosomes, une protéine est libérée toutes les " + S.fmt(t1 / Nn, 1) + " s. Sur la durée de vie de l'ARNm : ≈ " + S.fmt(n1, 0) + " protéines" + (lifeT <= t1 ? " : aucune, l'ARNm est dégradé avant la fin de la 1re protéine." : "."), lifeT <= t1 ? "warn" : "");
     });

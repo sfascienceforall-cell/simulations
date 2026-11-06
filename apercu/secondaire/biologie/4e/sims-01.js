@@ -1,6 +1,6 @@
 /* Biologie 4e · chapitre 1 · Niveaux d'organisation et observation de la cellule */
 var B4 = window.B4 = {
-  pal: {acc:"#1e3f8f", red:"#b42318", green:"#2e6b55", violet:"#5B21B6", amber:"#B45309", teal:"#0e7490", ink:"#0f1b2d", grey:"#8a95a3", light:"#e3e7ed"},
+  pal: (function(){ var p = SFA.draw.palette; return {acc:p.acc, red:p.red, green:p.green, violet:p.violet, amber:p.amber, teal:p.teal, ink:p.ink, grey:p.grey, light:p.light}; })(),
   ell: function(c, x, y, rx, ry, fill, stroke, lw, rot){
     var ctx = c.ctx; ctx.save(); ctx.beginPath(); ctx.ellipse(x, y, Math.max(0.5, rx), Math.max(0.5, ry), rot || 0, 0, 2 * Math.PI);
     if (fill){ ctx.fillStyle = fill; ctx.fill(); } if (stroke){ ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.5; ctx.stroke(); } ctx.restore();
@@ -34,7 +34,7 @@ SFA.sim({
   build:function(k, S){
     var c = k.canvas(0, {ratio:.78});
     var mode = k.seg("Mode", [["g","Grossissement"],["r","Résolution"]], "g");
-    var obj = k.seg("Objectif", [[4,"×4"],[10,"×10"],[40,"×40"],[100,"×100"]], 10);
+    var obj = k.seg("Objectif", [[4,"×4"],[10,"×10"],[40,"×40"],[100,"×100"]], 40);
     var oc = k.seg("Oculaire", [[5,"×5"],[10,"×10"],[15,"×15"]], 10);
     var spec = k.select("Objet (mode Grossissement)", [[250,"Cellule d'oignon (≈ 250 µm)"],[7,"Globule rouge (7 µm)"],[2,"Bactérie E. coli (2 µm)"],[1,"Mitochondrie (1 µm)"],[0.1,"Virus de la grippe (0,1 µm)"]], 250);
     var dd = k.slider("Distance entre deux points (mode Résolution)", 0.05, 3, 0.05, 0.5, "µm");

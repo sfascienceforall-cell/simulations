@@ -225,10 +225,10 @@ SFA.sim({
       pt(c2, ax2, t, s.x(t), P.red, 6); vl(c2, ax2, t, "#b6bfcc", [3, 4], 1.2); lab(c2, "force (orange)", ax2.R - 6, ax2.T + 12, P.amber, 11, "right");
       // masse-ressort
       var W0 = c0.W, Y0 = c0.H / 2, sc = (W0 - 140) / 2 / Rt, xm = W0 / 2 + 30 + s.x(t) * sc, c0x = c0.ctx; c0x.fillStyle = "#6b7380"; c0x.fillRect(14, Y0 - 24, 8, 48); springDraw(c0, 22, xm - 18, Y0, 9, P.teal); c0x.fillStyle = P.acc; c0x.fillRect(xm - 18, Y0 - 18, 36, 36); D.line(c0, W0 / 2 + 30, Y0 - 26, W0 / 2 + 30, Y0 + 26, "#9aa5b4", 1.2, [3, 3]);
-      var fq = Math.cos(Wv * t) * 46; if (Math.abs(fq) > 4) D.arrow(c0, xm + (fq > 0 ? 22 : -22), Y0 - 30, xm + (fq > 0 ? 22 : -22) + fq, Y0 - 30, P.amber, 3); D.label(c0, "force excitatrice", W0 - 10, 8, {color:P.amber, align:"right", base:"top", size:10.5});
+      var fq = Math.cos(Wv * t) * 46; if (Math.abs(fq) > 4) D.arrow(c0, xm + (fq > 0 ? 22 : -22), Y0 - 30, xm + (fq > 0 ? 22 : -22) + fq, Y0 - 30, P.amber, 3); D.label(c0, "force excitatrice", W0 - 12, 16, {color:P.amber, align:"right", size:10.5});
       // 3D
-      var cx3 = c3.W / 2, cy3 = c3.H / 2 + 8, vs = w0, R = Rt, sc3 = Math.min(c3.W * 0.3, c3.H * 0.34) / R, zh = c3.H * 0.30 / 1, ctx3 = c3.ctx;
-      function P3(x, y, tz){ return pj(x, y, (tz / TT - 0.5) * 2.2 * R, cx3, cy3, sc3); }
+      var cx3 = c3.W / 2, cy3 = c3.H / 2 + 8, vs = w0, R = Rt, sc3 = Math.min(c3.W * 0.34, c3.H * 0.42) / R, zh = c3.H * 0.30 / 1, ctx3 = c3.ctx;
+      function P3(x, y, tz){ return pj(x, y, (tz / TT - 0.5) * 1.5 * R, cx3, cy3, sc3); }
       var corners = [[-R, -R], [R, -R], [R, R], [-R, R]];
       ctx3.save(); ctx3.strokeStyle = "rgba(138,149,163,.55)"; ctx3.lineWidth = 1.2;
       [0, TT].forEach(function(tz){ ctx3.beginPath(); corners.forEach(function(q, ii){ var p = P3(q[0], q[1], tz); ii ? ctx3.lineTo(p[0], p[1]) : ctx3.moveTo(p[0], p[1]); }); ctx3.closePath(); ctx3.fillStyle = tz === 0 ? "rgba(30,63,143,.05)" : "rgba(0,0,0,0)"; ctx3.fill(); ctx3.stroke(); });

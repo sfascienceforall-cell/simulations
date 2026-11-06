@@ -20,31 +20,72 @@ SFA.sim({
   id: "b5-c04-temperature", ch: "c04", tag: "Classique",
   titre: "De −10 à 40 °C : les réponses du corps",
   resume: "Température extérieure et vêtements → vasomotricité, frissons, sudation.",
-  but: "Fais varier la température de l'air et l'épaisseur des vêtements. Repère les zones où le corps règle sa température par la peau seule, puis par les frissons, puis par la sueur, et la limite où la régulation est dépassée (température du corps qui dérive).",
+  but: "Fais varier la température de l'air (curseur, ou glisse sur le graphique) et l'épaisseur des vêtements. Observe le corps : vaisseaux de la peau, frissons, sueur. Repère les zones où le corps règle sa température par la peau seule, puis par les frissons, puis par la sueur, et la limite où la régulation est dépassée (température du corps qui dérive).",
   aRetenir: "La température du corps (≈ 37 °C) dépend du bilan chaleur produite − chaleur perdue. Quand il fait froid : vasoconstriction (moins de chaleur perdue par la peau), puis frissons (plus de chaleur produite). Quand il fait chaud : vasodilatation, puis sudation (l'évaporation refroidit). Le centre de régulation est l'hypothalamus.",
   piege: "La température du corps ne suit pas celle de l'extérieur tant que la régulation fonctionne. Et le froid « ne donne pas » la grippe : les infections sont dues à des virus. Valeurs d'un adulte au repos, modèle simplifié (chaleur produite au repos : 80 W).",
   build: function(k, S){
-    var c1 = k.canvas(230), c2 = k.canvas(130), pal = S.draw.palette;
+    var c = k.canvas(500), pal = S.draw.palette, D = S.draw;
     var Ta = k.slider("Température de l'air", -10, 40, 1, 10, "°C");
     var iso = k.slider("Vêtements (0 = nu, 1 = habits légers, 2 = tenue chaude)", 0, 2, 0.25, 1, "");
     var ro = k.readouts(["Production de chaleur", "Chaleur perdue", "Sudation", "Température du corps après 1 h"]);
     var nt = k.note("", "");
+    var tm = 0, geo = {}, drag = false;
+    var lp = k.loop(function(dt){ tm += dt; k.redraw(); }); lp.play();
+    c.cv.style.touchAction = "none";
+    c.pointer(function(t, p){ if (t === "down") drag = p.y > geo.gy; if (drag && (t === "down" || t === "drag") && geo.ax){ Ta.set(Math.max(-10, Math.min(40, Math.round(geo.ax.ix(p.x))))); k.redraw(); } if (t === "up") drag = false; });
     k.draw(function(){
       var r = thermo(Ta.value, iso.value), T, a = [], b = [], cc = [];
-      for (T = -10; T <= 40; T += 1){ var q = thermo(T, iso.value); a.push([T, q.vc * 100]); b.push([T, q.shiv / 240 * 100]); cc.push([T, Math.max(q.vd * 0 + q.E / 700 * 100, 0)]); }
-      c1.clear();
-      var ax = S.draw.axes(c1, {x0: -10, x1: 40, y0: 0, y1: 100, xl: "T air (°C)", yl: "% du maximum", stepX: 10, stepY: 25});
-      B5.poly(c1, ax, a, pal.teal, 2.4); B5.poly(c1, ax, b, pal.red, 2.4); B5.poly(c1, ax, cc, pal.amber, 2.4);
-      B5.leg(c1, [["vasoconstriction", pal.teal], ["frissons", pal.red], ["sudation", pal.amber]], ax.L + 8, ax.T + 34);
-      S.draw.line(c1, ax.X(Ta.value), ax.T, ax.X(Ta.value), ax.B, pal.ink, 1.6, [5, 4]);
-      c2.clear();
-      var pr = r.prod, lo = Math.max(0, r.loss) + r.E, xs = 24, W = c2.W - 2 * xs;
-      S.draw.text(c2, "Production : " + S.fmt(pr, 0) + " W", xs, 20, {align: "left", size: 12, color: pal.red});
-      B5.bar(c2, xs, 30, W, 18, pr / 400, pal.red);
-      S.draw.text(c2, "Pertes (peau + évaporation) : " + S.fmt(lo, 0) + " W", xs, 72, {align: "left", size: 12, color: pal.teal});
-      B5.bar(c2, xs, 82, W, 18, lo / 400, pal.teal);
-      S.draw.text(c2, "échelle : 0 à 400 W", c2.W - xs, 118, {align: "right", size: 12, color: pal.grey});
-      var dT = dTh(r.net);
+      for (T = -10; T <= 40; T += 1){ var q = thermo(T, iso.value); a.push([T, q.vc * 100]); b.push([T, q.shiv / 240 * 100]); cc.push([T, Math.max(q.E / 700 * 100, 0)]); }
+      c.clear(); var ctx = c.ctx, W = c.W, H = c.H, sh = 262, ta = Ta.value;
+      var warm = B5.cl((ta + 10) / 50, 0, 1);
+      D.rrect(c, 8, 8, W - 16, sh, 12); var bg = ctx.createLinearGradient(0, 0, 0, sh); bg.addColorStop(0, "rgb(" + Math.round(190 + 62 * warm) + "," + Math.round(212 + 8 * warm) + "," + Math.round(245 - 70 * warm) + ")"); bg.addColorStop(1, "#f8f6f0"); ctx.fillStyle = bg; ctx.fill();
+      ctx.save(); D.rrect(c, 8, 8, W - 16, sh, 12); ctx.clip();
+      if (ta < 5){ for (var f = 0; f < 14; f++){ B5.circ(c, 20 + (f * 53) % (W - 40), 14 + ((f * 41 + tm * 28) % (sh - 20)), 2.4, "#fff", "#b8c6d6", 1); } }
+      if (ta > 28){ D.glow(c, W - 50, 44, 60, pal.yellow, .85); B5.circ(c, W - 50, 44, 18, pal.yellow); }
+      ctx.restore();
+      D.text(c, "air " + S.fmt(ta, 0) + " °C", 20, 24, {align: "left", size: 13, color: pal.ink, weight: 900});
+      /* ----- silhouette ----- */
+      var fx = Math.min(130, W * 0.28), fy = 62, sc = Math.min(1, (sh - 80) / 190) * 1.0, shiv = B5.cl(r.shiv / 240, 0, 1), vd = r.vd, vc = r.vc;
+      var skin = vd > vc ? "rgb(" + Math.round(244 + 8 * vd) + "," + Math.round(190 - 60 * vd) + "," + Math.round(170 - 50 * vd) + ")" : "rgb(" + Math.round(244 - 20 * vc) + "," + Math.round(200 + 10 * vc) + "," + Math.round(186 + 40 * vc) + ")";
+      var jx = Math.sin(tm * 38) * shiv * 2.2, jy = Math.cos(tm * 33) * shiv * 1.6;
+      ctx.save(); ctx.translate(fx + jx, fy + jy); ctx.scale(sc, sc);
+      ctx.fillStyle = skin; ctx.strokeStyle = "#b9856a"; ctx.lineWidth = 2.5;
+      ctx.beginPath(); ctx.arc(0, 0, 21, 0, 7); ctx.fill(); ctx.stroke();                         /* tête */
+      D.rrect(c, -9, 18, 18, 14, 5); ctx.fill(); ctx.stroke();                                  /* cou */
+      D.rrect(c, -30, 30, 60, 86, 18); ctx.fill(); ctx.stroke();                                /* tronc */
+      D.rrect(c, -46, 36, 17, 78, 8); ctx.fill(); ctx.stroke(); D.rrect(c, 29, 36, 17, 78, 8); ctx.fill(); ctx.stroke();   /* bras */
+      D.rrect(c, -27, 112, 25, 86, 10); ctx.fill(); ctx.stroke(); D.rrect(c, 2, 112, 25, 86, 10); ctx.fill(); ctx.stroke(); /* jambes */
+      /* vaisseaux de la peau */
+      var vw = 1 + 4 * Math.abs(vd - vc), vcol = vd > vc ? "rgba(192,50,29," + (0.3 + .6 * vd) + ")" : "rgba(60,90,170," + (0.2 + .6 * vc) + ")";
+      ctx.strokeStyle = vcol; ctx.lineWidth = vd > vc ? 1 + 3.5 * vd : 2.2 - 1.2 * vc;
+      for (var v = -18; v <= 18; v += 12){ ctx.beginPath(); ctx.moveTo(v, 38); ctx.bezierCurveTo(v + 6, 62, v - 6, 84, v + 2, 108); ctx.stroke(); }
+      /* vêtements */
+      if (iso.value > 0){ var al = Math.min(.9, .25 + iso.value * .32); ctx.fillStyle = "rgba(60,110,170," + al + ")"; D.rrect(c, -31, 36, 62, 56 + iso.value * 14, 12); ctx.fill(); if (iso.value > 1){ ctx.fillStyle = "rgba(40,80,140," + al + ")"; D.rrect(c, -29, 112, 27, 60, 8); ctx.fill(); D.rrect(c, 2, 112, 27, 60, 8); ctx.fill(); D.rrect(c, -49, 36, 20, 60, 8); ctx.fill(); D.rrect(c, 29, 36, 20, 60, 8); ctx.fill(); } }
+      /* visage */
+      ctx.fillStyle = "#3a2a22"; ctx.beginPath(); ctx.arc(-7, -3, 2.2, 0, 7); ctx.arc(7, -3, 2.2, 0, 7); ctx.fill();
+      ctx.strokeStyle = "#3a2a22"; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(0, ta > 30 ? 10 : 6, 6, ta > 30 ? 1.2 * Math.PI : 0.15 * Math.PI, ta > 30 ? 1.8 * Math.PI : 0.85 * Math.PI); ctx.stroke();
+      ctx.restore();
+      /* sueur */
+      var nsw = Math.round(r.sweat / 12); for (var s = 0; s < Math.min(14, nsw); s++){ var sx = fx + (s % 2 ? 1 : -1) * (14 + (s * 13) % 34) * sc, sy = fy + 20 + (((tm * 55 + s * 29) % 90)) * sc; ctx.fillStyle = "rgba(47,127,209,.8)"; ctx.beginPath(); ctx.arc(sx, sy, 3.2, 0, 7); ctx.fill(); ctx.beginPath(); ctx.moveTo(sx - 2.6, sy - 1); ctx.lineTo(sx, sy - 7); ctx.lineTo(sx + 2.6, sy - 1); ctx.fill(); }
+      if (shiv > 0.05) D.label(c, "frissons", fx - 62 * sc - 28, fy + 70 * sc, {color: pal.red, size: 11});
+      if (r.sweat > 5) D.label(c, "sueur", fx + 62 * sc + 28, fy + 30 * sc, {color: pal.blue, size: 11});
+      D.label(c, vd > vc + .05 ? "vasodilatation" : vc > .05 ? "vasoconstriction" : "vaisseaux normaux", fx, 8 + sh - 14, {color: vd > vc ? pal.red : pal.acc, size: 11});
+      /* bilan chaleur : balance */
+      var bx = fx + 90 * sc + 40, bw = W - bx - 24, pr = r.prod, lo = Math.max(0, r.loss) + r.E, dT = dTh(r.net);
+      D.panel(c, bx - 10, 20, bw + 20, 230, {shadow: false, fill: "rgba(255,255,255,.88)"});
+      D.text(c, "Bilan de chaleur", bx + bw / 2, 38, {size: 12, color: pal.ink, weight: 900});
+      function bar(y, lab, val, col){ D.text(c, lab + " : " + S.fmt(val, 0) + " W", bx, y, {align: "left", size: 11.5, color: col, weight: 800}); D.rrect(c, bx, y + 10, bw, 16, 8); ctx.fillStyle = "#e3e7ed"; ctx.fill(); var wv = Math.max(6, bw * B5.cl(val / 400, 0, 1)); D.rrect(c, bx, y + 10, wv, 16, 8); ctx.fillStyle = col; ctx.fill(); }
+      bar(62, "Production", pr, pal.red); bar(114, "Pertes (peau + évaporation)", lo, pal.teal);
+      D.display(c, S.fmt(37 + dT, 1) + " °C", bx + bw / 2, 198, {w: Math.min(130, bw), h: 56, size: 22, caption: "température du corps (1 h)", color: Math.abs(dT) > .05 ? "#a31d0e" : "#13233a"});
+      D.text(c, "échelle 0–400 W", bx + bw, 154, {align: "right", size: 10, color: pal.grey});
+      /* ---------- courbes ---------- */
+      var gy = sh + 22; geo.gy = gy - 6;
+      D.panel(c, 8, gy - 4, W - 16, H - gy - 4, {shadow: false, fill: "#fbfcfe"});
+      var ax = D.axes(c, {x0: -10, x1: 40, y0: 0, y1: 100, xl: "T air (°C)  ·  glisse le repère", stepX: 10, stepY: 50, t: gy + 10, b: 36, l: 40, r: 18});
+      geo.ax = ax; D.text(c, "% du maximum", 14, gy + 4, {size: 11, color: pal.grey, align: "left"});
+      B5.poly(c, ax, a, pal.teal, 2.6); B5.poly(c, ax, b, pal.red, 2.6); B5.poly(c, ax, cc, pal.amber, 2.6);
+      D.legend(c, [[pal.teal, "vasoconstriction"], [pal.red, "frissons"], [pal.amber, "sudation"]], ax.R - 4, ax.T + 2, {align: "right"});
+      D.line(c, ax.X(ta), ax.T, ax.X(ta), ax.B, pal.ink, 1.5, [5, 4]);
       ro.set(0, S.fmt(pr, 0) + " W"); ro.set(1, S.fmt(Math.max(0, r.loss), 0) + " W"); ro.set(2, S.fmt(r.sweat, 0) + " g/h"); ro.set(3, S.fmt(37 + dT, 1) + " °C");
       if (dT < -0.05) nt.set("Régulation dépassée : malgré 4 fois la production de repos (frissons maximaux), le corps perd plus qu'il ne produit : hypothermie (≈ " + S.fmt(dT, 1) + " °C par heure).", "warn");
       else if (dT > 0.05) nt.set("Évaporation maximale dépassée dans ce modèle : la température du corps monte de " + S.fmt(dT, 1) + " °C par heure.", "warn");
