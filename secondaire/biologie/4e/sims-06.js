@@ -50,7 +50,7 @@ SFA.sim({
     var ox = k.toggle("Dioxygène présent (récipient ouvert, agité)", false, function(){ rst(); lp.play(); });
     var ro = k.readouts(["Sucre restant", "Éthanol formé", "CO₂ dégagé", "Temps écoulé"]);
     var nt = k.note("", "");
-    var st = {t:0, G:g.value, h:[], bub:[]};
+    var st = {t:0, G:g.value, h:[], bub:[]}, geo = {};
     function fT(t){ if (t > 55) return 0; return t < 35 ? Math.exp(-Math.pow((t - 35) / 15, 2)) : Math.exp(-Math.pow((t - 35) / 8, 2)); }
     function rst(){ st.t = 0; st.G = g.value; st.h = [[0, g.value, 0, 0]]; st.cum = 0; }
     g.el.addEventListener("input", rst);
@@ -66,14 +66,29 @@ SFA.sim({
     rst(); lp.play();
     k.button("↺ Recommencer", function(){ rst(); lp.play(); }, true);
     k.button("❚❚ Pause", function(){ lp.pause(); });
+    c.pointer(function(type, p){ if (type === "move" || !geo.th) return; if (type === "down" && Math.abs(p.x - geo.th[0]) > 26) return; T.set(Math.max(0, Math.min(60, Math.round((geo.th[2] - p.y) / (geo.th[2] - geo.th[1]) * 60)))); k.redraw(); });
     k.draw(function(){
-      c.clear(); var ctx = c.ctx, W = c.W, H = c.H, fh = H * 0.27, fw = 90, fx = (W - fw) / 2;
-      /* flacon */
+      c.clear(); var ctx = c.ctx, W = c.W, H = c.H, fh = H * 0.33;
+      /* flacon : levures, bulles, mousse qui monte ; thermomètre à glisser ; sucre restant */
       var ge = st.cum || 0, eth = ox.value ? 0 : ge * 0.511, co2g = ge * (ox.value ? 264 / 180 : 88 / 180), vol = co2g / 44 * 0.082057 * (273.15 + T.value) * 1000;
-      ctx.save(); ctx.fillStyle = "rgba(253,230,138,.55)"; ctx.fillRect(fx, 24, fw, fh - 10); ctx.strokeStyle = "#13233a"; ctx.lineWidth = 2.5; ctx.strokeRect(fx, 12, fw, fh + 2); ctx.restore();
-      st.bub.forEach(function(b){ var bx = fx + b.x * fw, by = 24 + b.y * (fh - 14); ctx.fillStyle = "rgba(255,255,255,.9)"; ctx.beginPath(); ctx.arc(bx, by, 3.2, 0, 6.3); ctx.fill(); ctx.strokeStyle = "#b45309"; ctx.stroke(); });
-      B4.txt(c, "levures + sucre, " + S.fmt(T.value, 0) + " °C", W / 2, fh + 24, B4.pal.ink, 12);
-      var ax = S.draw.axes(c, {x0:0, x1:180, y0:0, y1:Math.max(10, Math.ceil(g.value * (ox.value ? 1.5 : 1) / 5) * 5), xl:"t (min)", yl:"g", stepX:30, t:fh + 40, l:40});
+      var P = S.draw.palette, jx = W * 0.28, jw = Math.min(130, W * 0.34), jy = 12, jh = fh, rise = 1 - Math.exp(-vol / 1500), liq = jh * 0.5, foam = jh * 0.32 * rise, top = jy + jh - liq - foam;
+      ctx.save(); ctx.beginPath(); ctx.moveTo(jx - jw / 2, jy); ctx.lineTo(jx - jw / 2, jy + jh - 10); ctx.quadraticCurveTo(jx - jw / 2, jy + jh, jx - jw / 2 + 10, jy + jh); ctx.lineTo(jx + jw / 2 - 10, jy + jh); ctx.quadraticCurveTo(jx + jw / 2, jy + jh, jx + jw / 2, jy + jh - 10); ctx.lineTo(jx + jw / 2, jy); ctx.clip();
+      var lg = ctx.createLinearGradient(0, jy + jh - liq, 0, jy + jh); lg.addColorStop(0, "#f6d77a"); lg.addColorStop(1, "#e6a93a"); ctx.fillStyle = lg; ctx.fillRect(jx - jw / 2, jy + jh - liq, jw, liq);
+      ctx.fillStyle = "#fff8e3"; ctx.fillRect(jx - jw / 2, top, jw, foam + 2);
+      for (var q = 0; q < 16; q++){ var yy = jy + jh - liq - foam * (0.15 + (q * 0.37 % 1)) ; ctx.beginPath(); ctx.arc(jx - jw / 2 + 8 + ((q * 53) % (jw - 16)), yy, 2 + (q % 3), 0, 6.3); ctx.strokeStyle = "rgba(180,120,40,.45)"; ctx.lineWidth = 1; ctx.stroke(); }
+      var act = Math.min(1, fT(T.value) * (st.G > 0.05 ? 1 : 0));
+      for (q = 0; q < 14; q++){ var yx = jx - jw / 2 + 10 + ((q * 37) % (jw - 20)), yv = jy + jh - liq + 10 + ((q * 29) % Math.max(10, liq - 22)) + Math.sin(st.t * 0.4 + q) * 3; ctx.beginPath(); ctx.ellipse(yx, yv, 5.5, 4.5, 0.4 * q, 0, 6.3); ctx.fillStyle = T.value > 55 ? "#b6a99a" : "#e9d1a5"; ctx.fill(); ctx.strokeStyle = "#8a6a2f"; ctx.lineWidth = 1; ctx.stroke(); if (q % 3 === 0 && act > 0.2){ ctx.beginPath(); ctx.arc(yx + 5, yv - 4, 2.4, 0, 6.3); ctx.fillStyle = "#e9d1a5"; ctx.fill(); ctx.stroke(); } }
+      st.bub.forEach(function(b){ var bx = jx - jw / 2 + 6 + b.x * (jw - 12), by = jy + jh - 8 - (1 - b.y) * (liq + foam - 10); if (by < top) return; ctx.beginPath(); ctx.arc(bx, by, 3, 0, 6.3); ctx.fillStyle = "rgba(255,255,255,.85)"; ctx.fill(); ctx.strokeStyle = "#8a6a2f"; ctx.lineWidth = 1; ctx.stroke(); });
+      ctx.restore();
+      ctx.beginPath(); ctx.moveTo(jx - jw / 2, jy); ctx.lineTo(jx - jw / 2, jy + jh - 10); ctx.quadraticCurveTo(jx - jw / 2, jy + jh, jx - jw / 2 + 10, jy + jh); ctx.lineTo(jx + jw / 2 - 10, jy + jh); ctx.quadraticCurveTo(jx + jw / 2, jy + jh, jx + jw / 2, jy + jh - 10); ctx.lineTo(jx + jw / 2, jy); ctx.strokeStyle = "#13233a"; ctx.lineWidth = 2.5; ctx.stroke();
+      S.draw.text(c, "levures + sucre", jx, jy + jh + 12, {size:11, color:P.ink});
+      /* thermomètre */
+      var tx = W * 0.58, th0 = jy + 6, th1 = jy + jh - 14; S.draw.rrect(c, tx - 7, th0, 14, th1 - th0, 7); ctx.fillStyle = "#eef1f5"; ctx.fill(); ctx.strokeStyle = "#8a95a3"; ctx.lineWidth = 1.5; ctx.stroke();
+      var tf = T.value / 60, tc = T.value > 55 ? P.red : T.value > 40 ? P.orange : T.value < 10 ? P.blue : P.green; S.draw.rrect(c, tx - 4, th1 - (th1 - th0) * tf, 8, (th1 - th0) * tf + 6, 4); ctx.fillStyle = tc; ctx.fill(); S.draw.dot(c, tx, th1 + 8, 8, tc);
+      S.draw.dot(c, tx, th1 - (th1 - th0) * tf, 6, "#fff"); S.draw.text(c, S.fmt(T.value, 0) + " °C", tx + 14, th1 - (th1 - th0) * tf, {size:11, color:tc, align:"left"}); S.draw.text(c, "glisse", tx, th1 + 24, {size:9, color:"#5f6b7a"}); geo.th = [tx, th0, th1];
+      /* sucre restant */
+      var sx = W * 0.8, nsug = Math.round(st.G / 2); S.draw.text(c, "sucre", sx, jy + 6, {size:10.5, color:"#5f6b7a"}); for (q = 0; q < nsug; q++){ var cx2 = sx - 22 + (q % 4) * 14, cy2 = jy + jh - 10 - Math.floor(q / 4) * 12; ctx.fillStyle = "#fffdf5"; ctx.fillRect(cx2, cy2, 11, 10); ctx.strokeStyle = "#b8ab8a"; ctx.lineWidth = 1; ctx.strokeRect(cx2, cy2, 11, 10); }
+      var ax = S.draw.axes(c, {x0:0, x1:180, y0:0, y1:Math.max(10, Math.ceil(g.value * (ox.value ? 1.5 : 1) / 5) * 5), xl:"t (min)", yl:"g", stepX:30, t:fh + 44, l:40});
       var pal = [B4.pal.amber, B4.pal.red, B4.pal.teal];
       [[1, pal[0], "sucre (g)"], [2, pal[1], "éthanol (g)"], [3, pal[2], "CO₂ (g)"]].forEach(function(s, q){
         ctx.save(); ctx.beginPath(); ctx.rect(ax.L, ax.T, ax.R - ax.L, ax.B - ax.T); ctx.clip(); ctx.strokeStyle = s[1]; ctx.lineWidth = 2.6; ctx.beginPath();
@@ -104,20 +119,24 @@ SFA.sim({
       for (var s = 0; s < 5; s++) st.L = stepL(st.L, h / 5);
       st.t += h; st.h.push([st.t, st.L]); if (st.t >= 10 || st.L >= 12) lp.pause(); k.redraw();
     });
+    lp.play();
     k.button("▶ Lancer l'effort", function(){ st.t = 0; st.L = 1; st.h = [[0, 1]]; lp.play(); }, true);
     k.button("❚❚ Pause", function(){ lp.pause(); });
     k.button("↺ Repos", function(){ lp.pause(); st.t = 0; st.L = 1; st.h = [[0, 1]]; });
     k.draw(function(){
       c.clear(); var ctx = c.ctx, W = c.W, H = c.H, aer = Math.min(P.value, A.value), fer = Math.max(0, P.value - A.value), gl = aer / 30 + fer / 2, gl0 = P.value / 30;
       var hh = H * 0.28, bx = 10, bw = W - 20, tot = 400;
-      ctx.fillStyle = "#e3e7ed"; ctx.fillRect(bx, 10, bw, 22);
-      ctx.fillStyle = B4.pal.green; ctx.fillRect(bx, 10, bw * aer / tot, 22); ctx.fillStyle = B4.pal.red; ctx.fillRect(bx + bw * aer / tot, 10, bw * fer / tot, 22);
-      B4.txt(c, "vert : aérobie · rouge : lactique · " + S.fmt(P.value, 0) + " W", bx, 46, B4.pal.ink, 12, "left");
-      var ax = S.draw.axes(c, {x0:0, x1:10, y0:0, y1:16, xl:"t (min)", yl:"lactate (mmol/L)", stepX:2, stepY:4, t:62, l:46});
+      var Pl = S.draw.palette, gcx = W / 2, gcy = 88, gr = Math.min(70, W * 0.24), a0 = Math.PI, fa = function(w){ return a0 + Math.PI * w / tot; };
+      ctx.save(); ctx.lineCap = "butt"; ctx.lineWidth = 16; ctx.strokeStyle = "#e3e7ed"; ctx.beginPath(); ctx.arc(gcx, gcy, gr, a0, 2 * Math.PI); ctx.stroke();
+      ctx.strokeStyle = Pl.green; ctx.beginPath(); ctx.arc(gcx, gcy, gr, a0, fa(aer)); ctx.stroke(); ctx.strokeStyle = Pl.red; ctx.beginPath(); ctx.arc(gcx, gcy, gr, fa(aer), fa(aer + fer)); ctx.stroke(); ctx.restore();
+      var na = fa(P.value); ctx.save(); ctx.strokeStyle = Pl.ink; ctx.lineWidth = 3; ctx.lineCap = "round"; ctx.beginPath(); ctx.moveTo(gcx, gcy); ctx.lineTo(gcx + Math.cos(na) * (gr - 6), gcy + Math.sin(na) * (gr - 6)); ctx.stroke(); ctx.restore(); S.draw.dot(c, gcx, gcy, 6, Pl.ink);
+      S.draw.text(c, S.fmt(P.value, 0) + " W", gcx, gcy + 18, {size:15, color:Pl.ink, weight:800}); S.draw.text(c, "0", gcx - gr, gcy + 14, {size:10, color:"#5f6b7a"}); S.draw.text(c, "400", gcx + gr, gcy + 14, {size:10, color:"#5f6b7a"});
+      S.draw.legend(c, [[Pl.green, "aérobie"], [Pl.red, "lactique"]], 8, 8, {box:true});
+      var ax = S.draw.axes(c, {x0:0, x1:10, y0:0, y1:16, xl:"t (min)", yl:"lactate (mmol/L)", stepX:2, stepY:4, t:132, l:46});
       S.draw.line(c, ax.L, ax.Y(12), ax.R, ax.Y(12), B4.pal.red, 1.5, [5, 4]); B4.txt(c, "épuisement (≈ 12)", ax.R - 4, ax.Y(12) - 9, B4.pal.red, 12, "right");
       ctx.save(); ctx.beginPath(); ctx.rect(ax.L, ax.T, ax.R - ax.L, ax.B - ax.T); ctx.clip(); ctx.strokeStyle = B4.pal.violet; ctx.lineWidth = 2.8; ctx.beginPath(); st.h.forEach(function(p, i){ var x = ax.X(p[0]), y = ax.Y(p[1]); if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y); }); ctx.stroke(); ctx.restore();
       /* lactate d'équilibre */
-      var Leq = 1 + 0.06 * fer / 0.4;
+      var Leq = 1 + 0.06 * fer / 0.4; if (Leq < 16) S.draw.line(c, ax.L, ax.Y(Leq), ax.R, ax.Y(Leq), "rgba(98,54,196,.45)", 1.5, [3, 4]);
       ro.set(0, S.fmt(aer, 0) + " W"); ro.set(1, S.fmt(fer, 0) + " W"); ro.set(2, "× " + S.fmt(gl / gl0, 1) + " (vs tout aérobie)");
       var held = fer === 0 ? "durable" : Leq < 12 ? "stabilisée (lactate ≈ " + S.fmt(Leq, 1) + ")" : "limitée (épuisement)";
       ro.set(3, held);

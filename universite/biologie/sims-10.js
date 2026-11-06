@@ -69,7 +69,7 @@ SFA.sim({
         for (g = 1; g <= G; g++){ var n2 = 2 * ((gob.value && g >= 40 && g < 50) ? 5 : N.value), cnt = 0; if (p > 0 && p < 1){ for (i = 0; i < n2; i++) if (rnd() < p) cnt++; p = cnt / n2; } tr.push(p); }
         runs.push(tr); if (p >= 1) fix++; else if (p <= 0) lost++; hsum += 2 * p * (1 - p);
       }
-      var ax = S.draw.axes(c, {x0:0, x1:G, y0:0, y1:1, xl:"générations", yl:"p", stepX:20, stepY:0.25});
+      var ax = S.draw.axes(c, {t:28,x0:0, x1:G, y0:0, y1:1, xl:"générations", yl:"p", stepX:20, stepY:0.25});
       var cols = [pal.acc, pal.red, pal.green, pal.violet, pal.amber, pal.teal];
       runs.forEach(function(tr, j){ c.ctx.save(); c.ctx.strokeStyle = cols[j % 6]; c.ctx.globalAlpha = 0.75; c.ctx.lineWidth = 1.6; c.ctx.beginPath(); tr.forEach(function(v, t){ if (t === 0) c.ctx.moveTo(ax.X(t), ax.Y(v)); else c.ctx.lineTo(ax.X(t), ax.Y(v)); }); c.ctx.stroke(); c.ctx.restore(); });
       if (gob.value){ c.ctx.fillStyle = "rgba(180,35,24,.08)"; c.ctx.fillRect(ax.X(40), ax.T, ax.X(50) - ax.X(40), ax.B - ax.T); }
@@ -104,7 +104,7 @@ SFA.sim({
       var p = p0.value, tr = [p], g, wb;
       for (g = 0; g < gens.value; g++){ var q = 1 - p; wb = p * p * wA.value + 2 * p * q * wH.value + q * q * wa.value; if (wb > 0) p = (p * p * wA.value + p * q * wH.value) / wb; tr.push(p); }
       var q2 = 1 - p; wb = p * p * wA.value + 2 * p * q2 * wH.value + q2 * q2 * wa.value;
-      var ax = S.draw.axes(c, {x0:0, x1:gens.value, y0:0, y1:1, xl:"générations", yl:"p(A)", stepX:gens.value > 100 ? 50 : 20, stepY:0.25});
+      var ax = S.draw.axes(c, {t:28,x0:0, x1:gens.value, y0:0, y1:1, xl:"générations", yl:"p(A)", stepX:gens.value > 100 ? 50 : 20, stepY:0.25});
       S.draw.fn(c, ax, function(x){ var i = Math.min(tr.length - 1, Math.round(x)); return tr[i]; }, pal.acc, 2.6);
       var den = 2 * wH.value - wA.value - wa.value, ph = NaN, regime;
       if (wH.value > wA.value && wH.value > wa.value){ ph = (wH.value - wa.value) / den; regime = "Avantage de l'hétérozygote : polymorphisme stable"; }
@@ -135,7 +135,7 @@ SFA.sim({
     var ro = k.readouts(["Vitesse max rK/4","N = K/2 atteint à","Temps de doublement initial","Comportement"]);
     k.draw(function(){
       c.clear();
-      var ymax = Math.max(K.value * 1.6, 200, n0.value * 1.1, (mode.value === "d" && r.value > 1) ? K.value * Math.exp(r.value - 1) / r.value * 1.1 : 0), ax = S.draw.axes(c, {x0:0, x1:T.value, y0:0, y1:ymax, xl:"t", yl:"N", stepX:T.value > 50 ? 20 : 10});
+      var ymax = Math.max(K.value * 1.6, 200, n0.value * 1.1, (mode.value === "d" && r.value > 1) ? K.value * Math.exp(r.value - 1) / r.value * 1.1 : 0), ax = S.draw.axes(c, {t:28,x0:0, x1:T.value, y0:0, y1:ymax, xl:"t", yl:"N", stepX:T.value > 50 ? 20 : 10});
       var N0 = Math.min(n0.value, K.value * 1.5), beh = "";
       S.draw.line(c, ax.L, ax.Y(K.value), ax.R, ax.Y(K.value), pal.grey, 1.5, [5, 4]); S.draw.text(c, "K", ax.L + 8, ax.Y(K.value) - 9, {size:12, color:pal.grey});
       if (mode.value === "c"){
@@ -313,7 +313,7 @@ SFA.sim({
         ctx.beginPath(); ctx.moveTo(-3, -2); ctx.lineTo(-8, -13 + 4 * Math.sin(tt * 20)); ctx.lineTo(3, -3); ctx.fillStyle = "#92400e"; ctx.fill(); ctx.restore();
       });
       /* graphique p(t) */
-      var ax = S.draw.axes(c, {x0:0, x1:Math.max(10, hist.length + 2), y0:0, y1:1, l:40, r:12, t:H1 + 18, b:26, stepY:0.25, xl:"génération"});
+      var ax = S.draw.axes(c, {t:28,x0:0, x1:Math.max(10, hist.length + 2), y0:0, y1:1, l:40, r:12, t:H1 + 18, b:26, stepY:0.25, xl:"génération"});
       var pr = predict(hist[0], Math.max(10, hist.length + 2));
       c.ctx.save(); c.ctx.setLineDash([5, 4]); c.ctx.strokeStyle = pal.grey; c.ctx.lineWidth = 2; c.ctx.beginPath();
       pr.forEach(function(q, i){ var X = ax.X(i), Y = ax.Y(q); if (i) c.ctx.lineTo(X, Y); else c.ctx.moveTo(X, Y); }); c.ctx.stroke(); c.ctx.restore();

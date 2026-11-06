@@ -100,11 +100,11 @@ SFA.sim({
   id: "b5-c06-adh", ch: "c06", tag: "Bilan hydrique",
   titre: "Boire, transpirer : l'ADH règle l'urine",
   resume: "Apports et pertes d'eau → volume d'urine, concentration, ADH, bilan.",
-  but: "Règle ce que l'on boit et la sueur perdue sur une journée. Observe le volume et la concentration de l'urine, le niveau d'ADH, et la limite où les reins ne peuvent plus compenser (déshydratation).",
+  but: "Règle ce que l'on boit et la sueur perdue sur une journée (curseurs, ou glisse sur les graphiques). Observe le tube collecteur : l'ADH ouvre des canaux à eau, l'eau retourne dans le sang et l'urine se concentre. Regarde le volume et la concentration de l'urine, le niveau d'ADH, et la limite où les reins ne peuvent plus compenser (déshydratation).",
   aRetenir: "Les reins doivent éliminer environ 600 mOsm de déchets par jour. Avec peu d'eau, l'ADH (hormone antidiurétique) augmente la réabsorption d'eau : l'urine est peu abondante et concentrée (jusqu'à 1 200 mOsm/L). Avec beaucoup d'eau, moins d'ADH : urine abondante et diluée (jusqu'à 50 mOsm/L). Bilan : entrées = sorties.",
   piege: "L'urine « jaune foncé » n'est pas un déchet « en plus » : c'est la même quantité de déchets dissoute dans moins d'eau. Quand la concentration maximale est atteinte, boire moins ne réduit plus l'urine : l'organisme se déshydrate. Valeurs moyennes simplifiées.",
   build: function(k, S){
-    var c1 = k.canvas(190), c2 = k.canvas(170), pal = S.draw.palette;
+    var c = k.canvas(500), pal = S.draw.palette, D = S.draw;
     var inp = k.slider("Eau absorbée (boissons + aliments)", 0.5, 6, 0.1, 2, "L/j");
     var sw = k.slider("Sueur", 0, 3, 0.1, 0.3, "L/j");
     var ro = k.readouts(["Urine", "Concentration de l'urine", "ADH", "Bilan de l'eau"]);
@@ -113,20 +113,60 @@ SFA.sim({
       var bal = i + 0.3 - 0.9 - 0.1 - s, V = Math.max(0.5, bal), deficit = Math.max(0, 0.5 - bal), uo = Math.min(1200, 600 / V);
       return {bal: bal, V: V, deficit: deficit, uo: Math.max(50, uo), adh: Math.min(1, Math.max(0, (Math.max(50, uo) - 50) / 1150))};
     }
+    var tm = 0, geo = {}, drag = 0, rnd = B5.rng(9), WD = [], AD = [], i;
+    for (i = 0; i < 40; i++) WD.push({o: rnd(), y: rnd(), u: rnd()});
+    for (i = 0; i < 16; i++) AD.push({o: rnd(), x: rnd()});
+    var lp = k.loop(function(dt){ tm += dt; k.redraw(); }); lp.play();
+    c.cv.style.touchAction = "none";
+    c.pointer(function(t, p){ if (t === "down"){ drag = p.y > geo.gy ? 1 : 0; } if (drag && (t === "down" || t === "drag") && geo.ax){ var xv = geo.ax.ix(p.x); inp.set(Math.max(0.5, Math.min(6, Math.round(xv * 10) / 10))); k.redraw(); } if (t === "up") drag = 0; });
+    function glass(x, y, w, h, frac, col, label, sub){
+      var ctx = c.ctx; ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + 6, y + h); ctx.lineTo(x + w - 6, y + h); ctx.lineTo(x + w, y); ctx.closePath(); ctx.fillStyle = "rgba(255,255,255,.7)"; ctx.fill();
+      var lh = h * B5.cl(frac, 0, 1); ctx.save(); ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + 6, y + h); ctx.lineTo(x + w - 6, y + h); ctx.lineTo(x + w, y); ctx.closePath(); ctx.clip(); ctx.fillStyle = col; ctx.fillRect(x, y + h - lh, w, lh); ctx.fillStyle = "rgba(255,255,255,.25)"; ctx.fillRect(x + 6, y + h - lh, 6, lh); ctx.restore();
+      ctx.strokeStyle = "#7b8694"; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + 6, y + h); ctx.lineTo(x + w - 6, y + h); ctx.lineTo(x + w, y); ctx.stroke();
+      D.text(c, label, x + w / 2, y - 14, {size: 11.5, color: pal.ink, weight: 800}); D.text(c, sub, x + w / 2, y + h + 14, {size: 11.5, color: pal.ink, weight: 900});
+    }
     k.draw(function(){
       var r = calc(inp.value, sw.value);
-      c1.clear();
-      var ax = S.draw.axes(c1, {x0: 0.5, x1: 6, y0: 0, y1: 6, xl: "eau absorbée (L/j)", yl: "urine (L/j)", stepX: 1, stepY: 1});
-      var p1 = [], p2 = [], x;
-      for (x = 0.5; x <= 6.0001; x += 0.1){ var q = calc(x, sw.value); p1.push([x, q.V]); }
-      B5.poly(c1, ax, p1, pal.amber, 2.8); S.draw.dot(c1, ax.X(inp.value), ax.Y(r.V), 6, pal.red);
-      var yel = Math.min(1, (r.uo - 50) / 1150), col = "rgb(" + Math.round(255 - 40 * yel) + "," + Math.round(240 - 100 * yel) + "," + Math.round(160 - 140 * yel) + ")";
-      B5.circ(c1, ax.R - 28, ax.T + 34, 22, col, "#8a95a3"); S.draw.text(c1, "urine", ax.R - 28, ax.T + 66, {size: 12, color: pal.grey});
-      c2.clear();
-      var ax2 = S.draw.axes(c2, {x0: 0.5, x1: 6, y0: 0, y1: 1300, xl: "eau absorbée (L/j)", yl: "mOsm/L", stepX: 1, stepY: 300});
-      for (x = 0.5; x <= 6.0001; x += 0.1) p2.push([x, calc(x, sw.value).uo]);
-      B5.poly(c2, ax2, p2, pal.violet, 2.8); S.draw.dot(c2, ax2.X(inp.value), ax2.Y(r.uo), 6, pal.red);
-      S.draw.line(c2, ax2.X(0.5), ax2.Y(1200), ax2.X(6), ax2.Y(1200), pal.red, 1.2, [5, 4]); S.draw.text(c2, "maximum 1 200", ax2.R - 4, ax2.Y(1200) + 10, {align: "right", size: 12, color: pal.red});
+      c.clear(); var ctx = c.ctx, W = c.W, H = c.H, sh = 250;
+      D.rrect(c, 8, 8, W - 16, sh, 12); var bg = ctx.createLinearGradient(0, 0, 0, sh); bg.addColorStop(0, "#f3f7fc"); bg.addColorStop(1, "#e9eff8"); ctx.fillStyle = bg; ctx.fill();
+      /* verres d'entrée */
+      glass(24, 70, 56, 112, inp.value / 6, "rgba(90,170,235,.8)", "j'absorbe", S.fmt(inp.value, 1) + " L");
+      for (i = 0; i < Math.round(sw.value * 5); i++){ var sx = 40 + (i % 5) * 9, sy = 214 + (i * 7) % 18; ctx.fillStyle = "rgba(47,127,209,.8)"; ctx.beginPath(); ctx.arc(sx, sy, 3, 0, 7); ctx.fill(); }
+      D.text(c, "sueur " + S.fmt(sw.value, 1) + " L", 52, 246, {size: 10.5, color: pal.blue, weight: 800});
+      /* tube collecteur */
+      var tx0 = 112, tx1 = W - 130, ty = 150, th = 36, adh = r.adh, urcol = function(y){ return "rgb(" + Math.round(255 - 40 * y) + "," + Math.round(240 - 100 * y) + "," + Math.round(160 - 140 * y) + ")"; };
+      D.text(c, "sang (capillaire)", (tx0 + tx1) / 2, 28, {size: 11, color: pal.red, weight: 800});
+      ctx.fillStyle = "rgba(192,50,29,.14)"; D.rrect(c, tx0, 38, tx1 - tx0, 46, 14); ctx.fill();
+      D.text(c, "tube collecteur", (tx0 + tx1) / 2, ty + th / 2 + 22, {size: 11, color: pal.amber, weight: 800});
+      D.rrect(c, tx0, ty - th / 2, tx1 - tx0, th, th / 2); ctx.fillStyle = "#fdf2cf"; ctx.fill(); ctx.strokeStyle = "#d9a441"; ctx.lineWidth = 3; ctx.stroke();
+      /* gradient de concentration le long du tube */
+      ctx.save(); D.rrect(c, tx0 + 3, ty - th / 2 + 3, tx1 - tx0 - 6, th - 6, th / 2 - 3); ctx.clip(); var gg = ctx.createLinearGradient(tx0, 0, tx1, 0); gg.addColorStop(0, urcol(.05)); gg.addColorStop(1, urcol(Math.min(1, (r.uo - 50) / 1150))); ctx.fillStyle = gg; ctx.fillRect(tx0, ty - th / 2, tx1 - tx0, th); ctx.restore();
+      /* canaux à eau (aquaporines) */
+      var nq = 6, nopen = Math.round(adh * nq);
+      for (i = 0; i < nq; i++){ var qx = tx0 + 40 + i * (tx1 - tx0 - 80) / (nq - 1), open = i < nopen; ctx.fillStyle = open ? pal.green : "#8a95a3"; ctx.fillRect(qx - 7, ty - th / 2 - 4, 5, 8); ctx.fillRect(qx + 2, ty - th / 2 - 4, 5, 8); if (open) D.glow(c, qx, ty - th / 2, 16, pal.green, .5); }
+      /* eau qui part vers le sang (proportion adh), eau qui reste (1 − part) */
+      WD.forEach(function(p, j){ var s = (tm * .18 + p.o) % 1, x = tx0 + 8 + s * (tx1 - tx0 - 16), y = ty + (p.y - .5) * (th - 14); var leave = p.u < adh * .92; var qx = tx0 + 40 + Math.floor(p.u / Math.max(.01, adh * .92) * Math.min(nq, Math.max(1, nopen))) * (tx1 - tx0 - 80) / (nq - 1);
+        if (leave && s > .15){ var f = Math.min(1, (s - .15) * 2.2); var xq = tx0 + 40 + (j % Math.max(1, nopen)) * (tx1 - tx0 - 80) / (nq - 1); x = x + (xq - x) * f; y = y + (ty - th / 2 - 30 - y) * f; ctx.globalAlpha = 1 - Math.max(0, (f - .7) / .3) * .9; }
+        else if (leave){} ctx.fillStyle = "#4aa3e8"; ctx.beginPath(); ctx.arc(x, y, 2.8, 0, 7); ctx.fill(); ctx.globalAlpha = 1; });
+      /* ADH : molécules violettes qui arrivent du sang */
+      var na = Math.round(2 + adh * 14); for (i = 0; i < na; i++){ var a = AD[i], ax2 = tx0 + 20 + a.x * (tx1 - tx0 - 40), s2 = (tm * .3 + a.o) % 1, ay = 46 + s2 * (ty - th / 2 - 52); B5.circ(c, ax2, ay, 4, pal.violet, "#fff", 1); }
+      D.label(c, "ADH " + S.fmt(adh * 100, 0) + " %", tx1 - 8, 24, {color: pal.violet, size: 11.5, align: "right"});
+      D.arrow(c, tx1 + 2, ty, tx1 + 34, ty, pal.amber, 3);
+      /* verre d'urine */
+      var ucol = urcol(Math.min(1, (r.uo - 50) / 1150)); glass(W - 100, 70, 64, 112, r.V / 6, ucol, "urine", S.fmt(r.V, 1) + " L/j");
+      D.text(c, S.fmt(r.uo, 0) + " mOsm/L", W - 68, 214, {size: 11.5, color: "#8a6508", weight: 900});
+      if (r.deficit > 0) D.label(c, "déshydratation", W / 2, sh - 4, {color: pal.red, size: 12});
+      /* ---------- courbes ---------- */
+      var gy = sh + 22; geo.gy = gy - 6; var mid = W / 2;
+      D.panel(c, 8, gy - 4, W - 16, H - gy - 4, {shadow: false, fill: "#fbfcfe"});
+      var ax = D.axes(c, {x0: 0.5, x1: 6, y0: 0, y1: 6, xl: "eau absorbée (L/j)", stepX: 2, stepY: 2, t: gy + 24, b: 36, l: 34, r: mid + 10}); geo.ax = ax;
+      D.text(c, "Urine (L/j)", 14, gy + 10, {size: 11.5, color: pal.ink, weight: 800, align: "left"});
+      var p1 = [], p2 = [], x; for (x = 0.5; x <= 6.0001; x += 0.1){ p1.push([x, calc(x, sw.value).V]); p2.push([x, calc(x, sw.value).uo]); }
+      B5.poly(c, ax, p1, pal.amber, 3); D.glow(c, ax.X(inp.value), ax.Y(r.V), 14, pal.red, .5); D.dot(c, ax.X(inp.value), ax.Y(r.V), 6, pal.red);
+      var ax2 = D.axes(c, {x0: 0.5, x1: 6, y0: 0, y1: 1300, xl: "eau absorbée (L/j)", stepX: 2, stepY: 400, t: gy + 24, b: 36, l: mid + 38, r: 18});
+      D.text(c, "Concentration (mOsm/L)", mid + 12, gy + 10, {size: 11.5, color: pal.ink, weight: 800, align: "left"});
+      B5.poly(c, ax2, p2, pal.violet, 3); D.glow(c, ax2.X(inp.value), ax2.Y(r.uo), 14, pal.red, .5); D.dot(c, ax2.X(inp.value), ax2.Y(r.uo), 6, pal.red);
+      D.line(c, ax2.L, ax2.Y(1200), ax2.R, ax2.Y(1200), pal.red, 1.2, [5, 4]); D.label(c, "maximum 1 200", ax2.R - 4, ax2.Y(1200) + 12, {color: pal.red, align: "right", size: 10.5});
       ro.set(0, S.fmt(r.V, 1) + " L/j"); ro.set(1, S.fmt(r.uo, 0) + " mOsm/L"); ro.set(2, S.fmt(r.adh * 100, 0) + " %"); ro.set(3, r.deficit > 0 ? "− " + S.fmt(r.deficit, 1) + " L/j" : "équilibré");
       if (r.deficit > 0) nt.set("Déshydratation : même avec l'urine la plus concentrée possible (0,5 L/j), il manque " + S.fmt(r.deficit, 1) + " L par jour, soit " + S.fmt(100 * r.deficit / 70, 1) + " % de la masse d'un adulte de 70 kg.", "warn");
       else if (r.uo <= 50.5) nt.set("Urine la plus diluée possible (50 mOsm/L) : ADH quasi nulle ; l'eau en excès est éliminée.", "ok");

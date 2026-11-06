@@ -50,7 +50,8 @@ SFA.sim({
   aRetenir:"Force protonmotrice (37 °C) : Δp = ΔΨ + 2,303·RT/F·ΔpH = ΔΨ + 61,5 mV × ΔpH, avec ΔΨ la valeur absolue du potentiel (matrice négative) et ΔpH = pH matrice − pH espace intermembranaire. Les protons qui rentrent fournissent n·F·Δp par ATP (n ≈ 3,7 H⁺ : ≈ 2,7 pour l'ATP synthase humaine + 1 pour le transport du phosphate). Même pont qu'en chimie avec l'équation de Nernst (électrochimie).",
   piege:"Un découplant (DNP, UCP1) ne bloque pas la chaîne : il la fait tourner plus vite (plus d'O₂ consommé) mais l'énergie part en chaleur. L'oligomycine, elle, bloque l'ATP synthase : Δp monte et la respiration ralentit (contrôle respiratoire). Modèle simplifié : le gradient est imposé, pas calculé à partir des flux.",
   build:function(k,S){
-    var c = k.canvas(320), pal = P(S);
+    var c = k.canvas(440), pal = P(S), B = S.bio, ps = [], cloud = [], acc = {p:0, s:0, l:0}, rot = 0, atps = [], rnd = Math.random;
+    for (var q = 0; q < 34; q++) cloud.push({x:rnd(), y:rnd(), vx:rnd() - .5, vy:rnd() - .5});
     var dph = k.slider("ΔpH (matrice − espace)", 0, 1.2, 0.05, 0.5, "");
     var dpsi = k.slider("ΔΨ (valeur absolue)", 0, 200, 5, 150, "mV");
     var dnp = k.slider("Découplant (fuite de protons)", 0, 100, 5, 0, "%");
@@ -58,34 +59,57 @@ SFA.sim({
     var cond = k.seg("Condition", [["n","Normale"],["o","Oligomycine"],["c","Cyanure"]], "n");
     var ro = k.readouts(["Δp","n·F·Δp par ATP","Marge","État"]);
     var note = k.note("", "ok");
-    k.draw(function(){
-      c.clear();
+    function frame(dt){
+      var ctx = c.ctx, W = c.W, H = c.H; c.clear();
       var d = dnp.value / 100, n = 3.7, F = 96.485;
-      var dp = (dpsi.value + 61.5 * dph.value) * (1 - d);
-      if (cond.value === "c") dp = 0;
+      var dp = (dpsi.value + 61.5 * dph.value) * (1 - d); if (cond.value === "c") dp = 0;
       var E = n * F * dp / 1000, marge = E - dg.value;
-      /* schéma de membrane */
-      var mx = 30, mw = c.W - 60, my = 120;
-      c.ctx.fillStyle = "#fff4e0"; c.ctx.fillRect(mx, 40, mw, my - 40 - 8);
-      c.ctx.fillStyle = "#e6f0ff"; c.ctx.fillRect(mx, my + 8, mw, 70);
-      c.ctx.fillStyle = pal.grey; c.ctx.fillRect(mx, my - 8, mw, 16);
-      S.draw.text(c, "Espace intermembranaire (H⁺ : " + (cond.value === "c" ? "peu" : "beaucoup") + ")", mx + 6, 54, {align:"left", size:11, weight:600});
-      S.draw.text(c, "Matrice", mx + 6, my + 70, {align:"left", size:11, weight:600});
-      var nH = cond.value === "c" ? 3 : Math.round(8 + 22 * Math.min(1, dp / 250));
-      var rnd = 7;
-      for (var i = 0; i < nH; i++){ rnd = (rnd * 9301 + 49297) % 233280; var px = mx + 20 + (rnd / 233280) * (mw - 40); rnd = (rnd * 9301 + 49297) % 233280; var py = 62 + (rnd / 233280) * 40; S.draw.text(c, "H⁺", px, py, {size:10, color:pal.red}); }
-      var sx = mx + mw * 0.55;
-      c.ctx.fillStyle = pal.green; c.ctx.fillRect(sx - 20, my - 8, 40, 16); c.ctx.beginPath(); c.ctx.arc(sx, my + 28, 18, 0, 6.3); c.ctx.fill();
-      S.draw.text(c, "ATP synthase", sx, my + 28, {color:"#fff", size:9});
-      if (cond.value === "n") S.draw.arrow(c, sx + 28, my - 30, sx + 28, my + 6, pal.red, 2);
+      /* géométrie */
+      var my = H * .42, mh = 26, mx0 = 8, mx1 = W - 8;
+      var xI = W * .17, xIII = W * .34, xIV = W * .5, xU = W * .64, xS = W * .82;
+      /* fond */
+      var g1 = ctx.createLinearGradient(0, 0, 0, my); g1.addColorStop(0, "#fff7e6"); g1.addColorStop(1, "#ffecc9"); ctx.fillStyle = g1; ctx.fillRect(mx0, 8, mx1 - mx0, my - mh / 2 - 8);
+      var g2 = ctx.createLinearGradient(0, my, 0, my + 170); g2.addColorStop(0, "#e1ecfb"); g2.addColorStop(1, "#cfdff5"); ctx.fillStyle = g2; ctx.fillRect(mx0, my + mh / 2, mx1 - mx0, H * .3);
+      S.draw.text(c, "Espace intermembranaire · pH bas, charge +", mx0 + 8, 22, {align:"left", size:11, color:"#a2650c"});
+      S.draw.text(c, "Matrice · pH plus haut, charge −", mx0 + 8, my + mh / 2 + 30, {align:"left", size:11, color:"#2c5aa0"});
+      /* membrane */
+      ctx.fillStyle = "#f2e3b8"; ctx.fillRect(mx0, my - mh / 2, mx1 - mx0, mh); for (var x = mx0 + 6; x < mx1; x += 12){ B.ball(c, x, my - mh / 2 + 2, 3.6, "#e8b94a"); B.ball(c, x, my + mh / 2 - 2, 3.6, "#e8b94a"); }
+      /* complexes */
+      var blocked = cond.value === "c";
+      function cplx(x, w, h, col, lab){ ctx.fillStyle = blocked && lab === "IV" ? "#9aa6b6" : col; S.draw.rrect(c, x - w / 2, my - h / 2, w, h, 8); ctx.fill(); ctx.strokeStyle = "rgba(0,0,0,.25)"; ctx.lineWidth = 1.5; ctx.stroke(); S.draw.text(c, lab, x, my, {size:12, color:"#fff"}); }
+      cplx(xI, 40, 56, pal.violet, "I"); cplx(xIII, 40, 56, pal.acc, "III"); cplx(xIV, 40, 56, pal.teal, "IV");
+      if (blocked) S.draw.text(c, "✕ CN⁻", xIV, my - 42, {size:11, color:pal.red});
+      /* UCP */
+      ctx.fillStyle = d > 0 ? pal.amber : "#c9d3df"; S.draw.rrect(c, xU - 11, my - mh / 2 - 2, 22, mh + 4, 5); ctx.fill(); S.draw.text(c, "fuite", xU, my + mh / 2 + 14, {size:9.5, color:d > 0 ? pal.amber : pal.grey});
+      /* ATP synthase : stator + rotor */
+      var run = cond.value === "n" && marge >= 0, spin = run ? 3 * (1 - d * .3) : 0; rot += dt * spin;
+      ctx.fillStyle = "#c9d3df"; S.draw.rrect(c, xS - 15, my - mh / 2 - 4, 30, mh + 8, 6); ctx.fill();
+      ctx.fillStyle = pal.green; S.draw.rrect(c, xS - 7, my + mh / 2, 14, 24, 3); ctx.fill();
+      ctx.save(); ctx.translate(xS, my + mh / 2 + 52); for (var q = 0; q < 3; q++){ var a = rot + q * 2.0944; ctx.fillStyle = [pal.green, "#4aa383", "#7cc3a8"][q]; ctx.beginPath(); ctx.moveTo(0, 0); ctx.arc(0, 0, 30, a, a + 1.75); ctx.closePath(); ctx.fill(); } ctx.restore();
+      S.draw.text(c, "ATP synthase", xS, my + mh / 2 + 98, {size:10.5, color:pal.green}); S.draw.text(c, "ADP + Pi → ATP", xS, my + mh / 2 + 112, {size:9.5, color:pal.grey});
+      /* particules H+ */
+      var pump = blocked ? 0 : cond.value === "o" ? 3 : 6, flow = run ? 7 * (1 - d) : 0, leak = blocked ? 0 : d * 8;
+      acc.p += dt * pump; acc.s += dt * flow; acc.l += dt * leak;
+      while (acc.p > 1){ acc.p--; ps.push({k:"p", x:[xI, xIII, xIV][Math.floor(rnd() * 3)] + (rnd() - .5) * 14, y:my, t:0, ty:30 + rnd() * (my - 70)}); }
+      while (acc.s > 1){ acc.s--; ps.push({k:"s", x:xS, y:my - mh / 2 - 36, t:0}); }
+      while (acc.l > 1){ acc.l--; ps.push({k:"l", x:xU, y:my - mh / 2 - 36, t:0}); }
+      ps.forEach(function(p){ p.t += dt * 1.1; var u = Math.min(1, p.t), y;
+        if (p.k === "p"){ y = p.y + (p.ty - p.y) * u; } else { y = p.y + (mh + 90) * u; }
+        p.draw = [p.x, y, p.k === "p" ? 1 : 1 - u * .3]; });
+      ps = ps.filter(function(p){ if (p.t >= 1){ if (p.k === "s" && rnd() < .5) atps.push({x:xS + 20, y:my + 80, t:0}); if (p.k === "p") cloud.push({x:Math.max(0, Math.min(1, (p.x - 8) / (W - 16))), y:Math.max(0, Math.min(1, (p.ty - 20) / (my - 40))), vx:rnd() - .5, vy:rnd() - .5}); return false; } return true; });
+      var nC = blocked ? 4 : Math.round(8 + 26 * Math.min(1, dp / 250)); while (cloud.length > nC) cloud.shift();
+      cloud.forEach(function(p){ p.x += p.vx * dt * .08; p.y += p.vy * dt * .08; if (p.x < 0 || p.x > 1) p.vx *= -1; if (p.y < 0 || p.y > 1) p.vy *= -1; p.vx += (rnd() - .5) * dt * 3; p.vy += (rnd() - .5) * dt * 3; B.ball(c, mx0 + 6 + p.x * (mx1 - mx0 - 12), 34 + p.y * (my - mh / 2 - 48), 5.2, pal.red, {text:"H⁺", size:6.5}); });
+      ps.forEach(function(p){ B.ball(c, p.draw[0], p.draw[1], 5.2, pal.red, {text:"H⁺", size:6.5, alpha:p.draw[2]}); });
+      atps.forEach(function(a){ a.t += dt; a.x += dt * 24; S.draw.label(c, "ATP", a.x, a.y + 10 * Math.sin(a.t * 3), {color:pal.green, size:10}); }); atps = atps.filter(function(a){ return a.t < 2.2; });
+      /* flèches de légende */
+      S.draw.arrow(c, xI, my - 36, xI, my - 62, pal.red, 2); S.draw.text(c, "pompes à H⁺ (chaîne respiratoire)", xIII, my - 80 > 40 ? 38 : 38, {size:10, color:pal.grey}); 
       /* barres d'énergie */
-      var by = 235, bw = c.W - 190, sc = bw / 100;
-      S.draw.text(c, "Énergie par ATP (kJ/mol)", 20, by - 20, {align:"left", size:12});
-      c.ctx.fillStyle = "#e3e7ed"; c.ctx.fillRect(150, by - 8, bw, 16);
-      c.ctx.fillStyle = marge >= 0 ? pal.green : pal.red; c.ctx.fillRect(150, by - 8, Math.min(100, E) * sc, 16);
-      S.draw.text(c, "fournie", 20, by, {align:"left", size:11, weight:600});
-      S.draw.line(c, 150 + dg.value * sc, by - 22, 150 + dg.value * sc, by + 30, pal.ink, 2, [4, 3]);
-      S.draw.text(c, "exigée : " + dg.value, 150 + dg.value * sc, by + 40, {size:11});
+      var by = H - 50, bx = 110, bw = W - bx - 26, sc = bw / 100;
+      S.draw.text(c, "fournie", 14, by, {align:"left", size:11, color:pal.ink});
+      ctx.fillStyle = "#e3e7ed"; S.draw.rrect(c, bx, by - 9, bw, 18, 9); ctx.fill(); ctx.fillStyle = marge >= 0 ? pal.green : pal.red; S.draw.rrect(c, bx, by - 9, Math.max(14, Math.min(100, E) * sc), 18, 9); ctx.fill();
+      S.draw.text(c, S.fmt(E, 0) + " kJ/mol", E < 25 ? bx + Math.max(14, E * sc) + 8 : bx + 8, by, {align:"left", size:10.5, color:E < 25 ? pal.ink : "#fff"});
+      S.draw.line(c, bx + dg.value * sc, by - 20, bx + dg.value * sc, by + 20, pal.ink, 2, [4, 3]);
+      S.draw.text(c, "exigée : " + dg.value, bx + dg.value * sc, by + 30, {size:11, color:pal.ink});
       var state = cond.value === "o" ? "ATP synthase bloquée" : (marge >= 0 ? "Synthèse d'ATP" : "Synthèse impossible (hydrolyse)");
       ro.set(0, S.fmt(dp, 0) + " mV"); ro.set(1, S.fmt(E, 1) + " kJ"); ro.set(2, S.fmt(marge, 1) + " kJ"); ro.set(3, state);
       if (cond.value === "o") note.set("Oligomycine : les protons ne peuvent plus rentrer par l'ATP synthase. Δp reste élevé, la chaîne se heurte à ce gradient et l'O₂ consommé chute (contrôle respiratoire).", "warn");
@@ -93,7 +117,9 @@ SFA.sim({
       else if (marge < 0) note.set("Avec cette fuite, n·F·Δp est inférieur au ΔG exigé : l'ATP synthase ne peut plus synthétiser (elle pourrait même hydrolyser l'ATP).", "warn");
       else if (d > 0) note.set("Découplage partiel : la chaîne tourne, le gradient est dissipé ; l'énergie de l'oxydation part en chaleur (thermogenèse).", "warn");
       else note.set("Situation normale : l'énergie des protons dépasse celle exigée pour synthétiser l'ATP.", "ok");
-    });
+    }
+    k.draw(function(){ frame(0); });
+    var lp = k.loop(function(dt){ frame(dt); }); lp.play();
   }
 });
 
@@ -115,7 +141,7 @@ SFA.sim({
       c.clear();
       var ff = f.value / 100, D = d.value, Y = y.value;
       var g = D * ((1 - ff) / Y + ff / 2), lac = ff * D, fac = g / (D / Y);
-      var ax = S.draw.axes(c, {x0:0, x1:100, y0:0, y1:Y / 2 + 1, xl:"% sans O₂", yl:"× glucose", stepX:10, stepY:Y > 31 ? 4 : 4});
+      var ax = S.draw.axes(c, {t:28,x0:0, x1:100, y0:0, y1:Y / 2 + 1, xl:"% sans O₂", yl:"× glucose", stepX:10, stepY:Y > 31 ? 4 : 4});
       S.draw.fn(c, ax, function(x){ return 1 + (Y / 2 - 1) * x / 100; }, pal.acc);
       S.draw.dot(c, ax.X(f.value), ax.Y(fac), 6, pal.red);
       S.draw.text(c, "×" + S.fmt(fac, 1), ax.X(f.value) + 10, ax.Y(fac) - 12, {align:"left", color:pal.red});
@@ -185,7 +211,7 @@ SFA.sim({
         G -= s * dt;
       }
       if (cur === null) cur = ts.length - 1;
-      var ax = S.draw.axes(c, {x0:0, x1:72, y0:0, y1:10, xl:"h", yl:"g de glucose/h", stepX:12, stepY:2});
+      var ax = S.draw.axes(c, {t:28,x0:0, x1:72, y0:0, y1:10, xl:"h", yl:"g de glucose/h", stepX:12, stepY:2});
       var ctx = c.ctx; ctx.save(); ctx.beginPath(); ctx.rect(ax.L, ax.T, ax.R - ax.L, ax.B - ax.T); ctx.clip();
       ctx.fillStyle = "rgba(180,83,9,.35)"; ctx.beginPath(); ctx.moveTo(ax.X(0), ax.Y(0));
       for (var i = 0; i < ts.length; i += 4) ctx.lineTo(ax.X(ts[i]), ax.Y(gl[i])); ctx.lineTo(ax.X(72), ax.Y(0)); ctx.fill();

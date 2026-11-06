@@ -132,8 +132,8 @@ SFA.sim({
       var lg = function(v){ return Math.max(0, Math.log10(Math.max(v, 1))); };
       var mx = Math.max(6, lg(Nwt) + 1, lg(N) + 1);
       function bar(y, label, val, col, txt){ S.draw.text(c, label, bx, y - 16, {align:"left", size:11}); ctx.fillStyle = "#e3e7ed"; ctx.fillRect(bx, y - 8, bw, 16); ctx.fillStyle = col; ctx.fillRect(bx, y - 8, val / mx * bw, 16); S.draw.text(c, txt, bx + 4, y, {align:"left", size:10, color:"#fff"}); }
-      bar(60, "log₁₀(population), p53 fonctionnelle", lg(Nwt), pal.green, S.sci(Nwt, 2));
-      bar(120, "log₁₀(population), statut choisi", lg(N), p53.value ? pal.green : pal.red, S.sci(N, 2));
+      bar(60, "log₁₀(population), p53 fonctionnelle", lg(Nwt), pal.green, S.bio.sci(Nwt, 2));
+      bar(120, "log₁₀(population), statut choisi", lg(N), p53.value ? pal.green : pal.red, S.bio.sci(N, 2));
       S.draw.text(c, "Cellules à ADN lésé, non éliminées : " + S.fmt(mutf * 100, 1) + " %", bx, 170, {align:"left", size:12, color:pal.red});
       S.draw.text(c, "Lésées éliminées par cycle : " + S.fmt(d * a * 100, 1) + " %", bx, 195, {align:"left", size:12, color:pal.green});
       ro.set(0, S.fmt(T, 1) + " h"); ro.set(1, S.sci(N, 2)); ro.set(2, S.fmt(mutf * 100, 1) + " %"); ro.set(3, S.fmt(ncyc, 1));
@@ -158,7 +158,7 @@ SFA.sim({
     k.draw(function(){
       c.clear();
       var nn = n.value, ct = Math.min(cc.value, nn);
-      var ax = S.draw.axes(c, {x0:0, x1:23, y0:0, y1:15, xl:"n", yl:"log₁₀(gamètes)", stepX:5, stepY:3});
+      var ax = S.draw.axes(c, {t:28,x0:0, x1:23, y0:0, y1:15, xl:"n", yl:"log₁₀(gamètes)", stepX:5, stepY:3});
       S.draw.fn(c, ax, function(x){ return x * Math.log10(2); }, pal.acc);
       S.draw.fn(c, ax, function(x){ return 2 * x * Math.log10(2); }, pal.red, 2, [5, 4]);
       S.draw.text(c, "n paires (c = 0)", ax.X(14), ax.Y(14 * 0.301) + 14, {size:11, color:pal.acc});
@@ -176,7 +176,7 @@ SFA.sim({
   id:"ub-c08-caryotype", ch:"c08", tag:"Anomalies",
   titre:"Non-disjonction : trisomie 21, syndromes de Turner et de Klinefelter",
   resume:"Quels gamètes, quels caryotypes selon la méiose touchée et le parent ?",
-  but:"Choisis la paire concernée, le parent, la division où la non-disjonction se produit, clique un gamète et regarde le zygote obtenu avec un gamète normal : lis les gamètes et les caryotypes obtenus avec un gamète normal.",
+  but:"Choisis la paire concernée, le parent, la division où la non-disjonction se produit, clique un gamète pour voir le zygote obtenu avec un gamète normal.",
   aRetenir:"Non-disjonction en méiose I : les 4 gamètes sont anormaux (2 avec n+1, 2 avec n−1). En méiose II : 2 gamètes normaux, 1 n+1, 1 n−1. Après fécondation par un gamète normal : trisomie (2n+1) ou monosomie (2n−1). Monosomie autosomique : non viable ; syndrome de Turner 45,X ; Klinefelter 47,XXY ; trisomie 21 : 47,+21.",
   piege:"Le gamète n+1 d'une non-disjonction en méiose I contient les deux homologues (parfois différents : mère-père) ; en méiose II il contient deux chromatides sœurs identiques. Une monosomie 45,Y (sans X) n'est pas viable : le X porte des gènes essentiels.",
   build:function(k,S){
@@ -250,7 +250,7 @@ SFA.sim({
   aRetenir:"Spermatogenèse : 1 spermatocyte I → 4 spermatozoïdes. Ovogenèse : 1 ovocyte I → 1 ovule + 2 ou 3 globules polaires (selon que le 1<sup>er</sup> se divise ou non) ; l'ovocyte I est bloqué en prophase I jusqu'à l'ovulation, puis l'ovocyte II en métaphase II jusqu'à la fécondation. Segmentation : divisions rapides sans croissance (blastomères de plus en plus petits), morula vers J4, blastocyste vers J5, implantation vers J6–7, gastrulation en 3<sup>e</sup> semaine : ectoderme, mésoderme, endoderme.",
   piege:"L'ovule « achève » sa méiose II seulement à la fécondation : l'ovocyte II ovulé n'est pas un gamète mûr. Les jours donnés sont des ordres de grandeur (J0 = fécondation, développement humain) et le nombre de cellules après J5 n'est pas une puissance de 2 exacte.",
   build:function(k,S){
-    var c = k.canvas(300), pal = S.draw.palette;
+    var c = k.canvas(340), pal = S.draw.palette, P = pal;
     var mode = k.seg("Filière", [["sp","Spermatogenèse"],["ov","Ovogenèse"],["em","Embryon précoce"]], "sp");
     var av = k.slider("Avancement", 0, 100, 1, 0, "%");
     var ro = k.readouts(["Stade","Ploïdie","ADN","Cellules"]);
@@ -258,29 +258,51 @@ SFA.sim({
     var SP = [["Spermatogonie (puberté : mitoses)","2n","2c",1,"Réserve de cellules souches, divisions mitotiques."],["Spermatocyte I (après S)","2n","4c",1,"Prophase I : bivalents, crossing-over."],["Spermatocytes II (fin méiose I)","n","2c",2,"Chaque cellule a n chromosomes à 2 chromatides."],["Spermatides (fin méiose II)","n","1c",4,"Quatre cellules haploïdes, ensuite spermiogenèse."],["Spermatozoïdes","n","1c",4,"Cellules mobiles, flagelle, acrosome."]];
     var OV = [["Ovogonie (vie fœtale : mitoses)","2n","2c",1,"Multiplication avant la naissance."],["Ovocyte I (bloqué en prophase I)","2n","4c",1,"Bloqué depuis la vie fœtale jusqu'à la puberté."],["Ovocyte II + 1<sup>er</sup> globule polaire (ovulation)","n","2c",2,"Méiose I achevée à l'ovulation ; blocage en métaphase II."],["Fécondation : ovule + 2<sup>e</sup> globule polaire","n","1c",2,"La méiose II s'achève sous l'effet de la fécondation (+ éventuel 1<sup>er</sup> globule divisé)."],["Zygote (J0)","2n","2c",1,"Rencontre des pronoyaux n + n."]];
     var EM = [["J0 · Zygote","2n","2c",1,"Fécondation dans l'ampoule de la trompe."],["J1 · 2 blastomères","2n","2c",2,"Segmentation : cellules plus petites, sans croissance."],["J2 · 4 blastomères","2n","2c",4,""],["J3 · 8 à 16 cellules","2n","2c",8,"Compaction vers 8 cellules."],["J4 · Morula (≈ 16–32)","2n","2c",16,"Boule pleine de cellules."],["J5 · Blastocyste (≈ 100)","2n","2c",64,"Bouton embryonnaire et trophoblaste."],["J6–7 · Implantation","2n","2c",64,"Nidation dans l'endomètre."],["Semaine 2 · Disque bilaminaire","2n","2c",64,"Épiblaste et hypoblaste."],["Semaine 3 · Gastrulation","2n","2c",64,"Ectoderme, mésoderme, endoderme."]];
-    k.draw(function(){
-      c.clear();
+    var B = S.bio, tt = 0, sc0 = 1;
+    function gcell(x, y, r, kind, alpha){
+      var ctx = c.ctx; ctx.save(); if (alpha != null) ctx.globalAlpha = alpha;
+      if (kind === "spz"){ /* spermatozoïde */
+        ctx.strokeStyle = "#7a8aa5"; ctx.lineWidth = Math.max(2, r * .12); ctx.lineCap = "round"; ctx.beginPath(); ctx.moveTo(x - r * .6, y); for (var q = 1; q <= 14; q++) ctx.lineTo(x - r * .6 - q * r * .32, y + Math.sin(q * .9 + tt * 6) * r * .22 * (q / 14)); ctx.stroke();
+        B.ball(c, x, y, r * .55, P.acc); ctx.fillStyle = P.amber; ctx.beginPath(); ctx.ellipse(x + r * .38, y, r * .22, r * .36, 0, 0, 7); ctx.fill(); }
+      else if (kind === "pb"){ B.ball(c, x, y, r * .5, "#aab5c5"); }
+      else { var col = kind === "ovule" ? "#fdeedb" : kind === "ovo" ? "#fff3e0" : "#e4edfb";
+        var g = ctx.createRadialGradient(x - r * .3, y - r * .3, r * .1, x, y, r); g.addColorStop(0, "#ffffff"); g.addColorStop(1, col);
+        ctx.fillStyle = g; ctx.strokeStyle = kind === "ovule" || kind === "ovo" ? "#d9a45a" : "#7a9ad6"; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(x, y, r, 0, 7); ctx.fill(); ctx.stroke();
+        B.ball(c, x, y, r * .45, kind === "ovule" || kind === "ovo" ? "#e8b94a" : P.acc); }
+      ctx.restore(); }
+    function frame(dt){
+      var ctx = c.ctx, W = c.W, H = c.H; c.clear(); B.bg(c, "#fbfdff", "#eef3f9"); tt += dt;
       var L = mode.value === "sp" ? SP : mode.value === "ov" ? OV : EM, i = Math.min(L.length - 1, Math.floor(av.value / 100 * L.length)), st = L[i];
-      var N = st[3], ctx = c.ctx, cx = c.W / 2, cy = 130;
-      S.draw.text(c, st[0].replace(/<[^>]+>/g, ""), cx, 24, {size:14});
-      var rr = mode.value === "em" ? 14 : 26;
-      if (N <= 8 && mode.value !== "em"){
-        for (var q = 0; q < N; q++){ var x = cx + (q - (N - 1) / 2) * 70; ctx.fillStyle = mode.value === "ov" && q > 0 ? "#cfd6e0" : "#dbe6ff"; ctx.strokeStyle = pal.acc; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(x, cy, mode.value === "ov" && q > 0 ? 14 : rr + 8, 0, 6.3); ctx.fill(); ctx.stroke(); }
+      var N = st[3], cx = W / 2, cy = H * .46, md = mode.value;
+      S.draw.text(c, st[0].replace(/<[^>]+>/g, ""), cx, 20, {size:13.5, color:P.ink});
+      /* barre de progression de la filière */
+      var px0 = 30, pw = W - 60; ctx.strokeStyle = "#c8d1de"; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(px0, H - 44); ctx.lineTo(px0 + pw, H - 44); ctx.stroke();
+      for (var q = 0; q < L.length; q++){ var xx = px0 + pw * q / (L.length - 1); B.ball(c, xx, H - 44, q === i ? 7 : 4.5, q <= i ? P.acc : "#c8d1de"); }
+      if (md === "sp"){
+        var kind = i >= L.length - 1 ? "spz" : "sp", n = N, rr = Math.min(34, W / (n * 2.6 + 1));
+        for (q = 0; q < n; q++) gcell(cx + (q - (n - 1) / 2) * Math.min(W * .22, 100), cy, kind === "spz" ? 26 : (n === 1 ? 40 : rr + 12), kind, 1);
+      } else if (md === "ov"){
+        var big = i >= 3 ? "ovule" : "ovo"; gcell(cx - (N > 1 ? 40 : 0), cy, i >= 3 ? 52 : 46, big);
+        for (q = 1; q < N; q++) gcell(cx + 30 + q * 26, cy - 24 + (q % 2) * 40, 22, "pb");
+        if (N > 1) S.draw.text(c, "globules polaires", cx + 62, cy + 62, {size:10, color:P.grey});
       } else {
-        var cnt = Math.min(N, 64), R = i < 5 ? 55 : 70;
-        ctx.strokeStyle = pal.grey; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(cx, cy, R + 12, 0, 6.3); ctx.stroke();
-        var sizeC = Math.max(5, Math.min(24, 120 / Math.sqrt(cnt)));
-        for (var j = 0; j < cnt; j++){
-          var ang = j * 2.399963, rad = cnt === 1 ? 0 : Math.sqrt((j + 0.5) / cnt) * (R - sizeC / 2);
-          ctx.fillStyle = (i >= 8 && j % 3 === 0) ? "#fdd8d4" : (i >= 8 && j % 3 === 1) ? "#d6efe2" : "#dbe6ff"; ctx.strokeStyle = pal.acc; ctx.lineWidth = 1;
-          ctx.beginPath(); ctx.arc(cx + Math.cos(ang) * rad, cy + Math.sin(ang) * rad, sizeC, 0, 6.3); ctx.fill(); ctx.stroke();
-        }
+        var cnt = Math.min(N, 64), R = Math.min(H * .3, W * .26) + (i >= 5 ? 14 : 0), g0 = ctx.createRadialGradient(cx, cy, R * .5, cx, cy, R + 14);
+        ctx.strokeStyle = "rgba(200,170,110,.7)"; ctx.lineWidth = 6; ctx.beginPath(); ctx.arc(cx, cy, R + 12, 0, 7); ctx.stroke(); ctx.fillStyle = "rgba(253,240,215,.5)"; ctx.fill();
+        var sz = Math.max(5, Math.min(26, R * 1.5 / Math.sqrt(cnt)));
+        if (i >= 5){ /* blastocyste : trophoblaste en anneau + bouton embryonnaire */
+          ctx.fillStyle = "rgba(200,225,250,.55)"; ctx.beginPath(); ctx.arc(cx, cy, R - 6, 0, 7); ctx.fill();
+          for (var j = 0; j < 36; j++){ var an = j * 6.2832 / 36; B.ball(c, cx + (R - 6) * Math.cos(an), cy + (R - 6) * Math.sin(an), 6, "#6fb0e2"); }
+          for (j = 0; j < 9; j++) B.ball(c, cx - R * .45 + (j % 3) * 11 + (j > 5 ? 5 : 0), cy - R * .15 + Math.floor(j / 3) * 11, 6.5, i >= 8 ? ["#e8908a", "#78c4a0", P.acc][j % 3] : "#c3a8f0");
+          S.draw.label(c, "trophoblaste", cx + R * .55, cy + R * .78, {size:10, color:"#2c6fa8"}); S.draw.label(c, "bouton embryonnaire", cx - R * .5, cy - R * .62, {size:10, color:P.violet});
+        } else for (j = 0; j < cnt; j++){ var ang = j * 2.399963, rad = cnt === 1 ? 0 : Math.sqrt((j + .5) / cnt) * (R - sz / 2); B.ball(c, cx + Math.cos(ang) * rad, cy + Math.sin(ang) * rad, cnt === 1 ? R * .85 : sz, i >= 8 ? ["#e8908a", "#78c4a0", P.acc][j % 3] : "#9bb8e8"); }
       }
-      S.draw.text(c, st[4].replace(/<[^>]+>/g, ""), cx, 250, {size:12, weight:600, color:pal.grey});
-      S.draw.text(c, "Étape " + (i + 1) + " sur " + L.length, cx, 276, {size:11, weight:600, color:pal.grey});
-      ro.set(0, st[0].replace(/<[^>]+>/g, "").split("(")[0]); ro.set(1, st[1]); ro.set(2, st[2]); ro.set(3, mode.value === "em" && i >= 5 ? "≈ 100 et plus" : N);
-      note.set(mode.value === "ov" ? "Un seul gamète fonctionnel : le cytoplasme est conservé dans l'ovule, les globules polaires dégénèrent." : mode.value === "sp" ? "Quatre gamètes par cellule initiale, production continue après la puberté." : "Le nombre de cellules double à chaque division, mais l'embryon ne grossit pas avant l'implantation.", "ok");
-    });
+      S.draw.text(c, st[4].replace(/<[^>]+>/g, ""), cx, H - 20, {size:11, color:P.grey});
+      ro.set(0, st[0].replace(/<[^>]+>/g, "").split("(")[0]); ro.set(1, st[1]); ro.set(2, st[2]); ro.set(3, md === "em" && i >= 5 ? "≈ 100 et plus" : N);
+      note.set(md === "ov" ? "Un seul gamète fonctionnel : le cytoplasme est conservé dans l'ovule, les globules polaires dégénèrent." : md === "sp" ? "Quatre gamètes par cellule initiale, production continue après la puberté." : "Le nombre de cellules double à chaque division, mais l'embryon ne grossit pas avant l'implantation.", "ok");
+    }
+    k.button("▶ Faire défiler", function(){ av.set(0); (function go(v){ if (!k._alive) return; if (v <= 100){ av.set(v); k.redraw(); setTimeout(function(){ go(v + 2); }, 90); } })(0); }, true);
+    k.draw(function(){ frame(0); });
+    var lp = k.loop(function(dt){ if (mode.value === "sp") frame(dt); }); lp.play();
   }
 });
 })();

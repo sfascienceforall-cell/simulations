@@ -187,7 +187,7 @@ SFA.sim({
     k.button("↺ Recommencer", function(){ step = 0; });
     k.button("⏩ Tout résoudre", function(){ step = G.steps.length - 1; });
     k.button("🎲 Nouveau système aléatoire", function(){ sel.set("r"); load("r"); });
-    var nt = k.note("", "ok"); load("a"); U.autoRatio(c, 0.62, 1.25);
+    var nt = k.note("", "ok"); load("a"); U.autoRatio(c, 0.62, 0.98);
     k.draw(function(){
       c.clear(); var ctx = c.ctx, W = c.W, H = c.H, st = G.steps[step], M = st.M, n = M.length, narrow = W < 560, RC = [C.blue, C.violet, C.teal];
       var cw = narrow ? Math.min(62, (W - 60) / 4.4) : Math.min(68, (W * 0.5) / 4.6), rh = narrow ? 44 : 50, mw = 4 * cw, x0 = narrow ? Math.max(30, (W - mw) / 2 - 6) : 34, y0 = narrow ? 40 : 52, fs0 = Math.round(Math.min(22, cw * 0.34));
@@ -278,7 +278,7 @@ SFA.sim({
       c.clear(); var W = c.W, H = c.H, A = tmat(sa.value, pa.value), B = tmat(sb.value, pb.value), I = [[1, 0], [0, 1]], BA = mm(B, A), AB = mm(A, B), t = at.value, ctx = c.ctx, st = W < 560, gap = 8;
       var pw = st ? W : (W - gap) / 2, ph = st ? (H - gap) / 2 : H;
       [[A, B, BA, "1) A puis B", 0, "BA"], [B, A, AB, "2) B puis A", 1, "AB"]].forEach(function(q){
-        var first = q[0], tot = q[2], bx = st ? 0 : q[4] * (pw + gap), by = st ? q[4] * (ph + gap) : 0, P = U.Pane(c, bx, by, pw, ph, 4.2, 4.2, {ticks:false, dy:-1.1});
+        var first = q[0], tot = q[2], bx = st ? 0 : q[4] * (pw + gap), by = st ? q[4] * (ph + gap) : 0, P = U.Pane(c, bx, by, pw, ph, 4.8, 4.8, {ticks:false, dy:0.7});
         var M = t <= 1 ? lerp(I, first, t) : lerp(first, tot, t - 1), col = q[4] ? C.violet : C.blue;
         var poly = function(pts, fill, stroke, w, dash){ ctx.beginPath(); pts.forEach(function(p, i){ if (i) ctx.lineTo(P.X(p[0]), P.Y(p[1])); else ctx.moveTo(P.X(p[0]), P.Y(p[1])); }); ctx.closePath(); if (fill){ ctx.fillStyle = fill; ctx.fill(); } ctx.strokeStyle = stroke; ctx.lineWidth = w; if (dash) ctx.setLineDash(dash); ctx.stroke(); ctx.setLineDash([]); };
         P.clip(); poly(FSH, "rgba(138,149,163,.12)", "#8a95a3", 1.2, [4, 3]); poly(img(M, FSH), D.tint(col, 0.22), col, 2.6);

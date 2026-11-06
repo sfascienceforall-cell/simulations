@@ -48,3 +48,4 @@ Nouvelle structure (kit/) : chaque cours = une page `index.html` → chapitres �
 | 19:42 | VAGUE 2 TERMINÉE : physique 6e (17 refaites), chimie 6e (28 refaites), chimie 5e (18 refaites), chimie 3e (14), physique 5e (4), chimie 4e (déjà au niveau). V3+V4 en cours (8 inspecteurs) | fait |
 | 19:47 | V4 statistique BA1 : 48 sims OK (déjà refaites ce matin), 7 retouches, vignettes | fait |
 | 19:58 | V3 biologie 6e : 10 refaites + 1 retouchée, 0 erreur | fait |
+| 20:04 | V3 chimie BA1 : 12 refaites + 7 retouches, 62 sims 0 erreur. À faire moteur : option axe en bas (Arrhenius, van 't Hoff) | fait |

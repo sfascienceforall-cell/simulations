@@ -30,13 +30,14 @@ SFA.sim({
       var E = [sol.value*1000*cap.value/100], e = eta.value/100;
       for (var i=1;i<4;i++) E.push(E[i-1]*e);
       var names = ["Producteurs","Consommateurs I","Consommateurs II","Consommateurs III"], cols = ["#9ccfae","#f1d27d","#f1a97d","#d98a7a"];
-      var cx = c.W/2, maxw = c.W-24, y0 = 44, bh = 24, row = 62;
+      var cx = c.W/2+14, maxw = c.W-62, y0 = 44, bh = 24, row = 62;
       T(c,"Soleil : "+nf(sol.value*1000)+" kJ/m²/an",c.W/2,16,{size:13,color:P.amber});
       for (i=0;i<4;i++){
         var w = Math.max(5, maxw*E[i]/E[0]), y = y0 + i*row;
         T(c,names[i],12,y+2,{size:12,align:"left",color:P.ink});
         T(c,nf(E[i],E[i]<10?1:0)+" kJ/m²/an",c.W-12,y+2,{size:12,align:"right",color:P.ink});
         rect(c,cx-w/2,y+12,w,bh,cols[i],P.ink,1.2);
+        B3H.badge(c,["herbe","sauterelle","grenouille","buse"][i],Math.max(22,cx-w/2-16),y+12+bh/2,15,P.ink);
         if (i<3) T(c,"↓ × "+S.fmt(e,2)+"  (perdu : "+S.fmt(100*(1-e),0)+" %)",cx,y+row-9,{size:12,color:P.green});
       }
       
@@ -78,6 +79,7 @@ SFA.sim({
       for (i=0;i<4;i++){
         var w = maxw*f(v[i]), y = y0 + (3-i)*(bh+gap);
         rect(c,cx-w/2,y,w,bh,cols[i],P.ink,1.2);
+        B3H.badge(c,({p:["herbe","sauterelle","grenouille","buse"],f:["arbre","sauterelle","couleuvre","buse"],o:["plancton","plancton","poisson","poisson"]})[eco.value][i],20,y+bh/2,17,P.ink);
         T(c,d.lv[i],cx,y+13,{size:12,color:P.ink,bg:"rgba(255,255,255,.7)"});
         T(c,S.sci(v[i]),cx,y+32,{size:13,color:P.ink,bg:"rgba(255,255,255,.7)"});
       }

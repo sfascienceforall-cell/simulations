@@ -108,12 +108,12 @@ SFA.sim({
       [-1,1].forEach(function(sd){ g.beginPath(); g.moveTo(cx+sd*gap/2,cy-H*.05); g.bezierCurveTo(cx+sd*(gap/2+gw*.9),cy-H*.05,cx+sd*(gap/2+gw*.9),cy+H*.07,cx+sd*gap/2,cy+H*.07); g.bezierCurveTo(cx+sd*(gap/2+gw*.28),cy+H*.04,cx+sd*(gap/2+gw*.28),cy-H*.02,cx+sd*gap/2,cy-H*.05); g.closePath(); g.fill(); g.stroke(); g.fillStyle="#1d5a33"; g.beginPath(); g.arc(cx+sd*(gap/2+gw*.55),cy+H*.01,3,0,6.3); g.fill(); g.fillStyle="#2f8f4f"; });
       D.label(c,"cellules de garde",cx-gw*1.8,cy+H*.095,{size:11,color:"#1d5a33"}); D.label(c,"pore",cx+gw*1.5,cy+H*.095,{size:11,color:P.ink});
       /* particules */
-      parts.forEach(function(p){ var x=p.x*W,y=p.y*H; if (p.t===0){ D.dot(c,x,y,4.2,P.acc); if (p.a<1.2) D.text(c,"CO₂",x+13,y,{size:10,color:P.acc}); } else { D.dot(c,x,y,3.4,P.teal); } });
-      D.arrow(c,W*.82,H*.78,W*.82,H*.66,P.acc,2.5); D.label(c,"CO₂ entre",W*.82,H*.82,{size:11,color:P.acc});
-      D.arrow(c,W*.18,H*.64,W*.18,H*.76,P.teal,2.5); D.label(c,"vapeur d'eau sort",W*.2,H*.8,{size:11,color:"#0b6a7a"});
+      parts.forEach(function(p){ var x=p.x*W,y=p.y*H; if (p.t===0){ D.dot(c,x,y,4.2,P.acc); } else { D.dot(c,x,y,3.4,P.teal); } });
+      D.arrow(c,W*.86,H*.7,W*.86,H*.62,P.acc,2.5); D.label(c,"CO₂ entre",W*.97,H*.76,{size:11,color:P.acc,align:"right"});
+      D.arrow(c,W*.14,H*.62,W*.14,H*.72,P.teal,2.5); D.label(c,"vapeur d'eau sort",W*.03,H*.76,{size:11,color:"#0b6a7a",align:"left"});
       /* sol */
       var sy=H*.9; g.fillStyle="#7a5232"; g.fillRect(0,sy,W,H-sy); g.fillStyle="rgba(90,170,220,.85)"; g.fillRect(0,H-(H-sy)*so.value/100,W,(H-sy)*so.value/100);
-      D.label(c,"sol : eau disponible "+so.value+" %",8,sy-9,{size:11,color:"#5a3a1c",align:"left"});
+      D.text(c,"sol : eau disponible "+so.value+" %",W/2,sy+(H-sy)/2,{size:11,color:"#fff",halo:"rgba(40,25,10,.7)"});
       /* jauge d'ouverture */
       var gw2=Math.min(150,W*.4); D.rrect(c,W-gw2-10,H*.08,gw2,10,5); g.fillStyle="rgba(255,255,255,.8)"; g.fill(); D.rrect(c,W-gw2-10,H*.08,Math.max(6,gw2*st.a),10,5); g.fillStyle=P.green; g.fill();
       D.text(c,"ouverture "+S.fmt(st.a*100,0)+" %",W-10,H*.08+22,{size:11.5,color:P.ink,align:"right"});

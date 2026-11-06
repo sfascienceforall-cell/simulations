@@ -162,11 +162,11 @@ SFA.sim({
   id:"ub-c09-groupes-sanguins", ch:"c09", tag:"Codominance",
   titre:"Groupes ABO et Rhésus : hérédité, transfusion, incompatibilité fœto-maternelle",
   resume:"Probabilités des groupes de l'enfant ; compatibilité donneur/receveur ; risque Rh.",
-  but:"Choisis les génotypes des parents pour obtenir les groupes possibles de l'enfant, puis teste une transfusion.",
+  but:"Choisis les génotypes des parents pour obtenir les groupes possibles de l'enfant, puis teste une transfusion : si le receveur possède des anticorps contre les antigènes du donneur, les globules s'agglutinent.",
   aRetenir:"ABO : allèles A et B codominants, O récessif. Un parent AB × O ne donne jamais d'enfant AB ni O. Rhésus : D (Rh+) dominant sur d (Rh−). Transfusion : les globules du donneur ne doivent porter aucun antigène (A, B, D) absent chez le receveur. Mère Rh− (dd) et père D_ : enfant Rh+ possible ; la mère peut s'immuniser (anticorps anti-D) à l'accouchement et menacer une grossesse ultérieure d'un fœtus Rh+.",
   piege:"Le groupe O n'a ni A ni B sur les globules rouges : donneur O universel pour les globules, mais son plasma contient des anticorps anti-A et anti-B. Un receveur Rh− n'a des anticorps anti-D qu'après immunisation (pas naturels). Génotype A ≠ groupe A : AO et AA donnent tous deux le groupe A.",
   build:function(k,S){
-    var c = k.canvas(300), pal = S.draw.palette;
+    var c = k.canvas(430), pal = S.draw.palette, B = S.bio, tt = 0, rnd = Math.random;
     var G = [["AA","AA (groupe A)"],["AO","AO (groupe A)"],["BB","BB (groupe B)"],["BO","BO (groupe B)"],["AB","AB (groupe AB)"],["OO","OO (groupe O)"]];
     var m = k.select("Génotype ABO de la mère", G, "AO"), p = k.select("Génotype ABO du père", G, "BO");
     var rm = k.select("Rhésus de la mère", [["DD","DD (Rh+)"],["Dd","Dd (Rh+)"],["dd","dd (Rh−)"]], "dd");
@@ -177,26 +177,53 @@ SFA.sim({
     var note = k.note("", "ok");
     function ph(g){ var s = g.indexOf("A") >= 0 && g.indexOf("B") >= 0 ? "AB" : g.indexOf("A") >= 0 ? "A" : g.indexOf("B") >= 0 ? "B" : "O"; return s; }
     function ant(grp){ var g = grp.replace(/[+−]/g, ""), r = grp.indexOf("+") >= 0; return {A:g.indexOf("A") >= 0, B:g.indexOf("B") >= 0, D:r}; }
-    k.draw(function(){
-      c.clear();
+    function antigens(x, y, r, grp, alpha){ var a = ant(grp), ctx = c.ctx, list = [];
+      if (a.A) list.push(pal.red); if (a.B) list.push(pal.acc); if (a.D) list.push(pal.green);
+      var n = 9; for (var q = 0; q < n; q++){ var col = list[q % Math.max(1, list.length)]; if (!list.length) break; var an = q * 6.2832 / n + .3; var ax = x + (r + 3) * Math.cos(an), ay = y + (r + 3) * Math.sin(an);
+        ctx.save(); ctx.strokeStyle = col; ctx.fillStyle = col; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(x + r * Math.cos(an), y + r * Math.sin(an)); ctx.lineTo(ax, ay); ctx.stroke(); ctx.beginPath(); ctx.arc(ax + 2.4 * Math.cos(an), ay + 2.4 * Math.sin(an), 3, 0, 7); ctx.fill(); ctx.restore(); } }
+    function yab(x, y, col, s){ var ctx = c.ctx; ctx.save(); ctx.strokeStyle = col; ctx.lineWidth = 2; ctx.lineCap = "round"; ctx.beginPath(); ctx.moveTo(x, y + 8 * s); ctx.lineTo(x, y); ctx.lineTo(x - 6 * s, y - 8 * s); ctx.moveTo(x, y); ctx.lineTo(x + 6 * s, y - 8 * s); ctx.stroke(); ctx.restore(); }
+    function frame(dt){
+      var ctx = c.ctx, W = c.W, H = c.H; c.clear(); B.bg(c, "#fbfdff", "#eef3f9"); tt += dt;
       var res = {A:0, B:0, AB:0, O:0}, i, j;
       for (i = 0; i < 2; i++) for (j = 0; j < 2; j++) res[ph(m.value[i] + p.value[j])] += 0.25;
-      /* enfant Rh− : probabilité d'avoir reçu d des deux côtés */
-      var pneg, gm = rm.value === "DD" ? 0 : rm.value === "Dd" ? 0.5 : 1, gp = rp.value === "DD" ? 0 : rp.value === "Dd" ? 0.5 : 1;
-      pneg = gm * gp;
-      var names = ["A","B","AB","O"], cols = [pal.red, pal.acc, pal.violet, pal.green], bw = (c.W - 60) / 4, ctx = c.ctx;
-      S.draw.text(c, "Groupes ABO possibles de l'enfant", 20, 18, {align:"left", size:12, weight:600});
-      names.forEach(function(nm, q){ var h = res[nm] * 150, x = 30 + q * bw; ctx.fillStyle = cols[q]; ctx.fillRect(x + 10, 190 - h, bw - 24, h); S.draw.text(c, S.fmt(res[nm] * 100, 0) + " %", x + bw / 2 - 2, 190 - h - 10, {size:12}); S.draw.text(c, nm, x + bw / 2 - 2, 206, {size:13}); });
+      var gm = rm.value === "DD" ? 0 : rm.value === "Dd" ? 0.5 : 1, gp = rp.value === "DD" ? 0 : rp.value === "Dd" ? 0.5 : 1, pneg = gm * gp;
+      var names = ["A","B","AB","O"], cols = [pal.red, pal.acc, pal.violet, pal.green], bw = (W - 40) / 4;
+      S.draw.text(c, "Groupes ABO possibles de l'enfant", 20, 18, {align:"left", size:12, color:pal.ink});
+      names.forEach(function(nm, q){ var cx = 20 + bw * (q + .5), cy = 76, r = Math.min(24, bw * .26), pr = res[nm];
+        ctx.save(); ctx.globalAlpha = pr > 0 ? 1 : .3; B.rbc(c, cx, cy, r, {mode:"disque"}); antigens(cx, cy, r, nm + "−"); ctx.restore();
+        S.draw.text(c, nm, cx, cy + r + 18, {size:13, color:cols[q]});
+        ctx.fillStyle = "#e3e7ed"; S.draw.rrect(c, cx - bw * .36, cy + r + 30, bw * .72, 10, 5); ctx.fill(); if (pr > 0){ ctx.fillStyle = cols[q]; S.draw.rrect(c, cx - bw * .36, cy + r + 30, Math.max(8, bw * .72 * pr), 10, 5); ctx.fill(); }
+        S.draw.text(c, S.fmt(pr * 100, 0) + " %", cx, cy + r + 52, {size:12, color:pal.ink}); });
+      /* transfusion */
       var ad = ant(don.value), ar = ant(rec.value), ok = (!ad.A || ar.A) && (!ad.B || ar.B) && (!ad.D || ar.D);
       var why = [];
       if (ad.A && !ar.A) why.push("antigène A du donneur reconnu par les anti-A du receveur");
       if (ad.B && !ar.B) why.push("antigène B du donneur reconnu par les anti-B du receveur");
       if (ad.D && !ar.D) why.push("antigène D (Rh+) : risque d'immunisation anti-D chez un receveur Rh−");
-      S.draw.text(c, "Transfusion de globules : " + don.value + " → " + rec.value + " : " + (ok ? "compatible" : "incompatible"), 20, 245, {align:"left", size:13, color: ok ? pal.green : pal.red});
-      S.draw.text(c, ok ? "aucun antigène étranger pour le receveur" : why[0], 20, 270, {align:"left", size:11, weight:600, color:pal.grey});
+      var ty = 208, th = H - ty - 52;
+      S.draw.panel(c, 10, ty, W - 20, th, {shadow:false});
+      S.draw.text(c, "Transfusion de globules : " + don.value + " → " + rec.value, 22, ty + 16, {align:"left", size:12, color:pal.ink});
+      var dx = W * .16, px0 = W * .38, px1 = W - 26, cy0 = ty + th * .6;
+      B.rbc(c, dx, cy0, 22, {mode:"disque"}); antigens(dx, cy0, 22, don.value); S.draw.text(c, "donneur " + don.value, dx, cy0 + 40, {size:10.5, color:pal.grey});
+      S.draw.arrow(c, dx + 40, cy0, px0 - 8, cy0, pal.grey, 2);
+      ctx.fillStyle = "rgba(255,240,200,.55)"; S.draw.rrect(c, px0, ty + 28, px1 - px0, th - 38, 12); ctx.fill(); ctx.strokeStyle = "#e5cf93"; ctx.lineWidth = 1.5; ctx.stroke();
+      S.draw.text(c, "plasma du receveur " + rec.value, (px0 + px1) / 2, ty + 42, {size:10.5, color:"#8a6d1c"});
+      /* anticorps du receveur */
+      var abs = []; if (!ar.A) abs.push([pal.red, "anti-A"]); if (!ar.B) abs.push([pal.acc, "anti-B"]);
+      for (var q = 0; q < 8; q++){ var ab = abs[q % Math.max(1, abs.length)]; if (!ab) break; yab(px0 + 22 + ((q * 53) % Math.max(60, px1 - px0 - 50)), ty + 62 + (q % 3) * 12, ab[0], 1); }
+      if (abs.length) S.draw.text(c, abs.map(function(a){ return a[1]; }).join(" + "), px0 + 8, ty + th - 22, {align:"left", size:10, color:pal.grey});
+      /* globules donneurs dans le plasma */
+      var n = 5, spread = ok ? 1 : .35;
+      for (q = 0; q < n; q++){ var home = [px0 + 36 + q * ((px1 - px0 - 72) / (n - 1)), cy0 + 4 * Math.sin(tt * 1.5 + q)], clump = [(px0 + px1) / 2 + (q % 3 - 1) * 22 + (q > 2 ? 11 : 0), cy0 + (q > 2 ? 22 : -4)];
+        var u = ok ? 0 : Math.min(1, tt * .5 % 3), x = home[0] + (clump[0] - home[0]) * (ok ? 0 : Math.min(1, (tt % 4) / 1.5)), y = home[1] + (clump[1] - home[1]) * (ok ? 0 : Math.min(1, (tt % 4) / 1.5));
+        B.rbc(c, x, y, 13, {mode:"disque"}); antigens(x, y, 13, don.value); }
+      if (!ok){ S.draw.label(c, "agglutination !", px1 - 70, ty + th - 22, {color:pal.red, size:12}); } else S.draw.label(c, "pas d'agglutination", px1 - 78, ty + th - 22, {color:pal.green, size:11.5});
+      S.draw.text(c, ok ? "Compatible : aucun antigène étranger pour le receveur" : "Incompatible : " + why[0], 20, H - 22, {align:"left", size:11.5, weight:700, color:ok ? pal.green : pal.red});
       ro.set(0, ok ? "compatible" : "incompatible"); ro.set(1, S.fmt((1 - pneg) * 100, 0) + " %"); ro.set(2, S.fmt(pneg * 100, 0) + " %");
       note.set(rm.value === "dd" && pneg < 1 ? "Mère Rh− : un enfant Rh+ (probabilité " + S.fmt((1 - pneg) * 100, 0) + " %) peut immuniser la mère ; prévention par immunoglobulines anti-D." : "Pas d'incompatibilité Rh fœto-maternelle dans ce couple (mère Rh+ ou enfant forcément Rh−).", rm.value === "dd" && pneg < 1 ? "warn" : "ok");
-    });
+    }
+    k.draw(function(){ frame(0); });
+    var lp = k.loop(function(dt){ frame(dt); }); lp.play();
   }
 });
 

@@ -140,7 +140,7 @@ SFA.sim({
     var ro=k.readouts(["Km apparent","Flux facilité","Flux diffusion simple","Saturation C/(Km'+C)","C pour 50 % de saturation"]);
     k.draw(function(){
       c.clear();
-      var kma=km.value*(1+I.value/Ki.value), ax=S.draw.axes(c,{x0:0,x1:20,y0:0,y1:210,stepX:5,stepY:50,xl:"C (mmol/L)",yl:"flux (µmol/min)"});
+      var kma=km.value*(1+I.value/Ki.value), ax=S.draw.axes(c,{t:28,x0:0,x1:20,y0:0,y1:210,stepX:5,stepY:50,xl:"C (mmol/L)",yl:"flux (µmol/min)"});
       S.draw.fn(c,ax,function(x){return kd.value*x;},P.grey,2,[5,4]);
       S.draw.fn(c,ax,function(x){return jm.value*x/(km.value+x);},P.acc,1.8);
       if(I.value>0) S.draw.fn(c,ax,function(x){return jm.value*x/(kma+x);},P.red,2.6);
@@ -173,7 +173,7 @@ SFA.sim({
       c.clear();
       var d=ION[ion.value], z=d[1], Ci=d[2]*fi.value, Co=d[3]*fo.value, Tk=T.value+273.15, F=96485, R=8.314;
       var E=1000*R*Tk/(z*F)*Math.log(Co/Ci), unit=1000*R*Tk/F*Math.LN10;
-      var ax=S.draw.axes(c,{x0:-3,x1:3,y0:-150,y1:150,stepX:1,stepY:50,xl:"log₁₀([X]ₒ/[X]ᵢ)",yl:"E (mV)"});
+      var ax=S.draw.axes(c,{t:28,x0:-3,x1:3,y0:-150,y1:150,stepX:1,stepY:50,xl:"log₁₀([X]ₒ/[X]ᵢ)",yl:"E (mV)"});
       [[1,P.acc,"z = +1"],[2,P.violet,"z = +2"],[-1,P.teal,"z = −1"]].forEach(function(o){ S.draw.fn(c,ax,function(x){return unit/o[0]*x;},o[1],o[0]===z?2.8:1.4); S.draw.text(c,o[2],ax.X(2.3),ax.Y(unit/o[0]*2.3)-(o[0]===-1?-10:10),{size:10,color:o[1]}); });
       var lx=Math.log10(Co/Ci); S.draw.dot(c,ax.X(Math.max(-3,Math.min(3,lx))),ax.Y(Math.max(-150,Math.min(150,E))),7,P.red);
       S.draw.line(c,ax.L,ax.Y(vm.value),ax.R,ax.Y(vm.value),P.amber,1.6,[6,4]); S.draw.text(c,"Vm",ax.L+4,ax.Y(vm.value)-8,{size:11,color:P.amber,align:"left"});
@@ -202,7 +202,7 @@ SFA.sim({
     k.draw(function(){
       c.clear();
       var pN=parseFloat(pn.value), pC=pcl.value;
-      var ax=S.draw.axes(c,{x0:1,x1:40,y0:-140,y1:80,stepX:5,stepY:20,xl:"[K⁺] extérieur (mmol/L)",yl:"Vm (mV)"});
+      var ax=S.draw.axes(c,{t:28,x0:1,x1:40,y0:-140,y1:80,stepX:5,stepY:20,xl:"[K⁺] extérieur (mmol/L)",yl:"Vm (mV)"});
       S.draw.fn(c,ax,function(x){return U*Math.log10(x/Ki);},P.grey,1.6,[5,4]);
       S.draw.fn(c,ax,function(x){return vmf(x,pN,pC);},P.acc,2.8);
       S.draw.text(c,"tirets : E(K⁺) seul",ax.X(25),ax.Y(U*Math.log10(25/Ki))+14,{size:10,color:P.grey});
