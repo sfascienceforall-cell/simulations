@@ -216,3 +216,5 @@ h3.peek{font:800 12px var(--f,system-ui);letter-spacing:.08em;text-transform:upp
 .simpage .sfa-list a.on{background:var(--acc-t,#eef4fb);color:var(--acc,#24428a)}
 .simpage .sfa-list a.on i{color:var(--acc,#24428a)}
 .sfa-list a.on{background:#eef4fb}
+/* téléphone : le bandeau ne recouvre plus le haut de la simulation */
+@media (max-width:760px){.sfa-top{position:static}.simhost .stage{position:static}}
