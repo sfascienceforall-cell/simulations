@@ -19,13 +19,13 @@ SFA.theo("c07",{
   anim:function(t){
    var tpl='TACCGACTTGCATTTATC',mr='AUGGCUGAACGUAAAUAG',aa=['Met','Ala','Glu','Arg','Lys','stop'];
    var n=Math.min(18,Math.floor(t%1100/22)),c=Math.max(0,Math.min(6,Math.floor(((t%1100)-18*22-40)/60)));
-   var x0=W*.5-9*30+15,yT=62,yR=yT+34;
+   var x0=W*.5-9*30+15,yT=56,yR=yT+34;
    TB('Transcription : ARN polymérase, brin matrice lu 3′→5′, ARN synthétisé 5′→3′',W*.5,18,BLUE_D,13);
    TB('3′',x0-26,yT+5,GREY,12);TB('5′',x0+18*30-4,yT+5,GREY,12);
    for(var i=0;i<18;i++){b7_nt(x0+i*30,yT,tpl[i],B7C[tpl[i]],11);if(i<n){b7_nt(x0+i*30,yR,mr[i],B7C[mr[i]],11);LN(x0+i*30,yT+11,x0+i*30,yR-11,'#c8ccd0',1.2);}}
    if(n<18){ctx.fillStyle='rgba(127,119,221,.25)';ctx.strokeStyle=VIOLET;ctx.lineWidth=2;ctx.beginPath();ctx.ellipse(x0+n*30,yT+16,26,30,0,0,7);ctx.fill();ctx.stroke();TB('ARN pol',x0+n*30,yT+19,VIO_D,10);}
-   if(n>=18){TB('ARNm 5′→3′ : traduction',W*.5,yR+36,DGREEN,13);
-    var y2=H*.72;TB('Traduction : le ribosome lit un codon à la fois (AUG = départ)',W*.5,y2-84,BLUE_D,13);
+   if(n>=18){TB('ARNm 5′→3′ obtenu',W*.5,yR+28,DGREEN,12);
+    var y2=H*.76;TB('Traduction : le ribosome lit un codon à la fois (AUG = départ)',W*.5,y2-82,BLUE_D,13);
     for(var k=0;k<6;k++){var cx=x0+k*90+30;var on=k<c;ctx.fillStyle=k===c?'#fdece4':'#fff';ctx.strokeStyle=k===c?ORA2:AX;ctx.lineWidth=k===c?3:1.6;ctx.beginPath();ctx.roundRect(cx-40,y2-14,80,28,6);ctx.fill();ctx.stroke();TB(mr.slice(k*3,k*3+3),cx,y2+5,INK,14);
      if(on){bio_cell(cx,y2-44,16,k===5?RED:BLUE,k===5?'#fcebeb':'#eef4fb');TB(aa[k],cx,y2-40,k===5?DRED:BLUE_D,11);}}
     var rx=x0+Math.min(c,5)*90+30;ctx.strokeStyle=VIOLET;ctx.lineWidth=3;ctx.beginPath();ctx.roundRect(rx-46,y2-22,92,44,10);ctx.stroke();TB('ribosome',rx,y2+38,VIO_D,11);}},
@@ -35,7 +35,7 @@ SFA.theo("c07",{
    var cyc=Math.floor((t%700)/50),N=Math.pow(2,Math.min(cyc,12));
    TB('PCR : chaque cycle double le nombre de copies (efficacité 100 %)',W*.5,20,BLUE_D,14);
    var x0=W*.08,y0=H*.8,w=W*.84,h=H*.55;LN(x0,y0,x0+w,y0,INK,1.6);
-   for(var i=0;i<=12;i++){var bh=Math.pow(2,i)/4096*h;var on=i<=cyc;ctx.fillStyle=on?(i===cyc?'#fdece4':'#e6f1fb'):'#f4f5f7';var bx=x0+i*w/13+4;ctx.fillRect(bx,y0-Math.max(bh,2),w/13-8,Math.max(bh,2));ctx.strokeStyle=on?(i===cyc?ORA2:BLUE):AX;ctx.lineWidth=1.6;ctx.strokeRect(bx,y0-Math.max(bh,2),w/13-8,Math.max(bh,2));TB(String(i),bx+(w/13-8)/2,y0+15,GREY,11);}
+   for(var i=0;i<=12;i++){var bh=Math.pow(2,i)/4096*h;var on=i<=cyc;ctx.fillStyle=on?(i===cyc?'#fdece4':'#e6f1fb'):'#f4f5f7';var bx=x0+i*w/13+4;ctx.fillRect(bx,y0-Math.max(bh,2),w/13-8,Math.max(bh,2));ctx.strokeStyle=on?(i===cyc?ORA2:BLUE):AX;ctx.lineWidth=1.6;ctx.strokeRect(bx,y0-Math.max(bh,2),w/13-8,Math.max(bh,2));TB(String(i),bx+(w/13-8)/2,y0+15,GREY,11);if(on)TB(String(Math.pow(2,i)),bx+(w/13-8)/2,y0-Math.max(bh,2)-5,i===cyc?DRED:BLUE_D,10);}
    TB('cycle',x0+w,y0+30,GREY,12,'right');
    TB('cycle '+Math.min(cyc,12)+' : '+N+' copie'+(N>1?'s':'')+' = 2^'+Math.min(cyc,12),W*.3,H*.3,DRED,16);
    var ph=(t%50)/50;TB(ph<.33?'dénaturation 95 °C':(ph<.66?'hybridation des amorces ≈ 55 °C':'élongation 72 °C (polymérase thermostable)'),W*.3,H*.42,INK,13);

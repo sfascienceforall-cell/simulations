@@ -25,3 +25,6 @@ Nouvelle structure (kit/) : chaque cours = une page `index.html` → chapitres �
 | 10:21 | Théorie physique 5e + 6e complète (6e/index.html ne chargeait pas les theo : corrigé). Outil /home/claude/tools/figtest.py (rend devantures à p=0..1) | fait |
 | 10:22 | Maths BA1 c01-c05 complets (25 sims, 70 ex.). maths 5e : index reconstruit (ne chargeait pas les theo). À FAIRE à la fin : build_course.py sur TOUS les cours | fait |
 | 10:22 | Théorie physique 3e + 4e complète (index corrigés, _t4e/_t6e supprimés) | fait |
+| 10:22 | Théorie chimie BA1 : 19 chapitres OK (theo-L.js pour L01-L18), _tchimie supprimé | fait |
+| 10:23 | Théorie biologie 3e complète (10 chapitres, 0 erreur) | fait |
+| 10:23 | Théorie maths 3e + 6e + statistique complètes (index corrigés) | fait |

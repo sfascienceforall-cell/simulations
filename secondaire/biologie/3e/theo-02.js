@@ -37,7 +37,6 @@ SFA.figs("c02", [
     b3.ar(W * .46, H * .7, W * .54, H * .7, ORANGE, 4); TB("10 %", W * .5, H * .64, ORANGE, 15);
     b3.ico("herbe", W * .27, H * .3, 30); b3.ico("lapin", W * .73, H * .3, 30);
     if (p > 0) { TB("20 000 × 0,10 = 2 000 kJ", W * .5, H * .93, DGREEN, 16); TB("2 000", W * .73, H * .78, DGREEN, 16); } else TB("?", W * .73, H * .78, ORANGE, 24);
-    b3.ar(W * .27, H * .9, W * .5, H * .9, RED, 2, [5, 4]);
   },
   /* 1 Chaînes courtes */
   function (p) {

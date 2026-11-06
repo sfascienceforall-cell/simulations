@@ -23,7 +23,7 @@ SFA.theo("c08", {
  },
  anim: function (t) {
   var u=(t%660)/660,s=u*7,tau=.9,Bq=.75*(1-Math.exp(-s/tau)),Bf=Math.min(Bq,.75),A=1-Bf,Q=Bf/Math.max(A,.001);
-  var gx=W*.07,gw=W*.5,gy=H*.12,gh=H*.62,gb=gy+gh;
+  var gx=W*.07,gw=W*.5,gy=H*.1,gh=H*.56,gb=gy+gh;
   LN(gx,gb,gx+gw,gb,AX,1.6);LN(gx,gb,gx,gy,AX,1.6);TB('temps',gx+gw,gb+18,GREY,13,'right');TB('concentration',gx+4,gy-4,GREY,13,'left');
   var xe=gx+gw*(.9/ 7*1.7);
   ctx.strokeStyle=BLUE;ctx.lineWidth=3;ctx.beginPath();var i;for(i=0;i<=Math.min(s,7)*40;i++){var ss=i/40,b=.75*(1-Math.exp(-ss/tau)),x=gx+gw*ss/7,y=gb-gh*(1-b)*.95;i?ctx.lineTo(x,y):ctx.moveTo(x,y);}ctx.stroke();
@@ -37,8 +37,8 @@ SFA.theo("c08", {
    ball(xx,yy,5.5,isB?CBc:CA,'',null);}
   TB('● A  ● B',px+pw/2,py+ph+20,GREY,13);
   var eq=Math.abs(Q-3)<.08;
-  TB('Q = [B] ÷ [A] = '+(Q).toFixed(1).replace('.',','),W*.5,H*.88,eq?DGREEN:INK,19);TB('K = 3,0',W*.5,H*.97,BLUE_D,16);
-  TB(eq?'Q = K : équilibre dynamique':'Q < K : évolue vers les produits',W*.81,H*.78,eq?DGREEN:DRED,15);
+  TB('Q = [B] ÷ [A] = '+(Q).toFixed(1).replace('.',',')+'   ·   K = 3,0',W*.5,H*.95,eq?DGREEN:INK,19);
+  TB(eq?'Q = K : équilibre dynamique (les particules changent de couleur)':'Q < K : évolution vers la droite (produits)',W*.5,H*.84,eq?DGREEN:DRED,16);
  },
  th:
  '<div class="tcard"><b class="h">Réaction complète ou équilibre</b><p>Certaines réactions s\'arrêtent quand un réactif est épuisé (complètes). D\'autres sont <b>limitées</b> : réactifs et produits coexistent. On écrit alors <code>⇌</code>. À l\'<b>équilibre chimique</b>, la réaction directe et la réaction inverse se poursuivent à la <b>même vitesse</b> : les concentrations restent constantes mais rien n\'est « arrêté » : l\'équilibre est <b>dynamique</b>.</p></div>' +

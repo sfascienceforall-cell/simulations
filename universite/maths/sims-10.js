@@ -123,13 +123,13 @@ function surf3(c, V, f, L, zr, o){
   quads.forEach(function(q){ var a = q[0], b = q[1], z00 = Z[a][b], z10 = Z[a + 1][b], z11 = Z[a + 1][b + 1], z01 = Z[a][b + 1], zm = (z00 + z10 + z11 + z01) / 4;
     var gx = ((z10 - z00) + (z11 - z01)) / (2 * st) * zk, gy = ((z01 - z00) + (z11 - z10)) / (2 * st) * zk, nn = Math.sqrt(gx * gx + gy * gy + 1), sh = (-gx * lx - gy * ly + lz) / nn, br = 0.62 + 0.42 * Math.max(0, sh), col = cmap((zm - zr[0]) / (zr[1] - zr[0]));
     ctx.beginPath(); ctx.moveTo(Pp[a][b].x, Pp[a][b].y); ctx.lineTo(Pp[a + 1][b].x, Pp[a + 1][b].y); ctx.lineTo(Pp[a + 1][b + 1].x, Pp[a + 1][b + 1].y); ctx.lineTo(Pp[a][b + 1].x, Pp[a][b + 1].y); ctx.closePath();
-    ctx.fillStyle = "rgb(" + Math.min(255, Math.round(col[0] * br)) + "," + Math.min(255, Math.round(col[1] * br)) + "," + Math.min(255, Math.round(col[2] * br)) + ")"; ctx.fill(); ctx.strokeStyle = o.wire ? "rgba(15,27,45,.35)" : "rgba(255,255,255,.18)"; ctx.lineWidth = o.wire ? 0.8 : 0.5; ctx.stroke(); });
+    ctx.fillStyle = "rgb(" + Math.min(255, Math.round(col[0] * br)) + "," + Math.min(255, Math.round(col[1] * br)) + "," + Math.min(255, Math.round(col[2] * br)) + ")"; ctx.fill(); ctx.strokeStyle = o.wire ? "rgba(15,27,45,.4)" : ctx.fillStyle; ctx.lineWidth = o.wire ? 0.8 : 0.7; ctx.stroke(); });
 }
 function box3(V, L, zlo, zhi){ var a = "rgba(15,27,45,.28)", cs = [[-L, -L], [L, -L], [L, L], [-L, L]], i; for (i = 0; i < 4; i++){ var p = cs[i], q = cs[(i + 1) % 4]; V.line([p[0], p[1], zlo], [q[0], q[1], zlo], a, 1.2); V.line([p[0], p[1], zlo], [p[0], p[1], zhi], "rgba(15,27,45,.12)", 1); V.line([p[0], p[1], zhi], [q[0], q[1], zhi], "rgba(15,27,45,.12)", 1); }
   V.arrow([L, -L, zlo], [L + 0.9, -L, zlo], "#5f6b7a", 1.4, "x"); V.arrow([L, L, zlo], [L, L + 0.9, zlo], "#5f6b7a", 1.4, "y"); V.arrow([-L, -L, zlo], [-L, -L, zlo + (zhi - zlo) * 0.5], "#5f6b7a", 1.4, "z"); }
 function fnOptions(keys){ return keys.map(function(k2){ return [k2, FUN[k2].nom]; }); }
 function V3(k, c, hook, o){ var V = U.View3(k, c, o); V.attach(hook); return V; }
-function setView(V, c, h1, L, zoom){ V.range = L * 1.75 / (zoom || 1); V.s = Math.min(c.W * 0.5, h1 * 0.5) / V.range; V.yoff = h1 / 2 - c.H / 2 - 4; }
+function setView(V, c, h1, L, zoom){ V.range = L * 1.55 / (zoom || 1); V.s = Math.min(c.W * 0.5, h1 * 0.5) / V.range; V.yoff = h1 / 2 - c.H / 2 - 4; }
 function zinfo(key, fn, V){ var zr = zrange(key, fn), zc = (zr[0] + zr[1]) / 2, zk = fn.L * 0.75 / Math.max(1e-9, (zr[1] - zr[0]) / 2); return {zr:zr, zc:zc, zk:zk, zlo:(zr[0] - zc) * zk - 0.05, zhi:(zr[1] - zc) * zk + 0.05}; }
 
 /* ---------- 1. surface et courbes de niveau ---------- */
@@ -165,7 +165,7 @@ SFA.sim({
       if (tc.value) drawSegs(c, P, segsAt(Zg, L, 64, cv), C.red, 3);
       mapFrame(c, P, L); D.dot(c, P.X(probe.x), P.Y(probe.y), 6.5, "#fff"); D.dot(c, P.X(probe.x), P.Y(probe.y), 4, C.ink);
       colorbar(c, Math.min(W - 26, P.X(L) + 26), P.Y(L) + 14, 12, P.Y(-L) - P.Y(L) - 28, zr);
-      D.text(c, "Carte des niveaux (vue de dessus) : clique pour placer un point", 10, h1 + 18, {size:11, color:C.grey, align:"left"});
+      D.text(c, "Carte des niveaux", 10, h1 + 20, {size:11, color:C.grey, align:"left"}); D.text(c, "(clique pour placer", 10, h1 + 34, {size:10, color:C.grey, align:"left"}); D.text(c, "un point)", 10, h1 + 46, {size:10, color:C.grey, align:"left"});
       ro.set(0, fx(pz, 3)); ro.set(1, fx(cv, 3)); ro.set(2, "(" + fx(probe.x, 2) + " ; " + fx(probe.y, 2) + ")"); ro.set(3, fx(zr[0], 2) + " ; " + fx(zr[1], 2));
       var empty = segsAt(Zg, L, 64, cv).length === 0;
       nt.set(empty ? "Aucun point de la fenêtre n'a l'altitude c = " + fx(cv, 2) + " : la courbe de niveau est vide." : key === "plan" ? "Pour un plan, les courbes de niveau sont des droites parallèles régulièrement espacées." : key === "sel" ? "Au niveau c = 0, la courbe de niveau est formée de deux droites qui se croisent (y = ±x) : c'est le point-selle." : "La courbe rouge est l'ensemble des points (x ; y) tels que f(x ; y) = " + fx(cv, 2) + ".", empty ? "warn" : "ok");
@@ -204,7 +204,7 @@ SFA.sim({
       c.clear(); var ctx = c.ctx, W = c.W, H = c.H, key = fsel.value, fn = FUN[key], L = fn.L, zi = zinfo(key, fn), zr = zi.zr, x0 = sx.value, y0 = sy.value; h1 = Math.round(H * 0.58); setView(V, c, h1, L);
       var f = fn.f, f0 = f(x0, y0), g = fd1(f, x0, y0), zz = function(z){ return (z - zi.zc) * zi.zk; }, i, n = 60;
       box3(V, L, zi.zlo, zi.zhi); surf3(c, V, f, L, zr, {zk:zi.zk, zc:zi.zc, n:32});
-      if (tt.value){ var w = Math.min(1.2, L * 0.5), pts = [[-w, -w], [w, -w], [w, w], [-w, w]].map(function(q){ return [x0 + q[0], y0 + q[1], zz(f0 + g[0] * q[0] + g[1] * q[1])]; }); V.poly(pts, "rgba(180,83,9,.30)", "rgba(180,83,9,.9)", 1.6); }
+      if (tt.value){ var w = Math.min(0.8, L * 0.3), pts = [[-w, -w], [w, -w], [w, w], [-w, w]].map(function(q){ return [x0 + q[0], y0 + q[1], zz(f0 + g[0] * q[0] + g[1] * q[1])]; }); V.poly(pts, "rgba(180,83,9,.30)", "rgba(180,83,9,.9)", 1.6); }
       if (tc.value){ for (i = 0; i < n; i++){ var xa = -L + 2 * L * i / n, xb = -L + 2 * L * (i + 1) / n; V.line([xa, y0, zz(f(xa, y0))], [xb, y0, zz(f(xb, y0))], C.red, 3); V.line([x0, xa, zz(f(x0, xa))], [x0, xb, zz(f(x0, xb))], C.blue, 3); }
         var a = Math.min(0.9, L * 0.4); V.line([x0 - a, y0, zz(f0 - g[0] * a)], [x0 + a, y0, zz(f0 + g[0] * a)], "#7f1d1d", 2.2, [5, 3]); V.line([x0, y0 - a, zz(f0 - g[1] * a)], [x0, y0 + a, zz(f0 + g[1] * a)], "#1e3a8a", 2.2, [5, 3]); }
       V.dot([x0, y0, zz(f0)], 6.5, "#fff"); V.dot([x0, y0, zz(f0)], 4, C.ink); D.text(c, "Glisse pour faire tourner", 10, 14, {size:11, color:C.grey, align:"left"});
@@ -327,19 +327,19 @@ SFA.sim({
   aRetenir:"Pour optimiser f(x ; y) sous la contrainte g(x ; y) = c, on cherche les points où ∇f = λ∇g (λ = multiplicateur de Lagrange), avec g = c. Trois équations, trois inconnues (x, y, λ). Exemple : maximiser xy sur x² + y² = 2 donne x = y = 1, λ = ½, f = 1.",
   piege:"∇f = λ∇g donne les candidats, pas leur nature : il faut comparer les valeurs de f en chaque candidat (ou étudier f sur la contrainte). Si ∇g = 0 quelque part sur la contrainte, la méthode peut manquer des extrema. Sur une contrainte non bornée (droite), il peut n'y avoir qu'un extremum (le minimum) et pas de maximum.",
   build:function(k, S){
-    var c = k.canvas(0, {ratio:1.2}), P = null, h1 = 0, L = 3.2, GP = null, own = "";
+    var c = k.canvas(0, {ratio:1.2}), P = null, h1 = 0, L = 3.2, LL = 3.2, GP = null, own = "";
     var fsel = k.select("Fonction à optimiser f", [["xy", FL.xy.nom], ["lin", FL.lin.nom], ["quad", FL.quad.nom]], "xy"), csel = k.select("Contrainte g = c", [["cer", "Cercle x² + y² = r²"], ["dro", "Droite x + y = 2r"], ["ell", "Ellipse x²/4 + y² = r²"]], "cer");
     var rs = k.slider("Taille r de la contrainte", 0.4, 1.5, 0.05, 1, ""), sp = k.slider("Position du point sur la contrainte", 0, 100, 0.5, 12, "%");
     var lp = k.loop(function(dt){ var v = sp.value + 14 * dt; if (v > 100) v = 0; sp.set(v); k.redraw(); }); k.button("▶ Parcourir la contrainte", function(){ if (lp.running) lp.pause(); else lp.play(); }, true);
     var tl = k.toggle("Courbe de niveau de f par le point", true), tg = k.toggle("Gradients ∇f et ∇g", true);
     var ro = k.readouts(["f au point", "∇f", "∇g", "∇f ∥ ∇g ?", "Maximum de f sur la contrainte", "Minimum de f sur la contrainte"]); var nt = k.note("", "ok");
-    function cp(s){ var ty = csel.value, r = rs.value; if (ty === "cer"){ var a = 2 * PI * s; return {x:r * Math.cos(a), y:r * Math.sin(a), g:[2 * r * Math.cos(a), 2 * r * Math.sin(a)]}; } if (ty === "ell"){ var b = 2 * PI * s, x = 2 * r * Math.cos(b), y = r * Math.sin(b); return {x:x, y:y, g:[x / 2, 2 * y]}; } var u = -L * 1.05 + 2 * L * 1.05 * s; return {x:r + u, y:r - u, g:[1, 1]}; }
+    function cp(s){ var ty = csel.value, r = rs.value; if (ty === "cer"){ var a = 2 * PI * s; return {x:r * Math.cos(a), y:r * Math.sin(a), g:[2 * r * Math.cos(a), 2 * r * Math.sin(a)]}; } if (ty === "ell"){ var b = 2 * PI * s, x = 2 * r * Math.cos(b), y = r * Math.sin(b); return {x:x, y:y, g:[x / 2, 2 * y]}; } var u = -LL * 1.05 + 2 * LL * 1.05 * s; return {x:r + u, y:r - u, g:[1, 1]}; }
     function closed(){ return csel.value !== "dro"; }
     c.cv.style.touchAction = "none";
     c.pointer(function(t, p){ if (t === "down") own = p.y > h1 ? "g" : "m"; if ((t === "down" || t === "drag") && own === "g" && GP){ sp.set(Math.max(0, Math.min(100, (p.x - GP.bx) / GP.bw * 100))); k.redraw(); } if ((t === "down" || t === "drag") && own === "m" && P){ var b = 1e9, bs = 0, i; for (i = 0; i <= 400; i++){ var q = cp(i / 400), d = Math.hypot(P.X(q.x) - p.x, P.Y(q.y) - p.y); if (d < b){ b = d; bs = i / 4; } } sp.set(bs); k.redraw(); } if (t === "up") own = ""; });
     k.draw(function(){
-      c.clear(); var ctx = c.ctx, W = c.W, H = c.H, fk = fsel.value, fo = FL[fk], zr = zrange("L" + fk, {f:fo.f, L:L}), s = sp.value / 100; h1 = Math.round(H * 0.64); var i;
-      P = mapP(c, 0, 0, W, h1, L); heat(c, P, fo.f, L, zr, "L" + fk + "|h"); var Zg = gridVals(fo.f, L, 64);
+      c.clear(); var ctx = c.ctx, W = c.W, H = c.H, fk = fsel.value, fo = FL[fk], s = sp.value / 100; L = csel.value === "cer" ? 2.2 : 3.2; var zr = zrange("L" + fk + L, {f:fo.f, L:L}); h1 = Math.round(H * 0.64); var i;
+      P = mapP(c, 0, 0, W, h1, L); heat(c, P, fo.f, L, zr, "L" + fk + L + "|h"); var Zg = gridVals(fo.f, L, 64);
       var pt = cp(s), fp = fo.f(pt.x, pt.y), gf = fo.g(pt.x, pt.y);
       for (i = 1; i < 10; i++) drawSegs(c, P, segsAt(Zg, L, 64, zr[0] + (zr[1] - zr[0]) * i / 10), "rgba(255,255,255,.35)", 1);
       if (tl.value){ drawSegs(c, P, segsAt(Zg, L, 64, fp), "#fff", 3.6); drawSegs(c, P, segsAt(Zg, L, 64, fp), C.ink, 1.3); }

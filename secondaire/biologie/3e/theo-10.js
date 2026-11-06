@@ -62,7 +62,7 @@ SFA.figs("c10", [
   },
   /* 3 Rendement maximal */
   function (p) {
-    var gx = W * .12, gb = H * .78, gw = W * .8, gh = H * .58, X = function (n) { return gx + n / 1000 * gw; }, Y = function (v) { return gb - v / 120 * gh; }, i;
+    var gx = W * .12, gb = H * .78, gw = W * .8, gh = H * .58, X = function (n) { return gx + n / 1000 * gw; }, Y = function (v) { return gb - v / 170 * gh; }, i;
     b3.axes(gx, gb, gw + 8, gh + 14, "stock N (t)", "renouvellement (t/an)"); var pts = []; for (i = 0; i <= 50; i++) { var n = i * 20; pts.push([X(n), Y(.4 * n * (1 - n / 1000))]); } b3.curve(pts, GREEN, 3.5);
     [0, 500, 1000].forEach(function (n) { TB(n, X(n), gb + 18, GREY, 12); });
     if (p > 0) { DOT(X(500), Y(100), 7, ORANGE); TB("RMD = 0,4 × 1 000 / 4 = 100 t/an", X(500), Y(100) - 14, ORANGE, 14); LN(gx, Y(150), gx + gw, Y(150), RED, 2, [6, 4]); TB("150 t/an : au-dessus de la courbe → effondrement", gx + gw, Y(150) - 6, DRED, 12, "right"); TB("(0,3 : 75 t/an)", X(500), Y(100) + 28, GREY, 12); } else TB("rendement maximal ?", X(500), Y(60), ORANGE, 16);
@@ -84,16 +84,16 @@ SFA.figs("c10", [
   /* 6 Quota ou part du stock */
   function (p) {
     var gx = W * .12, gb = H * .78, gw = W * .8, gh = H * .58, X = function (n) { return gx + n / 1000 * gw; }, Y = function (v) { return gb - v / 120 * gh; }, i;
-    b3.axes(gx, gb, gw + 8, gh + 14, "stock N (t)", "t/an"); var pts = []; for (i = 0; i <= 50; i++) { var n = i * 20; pts.push([X(n), Y(.4 * n * (1 - n / 1000))]); } b3.curve(pts, GREEN, 3.5); TB("renouvellement g(N)", X(780), Y(.4 * 780 * .22) - 14, DGREEN, 12);
-    LN(X(0), Y(100), X(1000), Y(100), RED, 2.2, [6, 4]); TB("quota 100 t", X(1000), Y(100) - 6, DRED, 12, "right"); LN(X(0), Y(0), X(600), Y(120), BLUE, 2.2); TB("20 % du stock", X(560), Y(112) - 6, BLUE_D, 12, "right");
+    b3.axes(gx, gb, gw + 8, gh + 14, "stock N (t)", "t/an"); var pts = []; for (i = 0; i <= 50; i++) { var n = i * 20; pts.push([X(n), Y(.4 * n * (1 - n / 1000))]); } b3.curve(pts, GREEN, 3.5);
+    LN(X(0), Y(100), X(1000), Y(100), RED, 2.2, [6, 4]); TB("quota 100 t", X(1000), Y(100) - 6, DRED, 12, "right"); LN(X(0), Y(0), X(700), Y(140), BLUE, 2.2); TB("20 % du stock", X(700), Y(140) - 6, BLUE_D, 12, "right");
     [0, 375, 500, 1000].forEach(function (n) { TB(n, X(n), gb + 18, GREY, 11); });
-    if (p > 0) { LN(X(375), gb, X(375), Y(93.75), ORANGE, 1.6, [4, 3]); DOT(X(375), Y(93.75), 6, ORANGE); TB("g = 93,75", X(375) + 8, Y(93.75) + 22, ORANGE, 13, "left"); b3.pill("quota 100 > 93,75 : effondrement", W * .6, H * .1, "#fdecea", DRED, 13); b3.pill("75 < 93,75 : rétablissement", W * .6, H * .22, "#e4f6ee", DGREEN, 13); } else TB("après un choc à 375 t ?", W * .6, H * .15, ORANGE, 15);
+    if (p > 0) { LN(X(375), gb, X(375), Y(93.75), ORANGE, 1.6, [4, 3]); DOT(X(375), Y(93.75), 6, ORANGE); TB("g = 93,75", X(375) + 8, Y(93.75) + 22, ORANGE, 13, "left"); b3.pill("quota 100 > 93,75 : effondrement", W * .6, H * .06, "#fdecea", DRED, 13); b3.pill("75 < 93,75 : rétablissement", W * .6, H * .17, "#e4f6ee", DGREEN, 13); } else TB("après un choc à 375 t ?", W * .6, H * .1, ORANGE, 15);
   },
   /* 7 Les poissons meurent à l'aube */
   function (p) {
     var gx = W * .1, gb = H * .78, gw = W * .84, gh = H * .55, X = function (h) { return gx + h / 24 * gw; }, Y = function (v) { return gb - v / 10 * gh; }, i;
     b3.axes(gx, gb, gw + 8, gh + 14, "heure", "O₂ dissous"); [0, 6, 12, 18, 24].forEach(function (h) { TB(h, X(h), gb + 18, GREY, 12); });
-    var pts = []; for (i = 0; i <= 48; i++) { var h = i * .5, v = h < 6 ? 5.5 - h * .45 : h < 17 ? 2.8 + (h - 6) * .55 : 8.85 - (h - 17) * 0.45; pts.push([X(h), Y(v)]); } b3.curve(pts, BLUE, 3.5);
+    var pts = []; for (i = 0; i <= 48; i++) { var h = i * .5, v = 5.8 + 3 * Math.sin(6.2832 * (h - 11.5) / 24); pts.push([X(h), Y(v)]); } b3.curve(pts, BLUE, 3.5);
     LN(gx, Y(4), gx + gw, Y(4), RED, 1.6, [5, 4]); TB("seuil vital", gx + gw, Y(4) - 5, DRED, 12, "right"); b3.box(X(7), H * .08, X(12) - X(7), 8, "#ffe58a", null, 3); TB("jour : photosynthèse", X(11), H * .07 + 14, "#a07d00", 12);
     if (p > 0) { DOT(X(6), Y(2.8), 8, RED); b3.pill("minimum à l'aube", X(6) + 30, Y(2.8) + 26, "#fdecea", DRED, 14); b3.ar(X(6), Y(2.8) + 12, X(6), Y(2.8) + 2, RED, 2); } else TB("quand le O₂ est-il minimal ?", W * .6, H * .45, ORANGE, 15);
   },

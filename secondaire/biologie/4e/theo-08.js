@@ -1,5 +1,5 @@
 /* Biologie 4e · chapitre 8 · ADN, chromosomes et réplication */
-function b4bc(b){return {A:RED,T:ORANGE,G:BLUE,C:VIOLET}[b]||GREY;}
+function b4bc(b){return {A:RED,T:ORANGE,U:GREEN,G:BLUE,C:VIOLET}[b]||GREY;}
 function b4comp(b){return {A:'T',T:'A',G:'C',C:'G'}[b];}
 function b4base(x,y,b,s){s=s||1;ctx.fillStyle=b4bc(b)+'33';ctx.strokeStyle=b4bc(b);ctx.lineWidth=2;ctx.beginPath();ctx.roundRect(x-13*s,y-13*s,26*s,26*s,6);ctx.fill();ctx.stroke();TB(b,x,y+5*s,dk(b4bc(b)),Math.round(16*s));}
 function b4chrom(x,y,h,dbl,col){/* chromosome : une ou deux chromatides (en X) */col=col||BLUE;ctx.lineCap='round';ctx.strokeStyle=col;ctx.lineWidth=9;if(dbl){LN(x-7,y-h/2,x-7,y+h/2,col,8);LN(x+7,y-h/2,x+7,y+h/2,col,8);DOT(x,y,6,'#fff');ctx.strokeStyle=col;ctx.lineWidth=2;ctx.beginPath();ctx.arc(x,y,6,0,7);ctx.stroke();}else{LN(x,y-h/2,x,y+h/2,col,9);}ctx.lineCap='butt';}
