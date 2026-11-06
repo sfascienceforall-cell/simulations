@@ -12,40 +12,88 @@ SFA.sim({
   id:"ub-c08-mitose-meiose", ch:"c08", tag:"Piège classique",
   titre:"Mitose contre méiose : chromosomes, chromatides, ADN",
   resume:"À chaque étape : combien de chromosomes, de chromatides, de cellules, quelle quantité d'ADN ?",
-  but:"Choisis le type de division et le nombre 2n, avance dans le processus et lis les quatre nombres à chaque étape.",
+  but:"Choisis le type de division et le nombre 2n, avance dans le processus (curseur ou bouton) et regarde les chromosomes se déplacer et lis les quatre nombres à chaque étape.",
   aRetenir:"On compte les chromosomes par les centromères. Mitose : 2n → 2n ; l'anaphase double momentanément le nombre de chromosomes (4n) car les chromatides sœurs deviennent des chromosomes. Méiose : l'anaphase I sépare les homologues (le nombre de chromosomes passe de 2n à n par cellule, chaque chromosome garde 2 chromatides), l'anaphase II sépare les chromatides. Quantité d'ADN (c = ADN d'un gamète) : G1 2c ; après S 4c ; après méiose I 2c par cellule ; gamète 1c.",
   piege:"« Une cellule en métaphase II a n chromosomes à 2 chromatides, donc 2c ». À l'anaphase II elle a 2n chromosomes (chromatides séparées), mais toujours 2c d'ADN. Ne confonds pas le nombre de chromosomes (centromères) avec le nombre de chromatides.",
   build:function(k,S){
-    var c = k.canvas(300), pal = S.draw.palette;
+    var c = k.canvas(380), pal = S.draw.palette, B = S.bio, an = 0;
     var mode = k.seg("Division", [["mi","Mitose"],["me","Méiose"]], "mi");
     var dn = k.select("Nombre de chromosomes 2n", [["4","4 (modèle)"],["6","6"],["8","8"],["46","46 (humain)"]], "4");
     var av = k.slider("Avancement", 0, 100, 1, 10, "%");
     var ro = k.readouts(["Étape","Chromosomes / cellule","Chromatides / cellule","ADN / cellule","Cellules"]);
     var note = k.note("", "ok");
-    /* étapes : [nom, chromosomes (en n), chromatides (en n), ADN (c), cellules, chromatides par chromosome] */
     var MI = [["G1",2,2,"2c",1,1],["Fin de S / G2",2,4,"4c",1,2],["Prophase – métaphase",2,4,"4c",1,2],["Anaphase",4,4,"4c",1,1],["Télophase et cytocinèse (par cellule fille)",2,2,"2c",2,1]];
     var ME = [["G1",2,2,"2c",1,1],["Prophase I (bivalents, crossing-over)",2,4,"4c",1,2],["Métaphase I",2,4,"4c",1,2],["Anaphase I",2,4,"4c",1,2],["Fin de la méiose I (par cellule)",1,2,"2c",2,2],["Métaphase II (par cellule)",1,2,"2c",2,2],["Anaphase II (par cellule)",2,2,"2c",2,1],["Gamètes (par cellule)",1,1,"1c",4,1]];
-    k.draw(function(){
-      c.clear();
-      var L = mode.value === "mi" ? MI : ME, i = Math.min(L.length - 1, Math.floor(av.value / 100 * L.length)), st = L[i], n2 = parseInt(dn.value, 10), nn = n2 / 2;
-      var chrs = st[1] * nn, chrt = st[2] * nn, cells = st[4];
-      var w = (c.W - 40) / Math.max(cells, 1) , ctx = c.ctx;
-      S.draw.text(c, st[0], c.W / 2, 22, {size:15});
-      for (var q = 0; q < cells; q++){
-        var cx = 20 + q * w + w / 2, cy = 150, r = Math.min(w / 2 - 6, 105);
-        ctx.fillStyle = "#eef2f8"; ctx.strokeStyle = pal.grey; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(cx, cy, r, 0, 6.3); ctx.fill(); ctx.stroke();
-        if (chrs <= 16){
-          var cols = Math.min(chrs, 4), rows = Math.ceil(chrs / cols);
-          for (var j = 0; j < chrs; j++){
-            var sxp = Math.min(26, (2 * r - 20) / cols), syp = Math.min(34, (2 * r - 30) / rows), gx = cx + ((j % cols) - (cols - 1) / 2) * sxp, gy = cy + (Math.floor(j / cols) - (rows - 1) / 2) * syp;
-            glyph(c, gx, gy, st[5], j % 2 === 0 ? pal.red : pal.acc);
-          }
-        } else S.draw.text(c, chrs + " chromosomes", cx, cy, {size:13});
+
+    function seeded(i){ var x = Math.sin(i * 127.1 + 311.7) * 43758.5453; return x - Math.floor(x); }
+    /* chromosome : dbl = deux chromatides ; pos en px */
+    function chr(x, y, L, col, dbl, ang, swap){ B.chrom(c, x, y, L, col, {dbl:dbl, angle:ang || 0, w:Math.max(3, L * .17)}); if (swap){ var ctx = c.ctx; ctx.save(); ctx.translate(x, y); ctx.rotate(ang || 0); ctx.strokeStyle = swap; ctx.lineWidth = Math.max(3, L * .17); ctx.lineCap = "round"; ctx.beginPath(); ctx.moveTo(-L * .08, -L * .45); ctx.lineTo(-L * .1, -L * .2); ctx.stroke(); ctx.restore(); } }
+    function cellShape(cx, cy, rx, ry, nuc, hot){
+      var ctx = c.ctx, g = ctx.createRadialGradient(cx - rx * .3, cy - ry * .3, 4, cx, cy, Math.max(rx, ry)); g.addColorStop(0, "#fffaf0"); g.addColorStop(1, "#f3e6cc");
+      ctx.fillStyle = g; ctx.strokeStyle = "#c7a96b"; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.ellipse(cx, cy, rx, ry, 0, 0, 7); ctx.fill(); ctx.stroke();
+      if (nuc){ ctx.fillStyle = "rgba(210,225,248,.75)"; ctx.strokeStyle = "#7a9ad6"; ctx.lineWidth = 1.6; ctx.beginPath(); ctx.ellipse(cx, cy, rx * .62, ry * .62, 0, 0, 7); ctx.fill(); ctx.stroke(); }
+    }
+    function spindle(cx, cy, rx, ry, ori){ var ctx = c.ctx; ctx.save(); ctx.strokeStyle = "rgba(90,110,140,.45)"; ctx.lineWidth = 1.2;
+      var p = ori === "h" ? [[-rx * .82, 0], [rx * .82, 0]] : [[0, -ry * .82], [0, ry * .82]];
+      for (var q = -3; q <= 3; q++){ [0, 1].forEach(function(s){ ctx.beginPath(); ctx.moveTo(cx + p[s][0], cy + p[s][1]); var mx = ori === "h" ? 0 : q * rx * .16, my = ori === "h" ? q * ry * .16 : 0; ctx.quadraticCurveTo(cx + mx * 1.6, cy + my * 1.6, cx + (ori === "h" ? 0 : q * 4), cy + (ori === "h" ? q * 4 : 0)); ctx.stroke(); }); }
+      ctx.restore(); p.forEach(function(pp){ B.ball(c, cx + pp[0], cy + pp[1], 4, pal.amber); }); }
+    /* un état de cellule : kind décrit la disposition */
+    function drawCell(cx, cy, rx, ry, kind, np, L, ori, dbl, pairs){
+      var ctx = c.ctx, j, ang, col = [pal.red, pal.acc];
+      var nuc = kind === "interphase" || kind === "telo";
+      cellShape(cx, cy, rx, ry, nuc);
+      var n = np;
+      if (kind === "interphase"){ for (j = 0; j < n * (pairs ? 2 : 1); j++){ chr(cx + (seeded(j * 3 + 1) - .5) * rx * .8, cy + (seeded(j * 3 + 2) - .5) * ry * .8, L * .55, col[j % 2], dbl, (seeded(j) - .5) * 2); } return; }
+      if (kind === "prophaseI"){ for (j = 0; j < n; j++){ var px = cx + (seeded(j + 5) - .5) * rx * 1.0, py = cy + (seeded(j + 9) - .5) * ry * 1.0; chr(px - L * .13, py, L * .8, col[0], true, 0, col[1]); chr(px + L * .13, py, L * .8, col[1], true, 0, col[0]); } return; }
+      if (kind !== "telo" && kind !== "haploid") spindle(cx, cy, rx, ry, ori);
+      var along = function(t){ return ori === "h" ? [cx + t, 0] : [0, cy + t]; };
+      if (kind === "metaI"){ for (j = 0; j < n; j++){ var off = (j - (n - 1) / 2) * L * .9, sx = ori === "h" ? cx : cx + off, sy = ori === "h" ? cy + off : cy; chr(ori === "h" ? sx - L * .15 : sx, ori === "h" ? sy : sy - L * .15, L * .8, col[0], true, ori === "h" ? 1.57 : 0, col[1]); chr(ori === "h" ? sx + L * .15 : sx, ori === "h" ? sy : sy + L * .15, L * .8, col[1], true, ori === "h" ? 1.57 : 0, col[0]); } return; }
+      if (kind === "meta"){ for (j = 0; j < n; j++){ var off2 = (j - (n - 1) / 2) * L * .62; chr(ori === "h" ? cx : cx + off2, ori === "h" ? cy + off2 : cy, L * .8, col[j % 2], true, ori === "h" ? 1.57 : 0); } return; }
+      if (kind === "anaI"){ for (j = 0; j < n; j++){ var off3 = (j - (n - 1) / 2) * L * .6, d = rx * .55; chr(ori === "h" ? cx - d : cx + off3, ori === "h" ? cy + off3 : cy - ry * .55, L * .8, col[0], true, ori === "h" ? 1.57 : 0); chr(ori === "h" ? cx + d : cx + off3, ori === "h" ? cy + off3 : cy + ry * .55, L * .8, col[1], true, ori === "h" ? 1.57 : 0); } return; }
+      if (kind === "ana"){ for (j = 0; j < n; j++){ var off4 = (j - (n - 1) / 2) * L * .6, d2 = (ori === "h" ? rx : ry) * .5, cc = col[j % 2]; if (ori === "h"){ chr(cx - d2, cy + off4, L * .6, cc, false, 1.57); chr(cx + d2, cy + off4, L * .6, cc, false, 1.57); } else { chr(cx + off4, cy - d2, L * .6, cc, false, 1.57); chr(cx + off4, cy + d2, L * .6, cc, false, 1.57); } } return; }
+      if (kind === "telo" || kind === "haploid"){ for (j = 0; j < n; j++){ chr(cx + (seeded(j * 3 + 11) - .5) * rx * .7, cy + (seeded(j * 3 + 12) - .5) * ry * .7, L * .55, col[(kind === "haploid" ? 0 : j) % 2] === col[0] ? col[j % 2] : col[0], dbl, (seeded(j + 20) - .5) * 2); } }
+    }
+    var VIS = {};
+    function plan(isMi, i, np){   /* renvoie [{kind, ori, dbl, pairs, n}, ...] cellules */
+      if (isMi){
+        if (i === 0) return [{kind:"interphase", dbl:false, n:np, pairs:true}];
+        if (i === 1) return [{kind:"interphase", dbl:true, n:np, pairs:true}];
+        if (i === 2) return [{kind:"meta", ori:"h", n:2 * np}];
+        if (i === 3) return [{kind:"ana", ori:"h", n:2 * np, wide:true}];
+        return [{kind:"telo", dbl:false, n:2 * np}, {kind:"telo", dbl:false, n:2 * np}];
       }
-      S.draw.text(c, "rouge / bleu = origine maternelle / paternelle (le crossing-over mélange en réalité les segments)", c.W / 2, 282, {size:10, weight:600, color:pal.grey});
-      ro.set(0, i + 1 + "/" + L.length); ro.set(1, chrs); ro.set(2, chrt); ro.set(3, st[3]); ro.set(4, cells);
-      note.set(mode.value === "mi" ? "Mitose : deux cellules filles génétiquement identiques, 2n chromosomes chacune." : "Méiose : une cellule 2n donne 4 cellules haploïdes (n) génétiquement différentes.", "ok");
-    });
+      if (i === 0) return [{kind:"interphase", dbl:false, n:np, pairs:true}];
+      if (i === 1) return [{kind:"prophaseI", n:np}];
+      if (i === 2) return [{kind:"metaI", ori:"h", n:np}];
+      if (i === 3) return [{kind:"anaI", ori:"h", n:np, wide:true}];
+      if (i === 4) return [{kind:"telo", dbl:true, n:np}, {kind:"telo", dbl:true, n:np}];
+      if (i === 5) return [{kind:"meta", ori:"v", n:np}, {kind:"meta", ori:"v", n:np}];
+      if (i === 6) return [{kind:"ana", ori:"v", n:np}, {kind:"ana", ori:"v", n:np}];
+      return [0, 1, 2, 3].map(function(){ return {kind:"haploid", dbl:false, n:np}; });
+    }
+    function frame(dt){
+      var ctx = c.ctx, W = c.W, H = c.H; c.clear(); B.bg(c, "#fbfdff", "#eef3f9");
+      var isMi = mode.value === "mi", L0 = isMi ? MI : ME, i = Math.min(L0.length - 1, Math.floor(av.value / 100 * L0.length)), st = L0[i], n2 = parseInt(dn.value, 10), nn = n2 / 2;
+      var chrs = st[1] * nn, chrt = st[2] * nn, cells = st[4];
+      var np = Math.min(nn, 5), pl = plan(isMi, i, np), p0n = np;
+      S.draw.text(c, st[0], W / 2, 18, {size:14, color:pal.ink});
+      var cnt = pl.length, rx, ry, pos = [];
+      var topY = 40, areaH = H - topY - 40;
+      if (cnt === 1){ rx = Math.min(W * (pl[0].wide ? .44 : .34), 190); ry = Math.min(areaH / 2, rx * .95); pos = [[W / 2, topY + areaH / 2]]; if (pl[0].wide) ry *= .85; }
+      else if (cnt === 2){ rx = Math.min(W * .22, 130); ry = Math.min(areaH / 2 - 6, rx * 1.1); pos = [[W * .27, topY + areaH / 2], [W * .73, topY + areaH / 2]]; }
+      else { rx = Math.min(W * .21, 110); ry = Math.min(areaH / 4 - 4, rx); pos = [[W * .3, topY + areaH * .25], [W * .7, topY + areaH * .25], [W * .3, topY + areaH * .75], [W * .7, topY + areaH * .75]]; }
+      var L = Math.max(14, Math.min(66, Math.min(rx, ry) * (cnt > 2 ? .6 : .55) * (p0n > 4 ? .75 : 1)));
+      pl.forEach(function(p, q){
+        var ang = 0;
+        drawCell(pos[q][0], pos[q][1], rx, ry, p.kind, p.n, L, p.ori || "h", p.dbl, p.pairs);
+      });
+      if (nn > np) S.draw.text(c, np + " paires dessinées sur " + nn + " (schéma simplifié)", W - 12, H - 14, {size:10, color:pal.grey, align:"right"});
+      S.draw.legend(c, [[pal.red, "origine maternelle"], [pal.acc, "origine paternelle"]], 12, H - 40, {box:false});
+      ro.set(0, i + 1 + "/" + L0.length); ro.set(1, chrs); ro.set(2, chrt); ro.set(3, st[3]); ro.set(4, cells);
+      note.set(isMi ? "Mitose : deux cellules filles génétiquement identiques, 2n chromosomes chacune." : "Méiose : une cellule 2n donne 4 cellules haploïdes (n) génétiquement différentes (crossing-over : petits segments échangés en prophase I).", "ok");
+    }
+    k.button("▶ Animer la division", function(){ av.set(0); (function go(v){ if (!k._alive) return; if (v <= 100){ av.set(v); k.redraw(); setTimeout(function(){ go(v + 1.5); }, 55); } })(0); }, true);
+    k.draw(function(){ frame(0); });
   }
 });
 
@@ -128,19 +176,24 @@ SFA.sim({
   id:"ub-c08-caryotype", ch:"c08", tag:"Anomalies",
   titre:"Non-disjonction : trisomie 21, syndromes de Turner et de Klinefelter",
   resume:"Quels gamètes, quels caryotypes selon la méiose touchée et le parent ?",
-  but:"Choisis la paire concernée, le parent, la division où la non-disjonction se produit, et lis les gamètes et les caryotypes obtenus avec un gamète normal.",
+  but:"Choisis la paire concernée, le parent, la division où la non-disjonction se produit, clique un gamète et regarde le zygote obtenu avec un gamète normal : lis les gamètes et les caryotypes obtenus avec un gamète normal.",
   aRetenir:"Non-disjonction en méiose I : les 4 gamètes sont anormaux (2 avec n+1, 2 avec n−1). En méiose II : 2 gamètes normaux, 1 n+1, 1 n−1. Après fécondation par un gamète normal : trisomie (2n+1) ou monosomie (2n−1). Monosomie autosomique : non viable ; syndrome de Turner 45,X ; Klinefelter 47,XXY ; trisomie 21 : 47,+21.",
   piege:"Le gamète n+1 d'une non-disjonction en méiose I contient les deux homologues (parfois différents : mère-père) ; en méiose II il contient deux chromatides sœurs identiques. Une monosomie 45,Y (sans X) n'est pas viable : le X porte des gènes essentiels.",
   build:function(k,S){
-    var c = k.canvas(300), pal = S.draw.palette;
+    var c = k.canvas(400), pal = S.draw.palette, B = S.bio, sel = 0, hit = [];
     var pr = k.seg("Paire", [["a","Chromosome 21"],["g","Paire sexuelle"]], "a");
     var pa = k.seg("Parent qui subit l'erreur", [["m","Mère (XX)"],["p","Père (XY)"]], "m");
     var dv = k.seg("Division", [["1","Méiose I"],["2","Méiose II"]], "1");
     var xy = k.seg("Père, méiose II : cellule II portant", [["X","X"],["Y","Y"]], "X");
     var ro = k.readouts(["Gamètes anormaux sur 4","Syndrome(s) viable(s)"]);
     var note = k.note("", "ok");
-    k.draw(function(){
-      c.clear();
+    c.pointer(function(t, p){ if (t === "down") hit.forEach(function(h){ if (Math.hypot(p.x - h.x, p.y - h.y) < h.r){ sel = h.i; k.redraw(); } }); });
+    function glyphs(list, cx, cy, sc){ /* list : [{t:"21"|"X"|"Y", col}] */
+      var n = list.length, w = 20 * sc;
+      list.forEach(function(g, q){ var x = cx + (q - (n - 1) / 2) * w, L = (g.t === "Y" ? 18 : g.t === "X" ? 30 : 22) * sc; B.chrom(c, x, cy, L, g.col, {dbl:false, w:Math.max(3.5, 5.5 * sc)});
+        S.draw.text(c, g.t, x, cy + L / 2 + 8 * sc, {size:Math.max(8, 9.5 * sc), color:g.col, weight:800}); }); }
+    function frame(){
+      var ctx = c.ctx, W = c.W, H = c.H; c.clear(); B.bg(c, "#fbfdff", "#eef3f9");
       var g;
       /* gamètes du parent : [libellé, nombre sur 4, nature (n normal, + excès, - manque), composition] */
       if (pr.value === "a") g = dv.value === "1" ? [["21 + 21",2,"+","21"],["aucun 21",2,"-",""]] : [["21 + 21 (chromatides sœurs)",1,"+","21"],["aucun 21",1,"-",""],["21 (normal)",2,"n","21"]];
@@ -148,29 +201,43 @@ SFA.sim({
       else if (dv.value === "1") g = [["XY",2,"+","XY"],["O",2,"-",""]];
       else g = xy.value === "X" ? [["XX (sœurs)",1,"+","XX"],["O",1,"-",""],["Y (normal)",2,"n","Y"]] : [["YY (sœurs)",1,"+","YY"],["O",1,"-",""],["X (normal)",2,"n","X"]];
       var partners = pr.value === "a" ? [["21",1]] : pa.value === "m" ? [["X",.5],["Y",.5]] : [["X",1]];
-      var rows = [], viab = {};
-      g.forEach(function(gm){
-        partners.forEach(function(pt){
-          var res;
-          if (pr.value === "a"){
-            if (gm[2] === "n") res = "46 normal"; else if (gm[2] === "+"){ res = "47,+21 : trisomie 21"; viab[res] = 1; } else res = "45,−21 : monosomie 21 (non viable)";
-          } else {
-            var comb = (gm[3] + pt[0]).split("").sort().join("");
-            var tbl = {"XX":"46,XX normal","XY":"46,XY normal","XXX":"47,XXX (triple X)","XXY":"47,XXY : Klinefelter","XYY":"47,XYY","X":"45,X : Turner","Y":"45,Y (non viable)"};
-            res = tbl[comb] || comb; if (/Turner|Klinefelter|triple|XYY/.test(res)) viab[res] = 1;
-          }
-          rows.push([gm[0] + " (×" + gm[1] + "/4) + " + pt[0], res]);
-        });
+      var partners = pr.value === "a" ? [["21",1]] : pa.value === "m" ? [["X",.5],["Y",.5]] : [["X",1]];
+      var viab = {}, gam = [];
+      g.forEach(function(gm){ for (var q = 0; q < gm[1]; q++) gam.push(gm); });
+      if (sel >= gam.length) sel = 0;
+      var colA = pal.red, colB = pal.acc;
+      function content(gm){ var out = [];
+        if (pr.value === "a"){ if (gm[2] === "n") out = [{t:"21", col:colA}]; else if (gm[2] === "+") out = dv.value === "1" ? [{t:"21", col:colA}, {t:"21", col:colB}] : [{t:"21", col:colA}, {t:"21", col:colA}]; }
+        else { gm[3].split("").forEach(function(ch, q){ out.push({t:ch, col:ch === "Y" ? pal.teal : (q ? colB : pal.pink)}); }); }
+        return out; }
+      S.draw.text(c, "Les 4 gamètes du parent touché (clique pour en choisir un)", W / 2, 18, {size:11.5, color:pal.ink});
+      var gw = W / 4, gy = 80, gr = Math.min(gw * .42, 46); hit = [];
+      gam.forEach(function(gm, q){ var gx = gw * (q + .5), bad = gm[2] !== "n";
+        ctx.fillStyle = bad ? "rgba(224,122,122,.16)" : "rgba(168,210,240,.3)"; ctx.strokeStyle = q === sel ? pal.ink : (bad ? pal.red : pal.acc); ctx.lineWidth = q === sel ? 3 : 1.8; ctx.beginPath(); ctx.arc(gx, gy, gr, 0, 7); ctx.fill(); ctx.stroke();
+        if (!content(gm).length) S.draw.text(c, "aucun " + (pr.value === "a" ? "21" : "X/Y"), gx, gy, {size:10, color:pal.grey}); glyphs(content(gm), gx, gy - 4, Math.min(1.2, gr / 40)); S.draw.text(c, gm[2] === "n" ? "n" : gm[2] === "+" ? "n + 1" : "n − 1", gx, gy + gr + 14, {size:11, color:bad ? pal.red : pal.green}); hit.push({x:gx, y:gy, r:gr, i:q}); });
+      /* flèche et zygote */
+      var gm0 = gam[sel], zy = H * .66, ny = gw * (sel + .5);
+      S.draw.arrow(c, ny, gy + gr + 26, W / 2, zy - 52, pal.grey, 2);
+      S.draw.text(c, "+ gamète normal de l'autre parent", W * .62, (gy + gr + 26 + zy - 52) / 2 + 2, {size:10.5, color:pal.grey, bg:"rgba(255,255,255,.85)"});
+      var rows = [];
+      partners.forEach(function(pt){
+        var res, col;
+        if (pr.value === "a"){ if (gm0[2] === "n"){ res = "46 normal"; col = pal.green; } else if (gm0[2] === "+"){ res = "47,+21 : trisomie 21"; viab[res] = 1; col = pal.amber; } else { res = "45,−21 : monosomie 21 (non viable)"; col = pal.red; } }
+        else { var comb = (gm0[3] + pt[0]).split("").sort().join(""); var tbl = {"XX":"46,XX normal","XY":"46,XY normal","XXX":"47,XXX (triple X)","XXY":"47,XXY : Klinefelter","XYY":"47,XYY","X":"45,X : Turner","Y":"45,Y (non viable)"}; res = tbl[comb] || comb; if (/Turner|Klinefelter|triple|XYY/.test(res)){ viab[res] = 1; col = pal.amber; } else col = /normal/.test(res) ? pal.green : pal.red; }
+        rows.push([pt, res, col]);
       });
-      S.draw.text(c, "Gamètes du parent touché, puis zygote avec un gamète normal de l'autre parent", 20, 20, {align:"left", size:12, weight:600});
-      rows.forEach(function(r, j){
-        var y = 54 + j * 30; S.draw.text(c, r[0], 20, y, {align:"left", size:12, weight:600});
-        S.draw.text(c, "→  " + r[1], c.W / 2 - 10, y, {align:"left", size:12, color: /non viable/.test(r[1]) ? pal.red : /normal/.test(r[1]) ? pal.green : pal.amber});
-      });
-      var anorm = g.filter(function(x){ return x[2] !== "n"; }).reduce(function(a, b){ return a + b[1]; }, 0);
-      ro.set(0, anorm + " / 4"); ro.set(1, Object.keys(viab).join(" ; ") || "—");
-      note.set(dv.value === "1" ? "Méiose I : les homologues restent ensemble, TOUS les gamètes sont anormaux." : "Méiose II : seuls les gamètes issus de la cellule II touchée sont anormaux : 2 normaux sur 4.", "ok");
-    });
+      var nz = rows.length, zr = 44;
+      rows.forEach(function(r, q){ var zx = W / 2 + (q - (nz - 1) / 2) * Math.min(W * .4, 190);
+        var zc = content(gm0).concat(r[0][0] === "21" ? [{t:"21", col:pal.violet}] : [{t:r[0][0], col:r[0][0] === "Y" ? pal.teal : pal.pink}]);
+        if (pr.value === "a") { } else { zc = content(gm0).concat([{t:r[0][0], col:r[0][0] === "Y" ? pal.teal : "#d99ab8"}]); }
+        ctx.fillStyle = "rgba(255,255,255,.9)"; ctx.strokeStyle = r[2]; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.arc(zx, zy, zr, 0, 7); ctx.fill(); ctx.stroke();
+        glyphs(zc, zx, zy - 4, Math.min(1, 1.5 / Math.max(1, zc.length - 1) + .15)); S.draw.label(c, r[1], zx, zy + zr + 24, {color:r[2], size:11}); if (nz > 1) S.draw.text(c, "gamète " + r[0][0] + (nz > 1 ? " (" + r[0][1] * 100 + " %)" : ""), zx, zy - zr - 10, {size:10, color:pal.grey}); });
+      S.draw.text(c, W < 520 ? "Seule la paire étudiée est représentée" : "Zygote : la paire étudiée est représentée seule (les 22 autres paires sont normales)", W / 2, H - 12, {size:10, color:pal.grey});
+      var bad = gam.filter(function(q){ return q[2] !== "n"; }).length, v = Object.keys(viab);
+      ro.set(0, bad + " / 4"); ro.set(1, v.length ? v.join(" ; ") : "aucun (monosomie ou normal)");
+      note.set(dv.value === "1" ? "Non-disjonction en méiose I : les deux homologues vont ensemble dans la même cellule fille : 4 gamètes anormaux." : "Non-disjonction en méiose II : les deux chromatides sœurs ne se séparent pas : 2 gamètes normaux, 1 n+1, 1 n−1.", "ok");
+    }
+    k.draw(frame);
   }
 });
 

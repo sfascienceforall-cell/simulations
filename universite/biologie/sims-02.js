@@ -42,29 +42,62 @@ SFA.sim({
   id:"ub-c02-surface-volume", ch:"c02", tag:"Taille cellulaire",
   titre:"Rapport surface/volume : pourquoi les cellules sont petites",
   resume:"S/V = 3/r pour une sphère ; microvillosités ; temps de diffusion jusqu'au centre.",
-  but:"Fais varier le rayon, le facteur de microvillosités et le coefficient de diffusion. Compare la sphère au cube de même volume et lis le temps de diffusion.",
+  but:"Glisse le bord de la cellule (ou le curseur), puis fais varier le facteur de microvillosités et le coefficient de diffusion. Compare la sphère au cube de même volume et lis le temps de diffusion.",
   aRetenir:"Sphère : S = 4πr², V = 4/3·πr³, S/V = 3/r. Doubler r divise S/V par 2 mais multiplie le temps de diffusion par 4 (t ≈ r²/6D). À volume donné, la sphère a la plus petite surface ; les microvillosités multiplient la surface d'échange sans changer beaucoup le volume.",
   piege:"Une grande cellule n'est pas « impossible » : elle compense (cytoplasme en mouvement, multinucléation, forme aplatie ou allongée, repliements membranaires).",
   build:function(k,S){
-    var P=S.draw.palette, c=k.canvas(320);
+    var P=S.draw.palette, c=k.canvas(470);
     var r=k.slider("Rayon de la cellule sphérique",0.5,60,0.5,10,"µm");
     var mv=k.slider("Facteur de microvillosités (surface ×)",1,30,1,1,"");
     var D=k.slider("Coefficient de diffusion D",10,1000,10,100,"µm²/s");
     var ro=k.readouts(["Surface S","Volume V","S/V sphère","S/V cube de même volume","Temps de diffusion t = r²/6D"]);
-    var nt=k.note("","");
-    k.draw(function(){
-      c.clear(); var ctx=c.ctx;
-      var ax=S.draw.axes(c,{x0:0,x1:60,y0:0,y1:6,stepX:10,stepY:1,xl:"rayon (µm)",yl:"S/V (µm⁻¹)"});
-      S.draw.fn(c,ax,function(x){return x>0?3/x:NaN;},P.acc,2.4);
-      if(mv.value>1) S.draw.fn(c,ax,function(x){return x>0?3/x*mv.value:NaN;},P.green,2,[5,4]);
-      [[1,"bactérie"],[4,"lymphocyte"],[12,"hépatocyte"],[60,"ovocyte"]].forEach(function(t){ S.draw.line(c,ax.X(t[0]),ax.T,ax.X(t[0]),ax.B,"#c8d1de",1,[3,3]); S.draw.text(c,t[1],ax.X(t[0])+3,ax.T+10,{size:10,color:P.grey,align:t[0]>50?"right":"left"}); });
-      var rv=r.value, sv=3/rv*mv.value;
-      S.draw.dot(c,ax.X(rv),ax.Y(Math.min(sv,6)),6,P.red);
-      var S0=4*Math.PI*rv*rv, V=4/3*Math.PI*Math.pow(rv,3), a=Math.pow(V,1/3), Sc=6*a*a;
-      function dd(x){return x<10?2:x<100?1:0;} ro.set(0,S.fmt(S0*mv.value,dd(S0*mv.value))+" µm²"); ro.set(1,S.fmt(V,dd(V))+" µm³"); ro.set(2,S.fmt(sv,3)+" µm⁻¹"); ro.set(3,S.fmt(Sc/V*mv.value,3)+" µm⁻¹");
-      var t=rv*rv/(6*D.value); ro.set(4,t<1?S.fmt(t*1000,1)+" ms":S.fmt(t,2)+" s");
-      nt.set("Courbe bleue : sphère ; tirets verts : avec microvillosités (×"+S.fmt(mv.value,0)+"). Le cube de même volume expose "+S.fmt((Sc/S0-1)*100,1)+" % de surface en plus que la sphère (forme moins compacte)."+(sv>6?" Le point rouge est collé en haut du graphique : S/V = "+S.fmt(sv,1)+" µm⁻¹ dépasse l'échelle.":""),t>2?"warn":"ok");
-    });
+    var nt=k.note("",""), B=S.bio, tt=0, dots=[], dragging=false, lay={};
+
+    var stackedFlag=false;
+    function geom(){ var W=c.W,H=c.H; stackedFlag=W<620; lay=stackedFlag?{cx:W/2,cy:H*.3,Rmax:Math.min(H*.19,W*.3),gx:W*.13,gy:H*.6,gw:W*.8,gh:H*.27}:{cx:W*.24,cy:H*.5,Rmax:Math.min(H*.4,W*.19),gx:W*.52,gy:H*.1,gw:W*.43,gh:H*.7}; }
+    function rpx(r){ return 10+(lay.Rmax-10)*Math.sqrt(r/60); }
+    c.pointer(function(t,p){ geom(); if(t==="down"){ dragging=Math.hypot(p.x-lay.cx,p.y-lay.cy)<lay.Rmax+26; }
+      if((t==="drag"||t==="down")&&dragging){ var d=Math.hypot(p.x-lay.cx,p.y-lay.cy), q=Math.max(0,(d-10)/(lay.Rmax-10)); r.set(Math.round(Math.max(.5,Math.min(60,60*q*q))*2)/2); k.redraw(); }
+      if(t==="up") dragging=false; });
+    function gx(x){ return lay.gx+x/60*lay.gw; } function gy(y){ return lay.gy+lay.gh-y/6*lay.gh; }
+    function frame(dt){
+      geom(); var ctx=c.ctx, rv=r.value, mvv=mv.value, Dv=D.value; c.clear(); B.bg(c,"#fbfdff","#edf4fa");
+      var S0=4*Math.PI*rv*rv, V=4/3*Math.PI*Math.pow(rv,3), a=Math.pow(V,1/3), Sc=6*a*a, sv=3/rv*mvv;
+      var tdif=rv*rv/(6*Dv), Tshow=Math.max(tdif*1.25,1e-6);
+      tt+=dt*Tshow/3.2; if(tt>Tshow*1.5) tt=0;
+      var R=rpx(rv), cx=lay.cx, cy=lay.cy;
+      /* cellule */
+      var g=ctx.createRadialGradient(cx,cy,0,cx,cy,R); var lam=Math.sqrt(6*Dv*tt), f=Math.min(1,lam/rv);
+      g.addColorStop(0,"rgba(36,119,90,"+(.08+.5*Math.max(0,(f-.55)/.45))+")"); g.addColorStop(1,"rgba(36,119,90,.45)");
+      ctx.save(); ctx.beginPath(); ctx.arc(cx,cy,R,0,7); ctx.fillStyle=g; ctx.fill(); ctx.restore();
+      if(mvv>1){ var nv=Math.min(48,6+mvv*1.6); ctx.strokeStyle="#c7a96b"; ctx.lineWidth=2; ctx.beginPath(); for(var q=0;q<nv;q++){ var an=q*6.2832/nv, L=3+Math.min(14,mvv*.5); ctx.moveTo(cx+R*Math.cos(an),cy+R*Math.sin(an)); ctx.lineTo(cx+(R+L)*Math.cos(an),cy+(R+L)*Math.sin(an)); } ctx.stroke(); }
+      ctx.lineWidth=3; ctx.strokeStyle="#c7a96b"; ctx.beginPath(); ctx.arc(cx,cy,R,0,7); ctx.stroke();
+      B.ball(c,cx,cy,Math.max(3,R*.16),P.violet);
+      /* front de diffusion */
+      ctx.save(); ctx.setLineDash([4,3]); ctx.strokeStyle=P.teal; ctx.lineWidth=1.6; ctx.beginPath(); ctx.arc(cx,cy,Math.max(0,R*(1-Math.min(1,lam/rv))),0,7); ctx.stroke(); ctx.restore();
+      /* particules qui entrent */
+      if(dots.length<40&&Math.random()<.6){ var an2=Math.random()*6.2832; dots.push({a:an2,u:1,s:.35+Math.random()*.3}); }
+      dots.forEach(function(d){ d.u-=dt*d.s*Math.min(1.5,.35/Math.max(.05,Math.min(1,tdif/1.5)+.05)); d.a+=(Math.random()-.5)*.2; });
+      dots=dots.filter(function(d){ return d.u>.05; });
+      dots.forEach(function(d){ B.ball(c,cx+R*d.u*Math.cos(d.a),cy+R*d.u*Math.sin(d.a),2.6,P.green); });
+      S.draw.label(c,"2r = "+S.fmt(2*rv,1)+" µm",cx,cy+R+(mvv>1?26:16),{color:P.grey,size:11});
+            var done=lam>=rv; S.draw.label(c,done?"centre atteint":"front de diffusion √(6Dt) = "+S.fmt(lam,1)+" µm",cx,stackedFlag?14:c.H-16,{color:done?P.green:P.teal,size:11});
+      /* graphe S/V */
+      var gl=lay; S.draw.panel(c,gl.gx-34,gl.gy-12,gl.gw+46,gl.gh+46,{shadow:false});
+      ctx.save(); ctx.strokeStyle="#eef1f5"; ctx.lineWidth=1; ctx.beginPath(); for(var xx=0;xx<=60;xx+=10){ ctx.moveTo(gx(xx),gl.gy); ctx.lineTo(gx(xx),gl.gy+gl.gh);} for(var yy=0;yy<=6;yy++){ ctx.moveTo(gl.gx,gy(yy)); ctx.lineTo(gl.gx+gl.gw,gy(yy)); } ctx.stroke(); ctx.restore();
+      ctx.strokeStyle="#a3adba"; ctx.lineWidth=1.3; ctx.beginPath(); ctx.moveTo(gl.gx,gl.gy); ctx.lineTo(gl.gx,gl.gy+gl.gh); ctx.lineTo(gl.gx+gl.gw,gl.gy+gl.gh); ctx.stroke();
+      for(xx=0;xx<=60;xx+=20) S.draw.text(c,xx,gx(xx),gl.gy+gl.gh+11,{size:10,color:P.grey}); for(yy=0;yy<=6;yy+=2) S.draw.text(c,yy,gl.gx-9,gy(yy),{size:10,color:P.grey});
+      S.draw.text(c,"rayon (µm)",gl.gx+gl.gw/2,gl.gy+gl.gh+25,{size:10.5,color:P.ink}); S.draw.text(c,"S/V (µm⁻¹)",gl.gx+2,gl.gy-1,{size:10.5,color:P.ink,align:"left"});
+      function curve(m,col,dash){ ctx.save(); ctx.beginPath(); ctx.rect(gl.gx,gl.gy-2,gl.gw,gl.gh+4); ctx.clip(); ctx.strokeStyle=col; ctx.lineWidth=2.4; ctx.setLineDash(dash||[]); ctx.beginPath(); for(var x=.5;x<=60;x+=.5){ var y=3/x*m; x===.5?ctx.moveTo(gx(x),gy(y)):ctx.lineTo(gx(x),gy(y)); } ctx.stroke(); ctx.restore(); }
+      curve(1,P.acc); if(mvv>1) curve(mvv,P.green,[5,4]);
+      [[1,"bactérie"],[12,"hépatocyte"],[60,"ovocyte"]].forEach(function(t){ ctx.save(); ctx.strokeStyle="#c8d1de"; ctx.setLineDash([3,3]); ctx.beginPath(); ctx.moveTo(gx(t[0]),gl.gy); ctx.lineTo(gx(t[0]),gl.gy+gl.gh); ctx.stroke(); ctx.restore(); S.draw.text(c,t[1],Math.min(gx(t[0])+3,gl.gx+gl.gw-3),gl.gy+10,{size:9.5,color:P.grey,align:t[0]>50?"right":"left"}); });
+      S.draw.dot(c,gx(rv),gy(Math.min(sv,6)),6,P.red); S.draw.label(c,"S/V = "+S.fmt(sv,2),Math.min(gx(rv)+8,gl.gx+gl.gw-44),Math.max(gl.gy+26,gy(Math.min(sv,6))-14),{color:P.red,align:"left"});
+      function dd(x){return x<10?2:x<100?1:0;} ro.set(0,S.fmt(S0*mvv,dd(S0*mvv))+" µm²"); ro.set(1,S.fmt(V,dd(V))+" µm³"); ro.set(2,S.fmt(sv,3)+" µm⁻¹"); ro.set(3,S.fmt(Sc/V*mvv,3)+" µm⁻¹");
+      ro.set(4,tdif<1?S.fmt(tdif*1000,1)+" ms":S.fmt(tdif,2)+" s");
+      nt.set("Courbe bleue : sphère ; tirets verts : avec microvillosités (×"+S.fmt(mvv,0)+"). Le cube de même volume expose "+S.fmt((Sc/S0-1)*100,1)+" % de surface en plus que la sphère. Le front de diffusion (cercle bleu-vert) avance en √(6Dt) : doubler r demande quatre fois plus de temps."+(sv>6?" Le point rouge est collé en haut du graphique : S/V = "+S.fmt(sv,1)+" µm⁻¹ dépasse l'échelle.":""),"ok");
+    }
+    k.draw(function(){ frame(0); });
+    var lp=k.loop(function(dt){ frame(dt); }); lp.play();
   }
 });
 
@@ -109,10 +142,11 @@ SFA.sim({
   aRetenir:"Les protéines sécrétées, membranaires et lysosomales sont synthétisées sur le RE rugueux (peptide signal), puis Golgi (maturation, adressage), puis vésicules. Les protéines cytosoliques, mitochondriales et nucléaires sont synthétisées par des ribosomes libres ; les deux dernières sont importées après traduction grâce à un signal (présequence, signal de localisation nucléaire).",
   piege:"Une mutation du peptide signal d'une protéine sécrétée la laisse dans le cytosol (dégradée), pas dans le RE. L'absence de mannose-6-phosphate ne bloque pas l'enzyme lysosomale : elle est sécrétée par défaut.",
   build:function(k,S){
-    var P=S.draw.palette, c=k.canvas(330);
+    var P=S.draw.palette, c=k.canvas(0,{ratio:.66});
     var prot=k.select("Protéine",[["sec","Hormone sécrétée (ex. insuline)"],["mem","Protéine de la membrane plasmique"],["lyso","Enzyme lysosomale"],["cyt","Enzyme cytosolique"],["mit","Protéine mitochondriale"],["nuc","Protéine nucléaire"]],"sec");
     var per=k.select("Perturbation",[["none","Aucune"],["bfa","Inhibiteur du transport RE → Golgi (brefeldine A)"],["sig","Mutation du signal d'adressage"],["m6p","Absence de l'étiquette mannose-6-phosphate"]],"none");
     var st=k.slider("Étape",0,4,1,0,"");
+    var B=S.bio, an=0, tgt=0;
     var ro=k.readouts(["Compartiment actuel","Destination finale"]);
     var nt=k.note("","");
     var NODE={cyt:["Ribosome libre\net cytosol",0,0],rer:["RE rugueux",1,0],gol:["Golgi",2,0],ves:["Vésicule\nde sécrétion",3,0],ext:["Membrane /\nextérieur",4,0],end:["Endosome\ntardif",3,1],lys:["Lysosome",4,1],mit:["Mitochondrie",1,2],nuc:["Noyau",2,2],deg:["Protéasome\n(dégradation)",0,1]};
@@ -127,21 +161,50 @@ SFA.sim({
       else if(q!=="none"){ note="Cette perturbation n'affecte pas cette protéine : trajet inchangé."; }
       return {path:base,dest:dest,note:note};
     }
-    k.draw(function(){
-      c.clear(); var ctx=c.ctx, R=route(), W=c.W, cw=W/5, bh=54;
+
+    var POS={cyt:[.12,.30],rer:[.30,.52],gol:[.50,.46],ves:[.66,.30],ext:[.92,.22],end:[.66,.66],lys:[.78,.74],mit:[.22,.78],nuc:[.40,.74],deg:[.10,.60]};
+    var LAB={cyt:"Ribosome libre",rer:"RE rugueux",gol:"Golgi",ves:"Vésicule de sécrétion",ext:"Extérieur",end:"Endosome tardif",lys:"Lysosome",mit:"Mitochondrie",nuc:"Noyau",deg:"Protéasome"};
+    var lastKey="";
+    function P2(id){ return [POS[id][0]*c.W, POS[id][1]*c.H]; }
+    function organelle(id,hot,done){
+      var ctx=c.ctx,p=P2(id),u=Math.min(c.W,c.H*1.4)/560, col=hot?P.acc:(done?"#6d94dc":"#9aa6b6"), fillc=hot?"#dbe6fb":"#f4f7fb";
+      ctx.save(); ctx.translate(p[0],p[1]); ctx.lineWidth=2; ctx.strokeStyle=col; ctx.fillStyle=fillc;
+      if(id==="nuc"){ ctx.beginPath(); ctx.ellipse(0,0,52*u,38*u,0,0,7); ctx.fill(); ctx.stroke(); ctx.fillStyle=B.mix("#6236c4",.4); ctx.beginPath(); ctx.arc(8*u,2*u,11*u,0,7); ctx.fill(); }
+      else if(id==="mit"){ ctx.beginPath(); S.draw.rrect(c,-38*u,-20*u,76*u,40*u,20*u); ctx.fillStyle=hot?"#fbd9d4":"#fbeeea"; ctx.fill(); ctx.stroke(); ctx.beginPath(); ctx.strokeStyle=B.mix(P.red,.3); ctx.lineWidth=1.5; for(var q=-24;q<=24;q+=12){ ctx.moveTo(q*u,-14*u); ctx.lineTo(q*u,-2*u); ctx.moveTo((q+6)*u,14*u); ctx.lineTo((q+6)*u,2*u);} ctx.stroke(); }
+      else if(id==="gol"){ for(var s=0;s<4;s++){ ctx.beginPath(); ctx.moveTo(-34*u,(-15+s*10)*u); ctx.quadraticCurveTo(0,(-24+s*10)*u,34*u,(-15+s*10)*u); ctx.lineWidth=5*u; ctx.strokeStyle=hot?P.acc:B.mix(P.amber,s*.1); ctx.lineCap="round"; ctx.stroke(); } }
+      else if(id==="rer"){ for(var s2=0;s2<3;s2++){ ctx.beginPath(); ctx.moveTo(-44*u,(s2*12-12)*u); ctx.bezierCurveTo(-20*u,(s2*12-26)*u,20*u,(s2*12+2)*u,44*u,(s2*12-12)*u); ctx.lineWidth=5*u; ctx.strokeStyle=hot?P.acc:"#5b86c9"; ctx.stroke(); ctx.fillStyle=P.ink; for(var d=-36;d<=36;d+=12){ ctx.beginPath(); ctx.arc(d*u,(s2*12-12+(d*d/150)-4*(s2?0:0))*u-5*u,1.8*u,0,7); ctx.fill(); } } }
+      else if(id==="ves"){ B.ball(c,0,0,13*u,hot?P.acc:P.amber); B.ball(c,-24*u,10*u,7*u,P.amber); B.ball(c,22*u,14*u,6*u,P.amber); }
+      else if(id==="end"){ ctx.beginPath(); ctx.arc(0,0,14*u,0,7); ctx.fillStyle=hot?"#dbe6fb":"#e6f2ee"; ctx.fill(); ctx.stroke(); }
+      else if(id==="lys"){ B.ball(c,0,0,18*u,hot?P.acc:P.green); S.draw.text(c,"pH 5",0,0,{size:9*u+3,color:"#fff"}); }
+      else if(id==="deg"){ ctx.beginPath(); S.draw.rrect(c,-16*u,-12*u,32*u,24*u,6*u); ctx.fillStyle=hot?"#fbd9d4":"#f1f3f6"; ctx.fill(); ctx.strokeStyle=hot?P.red:"#9aa6b6"; ctx.stroke(); S.draw.text(c,"✂",0,0,{size:14*u+2,color:hot?P.red:P.grey}); }
+      else if(id==="cyt"){ for(var r=0;r<3;r++) B.ball(c,(r-1)*11*u,(r%2)*7*u,6*u,hot?P.acc:"#7b8694"); }
+      else if(id==="ext"){ ctx.setLineDash([4,4]); ctx.beginPath(); ctx.arc(8*u,0,22*u,0,7); ctx.stroke(); ctx.setLineDash([]); }
+      ctx.restore();
+      S.draw.label(c,LAB[id],Math.max(50,Math.min(c.W-50,p[0])),p[1]+(id==="nuc"?50:38)*u+ (id==="ext"?4:0),{size:Math.max(9.5,Math.min(11.5,c.W/60)),color:hot?P.acc:P.grey});
+    }
+    function frame(dt){
+      var ctx=c.ctx, R=route(), W=c.W, H=c.H;
       st.el.max=Math.max(0,R.path.length-1); if(st.value>st.el.max) st.set(st.el.max);
-      function pos(id){ var n=NODE[id]; return [cw*(n[1]+0.5), 62+n[2]*100]; }
-      for(var id in NODE){ var p=pos(id), act=R.path.indexOf(id)>=0 && R.path.indexOf(id)<=st.value; var cur=R.path[st.value]===id;
-        ctx.fillStyle=cur?P.acc:(act?"#bcd0f3":"#eef1f6"); ctx.strokeStyle=cur?P.acc:"#c8d1de"; ctx.lineWidth=1.5; var w=cw-14;
-        ctx.beginPath(); ctx.roundRect?ctx.roundRect(p[0]-w/2,p[1]-bh/2,w,bh,8):ctx.rect(p[0]-w/2,p[1]-bh/2,w,bh); ctx.fill(); ctx.stroke();
-        NODE[id][0].split("\n").forEach(function(line,li,arr){ S.draw.text(c,line,p[0],p[1]+(li-(arr.length-1)/2)*13,{size:Math.max(9,Math.min(11,cw/9)),color:cur?"#fff":P.ink}); }); }
-      for(var i=0;i<R.path.length-1;i++){ var a=pos(R.path[i]), b=pos(R.path[i+1]); var on=i<st.value; var dx=b[0]-a[0], dy=b[1]-a[1], len=Math.hypot(dx,dy), ux=dx/len, uy=dy/len;
-        var hw=(cw-14)/2, tt=Math.min(ux?hw/Math.abs(ux):1e9,uy?(bh/2)/Math.abs(uy):1e9)+3;
-        S.draw.arrow(c,a[0]+ux*tt,a[1]+uy*tt,b[0]-ux*tt,b[1]-uy*tt,on?P.acc:"#9aa6b6",on?3:2); }
-      S.draw.text(c,"Ligne du bas : import post-traductionnel (ribosomes libres).",c.W/2,c.H-14,{size:10,color:P.grey});
-      var cur=R.path[st.value]; ro.set(0,NODE[cur][0].replace("\n"," ")); ro.set(1,st.value===R.path.length-1?R.dest:"…");
+      var key=prot.value+per.value; if(key!==lastKey){ lastKey=key; an=0; }
+      tgt=st.value; an+=(tgt-an)*Math.min(1,dt*4.5); if(Math.abs(tgt-an)<.003) an=tgt;
+      c.clear(); B.bg(c,"#fbfcfe","#eef3fa");
+      /* cellule */
+      ctx.save(); S.draw.rrect(c,10,8,W*.84,H-16,Math.min(70,H*.25)); ctx.fillStyle="#f7fbf6"; ctx.fill(); ctx.lineWidth=3; ctx.strokeStyle="#c7a96b"; ctx.stroke(); ctx.restore();
+      S.draw.text(c,"cytosol",W*.16,H-26,{size:10,color:P.grey,italic:true});
+      var cp=R.path.slice(0,Math.floor(an)+1);
+      var i; for(i=0;i<R.path.length-1;i++){ var a=P2(R.path[i]), b=P2(R.path[i+1]), on=i<an; ctx.save(); ctx.setLineDash(on?[]:[5,5]); ctx.strokeStyle=on?P.acc:"#c3ccd8"; ctx.lineWidth=on?3:2; ctx.beginPath(); ctx.moveTo(a[0],a[1]); ctx.lineTo(b[0],b[1]); ctx.stroke(); ctx.restore(); }
+      var on2={}; R.path.forEach(function(id,j){ on2[id]=j; });
+      Object.keys(POS).forEach(function(id){ var j=on2[id]; organelle(id,j!==undefined&&Math.abs(j-an)<.5,j!==undefined&&j<an); });
+      /* protéine mobile */
+      var f=Math.min(Math.floor(an),R.path.length-1), g=Math.min(f+1,R.path.length-1), t=an-f, A=P2(R.path[f]), Bq=P2(R.path[g]);
+      var px=A[0]+(Bq[0]-A[0])*t, py=A[1]+(Bq[1]-A[1])*t;
+      B.glow? 0:0; S.draw.glow(c,px,py,26,P.red,.5); B.ball(c,px,py,7,P.red);
+      var cur=R.path[st.value]; ro.set(0,LAB[cur]); ro.set(1,st.value===R.path.length-1?R.dest:"…");
       nt.set(TXT[cur]+(st.value===R.path.length-1&&R.note?" <b>"+R.note+"</b>":""),st.value===R.path.length-1&&R.note?"warn":"ok");
-    });
+    }
+    k.button("▶ Suivre la protéine",function(){ st.set(0); var s=0,m=route().path.length-1; (function go(){ if(!k._alive) return; if(s<m){ s++; st.set(s); setTimeout(go,850);} })(); },true);
+    k.draw(function(){ frame(0); });
+    var lp=k.loop(function(dt){ frame(dt); }); lp.play();
   }
 });
 

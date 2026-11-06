@@ -65,40 +65,64 @@ SFA.sim({
   id:"ub-c07-replication", ch:"c07", tag:"Réplication",
   titre:"Réplication : fourches, origines et fragments d'Okazaki",
   resume:"Combien de temps, combien d'origines, combien de fragments pour copier un génome ?",
-  but:"Choisis un organisme (ou règle les curseurs) : durée de réplication, origines nécessaires, nombre de fragments d'Okazaki.",
+  but:"Lance la réplication : les bulles s'ouvrent à partir de chaque origine et les fourches avancent. Choisis un organisme (ou règle les curseurs) : durée de réplication, origines nécessaires, nombre de fragments d'Okazaki.",
   aRetenir:"Une origine bidirectionnelle = 2 fourches. Durée t = G / (2·N·v), avec G taille répliquée (pb), N origines actives, v vitesse d'une fourche (nt/s). Brin avancé : synthèse continue ; brin retardé : fragments d'Okazaki (≈ 1 000 à 2 000 nt chez les procaryotes, ≈ 100 à 200 nt chez les eucaryotes), chacun amorcé par une amorce d'ARN. E. coli : une origine, ≈ 40 min ; humain : des milliers d'origines.",
   piege:"« Temps minimal » : il suppose que toutes les origines s'activent en même temps ; chez l'humain elles s'activent de façon échelonnée, la phase S dure ≈ 8 h et ≈ 30 000 à 50 000 origines sont utilisées. Les vitesses sont des ordres de grandeur.",
   build:function(k,S){
-    var c = k.canvas(260);
+    var c = k.canvas(400), B = S.bio, pal = S.draw.palette, prog = 0, play = true;
     var org = k.seg("Organisme", [["e","E. coli"],["h","Cellule humaine (2n)"]], "e", function(v){
-      if (v === "e"){ vit.set(1000); ori.set(1); frag.set(1500); } else { vit.set(50); ori.set(40000); frag.set(200); }
+      if (v === "e"){ vit.set(1000); ori.set(1); frag.set(1500); } else { vit.set(50); ori.set(40000); frag.set(200); } prog = 0; play = true;
     });
     var vit = k.slider("Vitesse d'une fourche", 10, 1000, 10, 1000, "nt/s");
     var ori = k.slider("Origines actives", 1, 50000, 1, 1, "");
     var frag = k.slider("Taille d'un fragment d'Okazaki", 100, 2000, 100, 1500, "nt");
     var ro = k.readouts(["Durée minimale","Origines pour S = 8 h","Fragments d'Okazaki","Amorces d'ARN"]);
-    k.draw(function(){
-      c.clear();
+    function fmtT(t){ return t < 1 ? S.fmt(t * 1000, 1) + " ms" : t < 120 ? S.fmt(t, 1) + " s" : t < 7200 ? S.fmt(t / 60, 1) + " min" : S.fmt(t / 3600, 1) + " h"; }
+    function fmtN(n){ return Math.round(n).toLocaleString("fr-BE"); }
+    c.pointer(function(t, p){ if(t === "down" || t === "drag"){ play = false; prog = Math.max(0, Math.min(1, (p.x - 20) / (c.W - 40))); k.redraw(); } });
+    function frame(dt){
+      var ctx = c.ctx, W = c.W, H = c.H; c.clear(); B.bg(c, "#fbfdff", "#eef3f9");
       var g = org.value === "e" ? 4.6e6 : 6.4e9, N = ori.value, v = vit.value, L = frag.value;
       var t = g / (2 * N * v), need = g / (2 * v * 28800), nfr = g / L, forks = 2 * N;
-      var fmtT = t < 120 ? S.fmt(t, 0) + " s" : t < 7200 ? S.fmt(t / 60, 1) + " min" : S.fmt(t / 3600, 1) + " h";
-      /* schéma d'une fourche */
-      var y = 70, cx = 90, ctx = c.ctx, pal = S.draw.palette;
-      S.draw.line(c, 20, y, cx, y, pal.grey, 3); S.draw.line(c, 20, y + 30, cx, y + 30, pal.grey, 3);
-      S.draw.line(c, cx, y, c.W - 30, y - 28, pal.acc, 3); S.draw.line(c, cx, y + 30, c.W - 30, y + 58, pal.acc, 3);
-      S.draw.text(c, "ADN parental (double brin) → fourche de réplication", 20, 16, {align:"left", size:11, weight:600});
-      S.draw.arrow(c, cx + 8, y - 6, cx + 150, y - 22, pal.green, 2.5);
-      S.draw.text(c, "brin avancé (continu)", cx + 155, y - 28, {align:"left", size:11, color:pal.green});
-      for (var i = 0; i < 4; i++){ var x0 = cx + 150 - i * 36; S.draw.arrow(c, x0 + 30, y + 40 + (cx + 150 - x0) * 0.1, x0, y + 40 + (cx + 150 - x0) * 0.1 + 3, pal.red, 2.5); }
-      S.draw.text(c, "brin retardé : fragments d'Okazaki", cx + 120, y + 78, {size:11, color:pal.red, align:"left"});
-      var bw = c.W - 60;
-      S.draw.text(c, "Durée comparée à la phase S (8 h = 28 800 s)", 30, 190, {align:"left", size:12});
-      ctx.fillStyle = "#e3e7ed"; ctx.fillRect(30, 205, bw, 16);
-      ctx.fillStyle = t <= 28800 ? pal.green : pal.red; ctx.fillRect(30, 205, Math.min(1, t / 28800) * bw, 16);
-      var fr = Math.min(1, t / 28800); S.draw.text(c, (t > 28800 ? "dépasse la phase S : " : "") + fmtT, fr > 0.6 ? 36 : 30 + fr * bw + 6, 213, {align:"left", size:11, color: fr > 0.6 ? "#fff" : "#13233a"});
-      S.draw.text(c, "Fourches actives : " + (forks < 1e3 ? forks : S.fmt(forks / 1000, 1) + " mille"), 30, 238, {align:"left", size:12, weight:600});
-      ro.set(0, fmtT); ro.set(1, Math.max(1, Math.ceil(need)).toLocaleString("fr-BE")); ro.set(2, nfr < 1e5 ? Math.round(nfr).toLocaleString("fr-BE") : S.sci(nfr, 2)); ro.set(3, S.sci(nfr + forks, 2));
-    });
+      if (play){ prog = Math.min(1, prog + dt / 5); if (prog >= 1) play = false; }
+      var n = Math.min(N, 5), x0 = 24, x1 = W - 24, seg = (x1 - x0) / n, y = 118, th = 12;
+      S.draw.text(c, n < N ? "Chromosome (" + n + " origines dessinées sur " + fmtN(N) + ")" : org.value === "e" ? "Chromosome circulaire d'E. coli (représenté à plat)" : "Un chromosome humain (représenté à plat)", x0, 20, {align:"left", size:11.5, color:pal.ink});
+      /* ADN parental */
+      ctx.strokeStyle = "#8a95a3"; ctx.lineWidth = 4; ctx.lineCap = "round"; ctx.beginPath(); ctx.moveTo(x0, y); ctx.lineTo(x1, y); ctx.moveTo(x0, y + 22); ctx.lineTo(x1, y + 22); ctx.stroke();
+      for (var i = 0; i < n; i++){
+        var cx = x0 + seg * (i + .5), half = seg / 2 * prog;
+        /* bulle : deux brins parentaux écartés, brins fils */
+        var bh = 16 * Math.min(1, prog * 6) + 4;
+        if (half > 1){
+          ctx.fillStyle = "#fbfdff"; ctx.fillRect(cx - half, y - 1, half * 2, 24);
+          ctx.strokeStyle = "#8a95a3"; ctx.lineWidth = 4; ctx.beginPath(); ctx.moveTo(cx - half, y); ctx.quadraticCurveTo(cx, y - bh, cx + half, y); ctx.moveTo(cx - half, y + 22); ctx.quadraticCurveTo(cx, y + 22 + bh, cx + half, y + 22); ctx.stroke();
+          /* brins fils : avancé vers la fourche, retardé en fragments */
+          ctx.lineWidth = 3; ctx.strokeStyle = pal.green; ctx.beginPath(); ctx.moveTo(cx, y - bh * .5 + 2); ctx.lineTo(cx + half - 2, y - 2); ctx.stroke();
+          ctx.strokeStyle = pal.green; ctx.beginPath(); ctx.moveTo(cx, y + 22 + bh * .5 - 2); ctx.lineTo(cx - half + 2, y + 24); ctx.stroke();
+          var nf = Math.max(2, Math.min(14, Math.round(half / 14)));
+          ctx.strokeStyle = pal.red; ctx.lineWidth = 3; for (var q = 0; q < nf; q++){ var u0 = (q + .1) / nf, u1 = (q + .85) / nf; ctx.beginPath(); ctx.moveTo(cx + half * u1, y - 3 - bh * .5 * (1 - u1) + 0); ctx.lineTo(cx + half * u0, y - 3 - bh * .5 * (1 - u0)); ctx.stroke(); }
+          for (q = 0; q < nf; q++){ var w0 = (q + .1) / nf, w1 = (q + .85) / nf; ctx.beginPath(); ctx.moveTo(cx - half * w0, y + 25 + bh * .5 * (1 - w0)); ctx.lineTo(cx - half * w1, y + 25 + bh * .5 * (1 - w1)); ctx.stroke(); }
+          B.ball(c, cx + half, y + 11, 6.5, pal.violet); B.ball(c, cx - half, y + 11, 6.5, pal.violet);
+        }
+        B.ball(c, cx, y + 11, 4.5, pal.amber); if (prog < .12) S.draw.label(c, "origine", cx, y + 46, {size:9.5, color:pal.amber});
+      }
+      /* légende */
+      S.draw.legend(c, [[pal.green, "brin avancé (continu)"], [pal.red, "brin retardé : fragments d'Okazaki"], [pal.violet, "hélicase (fourche)"]], 14, 168, {box:false});
+      /* barre durée */
+      var by = H - 100, bw = W - 40, fr = Math.min(1, t / 28800);
+      S.draw.text(c, "Durée comparée à la phase S (8 h)", 20, by - 12, {align:"left", size:12, color:pal.ink});
+      ctx.fillStyle = "#e3e7ed"; S.draw.rrect(c, 20, by, bw, 18, 9); ctx.fill(); ctx.fillStyle = t <= 28800 ? pal.green : pal.red; S.draw.rrect(c, 20, by, Math.max(14, fr * bw), 18, 9); ctx.fill();
+      S.draw.text(c, (t > 28800 ? "dépasse la phase S : " : "") + fmtT(t), fr > .6 ? 30 : 20 + fr * bw + 10, by + 9, {align:"left", size:11, color:fr > .6 ? "#fff" : pal.ink});
+      /* curseur de lecture */
+      var sx = 20 + prog * (W - 40); ctx.strokeStyle = pal.acc; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(sx, 34); ctx.lineTo(sx, y - 14); ctx.stroke(); B.ball(c, sx, 32, 5, pal.acc);
+      S.draw.label(c, "t = " + fmtT(t * prog) + " · " + Math.round(prog * 100) + " % copié · " + fmtN(nfr * prog) + " fragments", W / 2, H - 38, {size:11.5, color:pal.acc});
+      S.draw.text(c, "Fourches actives : " + fmtN(forks), 20, H - 14, {align:"left", size:11.5, color:pal.ink});
+      if (W > 560) S.draw.text(c, "glisse sur le schéma pour avancer dans le temps", W - 20, H - 14, {align:"right", size:10, color:pal.grey});
+      ro.set(0, fmtT(t)); ro.set(1, Math.max(1, Math.ceil(need)).toLocaleString("fr-BE")); ro.set(2, fmtN(nfr)); ro.set(3, S.sci(nfr + forks, 2));
+    }
+    k.button("▶ Lancer la réplication", function(){ prog = 0; play = true; }, true);
+    k.draw(function(){ frame(0); });
+    var lp = k.loop(function(dt){ frame(dt); }); lp.play();
   }
 });
 
@@ -107,38 +131,76 @@ SFA.sim({
   id:"ub-c07-maturation-arn", ch:"c07", tag:"Épissage",
   titre:"Maturation de l'ARN pré-messager : coiffe, épissage, queue poly(A)",
   resume:"Un gène de 5 exons : saut d'exon, cadre de lecture, stabilité de l'ARNm.",
-  but:"Active ou non la coiffe et la queue poly(A), saute des exons (épissage alternatif) et regarde la longueur et le cadre de lecture.",
+  but:"Clique sur les exons 2 à 4 pour les sauter (ou utilise les interrupteurs), active la coiffe et la queue poly(A), puis regarde l'épissage se faire. Active la coiffe et la queue poly(A), saute des exons (épissage alternatif) et regarde la longueur et le cadre de lecture.",
   aRetenir:"Chez les eucaryotes, le pré-ARNm est coiffé en 5' (7-méthylguanosine), épissé (introns retirés par le splicéosome) et polyadénylé en 3'. Coiffe et queue poly(A) protègent l'ARNm de la dégradation et permettent l'initiation de la traduction. L'épissage alternatif produit plusieurs ARNm (donc protéines) à partir d'un gène ; un exon dont la longueur n'est pas multiple de 3 déplace le cadre de lecture s'il est sauté.",
   piege:"Les introns sont retirés, les exons conservés (« exons = expressed »). Le saut d'un exon de longueur multiple de 3 conserve le cadre ; sinon décalage. Gène didactique : longueurs choisies pour l'exercice, la partie 5' et 3' non traduite n'est pas séparée.",
   build:function(k,S){
-    var c = k.canvas(260);
+    var c = k.canvas(330), B = S.bio;
     var ex = [120, 90, 100, 60, 209], intr = [1800, 2500, 900, 3200], pal = S.draw.palette;
     var cap = k.toggle("Coiffe 5'", true);
     var pa = k.slider("Queue poly(A)", 0, 250, 10, 200, "nt");
     var sk = [2, 3, 4].map(function(i){ return k.toggle("Sauter l'exon " + i, false); });
     var ro = k.readouts(["Pré-ARNm","ARNm mature","Cadre de lecture","Stabilité"]);
-    var note = k.note("", "ok");
-    k.draw(function(){
-      c.clear();
-      var inc = [true, !sk[0].value, !sk[1].value, !sk[2].value, true], len = 0, i, tot = 0;
-      for (i = 0; i < 5; i++){ tot += ex[i]; if (inc[i]) len += ex[i]; }
-      for (i = 0; i < 4; i++) tot += intr[i];
-      var w = c.W - 40, x = 20, wx = [];
-      var sq = ex.map(function(e){ return Math.sqrt(e); }), ssum = sq.reduce(function(a, b){ return a + b; }, 0), gap = 28, avail = w - 4 * gap;
+    var note = k.note("", "ok"), sp = 1, lastKey = "", boxes = [];
+    var COL = [pal.acc, pal.teal, pal.violet, pal.green, pal.amber];
+    function key(){ return [cap.value, pa.value, sk[0].value, sk[1].value, sk[2].value].join(); }
+    c.pointer(function(t, p){ if(t === "down") boxes.forEach(function(b){ if(p.x > b.x && p.x < b.x + b.w && p.y > b.y && p.y < b.y + b.h && b.i >= 1 && b.i <= 3){ sk[b.i - 1].set(!sk[b.i - 1].value); sp = 0; k.redraw(); } }); });
+    function run(){ sp = 0; }
+    function frame(dt){
+      var ctx = c.ctx, W = c.W; c.clear(); B.bg(c, "#fbfdff", "#eef3f9");
+      var kk = key(); if(kk !== lastKey){ lastKey = kk; sp = 0; }
+      sp = Math.min(1, sp + dt * .55); var e = sp < .5 ? 2 * sp * sp : 1 - Math.pow(-2 * sp + 2, 2) / 2;
+      var inc = [true, !sk[0].value, !sk[1].value, !sk[2].value, true], len = 0, tot = 0, i;
+      for (i = 0; i < 5; i++){ tot += ex[i]; if (inc[i]) len += ex[i]; } for (i = 0; i < 4; i++) tot += intr[i];
+      var m = 24, gap = Math.max(26, W * .07), avail = W - 2 * m - 4 * gap, sq = ex.map(function(v){ return Math.sqrt(v); }), ss = sq.reduce(function(a, b){ return a + b; }, 0);
+      var bw = sq.map(function(s){ return s / ss * avail; });
+      var yT = 78, yB = 220, h = 38;
+      boxes = [];
+      S.draw.text(c, "Pré-ARNm (transcrit du gène)", m, 24, {align:"left", size:12, color:pal.ink});
+      /* pré-ARNm */
+      var x = m + 20, px = [];
+      for (i = 0; i < 5; i++){ px.push(x); x += bw[i] + gap; }
+      var capR = 9;
+      ctx.save(); ctx.fillStyle = pal.amber; ctx.beginPath(); ctx.arc(m + 9, yT + h / 2, capR, 0, 7); ctx.fill(); ctx.restore(); S.draw.text(c, "m⁷G", m + 9, yT + h / 2, {size:7.5, color:"#fff"});
       for (i = 0; i < 5; i++){
-        var bw = sq[i] / ssum * avail;
-        c.ctx.fillStyle = inc[i] ? pal.acc : "#cfd6e0"; c.ctx.fillRect(x, 60, bw, 36);
-        S.draw.text(c, "E" + (i + 1), x + bw / 2, 72, {color:"#fff", size:12});
-        S.draw.text(c, ex[i] + " nt", x + bw / 2, 86, {color:"#fff", size:10, weight:600});
-        if (i < 4){ S.draw.line(c, x + bw, 78, x + bw + gap, 78, pal.grey, 2, [3, 3]); S.draw.text(c, intr[i] + "", x + bw + gap / 2, 66, {size:9, color:pal.grey}); }
-        x += bw + gap;
+        if (i < 4){ ctx.strokeStyle = "#9aa6b6"; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(px[i] + bw[i], yT + h / 2); ctx.lineTo(px[i + 1], yT + h / 2); ctx.stroke(); S.draw.label(c, W < 520 ? "i" + (i + 1) : "intron " + (i + 1) + " · " + intr[i], px[i] + bw[i] + gap / 2, yT - 14, {size:9, color:pal.grey}); }
+        ctx.fillStyle = COL[i]; S.draw.rrect(c, px[i], yT, bw[i], h, 7); ctx.fill();
+        S.draw.text(c, "E" + (i + 1), px[i] + bw[i] / 2, yT + 13, {size:12, color:"#fff"}); S.draw.text(c, ex[i] + " nt", px[i] + bw[i] / 2, yT + 28, {size:9.5, color:"#fff", weight:600});
+        boxes.push({x:px[i], y:yT, w:bw[i], h:h, i:i});
+        if (i >= 1 && i <= 3 && !inc[i]){ S.draw.text(c, "sauté", px[i] + bw[i] / 2, yT + h + 12, {size:10, color:pal.red}); }
       }
-      S.draw.text(c, "Pré-ARNm : exons (bleu) et introns (pointillés, longueur en nt)", 20, 30, {align:"left", size:12, weight:600});
-      S.draw.text(c, "ARNm mature : " + (cap.value ? "coiffe + " : "pas de coiffe + ") + len + " nt + poly(A)" + (pa.value > 0 ? " " + pa.value : " absent"), 20, 140, {align:"left", size:13});
+      /* flèche d'épissage */
+      S.draw.arrow(c, W / 2, yT + h + 30, W / 2, yB - 54, pal.grey, 2); S.draw.label(c, "épissage + coiffe + polyadénylation", W / 2, (yT + yB) / 2 - 8 + 8, {size:10.5, color:pal.grey});
+      /* ARNm : mise en place animée */
+      var tx = m + 28, mpos = [], tw = 0; for (i = 0; i < 5; i++) if (inc[i]) tw += bw[i];
+      var x2 = Math.max(m + 26, (W - tw) / 2 - (cap.value ? 8 : 0) - 40); var xm = x2;
+      for (i = 0; i < 5; i++){ mpos.push(xm); if (inc[i]) xm += bw[i]; }
+      S.draw.text(c, "ARNm mature", m, yB - 40, {align:"left", size:12, color:pal.ink});
+      /* introns qui se détachent (boucle) */
+      for (i = 0; i < 4; i++){ var ix0 = px[i] + bw[i], ix1 = px[i + 1], mid = (ix0 + ix1) / 2, hh = 6 + 26 * e;
+        ctx.save(); ctx.globalAlpha = 1 - e * .85; ctx.strokeStyle = "#9aa6b6"; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.ellipse(mid + (px[i + 1] - px[i]) * (1 - e) * 0 , yT + h + 4 + hh * 0, 0, 0, 0, 0, 0); ctx.restore(); }
+      ctx.save(); for (i = 0; i < 5; i++){
+        var gx = px[i], tx2 = mpos[i], cx2 = gx + (tx2 - gx) * e, yy = yB + (yT - yB) * 0, drop = inc[i] ? 0 : e * 22;
+        ctx.globalAlpha = inc[i] ? 1 : 1 - e * .85;
+        ctx.fillStyle = COL[i]; S.draw.rrect(c, cx2, yB + drop, bw[i], h, 7); ctx.fill();
+        S.draw.text(c, "E" + (i + 1), cx2 + bw[i] / 2, yB + drop + 13, {size:12, color:"#fff"}); S.draw.text(c, ex[i] + " nt", cx2 + bw[i] / 2, yB + drop + 28, {size:9.5, color:"#fff", weight:600});
+        if (i < 4){ var a0 = px[i] + bw[i] + (mpos[i] + bw[i] - px[i] - bw[i]) * 0, ia = a0 + (inc[i] ? 0 : 0); ctx.globalAlpha = Math.max(0, 1 - e * 1.4); ctx.strokeStyle = "#9aa6b6"; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(cx2 + bw[i], yB + h / 2); ctx.lineTo(px[i + 1] + (mpos[i + 1] - px[i + 1]) * e, yB + h / 2); ctx.stroke(); }
+      } ctx.restore();
+      /* coiffe + queue à l'état final */
+      var fin = e; ctx.save(); ctx.globalAlpha = cap.value ? 1 : .18; ctx.fillStyle = pal.amber; ctx.beginPath(); ctx.arc(x2 - 12 + (m + 9 - (x2 - 12)) * (1 - e), yB + h / 2, capR, 0, 7); ctx.fill(); ctx.restore();
+      S.draw.text(c, cap.value ? "m⁷G" : "✕", x2 - 12 + (m + 9 - (x2 - 12)) * (1 - e), yB + h / 2, {size:7.5, color:"#fff"});
+      var nA = Math.round(pa.value / 250 * 14); for (i = 0; i < nA; i++){ ctx.globalAlpha = e; S.draw.text(c, "A", x2 + tw + 10 + i * Math.min(9, (W - (x2 + tw + 10) - 8) / Math.max(1, nA)), yB + h / 2 + 1, {size:11, color:pal.green}); ctx.globalAlpha = 1; }
       var ok = len % 3 === 0, stable = cap.value && pa.value >= 30;
+      var codons = len / 3;
+      /* règle de cadre : codons */
+      if (e > .9){ ctx.save(); ctx.globalAlpha = (e - .9) * 10; var nn = Math.floor(len / 3); for (var q = 0; q < Math.min(nn, 80); q++){ var cxn = x2 + (q * 3 + 1.5) / len * tw; ctx.fillStyle = q % 2 ? "rgba(255,255,255,.35)" : "rgba(255,255,255,.0)"; } ctx.restore(); }
+      S.draw.label(c, "ARNm : " + len + " nt " + (ok ? "(= " + (len / 3) + " codons)" : "(" + len % 3 + " nt hors codon : cadre décalé)"), W / 2, c.H - 18, {size:11, color:ok ? pal.green : pal.red});
       ro.set(0, tot + " nt"); ro.set(1, len + " nt"); ro.set(2, ok ? "conservé (" + (len - 3) / 3 + " aa)" : "décalé"); ro.set(3, !cap.value ? "traduction impossible" : stable ? "stable" : "labile");
       note.set(!ok ? "Longueur non multiple de 3 : décalage du cadre, protéine aberrante probable." : !cap.value ? "Sans coiffe, les ribosomes ne se fixent pas et l'ARNm est vite dégradé par les exonucléases 5'→3'." : pa.value < 30 ? "Queue poly(A) courte : l'ARNm est dégradé rapidement (désadénylation)." : "ARNm complet : traduisible, stable.", ok && stable ? "ok" : "warn");
-    });
+    }
+    k.button("▶ Rejouer l'épissage", run, true);
+    k.draw(function(){ frame(0); });
+    var lp = k.loop(function(dt){ frame(dt); }); lp.play();
   }
 });
 
@@ -151,35 +213,54 @@ SFA.sim({
   aRetenir:"Le répresseur LacI se fixe à l'opérateur et bloque l'ARN polymérase ; l'allolactose (dérivé du lactose) l'inactive : induction. Le complexe CAP–AMPc, présent quand le glucose manque, stimule la transcription : répression catabolique. Expression maximale = lactose présent ET glucose absent. Mutants : lacI⁻ constitutif ; lacI<sup>s</sup> (super-répresseur, insensible à l'allolactose) jamais induit ; lacO<sup>c</sup> constitutif (cis-dominant) ; lacP⁻ jamais exprimé.",
   piege:"Le lactose ne se fixe pas directement sur le répresseur : c'est l'allolactose. Glucose + lactose : l'opéron n'est que faiblement exprimé. Niveaux donnés en unités relatives qualitatives (répression ≈ 1, induction maximale ≈ 100).",
   build:function(k,S){
-    var c = k.canvas(280), pal = S.draw.palette;
+    var c = k.canvas(360), pal = S.draw.palette, B = S.bio, tt = 0, mol = [], rnd = Math.random;
+    for (var q = 0; q < 26; q++) mol.push({x:rnd(), y:rnd(), vx:rnd() - .5, vy:rnd() - .5});
     var st = k.select("Souche", [["wt","Sauvage"],["I-","lacI⁻ (répresseur inactif)"],["Is","lacIˢ (super-répresseur)"],["Oc","lacOᶜ (opérateur muté)"],["P-","lacP⁻ (promoteur muté)"],["Z-","lacZ⁻ (gène de la β-galactosidase muté)"]], "wt");
     var lac = k.toggle("Lactose présent", true);
     var glu = k.toggle("Glucose présent", false);
     var ro = k.readouts(["Répresseur sur l'opérateur","CAP–AMPc","β-galactosidase"]);
     var note = k.note("", "ok");
-    k.draw(function(){
-      c.clear();
-      var m = st.value, rep, bound, cap = !glu.value, lev;
-      /* répresseur actif et opérateur fonctionnel */
-      var repActive = (m === "I-") ? false : (m === "Is") ? true : !lac.value;
-      var opOk = m !== "Oc";
-      bound = repActive && opOk;
-      var tr = (m === "P-") ? 0 : bound ? 1 : (cap ? 100 : 5);
-      lev = m === "Z-" ? 0 : tr;
-      var x = 30, y = 120, ctx = c.ctx;
-      var parts = [["lacI",60,"#8a95a3"],["P",36,m === "P-" ? pal.red : pal.amber],["O",36,m === "Oc" ? pal.red : pal.violet],["lacZ",70,m === "Z-" ? pal.red : pal.green],["lacY",60,pal.teal],["lacA",60,pal.teal]];
-      x = Math.max(10, (c.W - 330) / 2);
-      parts.forEach(function(p){ ctx.fillStyle = p[2]; ctx.fillRect(x, y, p[1], 30); S.draw.text(c, p[0], x + p[1] / 2, y + 15, {color:"#fff", size:11}); p[3] = x; x += p[1] + 4; });
-      var ox = parts[2][3] + 18;
-      if (bound){ ctx.fillStyle = pal.red; ctx.beginPath(); ctx.arc(ox, y - 14, 17, 0, 6.3); ctx.fill(); S.draw.text(c, "LacI", ox, y - 14, {color:"#fff", size:10}); S.draw.text(c, "bloque", ox + 40, y - 40, {size:11, color:pal.red}); }
-      else if (tr > 0){ var px = parts[1][3] + 18; S.draw.arrow(c, px, y + 52, parts[3][3] + 100, y + 52, pal.acc, 3); S.draw.text(c, tr > 5 ? "transcription forte" : "transcription faible", px + 10, y + 70, {align:"left", size:11, color:pal.acc}); }
-      if (cap && m !== "P-") S.draw.text(c, "CAP–AMPc fixé au promoteur", parts[1][3] + 18, y + 96, {align:"left", size:11, color:pal.green});
-      S.draw.text(c, "Opéron lac (non à l'échelle)", 20, 24, {align:"left", size:12, weight:600});
-      var bw = c.W - 60; ctx.fillStyle = "#e3e7ed"; ctx.fillRect(30, 240, bw, 16); ctx.fillStyle = lev > 20 ? pal.green : lev > 0 ? pal.amber : pal.grey; ctx.fillRect(30, 240, lev / 100 * bw, 16);
-      S.draw.text(c, "β-galactosidase : " + S.fmt(lev, 0) + " / 100", 30, 230, {align:"left", size:12});
-      ro.set(0, bound ? "oui" : "non"); ro.set(1, cap && m !== "P-" ? "oui (glucose absent)" : "non"); ro.set(2, S.fmt(lev, 0) + " / 100");
+    function model(){ var m = st.value, cap = !glu.value;
+      var repActive = (m === "I-") ? false : (m === "Is") ? true : !lac.value, opOk = m !== "Oc", bound = repActive && opOk;
+      var tr = (m === "P-") ? 0 : bound ? 1 : (cap ? 100 : 5); return {m:m, cap:cap, bound:bound, tr:tr, lev:m === "Z-" ? 0 : tr, repActive:repActive}; }
+    function frame(dt){
+      var ctx = c.ctx, W = c.W, H = c.H, M = model(), m = M.m, tr = M.tr, lev = M.lev; tt += dt; c.clear();
+      B.bg(c, "#fbfdff", "#eef3f9");
+      ctx.fillStyle = "rgba(190,230,205,.22)"; S.draw.rrect(c, 8, 8, W - 16, H - 16, 18); ctx.fill();
+      S.draw.text(c, "Cytoplasme de la bactérie", 18, 22, {align:"left", size:11, color:pal.grey});
+      /* ADN */
+      var small = W < 520, sc = Math.min(1, (W - 20) / 520), y = H * .5, x0 = Math.max(10, (W - 500 * sc) / 2);
+      var parts = [["lacI",70,"#8a95a3"],["P",34,m === "P-" ? pal.red : pal.amber],["O",30,m === "Oc" ? pal.red : pal.violet],["lacZ",90,m === "Z-" ? pal.red : pal.green],["lacY",72,pal.teal],["lacA",72,pal.teal]], x = x0;
+      ctx.strokeStyle = "#5b6b80"; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(x0 - 4, y + 22); ctx.lineTo(x0 + 400 * sc + 80, y + 22); ctx.stroke();
+      parts.forEach(function(p){ var w = p[1] * sc; ctx.fillStyle = p[2]; S.draw.rrect(c, x, y, w, 22, 5); ctx.fill(); S.draw.text(c, p[0], x + w / 2, y + 11, {color:"#fff", size:small ? 9.5 : 11}); p[3] = x; p[4] = w; x += w + 5 * sc; });
+      var xP = parts[1][3] + parts[1][4] / 2, xO = parts[2][3] + parts[2][4] / 2, xZ = parts[3][3], xEnd = parts[5][3] + parts[5][4];
+      /* CAP */
+      if (M.cap && m !== "P-"){ var cx = parts[1][3] - 12 * sc; ctx.fillStyle = pal.green; ctx.beginPath(); ctx.moveTo(cx - 9, y - 6); ctx.lineTo(cx + 9, y - 6); ctx.lineTo(cx, y - 24); ctx.closePath(); ctx.fill(); S.draw.text(c, "CAP", cx, y - 10, {size:8, color:"#fff"}); B.ball(c, cx + 12, y - 28, 4, pal.amber); S.draw.text(c, "AMPc", cx + 20, y - 36, {size:9, color:pal.green, align:"left"}); }
+      /* répresseur */
+      var bound = M.bound;
+      function repressor(rx, ry, act, ally){ B.ball(c, rx - 9, ry, 10, pal.red); B.ball(c, rx + 9, ry, 10, pal.red); B.ball(c, rx, ry - 9, 9, B.mix(pal.red, .15)); S.draw.text(c, "LacI", rx, ry + 1, {size:8.5, color:"#fff"}); if (ally) B.ball(c, rx + 16, ry - 13, 4.2, pal.pink); }
+      if (bound){ repressor(xO, y - 16, true, false); S.draw.label(c, "LacI bloque l'opérateur", xO, y - 48 - (M.cap ? 10 : 0), {size:10.5, color:pal.red}); }
+      else if (m !== "Oc" || true){
+        var fl = m === "I-" ? .0 : 1; if (m !== "I-"){ var rx = xO + 30 + 60 * ((tt * .25) % 1), ry = y - 60 - 8 * Math.sin(tt * 2); if (!M.repActive || true) repressor(Math.min(rx, W - 30), ry, false, lac.value && m !== "Is"); S.draw.text(c, lac.value && m !== "Is" ? "répresseur + allolactose : décroché" : m === "Oc" ? "LacI libre (l'opérateur muté ne le fixe plus)" : "répresseur libre", Math.min(W - 10, rx + 24), ry - 18, {size:9.5, color:pal.red, align:"left"}); }
+        else S.draw.text(c, "LacI non fonctionnel", xO + 20, y - 52, {size:10, color:pal.grey});
+      }
+      /* ARN polymérase + ARNm */
+      if (m === "P-"){ S.draw.text(c, "l'ARN polymérase ne reconnaît plus le promoteur", xP, y + 58, {size:10.5, color:pal.red}); B.ball(c, xP - 12, y + 40, 12, "#9aa6b6"); }
+      else if (tr <= 1){ B.ball(c, xP - 4, y + 40, 12, pal.acc); ctx.save(); ctx.strokeStyle = pal.red; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(xO + 4, y + 30); ctx.lineTo(xO + 4, y + 52); ctx.stroke(); ctx.restore(); S.draw.text(c, "ARN polymérase bloquée", xP, y + 66, {size:10.5, color:pal.red}); }
+      else { var span = xEnd - xP, u = (tt * (tr > 5 ? .35 : .12)) % 1, px = xP + span * u; B.ball(c, px, y + 36, 12, pal.acc);
+        ctx.strokeStyle = pal.green; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.moveTo(xP, y + 36); for (var xx = xP; xx < px - 8; xx += 4) ctx.lineTo(xx, y + 36 + 9 * Math.sin(xx * .28 + 1) * ((xx - xP) / span + .2)); ctx.stroke();
+        S.draw.text(c, tr > 5 ? "transcription forte" : "transcription faible", xP, y + 70, {size:10.5, color:pal.acc, align:"left"}); }
+      /* molécules : lactose, glucose */
+      mol.forEach(function(p, i){ p.x += p.vx * dt * .07; p.y += p.vy * dt * .07; if (p.x < 0 || p.x > 1) p.vx *= -1; if (p.y < 0 || p.y > 1) p.vy *= -1; p.vx += (rnd() - .5) * dt * 2; p.vy += (rnd() - .5) * dt * 2;
+        var px = 20 + p.x * (W - 40), py = H - 90 + p.y * 56; if (i < 10 && lac.value){ ctx.save(); ctx.fillStyle = pal.pink; ctx.translate(px, py); ctx.beginPath(); ctx.rect(-5, -5, 10, 10); ctx.fill(); ctx.restore(); } else if (i >= 10 && i < 18 && glu.value){ ctx.save(); ctx.translate(px, py); ctx.fillStyle = pal.amber; ctx.beginPath(); for (var a = 0; a < 6; a++) ctx.lineTo(6 * Math.cos(a * 1.047), 6 * Math.sin(a * 1.047)); ctx.fill(); ctx.restore(); }
+        else if (i >= 18 && lev > 0 && i - 18 < Math.round(lev / 100 * 8) + (lev > 0 ? 1 : 0)){ B.ball(c, px, py, 6, pal.green, {text:"β", size:8}); } });
+      var lg = [[pal.pink, "lactose"], [pal.amber, "glucose"], [pal.green, "β-galactosidase"]]; var lx = 18; lg.forEach(function(q){ ctx.fillStyle = q[0]; ctx.fillRect(lx, H - 24, 9, 9); S.draw.text(c, q[1], lx + 14, H - 19, {size:10, color:pal.ink, align:"left"}); lx += 28 + q[1].length * 6; });
+      S.draw.label(c, "β-galactosidase : " + S.fmt(lev, 0) + " / 100", W - 18, W < 520 ? H - 44 : H - 19, {align:"right", size:11, color:lev > 20 ? pal.green : lev > 0 ? pal.amber : pal.grey});
+      ro.set(0, bound ? "oui" : "non"); ro.set(1, M.cap && m !== "P-" ? "oui (glucose absent)" : "non"); ro.set(2, S.fmt(lev, 0) + " / 100");
       note.set(m === "Z-" ? "lacZ⁻ : l'opéron est transcrit comme chez le sauvage, mais la β-galactosidase est inactive (la perméase lacY et la transacétylase lacA peuvent encore être faites)." : m === "P-" ? "lacP⁻ : l'ARN polymérase ne reconnaît pas le promoteur, aucune expression." : lev === 100 ? (m === "wt" ? "Lactose présent ET glucose absent : induction maximale." : "Expression constitutive : le répresseur ne bloque plus l'opérateur (mutation), et sans glucose CAP–AMPc stimule la transcription : expression maximale même sans lactose.") : lev === 5 ? "Pas de répression par LacI, mais sans CAP–AMPc (glucose présent) la transcription reste faible." : "Opérateur occupé par le répresseur : expression basale.", "ok");
-    });
+    }
+    k.draw(function(){ frame(0); });
+    var lp = k.loop(function(dt){ frame(dt); }); lp.play();
   }
 });
 

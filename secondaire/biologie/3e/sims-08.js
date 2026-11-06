@@ -53,14 +53,15 @@ SFA.sim({
 
 /* ===== 2 · Facteurs limitants ===== */
 SFA.sim({
-  id:"b3-c08-facteurs-limitants", ch:"c08", tag:"Modèle chiffré · défi",
+  id:"b3-c08-facteurs-limitants", ch:"c08", tag:"Modèle chiffré · manipulation directe",
   titre:"Facteurs limitants : la courbe qui plafonne",
   resume:"Fais varier un seul facteur, les autres étant fixés : la courbe monte puis plafonne. Quel est le facteur limitant ?",
-  but:"Choisis le facteur à tracer. Règle les deux autres. Défi : amener la photosynthèse à 100 % en changeant le moins de facteurs possible.",
+  but:"Le tonneau de Liebig : le niveau d'eau (la photosynthèse) ne monte pas plus haut que la planche la plus courte. Tire sur le haut d'une planche (ou utilise les curseurs) et trouve le facteur limitant. Défi : atteindre 100 % en changeant le moins de facteurs possible.",
   aRetenir:"La vitesse de la photosynthèse dépend de la lumière, du CO₂ et de la température. Tant qu'un facteur est insuffisant, il limite le processus : en l'augmentant, la photosynthèse augmente ; une fois le plateau atteint, c'est un autre facteur qui limite. Pour augmenter la production, on agit sur le facteur limitant, pas sur les autres.",
   piege:"Augmenter un facteur qui n'est pas limitant ne change rien (plateau). Et trop de chaleur détruit les enzymes : la courbe de température monte puis retombe. (Modèle simplifié de type Blackman : valeurs indicatives, air = 420 ppm de CO₂.)",
   build:function(k,S){
-    var c = k.canvas(290);
+    var cb = k.canvas(0,{ratio:.86});
+    var c = k.canvas(250);
     var ab = k.seg("Courbe selon", [["L","Lumière"],["C","CO₂"],["T","Température"]], "L");
     var L = k.slider("Lumière", 0, 100, 5, 30, "% du plein soleil");
     var C = k.slider("CO₂", 0, 1500, 50, 400, "ppm");
@@ -68,9 +69,35 @@ SFA.sim({
     var ro = k.readouts(["Photosynthèse","Facteur limitant"]);
     var nt = k.note("","");
     function fL(l){ return Math.min(1,l/60); } function fC(cc){ return Math.min(1,cc/800); }
-    function P_(l,cc,t){ return 100*Math.min(fL(l),fC(cc))*fT(t); }
+    function P_(l,cc,t){ return 100*Math.min(fL(l),fC(cc),fT(t)); }
+    var GE = [];
+    function setStave(i,h){ h=Math.max(.04,Math.min(1,h)); if (i===0) L.set(Math.round(h*60/5)*5); else if (i===1) C.set(Math.round(h*800/50)*50); else Tt.set(Math.round(30+10*Math.log(h)/Math.LN2)); }
+    var dr = -1;
+    cb.pointer(function(type,p){ if (type==="down"){ dr=-1; GE.forEach(function(q,i){ if (p.x>=q.x-4 && p.x<=q.x+q.w+4 && p.y>=q.top-30 && p.y<=q.base+6) dr=i; }); }
+      if (type==="up") dr=-1; if (dr>=0){ var q=GE[dr]; setStave(dr,(q.base-p.y)/q.hmax); k.redraw(); } });
+    function barrel(){
+      cb.clear(); var g=cb.ctx, W=cb.W, H=cb.H, a=fL(L.value), b=fC(C.value), t=fT(Tt.value), mn=Math.min(a,b,t), pp=100*mn;
+      var bgc=g.createLinearGradient(0,0,0,H); bgc.addColorStop(0,"#eef6fb"); bgc.addColorStop(1,"#e5eef6"); g.fillStyle=bgc; g.fillRect(0,0,W,H);
+      var bw=Math.min(W*.62,320), x0=(W-bw)/2-W*.06, base=H*.78, hmax=H*.62, sw=bw/3-6;
+      var vals=[a,b,t], nm=["Lumière","CO₂","Température"], col=["#f2c14e","#8f9bad","#e0603f"], dk=["#b98a1a","#5e6a7d","#a8381d"], sub=[L.value+" %",C.value+" ppm",Tt.value+" °C"];
+      GE=[]; g.fillStyle="#a9d6ee"; g.fillRect(x0-6,base-hmax*mn,bw+12,hmax*mn);
+      g.fillStyle="rgba(255,255,255,.35)"; g.fillRect(x0-6,base-hmax*mn,bw+12,3); D.line(cb,x0-14,base-hmax*mn,x0+bw+14,base-hmax*mn,"#2f7fd1",2,[5,4]); D.label(cb,"niveau = photosynthèse",x0-14,base-hmax*mn-14,{size:10.5,color:"#1f5f8f",align:"left"});
+      vals.forEach(function(v,i){ var x=x0+i*(sw+9), h=Math.max(10,hmax*v), top=base-h;
+        GE.push({x:x,w:sw,top:top,base:base,hmax:hmax});
+        var gr=g.createLinearGradient(x,0,x+sw,0); gr.addColorStop(0,col[i]); gr.addColorStop(.5,"#fff7"); gr.addColorStop(1,col[i]);
+        g.fillStyle=col[i]; D.rrect(c0b(),x,top,sw,h,5); g.fill(); g.fillStyle="rgba(255,255,255,.28)"; g.fillRect(x+4,top+4,5,h-8); g.strokeStyle=dk[i]; g.lineWidth=2; D.rrect(c0b(),x,top,sw,h,5); g.stroke();
+        var low = v===mn && mn<.999;
+        D.text(c0b(),nm[i],x+sw/2,base+17,{size:11.5,color:"#243044"}); D.text(c0b(),sub[i],x+sw/2,base+32,{size:11,color:P.grey});
+        if (low) D.label(c0b(),"limitant",x+sw/2,top-16,{size:11,color:P.red});
+        g.beginPath(); g.arc(x+sw/2,top-1,0,0,6.3); D.glow(cb,x+sw/2,top,16,"#6236c4",.3); g.beginPath(); g.arc(x+sw/2,top,6,0,6.3); g.fillStyle="#fff"; g.fill(); g.strokeStyle=P.violet; g.lineWidth=2.5; g.stroke(); });
+      g.strokeStyle="#6c7a8c"; g.lineWidth=5; [.3,.78].forEach(function(f){ g.beginPath(); g.moveTo(x0-8,base-hmax*f*.9); g.lineTo(x0+bw+8,base-hmax*f*.9); g.stroke(); });
+      g.fillStyle="#7a5232"; g.fillRect(x0-8,base,bw+16,6);
+      D.display(cb,S.fmt(pp,0)+" %",W-Math.min(60,W*.16)-4,H*.1,{w:Math.min(110,W*.28),h:50,caption:"photosynthèse"});
+      
+    }
+    function c0b(){ return cb; }
     k.draw(function(){
-      c.clear(); var m = ab.value, rg = {L:[0,100,"lumière (%)",L.value],C:[0,1500,"CO₂ (ppm)",C.value],T:[0,45,"température (°C)",Tt.value]}[m];
+      barrel(); c.clear(); var m = ab.value, rg = {L:[0,100,"lumière (%)",L.value],C:[0,1500,"CO₂ (ppm)",C.value],T:[0,45,"température (°C)",Tt.value]}[m];
       var ax = D.axes(c,{x0:rg[0],x1:rg[1],y0:0,y1:105,xl:rg[2],yl:"photosynthèse (%)",stepY:25,l:50});
       var f = function(x){ return P_(m==="L"?x:L.value,m==="C"?x:C.value,m==="T"?x:Tt.value); };
       D.fn(c,ax,f,P.green,3.2); var p = f(rg[3]); D.dot(c,ax.X(rg[3]),ax.Y(p),7,P.violet);

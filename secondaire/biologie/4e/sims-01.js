@@ -106,52 +106,69 @@ SFA.sim({
 });
 
 SFA.sim({
-  id:"b4-c01-zoom", ch:"c01", tag:"Puissances de 10",
+  id:"b4-c01-zoom", ch:"c01", tag:"Puissances de 10 · zoom",
   titre:"Zoom 10ⁿ : du mètre à l'atome",
-  resume:"Déplace un repère sur une échelle logarithmique et relie chaque taille à un objet et à l'instrument qui le révèle.",
-  but:"Glisse le curseur (ou touche le graphique) : lis la taille, l'objet voisin et l'instrument nécessaire. Essaie le défi.",
+  resume:"Glisse sur l'échelle logarithmique : le viseur zoome sur un enfant, une fourmi, une cellule, une mitochondrie, l'ADN, un atome.",
+  but:"Glisse le repère rouge sur l'échelle du bas (ou le curseur) : le viseur montre les objets de cette taille, avec la barre d'échelle. Lis l'instrument nécessaire et relève le défi.",
   aRetenir:"Chaque pas de l'échelle multiplie ou divise la taille par 10. Un globule rouge (7 µm) est environ 140 000 fois plus petit qu'un enfant d'1 m ; l'œil nu distingue ≈ 0,1 mm, le microscope optique ≈ 0,2 µm.",
   piege:"Sur une échelle logarithmique, des distances égales ne représentent pas des différences égales : de 10⁻⁶ m à 10⁻⁷ m, on divise par 10, on ne retranche pas 10⁻⁷.",
   build:function(k, S){
-    var c = k.canvas(0, {ratio:.8});
+    var P = S.draw.palette, c = k.canvas(0, {ratio:1.06});
     var n = k.slider("Exposant n (taille = 10ⁿ m)", -10, 0, 0.1, -5, "");
     var ro = k.readouts(["Taille", "Fois plus petit qu'1 m", "Instrument", "Objet le plus proche"]);
     var nt = k.note("", "");
     var items = [["enfant (1 m)", 0], ["main d'adulte (18 cm)", -0.74], ["fourmi (5 mm)", -2.3], ["ovule humain (0,12 mm)", -3.92], ["globule rouge (7 µm)", -5.15], ["bactérie E. coli (2 µm)", -5.7], ["mitochondrie (1 µm)", -6], ["virus grippal (100 nm)", -7], ["ribosome (25 nm)", -7.6], ["épaisseur de membrane (7 nm)", -8.15], ["diamètre de l'ADN (2 nm)", -8.7], ["molécule de glucose (≈ 1 nm)", -9.0], ["atome d'hydrogène (0,1 nm)", -10]];
-    var target = null;
-    k.button("Défi : trouve la taille d'un objet", function(){ target = items[Math.floor(Math.random() * items.length)]; });
-    var cc = null;
-    c.pointer(function(type, p){ if (type === "down" || type === "drag"){ var v = -(p.x - 24) / (c.W - 48) * 10; v = Math.max(-10, Math.min(0, v)); n.set(Math.round(v * 10) / 10); k.redraw(); } });
+    var target = null, geo = {};
+    k.button("Défi : trouve la taille d'un objet", function(){ target = items[Math.floor(Math.random() * items.length)]; }, true);
+    /* dessins : (x, y, d) d = diamètre/longueur en px ; renvoient rien */
+    var D = [
+      function(ctx, x, y, d){ ctx.fillStyle = "#f2b8a0"; ctx.beginPath(); ctx.arc(x, y - d * 0.36, d * 0.11, 0, 6.2832); ctx.fill(); ctx.fillStyle = "#3b82c4"; S.draw.rrect(c, x - d * 0.13, y - d * 0.24, d * 0.26, d * 0.34, d * 0.06); ctx.fill(); ctx.fillStyle = "#294a77"; ctx.fillRect(x - d * 0.12, y + d * 0.1, d * 0.1, d * 0.3); ctx.fillRect(x + d * 0.02, y + d * 0.1, d * 0.1, d * 0.3); ctx.strokeStyle = "#f2b8a0"; ctx.lineWidth = d * 0.05; ctx.lineCap = "round"; ctx.beginPath(); ctx.moveTo(x - d * 0.13, y - d * 0.18); ctx.lineTo(x - d * 0.26, y + d * 0.05); ctx.moveTo(x + d * 0.13, y - d * 0.18); ctx.lineTo(x + d * 0.26, y + d * 0.05); ctx.stroke(); },
+      function(ctx, x, y, d){ ctx.fillStyle = "#f2c3a8"; S.draw.rrect(c, x - d * 0.28, y - d * 0.1, d * 0.56, d * 0.42, d * 0.08); ctx.fill(); for (var i = 0; i < 4; i++){ S.draw.rrect(c, x - d * 0.28 + i * d * 0.14, y - d * 0.5 + (i === 1 || i === 2 ? -d * 0.05 : d * 0.04), d * 0.11, d * 0.45, d * 0.05); ctx.fill(); } S.draw.rrect(c, x - d * 0.5, y + d * 0.0, d * 0.25, d * 0.1, d * 0.05); ctx.fill(); },
+      function(ctx, x, y, d){ ctx.fillStyle = "#4a2f27"; [[-0.3, 0.12], [0, 0.1], [0.3, 0.16]].forEach(function(p){ ctx.beginPath(); ctx.ellipse(x + d * p[0], y, d * p[1], d * p[1] * 0.75, 0, 0, 6.2832); ctx.fill(); }); ctx.strokeStyle = "#4a2f27"; ctx.lineWidth = Math.max(1, d * 0.012); for (var i = -1; i <= 1; i++){ ctx.beginPath(); ctx.moveTo(x + i * d * 0.12, y); ctx.lineTo(x + i * d * 0.2, y + d * 0.3); ctx.moveTo(x + i * d * 0.12, y); ctx.lineTo(x + i * d * 0.2, y - d * 0.3); ctx.stroke(); } },
+      function(ctx, x, y, d){ S.draw.glow(c, x, y, d * 0.7, "#fff4c9", 0.9); ctx.beginPath(); ctx.arc(x, y, d * 0.42, 0, 6.2832); ctx.fillStyle = "#fbe4d4"; ctx.fill(); ctx.strokeStyle = "#d9a17f"; ctx.lineWidth = d * 0.04; ctx.stroke(); ctx.beginPath(); ctx.arc(x, y, d * 0.12, 0, 6.2832); ctx.fillStyle = "#a9658a"; ctx.fill(); },
+      function(ctx, x, y, d){ ctx.beginPath(); ctx.ellipse(x, y, d * 0.5, d * 0.46, 0, 0, 6.2832); ctx.fillStyle = "#d9534f"; ctx.fill(); ctx.strokeStyle = "#9f2b28"; ctx.lineWidth = Math.max(1, d * 0.04); ctx.stroke(); ctx.beginPath(); ctx.ellipse(x, y, d * 0.22, d * 0.18, 0, 0, 6.2832); ctx.fillStyle = "#ee8a86"; ctx.fill(); },
+      function(ctx, x, y, d){ ctx.fillStyle = "#e6a15b"; S.draw.rrect(c, x - d * 0.5, y - d * 0.17, d, d * 0.34, d * 0.17); ctx.fill(); ctx.strokeStyle = "#9b5f1f"; ctx.lineWidth = Math.max(1, d * 0.03); ctx.stroke(); ctx.beginPath(); ctx.moveTo(x + d * 0.5, y); ctx.bezierCurveTo(x + d * 0.75, y - d * 0.3, x + d * 0.9, y + d * 0.3, x + d * 1.1, y); ctx.stroke(); },
+      function(ctx, x, y, d){ S.draw.rrect(c, x - d * 0.5, y - d * 0.28, d, d * 0.56, d * 0.28); ctx.fillStyle = "#7cc9a0"; ctx.fill(); ctx.strokeStyle = "#1f7a52"; ctx.lineWidth = Math.max(1, d * 0.035); ctx.stroke(); ctx.beginPath(); for (var i = -2; i <= 2; i++){ ctx.moveTo(x + i * d * 0.15, y - d * 0.18); ctx.lineTo(x + i * d * 0.15, y + (i % 2 ? 0.08 : 0.02) * d); } ctx.stroke(); },
+      function(ctx, x, y, d){ ctx.beginPath(); ctx.arc(x, y, d * 0.4, 0, 6.2832); ctx.fillStyle = "#b7a0e6"; ctx.fill(); ctx.strokeStyle = "#6236c4"; ctx.lineWidth = Math.max(1, d * 0.03); for (var i = 0; i < 14; i++){ var a = i / 14 * 6.2832; ctx.beginPath(); ctx.moveTo(x + Math.cos(a) * d * 0.4, y + Math.sin(a) * d * 0.4); ctx.lineTo(x + Math.cos(a) * d * 0.55, y + Math.sin(a) * d * 0.55); ctx.stroke(); S.draw.dot(c, x + Math.cos(a) * d * 0.56, y + Math.sin(a) * d * 0.56, Math.max(1, d * 0.04), "#6236c4"); } ctx.stroke(); },
+      function(ctx, x, y, d){ ctx.fillStyle = "#e07a8a"; ctx.beginPath(); ctx.arc(x - d * 0.18, y + d * 0.05, d * 0.3, 0, 6.2832); ctx.fill(); ctx.fillStyle = "#c0506a"; ctx.beginPath(); ctx.arc(x + d * 0.2, y - d * 0.15, d * 0.22, 0, 6.2832); ctx.fill(); },
+      function(ctx, x, y, d){ for (var i = -3; i <= 3; i++){ S.draw.dot(c, x + i * d * 0.15, y - d * 0.3, Math.max(1.5, d * 0.07), "#e8b04a"); S.draw.dot(c, x + i * d * 0.15, y + d * 0.3, Math.max(1.5, d * 0.07), "#e8b04a"); ctx.strokeStyle = "#c9a45c"; ctx.lineWidth = Math.max(1, d * 0.03); ctx.beginPath(); ctx.moveTo(x + i * d * 0.15, y - d * 0.24); ctx.lineTo(x + i * d * 0.15, y + d * 0.24); ctx.stroke(); } },
+      function(ctx, x, y, d){ ctx.lineWidth = Math.max(1.5, d * 0.04); for (var s = 0; s < 2; s++){ ctx.strokeStyle = s ? "#c43a7a" : "#2f7fd1"; ctx.beginPath(); for (var i = 0; i <= 40; i++){ var u = i / 40, xx = x - d * 0.5 + u * d, yy = y + Math.sin(u * 12.5 + s * 3.1416) * d * 0.2; i ? ctx.lineTo(xx, yy) : ctx.moveTo(xx, yy); } ctx.stroke(); } },
+      function(ctx, x, y, d){ ctx.beginPath(); for (var i = 0; i < 6; i++){ var a = i * Math.PI / 3; i ? ctx.lineTo(x + d * 0.4 * Math.cos(a), y + d * 0.4 * Math.sin(a)) : ctx.moveTo(x + d * 0.4 * Math.cos(a), y + d * 0.4 * Math.sin(a)); } ctx.closePath(); ctx.fillStyle = "#f7dc7a"; ctx.fill(); ctx.strokeStyle = "#7a5b12"; ctx.lineWidth = Math.max(1, d * 0.05); ctx.stroke(); S.draw.dot(c, x + d * 0.4, y, d * 0.1, "#c0321d"); },
+      function(ctx, x, y, d){ S.draw.glow(c, x, y, d * 0.7, "#8ec5ff", 0.8); S.draw.dot(c, x, y, Math.max(2, d * 0.1), "#c0321d"); ctx.beginPath(); ctx.arc(x, y, d * 0.4, 0, 6.2832); ctx.strokeStyle = "rgba(47,127,209,.6)"; ctx.lineWidth = Math.max(1, d * 0.03); ctx.setLineDash([3, 3]); ctx.stroke(); ctx.setLineDash([]); }
+    ];
+    var LOC = [[0, 0], [-.2, .5], [.35, .25], [-.45, -.2], [.1, -.5], [-.35, .1], [.35, -.1], [-.2, .35], [.3, .4], [-.4, -.3], [.1, .5], [-.3, .5], [.4, -.35]];
+    c.pointer(function(type, p){ if ((type === "down" || type === "drag") && geo.L && p.y > geo.ry - 32){ var v = -(p.x - geo.L) / (geo.R - geo.L) * 10; n.set(Math.round(Math.max(-10, Math.min(0, v)) * 10) / 10); k.redraw(); } });
+    c.cv.style.touchAction = "pan-y";
     k.draw(function(){
-      c.clear(); var ctx = c.ctx, W = c.W, H = c.H, L = 24, Rr = W - 24;
-      function PX(e){ return L + (-e) / 10 * (Rr - L); }
-      var axY = H * 0.5;
-      /* bandes d'instruments */
+      c.clear(); var ctx = c.ctx, W = c.W, H = c.H, L = 24, Rr = W - 24, vr = Math.min(W * 0.36, H * 0.3), vcx = W / 2, vcy = vr + 12;
+      geo = {L:L, R:Rr, ry:vcy + vr + 40};
+      var FOV = Math.pow(10, n.value + 1);       /* diamètre du viseur, en m */
+      /* viseur */
+      ctx.save(); ctx.beginPath(); ctx.arc(vcx, vcy, vr, 0, 6.2832); ctx.clip();
+      var vg = ctx.createRadialGradient(vcx, vcy, vr * 0.2, vcx, vcy, vr); vg.addColorStop(0, "#fbfcff"); vg.addColorStop(1, "#dfe7f5"); ctx.fillStyle = vg; ctx.fillRect(vcx - vr, vcy - vr, 2 * vr, 2 * vr);
+      var near = items.reduce(function(a, b){ return Math.abs(b[1] - n.value) < Math.abs(a[1] - n.value) ? b : a; });
+      var order = items.map(function(it, i){ return i; }).sort(function(a, b){ return items[b][1] - items[a][1]; });
+      order.forEach(function(i){
+        var it = items[i], size = Math.pow(10, it[1]) * (i === 0 ? 1 : 1), r = size / FOV, d = r * 2 * vr; if (d < 3 || d > 7 * vr) return;
+        var al = Math.min(1, (d - 3) / 12) * (d > vr * 1.3 ? 0.3 : 1) * (d > 2.4 * vr ? Math.max(0, 1 - (d - 2.4 * vr) / (3 * vr)) : 1);
+        var lx = d > vr * 0.9 ? 0 : LOC[i][0] * vr * 0.7, ly = d > vr * 0.9 ? 0 : LOC[i][1] * vr * 0.7;
+        ctx.save(); ctx.globalAlpha = al; D[i](ctx, vcx + lx, vcy + ly, d); ctx.restore();
+        if (d > 16 && d < vr * 1.4){ ctx.save(); ctx.globalAlpha = al; S.draw.label(c, it[0].replace(/ \(.*\)/, ""), vcx + lx, vcy + ly + Math.min(d * 0.55, vr * 0.85) + 8, {color:P.ink, size:10}); ctx.restore(); }
+      });
+      ctx.restore();
+      ctx.beginPath(); ctx.arc(vcx, vcy, vr, 0, 6.2832); ctx.strokeStyle = "#13233a"; ctx.lineWidth = 4; ctx.stroke(); ctx.beginPath(); ctx.arc(vcx, vcy, vr + 5, 0, 6.2832); ctx.strokeStyle = "rgba(15,27,45,.12)"; ctx.lineWidth = 4; ctx.stroke();
+      /* barre d'échelle = 10^n m */
+      var bl = Math.pow(10, n.value) / FOV * 2 * vr; S.draw.line(c, vcx - bl / 2, vcy + vr - 14, vcx + bl / 2, vcy + vr - 14, P.red, 3.5); S.draw.label(c, B4.len(Math.pow(10, n.value)), vcx, vcy + vr - 28, {color:P.red, size:11});
+      S.draw.label(c, "viseur : " + B4.len(FOV) + " de large", vcx, vcy + vr + 16, {color:"#5f6b7a", size:10});
+      /* règle logarithmique */
+      var ry = geo.ry + 6; function PX(e){ return L + (-e) / 10 * (Rr - L); }
       var bands = [["œil nu", 0, -4, "#fde68a"], ["optique", -4, -6.7, "#bfdbfe"], ["électronique", -6.7, -9.7, "#ddd6fe"]];
-      bands.forEach(function(b, i){
-        ctx.fillStyle = b[3]; ctx.fillRect(PX(b[1]), H - 52 + i * 0, PX(b[2]) - PX(b[1]), 22);
-        B4.txt(c, b[0], (PX(b[1]) + PX(b[2])) / 2, H - 41, B4.pal.ink, 11);
-      });
-      B4.txt(c, "Instruments (limites approximatives)", L, H - 62, "#5f6b7a", 12, "left");
-      S.draw.line(c, L, axY, Rr, axY, B4.pal.ink, 2);
-      for (var e = 0; e >= -10; e--){
-        S.draw.line(c, PX(e), axY - 6, PX(e), axY + 6, B4.pal.ink, 2);
-        B4.txt(c, e === 0 ? "1 m" : "10" + String(e).replace("-", "⁻").replace(/\d/g, function(d){ return "⁰¹²³⁴⁵⁶⁷⁸⁹"[d]; }), PX(e), axY + 18, "#5f6b7a", 11);
-      }
-      var vis = 0;
-      items.forEach(function(it){
-        var x = PX(it[1]);
-        S.draw.dot(c, x, axY, 4, B4.pal.teal);
-        if (Math.abs(it[1] - n.value) > 1.05) return;
-        var y = axY - 28 - (vis % 3) * 22; vis++;
-        S.draw.line(c, x, axY, x, y + 8, "#b8c0cc", 1);
-        var al = x > W * 0.6 ? "right" : x < W * 0.4 ? "left" : "center";
-        B4.txt(c, it[0], al === "right" ? x + 4 : al === "left" ? x - 4 : x, y, B4.pal.ink, 11, al);
-      });
-      var xm = PX(n.value);
-      S.draw.line(c, xm, 14, xm, axY + 30, B4.pal.red, 3);
-      S.draw.dot(c, xm, axY, 7, B4.pal.red);
-      var m = Math.pow(10, n.value), near = items.reduce(function(a, b){ return Math.abs(b[1] - n.value) < Math.abs(a[1] - n.value) ? b : a; });
+      bands.forEach(function(b){ S.draw.rrect(c, PX(b[1]), ry + 24, PX(b[2]) - PX(b[1]) - 2, 20, 5); ctx.fillStyle = b[3]; ctx.fill(); S.draw.text(c, b[0], (PX(b[1]) + PX(b[2])) / 2, ry + 34, {size:10.5, color:P.ink}); });
+      S.draw.line(c, L, ry, Rr, ry, P.ink, 2);
+      for (var e = 0; e >= -10; e--){ S.draw.line(c, PX(e), ry - 6, PX(e), ry + 6, P.ink, 2); S.draw.text(c, e === 0 ? "1 m" : "10" + String(e).replace("-", "⁻").replace(/\d/g, function(d){ return "⁰¹²³⁴⁵⁶⁷⁸⁹"[d]; }), PX(e), ry + 17, {size:9.5, color:"#5f6b7a"}); }
+      items.forEach(function(it){ S.draw.dot(c, PX(it[1]), ry, 3.5, P.teal); });
+      var xm = PX(n.value); S.draw.line(c, xm, ry - 14, xm, ry + 50, P.red, 2.5); S.draw.dot(c, xm, ry - 14, 7, P.red);
+      var m = Math.pow(10, n.value);
       var inst = n.value > -4 ? "œil nu" : n.value >= -6.7 ? "microscope optique" : n.value >= -9.7 ? "microscope électronique" : "techniques spéciales (≪ 0,2 nm)";
       ro.set(0, B4.len(m)); ro.set(1, S.sci(Math.pow(10, -n.value), 3)); ro.set(2, inst); ro.set(3, near[0]);
       if (target){

@@ -64,8 +64,11 @@ SFA.sim({
   aRetenir: "f′ > 0 ⇒ f croissante ; f′ < 0 ⇒ f décroissante ; f′ = 0 en changeant de signe ⇒ extremum local. f″ > 0 ⇒ f convexe (« en U ») ; f″ < 0 ⇒ concave ; f″ change de signe ⇒ point d'inflexion. Test : f′(a) = 0 et f″(a) > 0 ⇒ minimum.",
   piege: "f′(a) = 0 ne suffit pas pour un extremum : x³ en 0 a une tangente horizontale sans extremum (f′ ne change pas de signe).",
   build: function(k, S){
-    var c1 = k.canvas(190), c2 = k.canvas(130), c3 = k.canvas(110), fs = k.select("Fonction", [["p3", "x³ − 3x"], ["p4", "x⁴ − 2x²"], ["xe", "x·e⁻ˣ"], ["sin", "sin x + x/2"]], "p3");
-    var xs = k.slider("Abscisse x", -2.7, 2.7, 0.01, -1.5, ""); var ro = k.readouts(["f(x)", "f′(x) = pente", "f″(x)", "Comportement"]);
+    var c1 = k.canvas(230), c2 = k.canvas(150), c3 = k.canvas(130), fs = k.select("Fonction", [["p3", "x³ − 3x"], ["p4", "x⁴ − 2x²"], ["xe", "x·e⁻ˣ"], ["sin", "sin x + x/2"]], "p3");
+    var xs = k.slider("Abscisse x", -2.7, 2.7, 0.01, -1.5, ""); var tg = k.toggle("Repères : extrema (f′ = 0) et inflexions (f″ = 0)", true); var ro = k.readouts(["f(x)", "f′(x) = pente", "f″(x)", "Comportement"]);
+    c1.cv.style.touchAction = "none"; c2.cv.style.touchAction = "none"; c3.cv.style.touchAction = "none";
+    function roots(fn, a, b){ var r = [], n = 600, px = a, pv = fn(a); for (var i = 1; i <= n; i++){ var x = a + (b - a) * i / n, v = fn(x); if (pv * v < 0 || v === 0){ var lo = px, hi = x; for (var q = 0; q < 40; q++){ var m = (lo + hi) / 2; if (fn(lo) * fn(m) <= 0) hi = m; else lo = m; } r.push((lo + hi) / 2); } px = x; pv = v; } return r; }
+    [c2, c3].forEach(function(cc){ cc.pointer(function(t, p){ if ((t === "down" || t === "drag") && cc._ax){ xs.set(cc._ax.ix(p.x)); k.redraw(); } }); });
     c1.pointer(function(t, p){ if ((t === "down" || t === "drag") && c1._ax){ xs.set(c1._ax.ix(p.x)); k.redraw(); } });
     var prev = "p3";
     k.draw(function(){
@@ -77,8 +80,10 @@ SFA.sim({
       var fx = T.f(X), dx = T.d(X), sx = T.s(X);
       D.fn(c1, ax1, function(u){ return fx + dx * (u - X); }, P.amber, 2, [6, 4]); pt(c1, ax1, X, fx, P.ink, 6);
       var ax2 = D.axes(c2, {x0: T.x0, x1: T.x1, y0: -4, y1: 4, hideZero: true, yl: "f′"}); c2._ax = ax2; D.fn(c2, ax2, T.d, P.acc, 2.8); vl(c2, ax2, X, "#c2c9d3"); pt(c2, ax2, X, dx, P.amber, 6);
-      var ax3 = D.axes(c3, {x0: T.x0, x1: T.x1, y0: -4, y1: 4, hideZero: true, yl: "f″"}); D.fn(c3, ax3, T.s, P.violet, 2.6); vl(c3, ax3, X, "#c2c9d3"); pt(c3, ax3, X, sx, P.amber, 6);
+      var ax3 = D.axes(c3, {x0: T.x0, x1: T.x1, y0: -4, y1: 4, hideZero: true, yl: "f″"}); c3._ax = ax3; D.fn(c3, ax3, T.s, P.violet, 2.6); vl(c3, ax3, X, "#c2c9d3"); pt(c3, ax3, X, sx, P.amber, 6);
       [ax1, ax2, ax3].forEach(function(a, i){ if (i) vl(w[i], a, X, "#c2c9d3"); });
+      if (tg.value){ roots(T.d, T.x0, T.x1).forEach(function(r){ var kind = T.s(r) > 0 ? "min" : "max"; pt(c1, ax1, r, T.f(r), kind === "min" ? P.green : P.red, 5); D.label(c1, kind, ax1.X(r), ax1.Y(T.f(r)) + (kind === "min" ? 16 : -14), {color:kind === "min" ? P.green : P.red, size:10.5}); pt(c2, ax2, r, 0, P.ink, 4.5); });
+        roots(T.s, T.x0, T.x1).forEach(function(r){ pt(c1, ax1, r, T.f(r), P.violet, 5); D.label(c1, "inflexion", ax1.X(r) + 6, ax1.Y(T.f(r)) + 16, {color:P.violet, size:10.5, align:"left"}); pt(c3, ax3, r, 0, P.violet, 4.5); }); }
       var beh = (Math.abs(dx) < 0.03 ? "tangente horizontale" : dx > 0 ? "f croît" : "f décroît") + ", " + (sx > 0.03 ? "convexe" : sx < -0.03 ? "concave" : "inflexion ?");
       ro.set(0, F(fx, 3)); ro.set(1, F(dx, 3)); ro.set(2, F(sx, 3)); ro.set(3, beh);
     });

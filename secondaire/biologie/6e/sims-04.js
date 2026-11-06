@@ -81,11 +81,11 @@ SFA.sim({
   id: "b6-c04-mutation", ch: "c04", tag: "Originale",
   titre: "Une mutation, une protéine : de l'ADN à la drépanocytose",
   resume: "Change une lettre de l'ADN, insère ou supprime une base : lis l'effet sur la suite des acides aminés.",
-  but: "Début du gène de la chaîne β de l'hémoglobine (30 nucléotides, brin codant). Choisis le type de mutation, la position et la nouvelle base. Les codons rouges sont ceux qui changent. Le bouton reproduit la mutation de la drépanocytose.",
+  but: "Début du gène de la chaîne β de l'hémoglobine (30 nucléotides, brin codant). Touche une base de l'ADN du haut pour choisir la position (ou utilise le curseur), puis le type de mutation et la nouvelle base. Les perles en rouge sont les acides aminés qui changent. Le bouton reproduit la mutation de la drépanocytose.",
   aRetenir: "Une substitution peut être silencieuse (même acide aminé), faux-sens (autre acide aminé) ou non-sens (codon stop prématuré). Une insertion ou une délétion d'un nombre de bases non multiple de 3 décale tout le cadre de lecture : tous les acides aminés suivants changent. Dans la drépanocytose, un seul changement GAG → GTG remplace Glu par Val (6e acide aminé de la chaîne β, 7e codon avec l'AUG initial).",
   piege: "Une mutation ne change pas toujours la protéine (code redondant) et un seul acide aminé modifié peut suffire à provoquer une maladie. Une mutation n'est pas forcément héréditaire : seules celles des cellules de la lignée germinale se transmettent.",
   build: function(k, S){
-    var c = k.canvas(360), P = S.draw.palette;
+    var c = k.canvas(window.innerWidth < 760 ? 400 : 390), P = S.draw.palette;
     var SEQ = "ATGGTGCACCTGACTCCTGAGGAGAAGTCT";
     var type = k.seg("Mutation", [["s", "Substitution"], ["i", "Insertion"], ["d", "Délétion"]], "s");
     var pos = k.slider("Position dans la séquence (1 à 30)", 1, 30, 1, 20, "");
@@ -93,28 +93,69 @@ SFA.sim({
     k.button("Drépanocytose (A → T en position 20)", function(){ type.set("s"); pos.set(20); nb.set("T"); });
     var ro = k.readouts(["Type de mutation", "Acides aminés modifiés"]);
     var note = k.note("", "");
+    var BC = {A: "#2f7fd1", T: "#e07a1f", G: "#24775a", C: "#c43a7a"};
     function rna(s){ return s.replace(/T/g, "U"); }
+    c.pointer(function(t, p){ if (t !== "down" && t !== "drag") return; if (c._hit){ c._hit.forEach(function(h){ if (p.x >= h.x && p.x <= h.x + h.w && p.y >= h.y && p.y <= h.y + h.h) pos.set(h.i + 1); }); } });
     k.draw(function(){
-      c.clear(); var t = type.value, p = pos.value - 1, b = nb.value, mut = SEQ, ctx = c.ctx;
+      c.clear(); var t = type.value, p = pos.value - 1, b = nb.value, mut = SEQ, ctx = c.ctx, W = c.W, i;
       if (t === "s") mut = SEQ.slice(0, p) + b + SEQ.slice(p + 1); else if (t === "i") mut = SEQ.slice(0, p) + b + SEQ.slice(p); else mut = SEQ.slice(0, p) + SEQ.slice(p + 1);
-      var o = translate(rna(SEQ)), m = translate(rna(mut)), mo = rna(SEQ), mm = rna(mut), changed = 0, i;
-      var bw = (c.W - 24) / 5;
-      function row(list, rn, ref, y0, title, cmp){
-        S.draw.text(c, title, 12, y0, {align: "left", size: 13, color: P.acc});
+      var o = translate(rna(SEQ)), m = translate(rna(mut)), mo = rna(SEQ), mm = rna(mut), changed = 0;
+      var bs = (W - 20) / 15, bh = Math.min(22, bs - 2); c._hit = [];
+      S.draw.text(c, "ADN (brin codant) : touche une base", 10, 10, {align: "left", size: 12.5, color: P.acc});
+      for (var line = 0; line < 2; line++){
+        var yn = 24 + line * 62, ym = yn + 27;
+        for (i = 0; i < 15; i++){
+          var gi = line * 15 + i, x = 10 + i * bs, base = SEQ[gi], isSel = gi === p;
+          ctx.fillStyle = BC[base]; S.draw.rrect(c, x + 1, yn, bs - 2, bh, 4); ctx.fill();
+          if (isSel){ ctx.lineWidth = 2.4; ctx.strokeStyle = P.ink; S.draw.rrect(c, x - 1, yn - 2, bs + 2, bh + 4, 5); ctx.stroke(); }
+          S.draw.text(c, base, x + bs / 2, yn + bh / 2 + 0.5, {size: 12, color: "#fff"});
+          c._hit.push({x: x, y: yn - 4, w: bs, h: bh + 8, i: gi});
+          if (gi % 3 === 0) S.draw.line(c, x + 0.5, yn - 4, x + 0.5, yn - 1, "#7b8694", 1);
+        }
+        /* version mutée alignée sous la ligne */
+        for (i = 0; i < 15; i++){
+          var gj = line * 15 + i, x2 = 10 + i * bs, mb, hl = false;
+          if (t === "s"){ mb = mut[gj]; hl = gj === p && mut[gj] !== SEQ[gj]; }
+          else if (t === "i"){ if (gj < p) mb = mut[gj]; else if (gj === p){ mb = mut[gj]; hl = true; } else mb = mut[gj]; }
+          else { mb = mut[gj]; if (gj === p) hl = true; }
+          if (!mb) continue;
+          var shifted = t !== "s" && gj >= p;
+          ctx.fillStyle = hl ? BC[mb] : S.draw.tint(BC[mb], shifted ? 0.45 : 0.28); S.draw.rrect(c, x2 + 1, ym, bs - 2, bh, 4); ctx.fill();
+          if (hl){ ctx.lineWidth = 2.2; ctx.strokeStyle = P.red; S.draw.rrect(c, x2 - 1, ym - 2, bs + 2, bh + 4, 5); ctx.stroke(); }
+          S.draw.text(c, mb, x2 + bs / 2, ym + bh / 2 + 0.5, {size: 12, color: hl ? "#fff" : BC[mb]});
+        }
+        S.draw.text(c, "muté", 10, ym + bh + 8, {align: "left", size: 9.5, color: P.grey});
+      }
+      /* protéines : chaînes de perles */
+      var py0 = 160, pr = Math.min(19, (W - 20) / 10 / 2 - 2), step = (W - 20) / 10;
+      function chain(list, y, title, cmp){
+        S.draw.text(c, title, 10, y - 24, {align: "left", size: 12.5, color: P.acc});
+        ctx.strokeStyle = "#c3cbd5"; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(10 + step / 2, y); ctx.lineTo(10 + step * (Math.max(list.length, 1) - 0.5), y); ctx.stroke();
         for (var q = 0; q < 10; q++){
-          var x = 12 + (q % 5) * bw, y = y0 + 12 + Math.floor(q / 5) * 60;
-          if (q >= list.length){ ctx.fillStyle = "#eef1f5"; ctx.fillRect(x, y, bw - 4, 54); continue; }
+          var x = 10 + step * (q + 0.5);
+          if (q >= list.length){ ctx.beginPath(); ctx.arc(x, y, pr * 0.55, 0, 6.2832); ctx.fillStyle = "#eef1f5"; ctx.fill(); continue; }
           var diff = cmp && (!cmp[q] || cmp[q].a !== list[q].a), stop = list[q].a === "Stop";
-          ctx.fillStyle = stop ? "#13233a" : diff ? "#fde8e6" : "#eef6f1"; ctx.fillRect(x, y, bw - 4, 54);
-          ctx.strokeStyle = diff ? P.red : "#b8c4cf"; ctx.lineWidth = diff ? 2 : 1; ctx.strokeRect(x, y, bw - 4, 54);
-          for (var z = 0; z < 3; z++){ var idx = q * 3 + z, ch = rn[idx], dd = cmp && ref[idx] !== ch;
-            S.draw.text(c, ch, x + (bw - 4) / 2 + (z - 1) * 15, y + 15, {size: 14, color: stop ? "#fff" : dd ? P.red : P.ink}); }
-          S.draw.text(c, list[q].a, x + (bw - 4) / 2, y + 40, {size: 13, color: stop ? "#fff" : diff ? P.red : P.green});
+          if (diff) S.draw.glow(c, x, y, pr * 2, P.red, 0.35);
+          ctx.beginPath(); ctx.arc(x, y, pr, 0, 6.2832); ctx.fillStyle = stop ? "#13233a" : diff ? "#e0594a" : "#3a9c78"; ctx.fill(); ctx.lineWidth = 2; ctx.strokeStyle = "rgba(255,255,255,.9)"; ctx.stroke();
+          S.draw.text(c, list[q].a.slice(0, 3), x, y + 0.5, {size: pr > 15 ? 10.5 : 9, color: "#fff"});
+          S.draw.text(c, mo2(q, list === o ? mo : mm), x, y + pr + 11, {size: 9.5, color: diff ? P.red : P.grey, weight: 600});
         }
       }
-      row(o, mo, mo, 14, "ARNm normal et protéine :", null);
-      row(m, mm, mo, 152, "ARNm muté et protéine :", o);
+      function mo2(q, rn){ return rn.slice(q * 3, q * 3 + 3); }
+      chain(o, py0 + 30, "Protéine normale (ARNm → acides aminés)", null);
+      chain(m, py0 + 112, "Protéine mutée", o);
       for (i = 0; i < 10; i++) if (!m[i] || !o[i] || m[i].a !== o[i].a) if (o[i]) changed++;
+      /* globule rouge si drépanocytose */
+      var sick = t === "s" && m[6] && m[6].a === "Val" && o[6].a === "Glu";
+      var ry = 328, rcx = 60;
+      if (sick){
+        ctx.beginPath(); ctx.arc(rcx, ry, 18, 0, 6.2832); ctx.fillStyle = "#d65248"; ctx.fill(); ctx.beginPath(); ctx.arc(rcx, ry, 7, 0, 6.2832); ctx.fillStyle = "rgba(120,20,20,.25)"; ctx.fill();
+        S.draw.text(c, "globule normal", rcx, ry + 30, {size: 10.5, color: P.grey});
+        S.draw.arrow(c, rcx + 28, ry, rcx + 70, ry, P.grey, 2);
+        var sx = rcx + 130; ctx.beginPath(); ctx.moveTo(sx - 26, ry + 10); ctx.quadraticCurveTo(sx, ry - 28, sx + 26, ry + 10); ctx.quadraticCurveTo(sx, ry - 10, sx - 26, ry + 10); ctx.fillStyle = "#b02e25"; ctx.fill();
+        S.draw.text(c, "globule en faucille", sx, ry + 30, {size: 10.5, color: P.red});
+        S.draw.text(c, "Glu → Val : l'hémoglobine S forme des fibres", Math.min(W - 10, sx + 60), ry - 10, {align: "left", size: 11, color: P.red});
+      }
       var kind;
       if (t !== "s") kind = "décalage du cadre de lecture";
       else { var q2 = Math.floor(p / 3); kind = q2 === 0 && mut !== SEQ ? "mutation du codon d'initiation AUG (la traduction ne démarre plus normalement)" : m[q2] && o[q2] && m[q2].a === o[q2].a ? (mut === SEQ ? "aucun changement (même base)" : "silencieuse") : (m[q2] && m[q2].a === "Stop" ? "non-sens (codon stop)" : "faux-sens"); }
@@ -125,6 +166,7 @@ SFA.sim({
     });
   }
 });
+
 
 var LEN = {1: 248, 2: 242, 3: 198, 4: 190, 5: 181, 6: 171, 7: 159, 8: 145, 9: 138, 10: 134, 11: 135, 12: 133, 13: 114, 14: 107, 15: 102, 16: 90, 17: 83, 18: 80, 19: 59, 20: 64, 21: 47, 22: 51, X: 156, Y: 57};
 var KAR = {

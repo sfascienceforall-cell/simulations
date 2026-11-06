@@ -1,38 +1,121 @@
 /* Biologie BA1 · chapitre 1 : molécules du vivant et eau */
 
+/* ---------- aides de dessin partagées par tous les chapitres de biologie (SFA.bio) ---------- */
+(function(S){
+  if (S.bio) return;
+  var B = S.bio = {};
+  function mix(h, f){ var n = parseInt(h.slice(1), 16), r = n >> 16, g = (n >> 8) & 255, b = n & 255;
+    function m(v){ return Math.round(f < 0 ? v * (1 + f) : v + (255 - v) * f); } return "rgb(" + m(r) + "," + m(g) + "," + m(b) + ")"; }
+  B.mix = mix;
+  /* fond doux dégradé (vertical) : bg(c, haut, bas) */
+  B.bg = function(c, top, bot){ var g = c.ctx.createLinearGradient(0, 0, 0, c.H); g.addColorStop(0, top || "#f6f9fd"); g.addColorStop(1, bot || "#eaf1f9"); c.ctx.fillStyle = g; c.ctx.fillRect(0, 0, c.W, c.H); };
+  /* bille ombrée (molécule, ion, atome) */
+  B.ball = function(c, x, y, r, col, opt){ var ctx = c.ctx; opt = opt || {};
+    var g = ctx.createRadialGradient(x - r * .35, y - r * .4, r * .1, x, y, r); g.addColorStop(0, mix(col, .6)); g.addColorStop(.55, col); g.addColorStop(1, mix(col, -.38));
+    ctx.save(); if (opt.alpha != null) ctx.globalAlpha = opt.alpha; ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, r, 0, 6.2832); ctx.fill(); ctx.restore();
+    if (opt.text) S.draw.text(c, opt.text, x, y + .5, {size: opt.size || Math.max(9, r * .95), color: opt.tcolor || "#fff", weight: 800}); };
+  /* globule rouge biconcave vu de dessus/de profil : rbc(c, x, y, r, {mode:"disque"|"crenele"|"turgescent"|"lyse", col}) */
+  B.rbc = function(c, x, y, r, opt){ var ctx = c.ctx; opt = opt || {}; var col = opt.col || "#d94a52", mode = opt.mode || "disque";
+    ctx.save(); ctx.translate(x, y);
+    if (mode === "crenele"){ var n = 16; ctx.beginPath(); for (var i = 0; i < n * 2; i++){ var a = i * Math.PI / n, rr = i % 2 ? r * .82 : r * 1.0; ctx.lineTo(rr * Math.cos(a), rr * Math.sin(a)); } ctx.closePath(); }
+    else if (mode === "lyse"){ ctx.setLineDash([4, 4]); ctx.strokeStyle = "rgba(217,74,82,.5)"; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(0, 0, r, 0, 6.2832); ctx.stroke(); ctx.restore(); return; }
+    else { ctx.beginPath(); ctx.arc(0, 0, r, 0, 6.2832); }
+    var g = ctx.createRadialGradient(0, 0, r * .05, 0, 0, r);
+    if (mode === "disque"){ g.addColorStop(0, mix(col, .35)); g.addColorStop(.38, mix(col, .1)); g.addColorStop(.62, col); g.addColorStop(1, mix(col, -.3)); }
+    else { g.addColorStop(0, mix(col, .45)); g.addColorStop(.7, col); g.addColorStop(1, mix(col, -.3)); }
+    ctx.fillStyle = g; ctx.fill(); ctx.lineWidth = 1.5; ctx.strokeStyle = mix(col, -.4); ctx.stroke();
+    if (mode === "disque"){ ctx.beginPath(); ctx.arc(0, 0, r * .62, 0, 6.2832); ctx.strokeStyle = "rgba(120,20,30,.28)"; ctx.lineWidth = r * .1; ctx.stroke();
+      var g2 = ctx.createRadialGradient(0, 0, 0, 0, 0, r * .5); g2.addColorStop(0, "rgba(255,225,225,.75)"); g2.addColorStop(1, "rgba(255,225,225,0)"); ctx.fillStyle = g2; ctx.beginPath(); ctx.arc(0, 0, r * .5, 0, 6.2832); ctx.fill(); }
+    ctx.restore(); };
+  /* bicouche de phospholipides entre x0 et x1 centrée en y : membrane(c, x0, x1, y, {ep, gap}) */
+  B.membrane = function(c, x0, x1, y, opt){ opt = opt || {}; var ctx = c.ctx, ep = opt.ep || 22, step = opt.step || 13, skip = opt.skip || [];
+    ctx.save(); for (var x = x0 + step / 2; x < x1; x += step){
+      var out = skip.some(function(s){ return x > s[0] && x < s[1]; }); if (out) continue;
+      [[-1, y - ep / 2], [1, y + ep / 2]].forEach(function(p){ var hy = p[1], ty = hy + (p[0] < 0 ? 1 : -1) * ep * .55;
+        ctx.strokeStyle = "#c7a96b"; ctx.lineWidth = 1.6; ctx.beginPath(); ctx.moveTo(x - 2, hy); ctx.lineTo(x - 2.5, ty); ctx.moveTo(x + 2, hy); ctx.lineTo(x + 2.5, ty); ctx.stroke();
+        B.ball(c, x, hy, 4.2, "#e8b94a"); }); }
+    ctx.restore(); };
+  /* chromosome à 1 ou 2 chromatides : chrom(c, x, y, L, col, {dbl, angle, w}) ; dbl = 2 chromatides jointes au centromère (X) */
+  B.chrom = function(c, x, y, L, col, opt){ opt = opt || {}; var ctx = c.ctx, w = opt.w || Math.max(3, L * .16); ctx.save(); ctx.translate(x, y); ctx.rotate(opt.angle || 0); ctx.lineCap = "round";
+    function arm(sg){ ctx.strokeStyle = col; ctx.lineWidth = w; ctx.beginPath(); ctx.moveTo(-sg * L * .17, -L / 2); ctx.quadraticCurveTo(0, 0, sg * L * .17, L / 2); ctx.stroke(); }
+    if (opt.dbl){ arm(1); arm(-1); } else { ctx.strokeStyle = col; ctx.lineWidth = w; ctx.beginPath(); ctx.moveTo(0, -L / 2); ctx.lineTo(0, L / 2); ctx.stroke(); }
+    ctx.fillStyle = mix(col, -.35); ctx.beginPath(); ctx.arc(0, 0, w * .62, 0, 6.2832); ctx.fill(); ctx.restore(); };
+  /* flèche courbe fine (flux) */
+  B.flow = function(c, x1, y1, x2, y2, col, w){ S.draw.arrow(c, x1, y1, x2, y2, col || "#7b8694", w || 2); };
+  /* bandeau de défi : état "ok" ou en cours, dessiné en haut du canevas */
+  B.goal = function(c, txt, ok, y){ var col = ok ? S.draw.palette.green : S.draw.palette.amber; S.draw.label(c, (ok ? "✓ " : "◎ ") + txt, c.W / 2, y == null ? 16 : y, {color: col, size: 12}); };
+})(window.SFA);
+
 SFA.sim({
   id:"ub-c01-condensation", ch:"c01", tag:"Macromolécules",
   titre:"Condensation et hydrolyse : compter les liaisons et l'eau",
   resume:"Assemble n monomères : combien de liaisons, combien d'eau libérée, quelle masse ?",
-  but:"Choisis un type de monomère et fais varier n. Compare la masse du polymère à la somme des monomères libres.",
+  but:"Choisis un type de monomère, ajoute ou retire des monomères avec les boutons (ou le curseur) et regarde l'eau partir ou revenir. Relève le défi : retrouver n à partir de la masse du polymère.",
   aRetenir:"Une chaîne linéaire de n monomères contient n − 1 liaisons ; sa formation libère n − 1 molécules d'eau (condensation) et son hydrolyse complète en consomme n − 1. Masse du polymère = n·M − (n − 1)·18,02. Une chaîne cyclique a n liaisons.",
   piege:"« n monomères, n liaisons » est faux pour une chaîne linéaire (n − 1), mais juste pour une chaîne circulaire (plasmide, peptide cyclique).",
   build:function(k,S){
-    var P=S.draw.palette, c=k.canvas(240);
+    var P=S.draw.palette, B=S.bio, c=k.canvas(0,{ratio:.62}); if(c.H<250){}
     var tp=k.seg("Monomère",[["aa","Acide aminé"],["glc","Glucose"],["nuc","Nucléotide"]],"aa");
     var n=k.slider("Nombre de monomères n",2,300,1,8,"");
     var cy=k.toggle("Chaîne cyclique (circulaire)",false);
     var ro=k.readouts(["Liaisons formées","H₂O libérées","Masse du polymère (g/mol)","Somme des monomères libres (g/mol)"]);
-    var nt=k.note("","");
     var M={aa:128,glc:180.16,nuc:327}, W2=18.02;
-    var NM={aa:["Acide aminé (masse moyenne ≈ 128 g/mol)","liaison peptidique",P.acc],glc:["Glucose (180,16 g/mol)","liaison glycosidique",P.amber],nuc:["Nucléotide (masse moyenne ≈ 327 g/mol)","liaison phosphodiester",P.green]};
-    k.draw(function(){
-      c.clear(); var ctx=c.ctx, N=n.value, cyc=cy.value, m=Math.min(N,24), col=NM[tp.value][2];
-      var bonds=cyc?N:N-1, mass=N*M[tp.value]-bonds*W2;
-      var pts=[];
-      if(cyc){ var cx=c.W/2, cyy=c.H/2+6, R=Math.min(c.W,c.H)/2-48; for(var i=0;i<m;i++){var a=2*Math.PI*i/m-Math.PI/2; pts.push([cx+R*Math.cos(a),cyy+R*Math.sin(a)]);} }
-      else { var per=Math.max(4,Math.floor((c.W-50)/40)), rows=Math.ceil(m/per); for(var j=0;j<m;j++){var r=Math.floor(j/per), q=j%per; if(r%2) q=per-1-q; pts.push([30+q*((c.W-60)/(per-1)),60+r*Math.min(70,(c.H-100)/Math.max(1,rows-1||1))]);} }
+    var NM={aa:["Acide aminé","liaison peptidique",P.acc,128],glc:["Glucose","liaison glycosidique",P.amber,180.16],nuc:["Nucléotide","liaison phosphodiester",P.green,327]};
+    var drops=[], lastN=n.value, lastT=tp.value, lastC=cy.value, goal=null, nt=k.note("",""), pts=[];
+    function layout(m,cyc){
+      var W=c.W,H=c.H,out=[],i;
+      if(cyc){ var cx=W/2, cyy=H/2+4, R=Math.min(W*.42,H/2-36); for(i=0;i<m;i++){var a=2*Math.PI*i/m-Math.PI/2; out.push([cx+R*Math.cos(a),cyy+R*Math.sin(a)]);} }
+      else { var per=Math.max(4,Math.min(12,Math.floor((W-40)/38))), rows=Math.ceil(m/per), gx=(W-60)/(Math.max(per,2)-1), gy=Math.min(64,(H-110)/Math.max(1,rows-1||1));
+        for(i=0;i<m;i++){var r=Math.floor(i/per), q=i%per; if(r%2) q=per-1-q; out.push([30+q*gx,56+r*gy+(rows===1?(H-110)/2-10:0)]);} }
+      return out;
+    }
+    function bead(x,y,r,t,col,i){
+      var ctx=c.ctx;
+      if(t==="aa"){ B.ball(c,x,y,r,col); S.draw.text(c,"R"+(i%5===0?"":""),x,y,{size:r*.9,color:"#fff"}); }
+      else if(t==="glc"){ ctx.save(); ctx.beginPath(); for(var j=0;j<6;j++){var a=j*Math.PI/3+Math.PI/6; ctx.lineTo(x+r*1.08*Math.cos(a),y+r*1.08*Math.sin(a));} ctx.closePath();
+        var g=ctx.createLinearGradient(x,y-r,x,y+r); g.addColorStop(0,B.mix(col,.5)); g.addColorStop(1,B.mix(col,-.25)); ctx.fillStyle=g; ctx.fill(); ctx.strokeStyle=B.mix(col,-.4); ctx.lineWidth=1.5; ctx.stroke(); ctx.restore(); S.draw.text(c,"O",x,y,{size:r*.8,color:"#fff"}); }
+      else { ctx.save(); ctx.fillStyle=B.mix(col,.1); ctx.strokeStyle=B.mix(col,-.4); ctx.lineWidth=1.5; B.ball(c,x,y,r*.55,P.violet); S.draw.rrect(c,x-r*.85,y-r*1.05,r*.9,r*.9,3); ctx.fill(); ctx.stroke(); ctx.restore(); B.ball(c,x+r*.7,y+r*.6,r*.42,P.amber); }
+    }
+    function spawn(kind,x,y){ for(var q=0;q<3;q++) drops.push({x:x,y:y,t:0,kind:kind,dx:(Math.random()-.5)*34,dy:-26-Math.random()*20}); }
+    function sync(){
+      var m=Math.min(n.value,24), p=layout(m,cy.value), N=n.value;
+      if(N!==lastN && tp.value===lastT && cy.value===lastC){
+        var step=Math.min(Math.abs(N-lastN),4), kind=N>lastN?"out":"in", i;
+        for(i=0;i<step;i++){ var b=Math.min(m-1, m-1-i); if(b>0&&p[b]&&p[b-1]) spawn(kind,(p[b][0]+p[b-1][0])/2,(p[b][1]+p[b-1][1])/2); }
+      }
+      lastN=N; lastT=tp.value; lastC=cy.value;
+      if(goal){ var done=(N===goal.n&&cy.value===goal.cyc&&tp.value===goal.t); goal.done=done; }
+    }
+    function R(){
+      var ctx=c.ctx; c.clear(); B.bg(c,"#f7fafc","#eaf2f8");
+      var N=n.value, cyc=cy.value, t=tp.value, col=NM[t][2], m=Math.min(N,24);
+      var bonds=cyc?N:N-1, mass=N*M[t]-bonds*W2;
+      pts=layout(m,cyc); var r=Math.max(9,Math.min(15,c.W/34));
       var nb=cyc?m:m-1;
-      for(var b=0;b<nb;b++){ var p1=pts[b], p2=pts[(b+1)%m];
-        S.draw.line(c,p1[0],p1[1],p2[0],p2[1],"#8a95a3",3);
-        var mx=(p1[0]+p2[0])/2, my=(p1[1]+p2[1])/2;
-        ctx.fillStyle=P.teal; ctx.beginPath(); ctx.arc(mx,my-12,4,0,7); ctx.fill(); }
-      pts.forEach(function(p){ S.draw.dot(c,p[0],p[1],11,col); });
-      S.draw.text(c,NM[tp.value][0]+" · "+NM[tp.value][1],c.W/2,16,{size:12,color:P.ink});
-      S.draw.text(c,"● = une molécule d'eau libérée à chaque liaison"+(N>24?" · "+m+" monomères dessinés sur "+N:""),c.W/2,c.H-12,{size:11,color:P.teal});
-      ro.set(0,S.fmt(bonds,0)); ro.set(1,S.fmt(bonds,0)); ro.set(2,S.fmt(mass,1)); ro.set(3,S.fmt(N*M[tp.value],1));
-      nt.set("Hydrolyse complète : "+S.fmt(bonds,0)+" H₂O consommées, "+S.fmt(N,0)+" monomères retrouvés ; la masse remonte de "+S.fmt(mass,1)+" à "+S.fmt(N*M[tp.value],1)+" g/mol (+ "+S.fmt(bonds*W2,1)+").","ok");
+      for(var b=0;b<nb;b++){ var p1=pts[b], p2=pts[(b+1)%m]; ctx.strokeStyle="#8a95a3"; ctx.lineWidth=4; ctx.lineCap="round"; ctx.beginPath(); ctx.moveTo(p1[0],p1[1]); ctx.lineTo(p2[0],p2[1]); ctx.stroke();
+        var mx=(p1[0]+p2[0])/2,my=(p1[1]+p2[1])/2; ctx.fillStyle=P.teal; ctx.beginPath(); ctx.arc(mx,my,3.2,0,7); ctx.fill(); }
+      pts.forEach(function(p,i){ bead(p[0],p[1],r,t,col,i); });
+      if(!cyc&&pts.length){ S.draw.label(c,t==="aa"?"NH₂":t==="glc"?"extrémité réductrice":"5′",pts[0][0],pts[0][1]-r-10,{color:P.grey,size:10});
+        var l=pts[m-1]; S.draw.label(c,t==="aa"?"COOH":t==="glc"?"extrémité non réd.":"3′",l[0],l[1]+r+11,{color:P.grey,size:10}); }
+      /* gouttes d'eau */
+      drops.forEach(function(d){ var u=d.t, x,y,a;
+        if(d.kind==="out"){ x=d.x+d.dx*u; y=d.y+d.dy*u+34*u*u; a=1-u; } else { x=d.x+d.dx*(1-u); y=d.y+(d.dy)*(1-u)+34*(1-u)*(1-u); a=u<.2?u*5:1; }
+        ctx.save(); ctx.globalAlpha=Math.max(0,a); ctx.fillStyle="#4aa8e0"; ctx.beginPath(); ctx.arc(x,y,4.2,0,7); ctx.fill(); ctx.restore(); S.draw.text(c,"H₂O",x+13,y,{size:9,color:P.teal}); });
+      S.draw.text(c,NM[t][0]+" · "+NM[t][1]+(cyc?" · chaîne cyclique":""),c.W/2,16,{size:12,color:P.ink});
+      var foot=N>24?m+" monomères dessinés sur "+N:"● vert = liaison formée, une H₂O libérée par liaison";
+      S.draw.text(c,foot,c.W/2,c.H-12,{size:11,color:P.teal});
+      if(goal){ B.goal(c,goal.done?"Défi réussi : "+goal.n+" monomères !":"Défi : masse cible "+S.fmt(goal.mass,1)+" g/mol → quel n ?",goal.done,c.H-34); }
+      ro.set(0,S.fmt(bonds,0)); ro.set(1,S.fmt(bonds,0)); ro.set(2,S.fmt(mass,1)); ro.set(3,S.fmt(N*M[t],1));
+      nt.set(goal&&!goal.done?"Défi en cours : la masse cible est "+S.fmt(goal.mass,1)+" g/mol (type : "+NM[goal.t][0].toLowerCase()+", "+(goal.cyc?"chaîne cyclique":"chaîne linéaire")+"). Ajuste n : ta masse actuelle est "+S.fmt(mass,1)+" g/mol.":
+        "Hydrolyse complète : "+S.fmt(bonds,0)+" H₂O consommées, "+S.fmt(N,0)+" monomères retrouvés ; la masse remonte de "+S.fmt(mass,1)+" à "+S.fmt(N*M[t],1)+" g/mol (+ "+S.fmt(bonds*W2,1)+").",goal&&goal.done?"ok":"ok");
+    }
+    k.button("＋ Condensation (+1)",function(){ n.set(n.value+1); },true);
+    k.button("− Hydrolyse (−1)",function(){ n.set(n.value-1); });
+    k.button("Défi : retrouver n",function(){
+      var N=3+Math.floor(Math.random()*40), t=tp.value, cyc=cy.value; goal={n:N,t:t,cyc:cyc,mass:N*M[t]-(cyc?N:N-1)*W2,done:false}; n.set(2);
     });
+    k.draw(function(){ sync(); R(); });
+    var lp=k.loop(function(dt){ var any=false; drops.forEach(function(d){ d.t+=dt*1.1; }); drops=drops.filter(function(d){ return d.t<1; }); if(drops.length||true){ R(); } }); lp.play();
   }
 });
 

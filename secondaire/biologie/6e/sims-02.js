@@ -105,36 +105,65 @@ SFA.sim({
   id: "b6-c02-khi2", ch: "c02", tag: "Statistique",
   titre: "Le test du khi-deux : l'écart est-il dû au hasard ?",
   resume: "Compare des effectifs observés aux proportions attendues : le khi-deux (χ²) et la probabilité de l'écart décident.",
-  but: "Choisis un jeu de données (Mendel, Morgan…) ou règle toi-même les effectifs observés. Le simulateur calcule χ² = Σ (observé − attendu)² / attendu et le compare au seuil de 5 %.",
+  but: "Choisis un jeu de données (Mendel, Morgan…) ou modifie toi-même les effectifs observés : fais glisser le sommet d'une barre à la souris ou au doigt. Le simulateur calcule χ² = Σ (observé − attendu)² / attendu et le place sur la courbe de la loi du χ², face au seuil de 5 %.",
   aRetenir: "Si χ² est inférieur au seuil (3,84 pour 1 degré de liberté, 7,81 pour 3), l'écart est compatible avec le hasard : on ne rejette pas le modèle. Au-dessus, le modèle est rejeté. Pour les données de Morgan, un χ² énorme signale que les gènes ne sont pas indépendants : ils sont liés.",
   piege: "« Ne pas rejeter » ne veut pas dire « prouver » : on dit que les données sont compatibles avec le modèle. Le test exige des effectifs attendus d'au moins 5 par classe.",
   build: function(k, S){
-    var c = k.canvas(330), P = S.draw.palette;
+    var c = k.canvas(window.innerWidth < 760 ? 440 : 430), P = S.draw.palette, vfix = null, drag = -1, bars = [];
     var DATA = {
       pois: {m: "d", v: [315, 108, 101, 32], t: "Pois de Mendel (rond/ridé, jaune/vert)"},
       mois: {m: "t", v: [787, 277, 0, 0], t: "Pois de Mendel (tige haute/naine)"},
       dros: {m: "u", v: [965, 944, 206, 185], t: "Drosophile, test-cross de Morgan"},
       perso: {m: "d", v: [90, 30, 30, 10], t: "Données personnalisées"}
     };
-    var pre = k.select("Jeu de données", Object.keys(DATA).map(function(x){ return [x, DATA[x].t]; }), "pois", function(v){ var d = DATA[v]; model.value = d.m; model.set(d.m); for (var i = 0; i < 4; i++) sl[i].set(d.v[i]); });
+    var pre = k.select("Jeu de données", Object.keys(DATA).map(function(x){ return [x, DATA[x].t]; }), "pois", function(v){ var d = DATA[v]; model.value = d.m; model.set(d.m); for (var i = 0; i < 4; i++) sl[i].set(d.v[i]); vfix = null; });
     var model = k.seg("Modèle attendu", [["d", "9:3:3:1"], ["u", "1:1:1:1"], ["t", "3:1"]], "d");
     var sl = [0, 1, 2, 3].map(function(i){ return k.slider("Effectif de la classe " + (i + 1), 0, 1000, 1, DATA.pois.v[i], ""); });
     var ro = k.readouts(["Total", "χ²", "Degrés de liberté", "Probabilité (p)"]);
     var note = k.note("", "");
     var FR = {d: [9 / 16, 3 / 16, 3 / 16, 1 / 16], u: [0.25, 0.25, 0.25, 0.25], t: [0.75, 0.25]};
+    c.pointer(function(t, p){
+      if (t === "down"){ drag = -1; bars.forEach(function(b, i){ if (p.x >= b.x0 - 6 && p.x <= b.x1 + 6 && p.y >= b.top - 14 && p.y <= b.base + 8) drag = i; }); if (drag >= 0){ vfix = bars.vmax; } }
+      if ((t === "down" || t === "drag") && drag >= 0){ var b = bars[drag], v = Math.round((b.base - p.y) / (b.base - b.ytop) * vfix); sl[drag].set(Math.max(0, Math.min(1000, v))); }
+      if (t === "up"){ drag = -1; vfix = null; }
+    });
     k.draw(function(){
-      c.clear(); var fr = FR[model.value], nc = fr.length, O = [], N = 0, i;
+      c.clear(); var fr = FR[model.value], nc = fr.length, O = [], N = 0, i, ctx = c.ctx, W = c.W;
       for (i = 0; i < nc; i++){ O.push(sl[i].value); N += sl[i].value; }
       var E = fr.map(function(f){ return f * N; }), chi = 0, small = false;
       if (N > 0) for (i = 0; i < nc; i++){ chi += E[i] > 0 ? Math.pow(O[i] - E[i], 2) / E[i] : 0; if (E[i] < 5) small = true; }
       var df = nc - 1, p = df === 1 ? B.erfc(Math.sqrt(chi / 2)) : B.erfc(Math.sqrt(chi / 2)) + Math.sqrt(2 * chi / Math.PI) * Math.exp(-chi / 2);
       if (N === 0) p = 1;
-      var crit = df === 1 ? 3.84 : 7.81, vmax = Math.max(1, Math.max.apply(null, O.concat(E))) * 1.18;
-      var items = O.map(function(v, q){ return {l: "classe " + (q + 1), v: v, e: E[q], c: P.acc}; });
-      S.draw.text(c, "Effectifs observés (barres) et attendus (pointillés)", c.W / 2, 14, {size: 12, color: P.grey});
-      B.bars(c, S, items, 24, 36, c.W - 40, 250, vmax, function(v){ return S.fmt(v, 0); });
+      var crit = df === 1 ? 3.84 : 7.81, vmax = vfix || Math.max(20, Math.max.apply(null, O.concat(E))) * 1.18;
+      /* barres (le sommet se glisse) */
+      var x0 = 40, w = W - 56, base = 196, ytop = 34, bw = Math.min(64, w / nc * 0.62); bars = []; bars.vmax = vmax;
+      S.draw.text(c, "Effectifs observés (glisse un sommet) et attendus (pointillés)", W / 2, 12, {size: 12, color: P.grey});
+      ctx.strokeStyle = "#a3adba"; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.moveTo(x0 - 8, base); ctx.lineTo(x0 + w, base); ctx.stroke();
+      var cols = ["#1f4b9e", "#24775a", "#c26a0c", "#6236c4"];
+      O.forEach(function(v, q){
+        var cx = x0 + w * (q + 0.5) / nc, bh = (base - ytop) * Math.min(1, v / vmax), eh = (base - ytop) * Math.min(1, E[q] / vmax);
+        var g = ctx.createLinearGradient(0, base - bh, 0, base); g.addColorStop(0, cols[q]); g.addColorStop(1, S.draw.tint(cols[q], 0.7));
+        ctx.fillStyle = g; S.draw.rrect(c, cx - bw / 2, base - bh, bw, bh, 5); ctx.fill();
+        ctx.strokeStyle = P.ink; ctx.setLineDash([4, 3]); ctx.lineWidth = 1.8; ctx.beginPath(); ctx.moveTo(cx - bw / 2 - 5, base - eh); ctx.lineTo(cx + bw / 2 + 5, base - eh); ctx.stroke(); ctx.setLineDash([]);
+        /* poignée */
+        S.draw.dot(c, cx, base - bh, 7, drag === q ? P.red : "#fff"); ctx.beginPath(); ctx.arc(cx, base - bh, 7, 0, 6.2832); ctx.lineWidth = 2.2; ctx.strokeStyle = cols[q]; ctx.stroke();
+        S.draw.text(c, S.fmt(v, 0), cx, base - bh - 18, {size: 12.5});
+        S.draw.text(c, "classe " + (q + 1), cx, base + 12, {size: 11.5, weight: 600});
+        S.draw.text(c, "att. " + S.fmt(E[q], 1), cx, base + 26, {size: 10.5, color: P.grey, weight: 600});
+        bars.push({x0: cx - bw / 2, x1: cx + bw / 2, top: base - bh, base: base, ytop: ytop});
+      });
+      /* loi du khi-deux */
+      var gy = 250, ax = S.draw.axes(c, {x0: 0, x1: 14, y0: 0, y1: 0.5, t: gy, b: 28, l: 40, r: 14, stepX: 2, stepY: 0.25, xl: "χ²", grid: true});
+      var f = df === 1 ? function(x){ return Math.min(0.5, Math.exp(-x / 2) / Math.sqrt(2 * Math.PI * Math.max(x, 1e-4))); } : function(x){ return Math.sqrt(x) * Math.exp(-x / 2) / 2.5066; };
+      S.draw.area(c, ax, f, crit, 14, P.red, 0.28); S.draw.area(c, ax, f, 0, crit, P.green, 0.12);
+      S.draw.fn(c, ax, f, P.ink, 2);
+      S.draw.line(c, ax.X(crit), ax.T, ax.X(crit), ax.B, P.red, 1.6, [5, 4]);
+      S.draw.text(c, "seuil 5 % : " + S.fmt(crit, 2), ax.X(crit) + 5, ax.T + 8, {align: "left", size: 11, color: P.red});
+      S.draw.text(c, "loi du χ² (" + df + " ddl)", ax.R - 4, ax.T + 8, {align: "right", size: 11, color: P.grey});
+      var cc = Math.min(13.6, chi), yy = Math.min(0.46, f(Math.max(cc, 0.15)));
+      if (N > 0){ S.draw.line(c, ax.X(cc), ax.B, ax.X(cc), ax.Y(yy), chi > crit ? P.red : P.green, 2); S.draw.dot(c, ax.X(cc), ax.Y(yy), 6.5, chi > crit ? P.red : P.green); S.draw.label(c, "χ² = " + S.fmt(chi, 2) + (chi > 13.6 ? " →" : ""), Math.min(W - 60, Math.max(60, ax.X(cc))), ax.B - 14, {color: chi > crit ? P.red : P.green, size: 11.5}); }
       ro.set(0, N); ro.set(1, S.fmt(chi, 2)); ro.set(2, df); ro.set(3, p < 0.001 ? "< 0,001" : S.fmt(p, 3));
-      if (N === 0) note.set("Aucun effectif : règle les curseurs.", "warn");
+      if (N === 0) note.set("Aucun effectif : règle les curseurs ou glisse les barres.", "warn");
       else if (chi > crit) note.set("χ² = " + S.fmt(chi, 2) + " &gt; seuil " + S.fmt(crit, 2) + " : l'écart est trop grand pour être dû au seul hasard (p &lt; 5 %). <b>On rejette le modèle</b>." + (model.value === "u" ? " Pour un test-cross dihybride, cela signale des gènes liés." : ""), "warn");
       else note.set("χ² = " + S.fmt(chi, 2) + " ≤ seuil " + S.fmt(crit, 2) + " : l'écart est compatible avec le hasard. <b>Le modèle n'est pas rejeté.</b>", "ok");
       if (model.value === "t" && N > 0) note.set(note.el.innerHTML + " <i>Modèle 3 : 1 : seules les classes 1 et 2 comptent ; les curseurs 3 et 4 sont ignorés.</i>", chi > crit ? "warn" : "ok");
@@ -143,27 +172,45 @@ SFA.sim({
   }
 });
 
+
 SFA.sim({
   id: "b6-c02-explosion", ch: "c02", tag: "Niche utile",
   titre: "Combien de gènes ? L'explosion des combinaisons",
   resume: "Avec n gènes hétérozygotes, les gamètes différents sont 2ⁿ et les cases d'un échiquier 4ⁿ : obtenir un double récessif devient vite improbable.",
-  but: "Fais varier le nombre n de gènes hétérozygotes indépendants chez deux parents (AaBb… × AaBb…). Lis le nombre de gamètes, de génotypes, la probabilité d'un descendant entièrement récessif et le nombre de descendants nécessaires.",
+  but: "Fais varier le nombre n de gènes hétérozygotes indépendants chez deux parents (AaBb… × AaBb…). Le haut montre les gamètes différents (une pastille pleine = allèle dominant, creuse = récessif) ; le graphique logarithmique compare 2ⁿ, 3ⁿ et 4ⁿ à des ordres de grandeur connus. Lis la probabilité d'un descendant entièrement récessif et le nombre de descendants nécessaires.",
   aRetenir: "Pour n gènes hétérozygotes indépendants : 2ⁿ gamètes différents, 3ⁿ génotypes possibles, 2ⁿ phénotypes, 4ⁿ cases d'échiquier, et P(tout récessif) = (1/4)ⁿ. Chez l'humain (23 paires), 2²³ ≈ 8,4 millions de gamètes différents avant même le crossing-over.",
   piege: "Ces calculs supposent des gènes indépendants et tous hétérozygotes. Les gènes liés (même chromosome) ne se combinent pas librement, et la plupart des gènes ne sont pas hétérozygotes chez un individu donné.",
   build: function(k, S){
-    var c = k.canvas(360), P = S.draw.palette;
+    var c = k.canvas(window.innerWidth < 760 ? 470 : 450), P = S.draw.palette;
     var n = k.slider("Gènes hétérozygotes indépendants (n)", 1, 23, 1, 4, "");
     var m = k.slider("Descendants obtenus", 1, 200, 1, 16, "");
     var ro = k.readouts(["Gamètes différents 2ⁿ", "Génotypes 3ⁿ", "Cases de l'échiquier 4ⁿ", "P(tout récessif)", "P(au moins un) parmi les descendants", "Descendants pour 95 % de chances"]);
+    var cols = ["#1f4b9e", "#c0321d", "#24775a", "#c26a0c", "#6236c4", "#0e7f96", "#c43a7a", "#8a95a3"];
     k.draw(function(){
-      c.clear(); var N = n.value, M = m.value;
-      var ax = S.draw.axes(c, {x0: 0, x1: 24, y0: 0, y1: 14, stepX: 2, stepY: 2, xl: "n (gènes)", yl: "exposant de 10 (échelle log)", l: 52});
+      c.clear(); var N = n.value, M = m.value, ctx = c.ctx, W = c.W, i, j;
+      /* gamètes */
+      var tot = Math.pow(2, N), show = Math.min(tot, 32), dn = Math.min(N, 8), sz = Math.min(10, Math.floor((W - 24) / (8 * 2 + 3) / 1.4)) ;
+      S.draw.text(c, N <= 5 ? "Les " + tot + " gamètes différents d'un individu à " + N + " gène" + (N > 1 ? "s" : "") + " hétérozygote" + (N > 1 ? "s" : "") : "Les 32 premiers des " + S.sci(tot, 3) + " gamètes différents", 10, 12, {align: "left", size: 12.5});
+      var cellW = Math.max(sz * 2 * dn / 2 + 8, 0), gw = dn * (sz * 1.5 + 1) + 10, per = Math.max(1, Math.floor((W - 16) / gw)), rows = Math.ceil(show / per);
+      for (i = 0; i < show; i++){
+        var gx = 8 + (i % per) * gw, gy = 30 + Math.floor(i / per) * (sz * 1.5 + 8);
+        for (j = 0; j < dn; j++){
+          var dom = !((i >> (N - 1 - j)) & 1), px = gx + j * (sz * 1.5 + 1) + sz * .75, py = gy + sz * .75;
+          ctx.beginPath(); ctx.arc(px, py, sz * .65, 0, 6.2832); if (dom){ ctx.fillStyle = cols[j]; ctx.fill(); } else { ctx.fillStyle = "#fff"; ctx.fill(); ctx.lineWidth = 1.6; ctx.strokeStyle = cols[j]; ctx.stroke(); }
+        }
+      }
+      if (N > 8) S.draw.text(c, "(8 premiers gènes dessinés)", W - 10, 12, {align: "right", size: 10.5, color: P.grey});
+      /* graphique log */
+      var top = Math.max(60, 30 + rows * (sz * 1.5 + 8) + 14);
+      var ax = S.draw.axes(c, {x0: 0, x1: 24, y0: 0, y1: 14, stepX: 2, stepY: 2, xl: "n (gènes)", yl: "puissance de 10", l: 44, t: top, b: 34});
       var f2 = function(x){ return x * Math.LOG10E * Math.LN2; }, f3 = function(x){ return x * Math.log10(3); }, f4 = function(x){ return x * Math.log10(4); };
+      [[7.07, "Belgique : 10⁷ habitants"], [10.9, "Terre : 8·10⁹ humains"]].forEach(function(rf){ S.draw.line(c, ax.L, ax.Y(rf[0]), ax.R, ax.Y(rf[0]), "#9aa6b5", 1.2, [3, 4]); S.draw.text(c, rf[1], ax.L + 8, ax.Y(rf[0]) - 8, {align: "left", size: 10.5, color: P.grey}); });
       S.draw.fn(c, ax, f4, P.red, 2.4); S.draw.fn(c, ax, f3, P.amber, 2.4); S.draw.fn(c, ax, f2, P.acc, 2.4);
-      S.draw.text(c, "4ⁿ", ax.X(21), ax.Y(f4(21)) - 14, {color: P.red, size: 13});
-      S.draw.text(c, "3ⁿ", ax.X(21.8), ax.Y(f3(21.8)) + 14, {color: P.amber, size: 13});
-      S.draw.text(c, "2ⁿ", ax.X(20), ax.Y(f2(20)) + 14, {color: P.acc, size: 13});
+      S.draw.label(c, "4ⁿ", ax.X(Math.min(21.5, 12.2 / Math.log10(4))), ax.Y(f4(Math.min(21.5, 12.2 / Math.log10(4)))) - 4, {color: P.red, size: 12, math: true});
+      S.draw.label(c, "3ⁿ", ax.X(23), ax.Y(f3(23)) - 8, {color: P.amber, size: 12, math: true});
+      S.draw.label(c, "2ⁿ", ax.X(23), ax.Y(f2(23)) + 12, {color: P.acc, size: 12, math: true});
       S.draw.line(c, ax.X(N), ax.T, ax.X(N), ax.B, P.grey, 1.2, [4, 3]);
+      S.draw.dot(c, ax.X(N), ax.Y(f2(N)), 5.5, P.acc); S.draw.dot(c, ax.X(N), ax.Y(f3(N)), 5.5, P.amber); S.draw.dot(c, ax.X(N), ax.Y(f4(N)), 5.5, P.red);
       var p = Math.pow(0.25, N), pa = -Math.expm1(M * Math.log1p(-p)), need = Math.log(0.05) / Math.log1p(-p);
       ro.set(0, S.sci(Math.pow(2, N), 3)); ro.set(1, S.sci(Math.pow(3, N), 3)); ro.set(2, S.sci(Math.pow(4, N), 3));
       ro.set(3, "1/" + S.sci(Math.pow(4, N), 3) + " ≈ " + S.sci(p, 2));
@@ -172,4 +219,6 @@ SFA.sim({
     });
   }
 });
+
+
 })();

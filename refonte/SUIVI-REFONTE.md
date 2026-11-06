@@ -46,3 +46,5 @@ Nouvelle structure (kit/) : chaque cours = une page `index.html` → chapitres �
 | 19:28 | V2 chimie 3e : 14 refaites + 26 retouchées, 0 erreur. À CORRIGER (moteur) : à 390 px le bandeau fixe recouvre le haut du canvas sur certaines pages de simulation | fait |
 | 19:42 | Enzo : « fais le maximum jusqu'à 19 h 50 » → V3 + V4 lancées en même temps que la fin de V2 (11 inspecteurs). Sauvegarde + aperçu à 19 h 45 | en cours |
 | 19:42 | VAGUE 2 TERMINÉE : physique 6e (17 refaites), chimie 6e (28 refaites), chimie 5e (18 refaites), chimie 3e (14), physique 5e (4), chimie 4e (déjà au niveau). V3+V4 en cours (8 inspecteurs) | fait |
+| 19:47 | V4 statistique BA1 : 48 sims OK (déjà refaites ce matin), 7 retouches, vignettes | fait |
+| 19:58 | V3 biologie 6e : 10 refaites + 1 retouchée, 0 erreur | fait |

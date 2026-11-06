@@ -117,39 +117,93 @@ SFA.sim({
   id: "b5-c02-drogues", ch: "c02", tag: "Substances",
   titre: "Que font les drogues à la synapse ?",
   resume: "Cocaïne, curare, nicotine : dose → neurotransmetteur, récepteurs occupés, réponse.",
-  but: "Après un potentiel d'action, le neurotransmetteur est libéré puis éliminé de la fente. Choisis une substance et une dose. Observe la concentration de neurotransmetteur, la fraction de récepteurs activés et la réponse totale par rapport à la situation normale.",
+  but: "Regarde la synapse en fonctionnement : le neurone libère son neurotransmetteur, qui est recapturé puis éliminé. Choisis une substance et une dose, puis observe qui reste dans la fente, quels récepteurs s'allument et la réponse totale par rapport à la situation normale (pointillés).",
   aRetenir: "Une substance peut agir à plusieurs niveaux : en bloquant l'élimination du neurotransmetteur (cocaïne : la dopamine reste plus longtemps), en bloquant les récepteurs (curare : le message n'est plus reçu, d'où la paralysie), ou en imitant le neurotransmetteur (nicotine : elle active les récepteurs de l'acétylcholine).",
   piege: "Toutes les drogues n'augmentent pas l'activité : le curare la diminue. Et « stimulant » ne veut pas dire « sans risque ». Modèle de principe : les unités sont arbitraires, aucune donnée de dosage réel.",
   build: function(k, S){
-    var c = k.canvas(300), pal = S.draw.palette;
+    var c = k.canvas(470), pal = S.draw.palette, D = S.draw;
     var dr = k.select("Substance", [["a", "Aucune (témoin)"], ["c", "Cocaïne (bloque la recapture)"], ["u", "Curare (bloque les récepteurs)"], ["n", "Nicotine (agoniste des récepteurs)"]], "c");
     var dose = k.slider("Dose", 0, 100, 5, 60, "%");
     var ro = k.readouts(["Durée du neurotransmetteur", "Récepteurs actifs (pic)", "Réponse totale (témoin = 100 %)"]);
     var nt = k.note("", "");
-    var Kd = 0.5, T = 12;
+    var Kd = 0.5, T = 12, NP = 16, MS = 0.5;       /* MS : secondes réelles par ms du modèle */
     function curves(drug, d){
       var kk = 1, blk = 0, ag = 0; d = d / 100;
       if (drug === "c") kk = 1 - 0.8 * d; if (drug === "u") blk = d; if (drug === "n") ag = 0.6 * d;
-      var nts = [], occ = [], A = 0, n = 0;
+      var nts = [], occ = [], A = 0;
       for (var t = 0; t <= T + 1e-9; t += 0.1){
         var N = Math.exp(-kk * t), o = N / (N + Kd);
         o = 1 - (1 - o * (1 - blk)) * (1 - ag * (1 - blk));
         nts.push([t, N]); occ.push([t, o]); A += o * 0.1;
       }
-      return {nts: nts, occ: occ, area: A, kk: kk};
+      return {nts: nts, occ: occ, area: A, kk: kk, blk: blk, ag: ag};
     }
-    var base = curves("a", 0), Abase = base.area - 0;   /* pour le témoin */
+    var base = curves("a", 0);
+    var rnd = B5.rng(7), P = [];
+    for (var i = 0; i < NP; i++) P.push({u: rnd(), tx: rnd(), ty: rnd(), ph: rnd() * 6.28, fq: 2 + rnd() * 3, sx: rnd() * 2 - 1});
+    var tm = 0, GAP = 1.6;
+    var lp = k.loop(function(dt){ tm += dt; if (tm > T * MS + GAP) tm = 0; k.redraw(); });
+    lp.play();
+    k.button("Rejouer la libération", function(){ tm = 0; }, true);
     k.draw(function(){
-      c.clear();
-      var cu = curves(dr.value, dose.value), pa = c.W < 480;
-      var ax = S.draw.axes(c, {x0: 0, x1: T, y0: 0, y1: 1.05, xl: "t (ms)", yl: "relatif", stepX: 2, stepY: 0.25});
-      B5.poly(c, ax, base.nts, pal.grey, 1.8, [5, 4]); B5.poly(c, ax, cu.nts, pal.amber, 2.6);
-      B5.poly(c, ax, base.occ, "#b9b0d6", 1.8, [5, 4]); B5.poly(c, ax, cu.occ, pal.violet, 2.8);
-      B5.leg(c, [["neurotransmetteur", pal.amber], ["récepteurs actifs", pal.violet]], ax.L + 8, ax.T + 38);
-      S.draw.text(c, "pointillés : témoin", ax.R - 6, ax.T + 14, {align: "right", size: 12, color: pal.grey});
-      var half = Math.LN2 / cu.kk;
-      var peak = Math.max.apply(null, cu.occ.map(function(p){ return p[1]; }));
-      var rel = cu.area / base.area * 100;
+      c.clear(); var ctx = c.ctx, W = c.W, H = c.H, cu = curves(dr.value, dose.value);
+      var tms = Math.min(T, tm / MS);                       /* temps du modèle (ms) */
+      /* ---------- scène ---------- */
+      var sh = 262, yT = 56, yM = 190;                       /* bas du neurone pré, haut de la membrane post */
+      var bg = ctx.createLinearGradient(0, 0, 0, sh); bg.addColorStop(0, "#f4f0fc"); bg.addColorStop(1, "#fdf3f1");
+      D.rrect(c, 8, 8, W - 16, sh, 12); ctx.fillStyle = bg; ctx.fill();
+      ctx.save(); D.rrect(c, 8, 8, W - 16, sh, 12); ctx.clip();
+      /* neurone présynaptique */
+      ctx.fillStyle = "#d9ccf3"; ctx.beginPath(); ctx.moveTo(40, 8); ctx.lineTo(40, 36); ctx.quadraticCurveTo(40, yT, 70, yT); ctx.lineTo(W - 70, yT); ctx.quadraticCurveTo(W - 40, yT, W - 40, 36); ctx.lineTo(W - 40, 8); ctx.fill();
+      ctx.strokeStyle = "#8d77cf"; ctx.lineWidth = 2.5; ctx.stroke();
+      D.text(c, "neurone présynaptique", 56, 22, {align: "left", size: 11.5, color: "#5b45a0", weight: 800});
+      /* vésicules */
+      var rx0 = W / 2 - 36, vp = tms < 0.4 ? 1 : 0;
+      for (var v = 0; v < 4; v++){ var vx = W / 2 - 54 + v * 36; B5.circ(c, vx, yT - 14, 9, tms < 0.4 || v > 1 ? "#f4c542" : "#f8e4a0", "#b8860b", 1.5); }
+      /* transporteurs de recapture */
+      var blocked = dr.value === "c" ? dose.value / 100 : 0, pumps = [W * 0.2, W * 0.8];
+      pumps.forEach(function(px){
+        D.rrect(c, px - 10, yT - 5, 20, 12, 3); ctx.fillStyle = blocked > 0.5 ? "#e8b4ac" : "#7a6aa8"; ctx.fill();
+        if (blocked > 0.05){ B5.circ(c, px, yT + 14, 8, pal.red); D.text(c, "×", px, yT + 14, {size: 14, color: "#fff", weight: 900}); }
+        else { D.arrow(c, px, yT + 22, px, yT + 2, "#7a6aa8", 1.5); }
+      });
+      D.text(c, "recapture", pumps[0], yT + 34, {size: 10.5, color: "#5b45a0", weight: 700});
+      /* membrane postsynaptique + récepteurs */
+      var gm = ctx.createLinearGradient(0, yM, 0, sh + 8); gm.addColorStop(0, "#f2b8ad"); gm.addColorStop(1, "#e89a8c"); ctx.fillStyle = gm; ctx.fillRect(8, yM + 14, W - 16, sh);
+      D.text(c, "cellule postsynaptique (neurone ou muscle)", 20, yM + 33, {align: "left", size: 11.5, color: "#8a2a1a", weight: 800});
+      var NR = 6, rcx = [], o = Math.max(0, tms < 0 ? 0 : B5.interp(cu.occ, tms));
+      var nact = Math.round(o * NR), nblk = Math.round(cu.blk * NR), nag = Math.round(cu.ag * NR);
+      for (var r = 0; r < NR; r++){
+        var rx = W / 2 + (r - (NR - 1) / 2) * Math.min(52, (W - 140) / NR), act = r < nact;
+        rcx.push(rx);
+        ctx.fillStyle = act ? pal.green : "#b86a5c"; ctx.beginPath(); ctx.moveTo(rx - 15, yM + 16); ctx.lineTo(rx - 15, yM + 2); ctx.quadraticCurveTo(rx, yM + 22, rx + 15, yM + 2); ctx.lineTo(rx + 15, yM + 16); ctx.closePath(); ctx.fill();
+        if (act){ D.glow(c, rx, yM + 8, 28, pal.green, .6); }
+        if (dr.value === "u" && r >= NR - nblk){ B5.circ(c, rx, yM - 1, 9, "#4b3a2a"); D.text(c, "C", rx, yM - 1, {size: 10, color: "#fff", weight: 800}); }
+        if (dr.value === "n" && r < nag && !(r < 0)){ B5.circ(c, rx, yM - 1, 8, "#f08a1c", "#fff", 1.5); }
+      }
+      /* neurotransmetteur : durée de vie exponentielle (taux kk) */
+      for (var i = 0; i < NP; i++){
+        var p = P[i], td = -Math.log(1 - p.u * 0.98) / cu.kk * 0.9, tr = i * 0.03;
+        var a = tms - tr; if (a < 0) continue;
+        if (a > td + 0.5) continue;
+        var e = Math.min(1, a / 1.2), x = W / 2 + (p.tx - 0.5) * (W - 160) * e + Math.sin(p.fq * a + p.ph) * 7, y = yT + 8 + (p.ty * (yM - yT - 24)) * e + Math.cos(p.fq * a * 1.3 + p.ph) * 5;
+        var out = Math.max(0, Math.min(1, (a - td) / 0.5));
+        if (a > td){ var pxx = p.sx < 0 ? pumps[0] : pumps[1]; x = x + (pxx - x) * out; y = y + (yT + 6 - y) * out; }
+        ctx.globalAlpha = 1 - out * 0.8; B5.circ(c, x, y, 5, "#f4a413", "#a56300", 1.2); ctx.globalAlpha = 1;
+      }
+      ctx.restore();
+      /* légende */
+      var items = [["#f4a413", "neurotransmetteur"]].concat(dr.value === "u" ? [["#4b3a2a", "curare"]] : dr.value === "n" ? [["#f08a1c", "nicotine"]] : [[pal.green, "récepteur actif"]]), lx = 20;
+      items.forEach(function(it){ B5.circ(c, lx + 5, yM + 52, 5, it[0], "#fff", 1); D.text(c, it[1], lx + 14, yM + 52, {align: "left", size: 11, color: "#6b1f12", weight: 700}); lx += 30 + it[1].length * 6.2; });
+      /* ---------- courbes ---------- */
+      var gy = sh + 22;
+      D.panel(c, 8, gy - 4, W - 16, H - gy - 4, {shadow: false, fill: "#fbfcfe"});
+      var ax = D.axes(c, {x0: 0, x1: T, y0: 0, y1: 1.05, xl: "t (ms)", stepX: 2, stepY: 0.5, t: gy + 8, b: 34, l: 42, r: 20});
+      B5.poly(c, ax, base.nts, "#d5b27a", 1.6, [5, 4]); B5.poly(c, ax, cu.nts, pal.amber, 2.8);
+      B5.poly(c, ax, base.occ, "#b9b0d6", 1.6, [5, 4]); B5.poly(c, ax, cu.occ, pal.violet, 3);
+      D.line(c, ax.X(tms), ax.T, ax.X(tms), ax.B, pal.ink, 1.2, [3, 3]);
+      D.legend(c, [[pal.amber, "neurotransmetteur"], [pal.violet, "récepteurs actifs"], [pal.grey, "témoin (pointillés)", true]], ax.R - 4, ax.T + 4, {align: "right"});
+      var half = Math.LN2 / cu.kk, peak = Math.max.apply(null, cu.occ.map(function(p){ return p[1]; })), rel = cu.area / base.area * 100;
       ro.set(0, "demi-vie " + S.fmt(half, 1) + " ms"); ro.set(1, S.fmt(peak * 100, 0) + " %"); ro.set(2, S.fmt(rel, 0) + " %");
       var msg = {a: "Situation normale : le neurotransmetteur est éliminé en quelques ms, la réponse est brève.",
         c: "La recapture est freinée : le neurotransmetteur reste dans la fente, les récepteurs sont stimulés plus longtemps (réponse × " + S.fmt(rel / 100, 1) + ").",
@@ -165,49 +219,80 @@ SFA.sim({
   id: "b5-c02-regle", ch: "c02", tag: "Défi",
   titre: "Test de la règle qui tombe : ton temps de réaction",
   resume: "Distance de chute de la règle → temps de réaction de la chaîne nerveuse.",
-  but: "Mode « Jouer » : clique sur « Lâcher » puis sur « Attraper ! » dès que la règle bouge, répète plusieurs fois. Mode « Calculer » : choisis la distance de chute et obtiens le temps (d = ½·g·t²). Ton temps est-il dans la fourchette habituelle (0,15 à 0,25 s) ?",
+  but: "Mode « Jouer » : clique sur « Lâcher », puis sur « Attraper ! » (ou touche la scène) dès que la règle bouge ; répète plusieurs fois. Mode « Calculer » : choisis la distance de chute et obtiens le temps (d = ½·g·t²). Ton temps est-il dans la fourchette habituelle (0,15 à 0,25 s) ?",
   aRetenir: "La règle tombe d'une hauteur d = ½·g·t², donc t = √(2d/g). Le temps de réaction comprend : détection par la rétine, trajet vers le cortex visuel, décision, trajet vers les muscles de la main, contraction. C'est une action volontaire : bien plus longue qu'un réflexe (≈ 20–30 ms).",
   piege: "Plus la règle tombe de haut, plus la réaction est lente, mais pas proportionnellement : d croît comme t² (une réaction deux fois plus lente fait chuter la règle quatre fois plus loin).",
   build: function(k, S){
-    var c = k.canvas(300), pal = S.draw.palette, g = 9.81;
+    var c = k.canvas(440), pal = S.draw.palette, D = S.draw, g = 9.81;
     var mode = k.seg("Mode", [["j", "Jouer"], ["c", "Calculer"]], "j");
     var dd = k.slider("Distance de chute (mode Calculer)", 1, 40, 1, 20, "cm");
     var ro = k.readouts(["Distance", "Temps de réaction", "Moyenne"]);
     var nt = k.note("Mode « Jouer » : lâche la règle, puis attrape-la dès qu'elle bouge.", "");
-    var st = "idle", wait = 0, tfall = 0, res = [], dist = 0;
+    var st = "idle", wait = 0, tfall = 0, res = [], dist = 0, dcalc = null;
     var lp = k.loop(function(dt){
       if (st === "wait"){ wait -= dt; if (wait <= 0){ st = "fall"; tfall = 0; } }
-      else if (st === "fall"){ tfall += dt; var d = 0.5 * g * tfall * tfall * 100; if (d >= 40){ dist = 40; st = "miss"; lp.pause(); nt.set("Raté : la règle est tombée complètement.", "warn"); } }
+      else if (st === "fall"){ tfall += dt; var d = 0.5 * g * tfall * tfall * 100; if (d >= 42){ dist = 40; st = "miss"; lp.pause(); nt.set("Raté : la règle est tombée complètement. Anticipe moins, réagis plus vite.", "warn"); } }
       k.redraw();
     });
-    k.button("Lâcher la règle", function(){ if (st === "wait" || st === "fall") return; st = "wait"; wait = 1 + Math.random() * 2; nt.set("Attention… la règle va tomber.", ""); lp.play(); }, true);
-    k.button("Attraper !", function(){
-      if (st === "fall"){ dist = 0.5 * g * tfall * tfall * 100; res.push(tfall); if (res.length > 6) res.shift(); st = "done"; lp.pause(); nt.set("Attrapée : " + S.fmt(dist, 1) + " cm, soit " + S.fmt(tfall * 1000, 0) + " ms.", "ok"); }
+    function lacher(){ if (st === "wait" || st === "fall") return; st = "wait"; wait = 1 + Math.random() * 2; nt.set("Attention… la règle va tomber.", ""); lp.play(); }
+    function attraper(){
+      if (st === "fall"){ dist = 0.5 * g * tfall * tfall * 100; res.push(tfall); if (res.length > 8) res.shift(); st = "done"; lp.pause(); nt.set("Attrapée à " + S.fmt(dist, 1) + " cm : " + S.fmt(tfall * 1000, 0) + " ms. " + (tfall >= .15 && tfall <= .25 ? "Dans la fourchette habituelle." : (tfall < .15 ? "Très rapide (ou tu as anticipé) !" : "Un peu lent : recommence concentré.")), "ok"); }
       else if (st === "wait"){ st = "idle"; lp.pause(); nt.set("Trop tôt : tu as cliqué avant la chute.", "warn"); }
-    });
+    }
+    k.button("Lâcher la règle", lacher, true);
+    k.button("Attraper !", attraper);
+    k.button("Effacer les essais", function(){ res = []; st = "idle"; lp.pause(); });
+    c.cv.style.touchAction = "none";
+    c.pointer(function(t){ if (t === "down" && mode.value === "j"){ if (st === "idle" || st === "done" || st === "miss") lacher(); else attraper(); } });
     k.draw(function(){
-      c.clear();
-      var ax = S.draw.axes(c, {x0: 0, x1: 40, y0: 0, y1: 0.3, xl: "d (cm)", yl: "t (s)", stepX: 5, stepY: 0.05, l: 52, r: 74});
-      var pts = []; for (var d = 0; d <= 40; d += 0.5) pts.push([d, Math.sqrt(2 * d / 100 / g)]);
-      c.ctx.fillStyle = "rgba(46,107,85,.12)"; c.ctx.fillRect(ax.X(0), ax.Y(0.25), ax.X(40) - ax.X(0), ax.Y(0.15) - ax.Y(0.25));
-      S.draw.text(c, "zone habituelle 0,15 à 0,25 s", ax.L + 8, ax.Y(0.2), {align: "left", size: 12, color: pal.green});
-      B5.poly(c, ax, pts, pal.violet, 2.6);
-      var calc = mode.value === "c", dshow, tshow;
+      c.clear(); var ctx = c.ctx, W = c.W, H = c.H, calc = mode.value === "c";
+      var sw = Math.min(150, Math.max(118, W * 0.34));
+      /* scène de gauche */
+      D.panel(c, 8, 8, sw, H - 16, {shadow: false, fill: "#f6f8fc"});
+      var cx = 8 + sw * 0.62, yf = H - 100, sc = (yf - 26) / 40;
+      var fall = calc ? dd.value : (st === "fall" ? 0.5 * g * tfall * tfall * 100 : (st === "done" || st === "miss" ? dist : 0));
+      var yb = yf + fall * sc;                         /* bas de la règle (repère 0) */
+      var rw = 30, rx = cx - rw / 2;
+      var gr = ctx.createLinearGradient(rx, 0, rx + rw, 0); gr.addColorStop(0, "#fbe7a0"); gr.addColorStop(1, "#e8b93d");
+      ctx.save(); ctx.beginPath(); ctx.rect(8, 10, sw, H - 20); ctx.clip();
+      D.rrect(c, rx, yb - 40 * sc, rw, 40 * sc + 4, 4); ctx.fillStyle = gr; ctx.fill(); ctx.strokeStyle = "#b8860b"; ctx.lineWidth = 1.5; ctx.stroke();
+      for (var m = 0; m <= 40; m += 1){
+        var yy = yb - m * sc, big = m % 10 === 0, mid = m % 5 === 0;
+        D.line(c, rx, yy, rx + (big ? 14 : mid ? 10 : 5), yy, "#8a6508", big ? 1.5 : 1);
+        if (big && m > 0) D.text(c, m, rx + 20, yy, {size: 10.5, color: "#6b4f05", weight: 800, align: "left"});
+      }
+      ctx.restore();
+      /* main : pouce et index */
+      ctx.fillStyle = "#f0c7a4"; ctx.strokeStyle = "#c28b63"; ctx.lineWidth = 1.5;
+      D.rrect(c, rx - 30, yf - 26, 36, 22, 11); ctx.fill(); ctx.stroke();
+      D.rrect(c, rx - 30, yf + 6, 36, 22, 11); ctx.fill(); ctx.stroke();
+      D.rrect(c, rx - 62, yf - 10, 44, 30, 12); ctx.fill(); ctx.stroke();
+      D.line(c, rx - 4, yf, rx + rw + 6, yf, pal.violet, 2, [4, 3]);
+      D.text(c, "main", rx - 40, yf + 36, {size: 11, color: "#9a6a43", weight: 800});
+      D.label(c, "repère 0", cx + 12, yf + 22, {color: pal.violet, size: 10.5});
+      var stTxt = st === "wait" ? "Attends…" : st === "fall" ? "ATTRAPE !" : calc ? "" : st === "idle" ? "Touche la scène" : "";
+      if (stTxt) D.text(c, stTxt, 8 + sw / 2, H - 26, {size: 14, color: st === "fall" ? pal.red : pal.grey, weight: 900});
+      if (st === "fall") D.glow(c, 8 + sw / 2, H - 26, 50, pal.red, .35);
+      /* valeurs */
+      var dshow, tshow;
       if (calc){ dshow = dd.value; tshow = Math.sqrt(2 * dshow / 100 / g); }
-      else if (st === "fall" || st === "miss" || st === "done"){ dshow = st === "fall" ? 0.5 * g * tfall * tfall * 100 : dist; tshow = st === "fall" ? tfall : (st === "done" ? res[res.length - 1] : Math.sqrt(2 * 0.4 / g)); }
-      else { dshow = null; }
-      if (dshow !== null) S.draw.dot(c, ax.X(Math.min(dshow, 40)), ax.Y(tshow), 7, pal.red);
+      else if (st === "fall"){ dshow = fall; tshow = tfall; }
+      else if (st === "done"){ dshow = dist; tshow = res[res.length - 1]; }
+      else if (st === "miss"){ dshow = 40; tshow = Math.sqrt(2 * 0.4 / g); }
+      else dshow = null;
+      /* graphe de droite */
+      var gx = sw + 16, gw = W - gx - 8;
+      D.panel(c, gx, 8, gw, H - 16, {shadow: false, fill: "#fbfcfe"});
+      var ax = D.axes(c, {x0: 0, x1: 40, y0: 0, y1: 0.3, xl: "d (cm)", yl: "t (s)", stepX: 10, stepY: 0.05, l: gx + 44, r: 20, t: 30, b: 38});
+      ctx.fillStyle = "rgba(36,119,90,.14)"; ctx.fillRect(ax.X(0), ax.Y(0.25), ax.X(40) - ax.X(0), ax.Y(0.15) - ax.Y(0.25));
+      D.text(c, "zone habituelle", ax.L + 6, ax.Y(0.2), {align: "left", size: 11, color: pal.green});
+      var pts = []; for (var d = 0; d <= 40; d += 0.5) pts.push([d, Math.sqrt(2 * d / 100 / g)]);
+      B5.poly(c, ax, pts, pal.violet, 3);
+      res.forEach(function(t, i){ D.dot(c, ax.X(0.5 * g * t * t * 100), ax.Y(t), 5, "rgba(192,50,29,.45)"); });
+      if (dshow !== null){ D.line(c, ax.X(dshow), ax.B, ax.X(dshow), ax.Y(tshow), pal.red, 1, [3, 3]); D.line(c, ax.L, ax.Y(tshow), ax.X(dshow), ax.Y(tshow), pal.red, 1, [3, 3]); D.glow(c, ax.X(Math.min(dshow, 40)), ax.Y(tshow), 18, pal.red, .5); D.dot(c, ax.X(Math.min(dshow, 40)), ax.Y(tshow), 7, pal.red); D.label(c, S.fmt(tshow * 1000, 0) + " ms", ax.X(Math.min(dshow, 40)) - 10, ax.Y(tshow) - 16, {color: pal.red, align: "right", size: 12}); }
       var mean = res.length ? res.reduce(function(a, b){ return a + b; }, 0) / res.length : null;
       ro.set(0, dshow === null ? "—" : S.fmt(dshow, 1) + " cm"); ro.set(1, dshow === null ? "—" : S.fmt(tshow * 1000, 0) + " ms");
       ro.set(2, mean === null ? "—" : S.fmt(mean * 1000, 0) + " ms (" + res.length + " essais)");
-      /* règle dessinée à droite de la zone du graphe */
-      var rx = c.W - 52, ry0 = ax.T + 6, h = ax.B - ax.T - 12, fall = (calc ? dd.value : (dshow || 0));
-      var scale = h / 80;
-      var top = ry0 + (calc || st !== "idle" ? fall * scale : 0);
-      c.ctx.fillStyle = "#f4c542"; c.ctx.fillRect(rx, top, 22, 40 * scale); c.ctx.strokeStyle = "#B45309"; c.ctx.strokeRect(rx, top, 22, 40 * scale);
-      for (var m = 0; m <= 40; m += 10) S.draw.line(c, rx, top + m * scale, rx + 10, top + m * scale, "#B45309", 1);
-      S.draw.line(c, rx - 10, ry0 + 40 * scale, rx + 32, ry0 + 40 * scale, pal.violet, 2, [4, 3]);
-      S.draw.text(c, "main", rx - 18, ry0 + 40 * scale, {size: 12, color: pal.violet, align: "right"});
     });
   }
 });

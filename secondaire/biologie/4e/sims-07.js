@@ -1,40 +1,60 @@
 /* Biologie 4e · chapitre 7 · ATP et bilan énergétique de la cellule */
 SFA.sim({
-  id:"b4-c07-cycle", ch:"c07", tag:"Cycle · original",
+  id:"b4-c07-cycle", ch:"c07", tag:"Cycle animé · modèle",
   titre:"Le cycle ATP–ADP : une monnaie qui tourne",
-  resume:"L'ATP stocké ne tient que quelques minutes : bloque sa production et regarde le stock fondre.",
-  but:"Règle la dépense énergétique journalière et la voie de production d'ATP. Lance la simulation (1 s = 10 s) et suis la part d'ATP dans le stock.",
+  resume:"Les molécules d'ATP se coupent au travail puis se reforment à la respiration. Bloque la production et regarde le stock fondre.",
+  but:"Règle la dépense énergétique journalière et la voie de production d'ATP. Lance la simulation (1 s = 10 s) : le cycle tourne, le stock se vide ou se maintient.",
   aRetenir:"ATP + H₂O ⇄ ADP + Pi : en se coupant, l'ATP libère l'énergie utilisable par la cellule ; la respiration (ou la fermentation) la régénère. Le stock d'ATP est minuscule (≈ 0,1 mol, ≈ 50 g) mais renouvelé sans cesse : on en recycle l'équivalent de plusieurs dizaines de kg par jour. Une cellule ne peut pas vivre de ce stock plus de quelques minutes.",
   piege:"L'ATP n'est pas une pile ni une réserve à long terme : les réserves sont le glycogène et les lipides. Modèle simplifié : 40 % de l'énergie alimentaire passe par l'ATP, ≈ 50 kJ libérés par mole d'ATP hydrolysée dans la cellule.",
   build:function(k, S){
-    var c = k.canvas(0, {ratio:.95});
+    var P = S.draw.palette, c = k.canvas(0, {ratio:1.12});
     var E = k.slider("Énergie dépensée par jour", 6000, 16000, 500, 10000, "kJ");
     var src = k.seg("Production d'ATP", [["r","Respiration"],["f","Fermentation seule"],["0","Bloquée (cyanure)"]], "r");
     var ro = k.readouts(["ATP régénéré par jour", "Masse d'ATP par jour", "Recyclages du stock/jour", "Stock tenu sans production"]);
     var nt = k.note("", "");
-    var st = {t:0, f:0.9, h:[[0, 90]], acc:0};
+    var st = {t:0, f:0.9, h:[[0, 90]], acc:0, pa:0, pd:0, flash:0};
     function C(){ return E.value * 0.4 / 50 / 86400; }      /* mol/s */
     function Sy(){ return C() * (src.value === "r" ? 1 : src.value === "f" ? 2 / 30 : 0); }
     var lp = k.loop(function(dt){
-      var h = dt * 10;
+      var h = dt * 10, v = 0.5 * E.value / 10000;
       st.f = Math.max(0, Math.min(1, st.f + (Sy() - C()) / 0.1 * h)); st.t += h; st.acc += h;
+      st.pa += dt * v; st.pd += dt * v * (Sy() / C()); st.flash = Math.max(0, st.flash - dt * 3); if (Math.floor(st.pa * 4) !== Math.floor((st.pa - dt * v) * 4)) st.flash = 1;
       if (st.acc >= 5){ st.acc = 0; st.h.push([st.t, st.f * 100]); }
       if (st.t >= 300) lp.pause(); k.redraw();
     });
     lp.play();
-    k.button("↺ Recommencer", function(){ st.t = 0; st.f = 0.9; st.h = [[0, 90]]; lp.play(); }, true);
+    k.button("↺ Recommencer", function(){ st.t = 0; st.f = 0.9; st.h = [[0, 90]]; st.pa = st.pd = 0; lp.play(); }, true);
+    function mol(x, y, ang, atp){
+      var ctx = c.ctx; ctx.save(); ctx.translate(x, y); ctx.rotate(ang);
+      ctx.fillStyle = "#7d90b8"; ctx.beginPath(); ctx.arc(-8, 0, 5, 0, 6.2832); ctx.fill();
+      for (var i = 0; i < (atp ? 3 : 2); i++){ ctx.beginPath(); ctx.arc(-1 + i * 7, 0, 3.4, 0, 6.2832); ctx.fillStyle = atp ? P.amber : "#d98e8a"; ctx.fill(); ctx.strokeStyle = "rgba(255,255,255,.8)"; ctx.lineWidth = 1; ctx.stroke(); }
+      ctx.restore();
+    }
     k.draw(function(){
       c.clear(); var ctx = c.ctx, W = c.W, H = c.H, cons = C(), sy = Sy();
-      var bw = W * 0.34, by = 14, bh = H * 0.3;
-      B4.rr(c, 10, by, bw, bh, 10, "rgba(220,252,231,.8)", "#2e6b55", 2); B4.rr(c, W - 10 - bw, by, bw, bh, 10, "rgba(254,226,226,.8)", "#9f1239", 2);
-      B4.txt(c, "ATP", 10 + bw / 2, by + 14, B4.pal.green, 13); B4.txt(c, "ADP + Pi", W - 10 - bw / 2, by + 14, B4.pal.red, 13);
-      var r = B4.rng(3), tot = 40, nA = Math.round(st.f * tot);
-      for (var i = 0; i < tot; i++){ var gx = 16 + (i % 8) * (bw - 12) / 8, gy = by + 30 + Math.floor(i / 8) * (bh - 40) / 5; var isA = i < nA; S.draw.dot(c, isA ? gx + 4 : W - 10 - bw + 6 + (i % 8) * (bw - 12) / 8, gy, 5, isA ? B4.pal.green : B4.pal.red); }
-      var mid = W / 2;
-      S.draw.arrow(c, 10 + bw + 4, by + bh * 0.35, W - 14 - bw, by + bh * 0.35, B4.pal.red, 5); B4.txt(c, "travail", mid, by + bh * 0.35 - 12, B4.pal.red, 11);
-      S.draw.arrow(c, W - 14 - bw, by + bh * 0.7, 10 + bw + 4, by + bh * 0.7, B4.pal.green, 0.5 + 4.5 * sy / cons); B4.txt(c, src.value === "r" ? "respiration" : src.value === "f" ? "fermentation" : "bloquée", mid, by + bh * 0.7 + 14, B4.pal.green, 11);
-      var ax = S.draw.axes(c, {x0:0, x1:300, y0:0, y1:100, xl:"t (s)", yl:"ATP / (ATP + ADP) en %", stepX:60, stepY:25, t:by + bh + 24, l:44});
-      ctx.save(); ctx.beginPath(); ctx.rect(ax.L, ax.T, ax.R - ax.L, ax.B - ax.T); ctx.clip(); ctx.strokeStyle = B4.pal.green; ctx.lineWidth = 2.8; ctx.beginPath(); st.h.forEach(function(p, q){ var x = ax.X(p[0]), y = ax.Y(p[1]); if (q === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y); }); ctx.stroke(); ctx.restore();
+      var R = Math.min(W * 0.27, H * 0.2), cx = W / 2, cy = H * 0.27;
+      var bg = ctx.createLinearGradient(0, 0, 0, H * 0.55); bg.addColorStop(0, "#fffaf0"); bg.addColorStop(1, "#fbf3e2"); ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H * 0.55);
+      /* piste du cycle */
+      ctx.save(); ctx.lineWidth = 14; ctx.strokeStyle = "rgba(194,106,12,.13)"; ctx.beginPath(); ctx.arc(cx, cy, R, Math.PI, 0); ctx.stroke(); ctx.strokeStyle = "rgba(192,50,29,.11)"; ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI); ctx.stroke(); ctx.restore();
+      S.draw.text(c, "ATP", cx, cy - R + 24, {size:13, color:P.amber, weight:800}); S.draw.text(c, "ADP + Pi", cx, cy + R - 24, {size:13, color:P.red, weight:800});
+      var nA = Math.max(0, Math.round(st.f * 18)), nD = Math.max(0, 18 - nA), i, u, a;
+      for (i = 0; i < nA; i++){ u = ((i + st.pa) / nA) % 1; a = Math.PI + u * Math.PI; mol(cx + R * Math.cos(a), cy + R * Math.sin(a), a + Math.PI / 2, true); }
+      for (i = 0; i < nD; i++){ u = ((i + st.pd) / nD) % 1; a = u * Math.PI; var mx = cx + R * Math.cos(a), my = cy + R * Math.sin(a); mol(mx, my, a + Math.PI / 2, false); S.draw.dot(c, mx + 12 * Math.cos(a + 1.2), my + 12 * Math.sin(a + 1.2), 3, P.red); }
+      /* stations */
+      var bw = Math.min(78, W * 0.22), bx2 = cx + R + 14;
+      S.draw.rrect(c, bx2, cy - 26, bw, 52, 10); ctx.fillStyle = "#fde8e3"; ctx.fill(); ctx.strokeStyle = P.red; ctx.lineWidth = 2; ctx.stroke();
+      S.draw.text(c, "Travail", bx2 + bw / 2, cy - 11, {size:11, color:P.red}); S.draw.text(c, "muscle, pompes,", bx2 + bw / 2, cy + 3, {size:8.5, color:"#5f6b7a"}); S.draw.text(c, "synthèses", bx2 + bw / 2, cy + 14, {size:8.5, color:"#5f6b7a"});
+      if (st.flash > 0){ S.draw.glow(c, cx + R, cy, 30, P.yellow, 0.8 * st.flash); S.draw.arrow(c, cx + R + 4, cy, bx2 - 2, cy, P.red, 3 + 2 * st.flash); }
+      var ok = Sy() > 0, bx1 = cx - R - 14 - bw;
+      S.draw.rrect(c, bx1, cy - 26, bw, 52, 10); ctx.fillStyle = ok ? "#dcf3e6" : "#e8ebf0"; ctx.fill(); ctx.strokeStyle = ok ? P.green : P.grey; ctx.lineWidth = 2; ctx.stroke();
+      S.draw.text(c, src.value === "r" ? "Respiration" : src.value === "f" ? "Fermentation" : "Bloquée ✖", bx1 + bw / 2, cy - 11, {size:11, color:ok ? P.green : P.red}); S.draw.text(c, src.value === "r" ? "≈ 30 ATP" : src.value === "f" ? "2 ATP" : "0 ATP", bx1 + bw / 2, cy + 6, {size:8.5, color:"#5f6b7a"});
+      if (ok){ S.draw.arrow(c, bx1 + bw + 2, cy, cx - R - 4, cy, P.green, 1.5 + 2.5 * sy / cons); }
+      S.draw.arrow(c, cx - 8, cy - R * 0.55, cx + 8, cy - R * 0.55, P.amber, 2);
+      /* jauge du stock */
+      var gy = cy + R + 26; S.draw.rrect(c, 14, gy, W - 28, 12, 6); ctx.fillStyle = "#e9edf3"; ctx.fill(); S.draw.rrect(c, 14, gy, Math.max(6, (W - 28) * st.f), 12, 6); ctx.fillStyle = st.f > 0.5 ? P.green : st.f > 0.2 ? P.amber : P.red; ctx.fill();
+      S.draw.text(c, "stock d'ATP : " + S.fmt(st.f * 100, 0) + " % de (ATP + ADP)", W / 2, gy - 9, {size:11, color:P.ink});
+      var ax = S.draw.axes(c, {x0:0, x1:300, y0:0, y1:100, xl:"t (s)", yl:"ATP / (ATP + ADP) en %", stepX:60, stepY:25, t:H * 0.6, b:30, l:44});
+      ctx.save(); ctx.beginPath(); ctx.rect(ax.L, ax.T, ax.R - ax.L, ax.B - ax.T); ctx.clip(); ctx.strokeStyle = P.green; ctx.lineWidth = 2.8; ctx.beginPath(); st.h.forEach(function(p, q){ var x = ax.X(p[0]), y = ax.Y(p[1]); if (q === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y); }); ctx.stroke(); ctx.restore();
       var day = E.value * 0.4 / 50;
       ro.set(0, S.fmt(day, 0) + " mol"); ro.set(1, S.fmt(day * 507 / 1000, 0) + " kg"); ro.set(2, "≈ " + S.fmt(day / 0.1, 0)); ro.set(3, S.fmt(0.09 / cons, 0) + " s");
       nt.set(src.value === "r" ? "Production = consommation : le stock reste stable (≈ 90 % d'ATP), mais chaque molécule d'ATP est recyclée environ " + S.fmt(day / 0.1, 0) + " fois par jour." : src.value === "f" ? "La fermentation ne régénère que 2 ATP par glucose (≈ 7 % du besoin) : le stock s'épuise presque aussi vite que s'il n'y avait aucune production." : "Production bloquée : le stock d'ATP (≈ 0,09 mol) est épuisé en ≈ " + S.fmt(0.09 / cons, 0) + " s : la cellule n'a plus d'énergie utilisable.", src.value === "r" ? "ok" : "warn");

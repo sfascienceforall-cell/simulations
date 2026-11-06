@@ -36,13 +36,13 @@ SFA.sim({
       var P = S.draw.palette, ctx = c.ctx, W = c.W, H = c.H;
       c.clear();
       if (md.value === "hyd"){
-        var ax = S.draw.axes(c, {x0:1.6, x1:5.4, y0:-180, y1:120, xl:"période", yl:"T éb (°C)", stepX:1, stepY:50});
+        var ax = S.draw.axes(c, {x0:1.6, x1:5.4, y0:-180, y1:120, xl:"période", yl:"T éb (°C)", stepX:1, stepY:50, t:30, l:50});
         var cols = {"14":P.green, "15":P.acc, "16":P.red, "17":P.amber};
         Object.keys(HYD).forEach(function(g){
           var h = HYD[g], on = g === gp.value;
           ctx.save(); ctx.strokeStyle = cols[g]; ctx.globalAlpha = on ? 1 : 0.28; ctx.lineWidth = on ? 3 : 1.5; ctx.beginPath();
           h.t.forEach(function(t, i){ var x = ax.X(2 + i), y = ax.Y(t); if (i) ctx.lineTo(x, y); else ctx.moveTo(x, y); }); ctx.stroke(); ctx.restore();
-          h.t.forEach(function(t, i){ ctx.globalAlpha = on ? 1 : 0.3; S.draw.dot(c, ax.X(2 + i), ax.Y(t), on ? 6 : 3.5, cols[g]); ctx.globalAlpha = 1; if (on) S.draw.text(c, h.mol[i], ax.X(2 + i), ax.Y(t) - 14, {size:12, color:cols[g]}); });
+          h.t.forEach(function(t, i){ ctx.globalAlpha = on ? 1 : 0.3; S.draw.dot(c, ax.X(2 + i), ax.Y(t), on ? 6 : 3.5, cols[g]); ctx.globalAlpha = 1; if (on) S.draw.label(c, h.mol[i], ax.X(2 + i) + (i === 0 ? 24 : 0), ax.Y(t) + (i === 0 ? 4 : (i === 3 ? 18 : -15)), {size:11.5, color:cols[g], math:true}); });
         });
         var h = HYD[gp.value], x = [3, 4, 5], y = h.t.slice(1), mx = 4, my = (y[0] + y[1] + y[2]) / 3;
         var sl = ((x[0] - mx) * (y[0] - my) + (x[1] - mx) * (y[1] - my) + (x[2] - mx) * (y[2] - my)) / 2, ex2 = my + sl * (2 - mx);
@@ -385,7 +385,7 @@ SFA.sim({
         var good = st.answered && t[0] === it[1], bad = st.answered && st.last === t[0] && t[0] !== it[1];
         ctx.save(); ctx.fillStyle = good ? "rgba(36,119,90,.10)" : bad ? "rgba(192,50,29,.08)" : "#ffffff"; ctx.strokeStyle = good ? P.green : bad ? P.red : "#d3dae3"; ctx.lineWidth = good || bad ? 2.4 : 1.4; S.draw.rrect(c, cx2, cy2, tw, th, 10); ctx.fill(); ctx.stroke(); ctx.restore();
         lattice(t[0], cx2 + 8, cy2 + 8, tw - 16, th - 34);
-        S.draw.text(c, t[1], cx2 + tw / 2, cy2 + th - 13, {size:11.5, color:good ? P.green : bad ? P.red : P.ink, weight:800});
+        S.draw.text(c, t[1].replace(" (réseau)", ""), cx2 + tw / 2, cy2 + th - 13, {size:tw < 90 ? 10.5 : 11.5, color:good ? P.green : bad ? P.red : P.ink, weight:800});
         tiles.push({x:cx2, y:cy2, w:tw, h:th, v:t[0]});
       });
       if (st.answered){ var ok = st.last === it[1]; S.draw.label(c, ok ? "Correct : " + it[0] + " est " + it[1] : "Pas tout à fait : " + it[0] + " est " + it[1], W / 2, 18 + 0, {color:ok ? P.green : P.red, size:12.5}); }

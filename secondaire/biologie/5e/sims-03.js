@@ -116,33 +116,86 @@ SFA.sim({
   id: "b5-c03-thermostat", ch: "c03", tag: "Original",
   titre: "Le thermostat : un rétrocontrôle négatif pas à pas",
   resume: "Consigne, perturbation et gain → la grandeur réglée revient-elle à la consigne ?",
-  but: "Une pièce chauffée par un radiateur : à t = 30 min, la température extérieure change. Compare la pièce sans régulation (pointillés) et avec un thermostat dont tu règles la sensibilité (gain). Cherche le gain pour lequel l'écart à la consigne reste sous 0,5 °C.",
+  but: "Une pièce chauffée par un radiateur : à t = 30 min, la température extérieure change. Regarde la boucle capteur → comparaison → radiateur. Glisse le repère vert du thermomètre pour changer la consigne, règle le gain et compare la pièce régulée à la pièce sans régulation (pointillés). Cherche le gain pour lequel l'écart reste sous 0,5 °C.",
   aRetenir: "Un système de régulation comprend un capteur, un centre qui compare à la consigne, un effecteur. Le rétrocontrôle négatif corrige l'écart dans le sens opposé à la perturbation. Plus la réponse est sensible, plus la valeur reste proche de la consigne. La glycémie, la température du corps, la calcémie sont réglées ainsi.",
   piege: "Un rétrocontrôle négatif ne ramène pas toujours exactement à la consigne (écart résiduel, surtout si le gain est faible) et ne « stabilise » pas si l'effecteur est saturé (chauffage au maximum). Modèle d'analogie : ni la pièce ni un humain ne sont aussi simples.",
   build: function(k, S){
-    var c = k.canvas(300), pal = S.draw.palette;
+    var c = k.canvas(480), pal = S.draw.palette, D = S.draw;
     var Ts = k.slider("Consigne du thermostat", 20, 26, 0.5, 22, "°C");
     var Te = k.slider("Température extérieure après t = 30 min", -10, 30, 1, 0, "°C");
     var g = k.slider("Gain (sensibilité du thermostat)", 0, 2, 0.05, 0.5, "");
     var ro = k.readouts(["T finale (avec thermostat)", "Écart à la consigne", "T finale (sans régulation)", "Chauffage final"]);
     var nt = k.note("", "");
+    var N = 120, tm = 0, geo = {}, drag = false;
+    var lp = k.loop(function(dt){ tm += dt * 10; if (tm > N + 14) tm = 0; k.redraw(); });
+    lp.play();
+    k.button("Rejouer la simulation", function(){ tm = 0; }, true);
+    c.cv.style.touchAction = "none";
+    c.pointer(function(t, p){
+      if (t === "down"){ drag = Math.abs(p.x - geo.tx) < 40 && p.y > geo.t0 - 10 && p.y < geo.t1 + 10; }
+      if (drag && (t === "down" || t === "drag")){ var v = 14 + (geo.t1 - p.y) / (geo.t1 - geo.t0) * 16; Ts.set(Math.max(20, Math.min(26, Math.round(v * 2) / 2))); k.redraw(); }
+      if (t === "up") drag = false;
+    });
     k.draw(function(){
-      var a = 0.05, b = 1.5, dt = 0.1, T1 = Ts.value, T2 = Ts.value, u0 = Math.max(0, a * (Ts.value - 20) / b), pts1 = [], pts2 = [], uu = 0, N = 120;
+      var a = 0.05, b = 1.5, dt = 0.1, T1 = Ts.value, T2 = Ts.value, u0 = Math.max(0, a * (Ts.value - 20) / b), pts1 = [], pts2 = [], us = [], uu = 0;
       for (var t = 0; t <= N + 1e-9; t += dt){
         var Tx = t < 30 ? 20 : Te.value;
         uu = Math.min(1, Math.max(0, g.value * (Ts.value - T1)));
-        T1 += (-a * (T1 - Tx) + b * uu) * dt;
-        T2 += (-a * (T2 - Tx) + b * u0) * dt;
-        pts1.push([t, T1]); pts2.push([t, T2]);
+        T1 += (-a * (T1 - Tx) + b * uu) * dt; T2 += (-a * (T2 - Tx) + b * u0) * dt;
+        pts1.push([t, T1]); pts2.push([t, T2]); us.push(uu);
       }
-      c.clear();
-      var ymin = Math.floor(Math.min(Te.value, Ts.value, T1, T2) / 2) * 2 - 2, ymax = Math.ceil(Math.max(Ts.value, 22, Te.value, T1, T2) / 2) * 2 + 2;
-      ymin = Math.min(ymin, 14);
-      var ax = S.draw.axes(c, {x0: 0, x1: N, y0: ymin, y1: ymax, xl: "t (min)", yl: "T (°C)", stepX: 20, stepY: 4});
-      S.draw.line(c, ax.X(0), ax.Y(Ts.value), ax.X(N), ax.Y(Ts.value), pal.green, 1.6, [6, 4]); S.draw.text(c, "consigne", ax.X(N) - 4, ax.Y(Ts.value) - 9, {align: "right", size: 12, color: pal.green});
-      S.draw.line(c, ax.X(30), ax.T, ax.X(30), ax.B, pal.amber, 1.5, [5, 4]); S.draw.text(c, "perturbation", ax.X(30) + 4, ax.B - 10, {align: "left", size: 12, color: pal.amber});
-      B5.poly(c, ax, pts2, pal.grey, 2.2, [6, 4]); B5.poly(c, ax, pts1, pal.violet, 2.8);
-      B5.leg(c, [["avec thermostat", pal.violet], ["sans régulation", pal.grey]], ax.L + 8, ax.T + 34);
+      var ii = Math.min(pts1.length - 1, Math.round(Math.min(tm, N) / dt)), Tn = pts1[ii][1], un = us[ii], Tout = Math.min(tm, N) < 30 ? 20 : Te.value;
+      c.clear(); var ctx = c.ctx, W = c.W, H = c.H;
+      /* ---------- scène : pièce en coupe ---------- */
+      var sh = 252, hx = 96, hw = W - hx - 12;
+      var sky = ctx.createLinearGradient(0, 0, 0, sh); sky.addColorStop(0, Tout < 8 ? "#cfe0f3" : Tout > 24 ? "#fde9c2" : "#e3eefa"); sky.addColorStop(1, "#f4f7fb");
+      D.rrect(c, 8, 8, W - 16, sh, 12); ctx.fillStyle = sky; ctx.fill();
+      /* extérieur */
+      var cold = Tout < 8;
+      if (Tout > 18){ D.glow(c, 46, 56, 44, pal.yellow, .8); B5.circ(c, 46, 56, 16, pal.yellow); }
+      else { for (var f = 0; f < 6; f++){ var fx = 20 + (f * 29) % 66, fy = 30 + ((f * 41 + tm * 4) % 120); B5.circ(c, fx, fy, 3, cold ? "#fff" : "#cfd8e3", "#aebdce", 1); } }
+      D.text(c, "extérieur", 46, 150, {size: 11, color: pal.grey, weight: 800});
+      D.display(c, S.fmt(Tout, 0) + " °C", 46, 184, {w: 74, h: 36, size: 15});
+      /* maison */
+      var gw = ctx.createLinearGradient(0, 40, 0, sh); gw.addColorStop(0, "#fdf6ea"); gw.addColorStop(1, "#f6e4cb");
+      ctx.fillStyle = "#c98f66"; ctx.beginPath(); ctx.moveTo(hx - 8, 56); ctx.lineTo(hx + hw / 2, 14); ctx.lineTo(hx + hw + 8, 56); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = gw; ctx.fillRect(hx, 52, hw, sh - 52 - 6); ctx.strokeStyle = "#8a6a4a"; ctx.lineWidth = 3; ctx.strokeRect(hx, 52, hw, sh - 58);
+      /* teinte de l'air selon T */
+      var warm = B5.cl((Tn - 14) / 14, 0, 1); ctx.fillStyle = "rgba(240,120,40," + (0.04 + 0.18 * warm) + ")"; ctx.fillRect(hx + 2, 54, hw - 4, sh - 62);
+      /* fenêtre */
+      ctx.fillStyle = "#cfe6f8"; ctx.fillRect(hx + 18, 84, 40, 56); ctx.strokeStyle = "#8a6a4a"; ctx.lineWidth = 3; ctx.strokeRect(hx + 18, 84, 40, 56); D.line(c, hx + 38, 84, hx + 38, 140, "#8a6a4a", 2);
+      /* radiateur (effecteur) */
+      var rx = hx + hw - 70, ry = 150;
+      for (var fi = 0; fi < 6; fi++){ D.rrect(c, rx + fi * 10, ry, 7, 62, 3); ctx.fillStyle = un > .02 ? "rgb(" + Math.round(150 + 100 * un) + "," + Math.round(110 - 70 * un) + ",70)" : "#aeb7c2"; ctx.fill(); }
+      if (un > 0.03) D.glow(c, rx + 30, ry + 30, 40 + 40 * un, pal.orange, .55 * un + .15);
+      D.text(c, "radiateur (effecteur)", rx + 28, ry + 76, {size: 10.5, color: "#7a4a2a", weight: 800});
+      D.text(c, S.fmt(un * 100, 0) + " %", rx + 28, ry + 32, {size: 12, color: un > .3 ? "#fff" : "#475569", weight: 900});
+      /* thermomètre (capteur) + repère de consigne */
+      var tx = hx + hw * 0.42, t0 = 84, t1 = 232; geo.tx = tx; geo.t0 = t0; geo.t1 = t1;
+      D.rrect(c, tx - 7, t0, 14, t1 - t0, 7); ctx.fillStyle = "#fff"; ctx.fill(); ctx.strokeStyle = "#8a95a3"; ctx.lineWidth = 2; ctx.stroke();
+      var lv = t1 - (B5.cl(Tn, 14, 30) - 14) / 16 * (t1 - t0);
+      D.rrect(c, tx - 4, lv, 8, t1 - lv - 1, 4); ctx.fillStyle = pal.red; ctx.fill();
+      for (var d = 14; d <= 30; d += 2){ var yy = t1 - (d - 14) / 16 * (t1 - t0); D.line(c, tx + 9, yy, tx + 14, yy, "#8a95a3", 1); if (d % 4 === 2 || d === 30) D.text(c, d, tx + 28, yy, {size: 10, color: pal.grey, weight: 700}); }
+      var sy = t1 - (Ts.value - 14) / 16 * (t1 - t0);
+      ctx.fillStyle = pal.green; ctx.beginPath(); ctx.moveTo(tx - 10, sy); ctx.lineTo(tx - 26, sy - 9); ctx.lineTo(tx - 26, sy + 9); ctx.fill();
+      D.glow(c, tx - 26, sy, 16, pal.green, .35);
+      D.label(c, "consigne " + S.fmt(Ts.value, 1) + " °C", tx - 32, sy, {color: pal.green, align: "right", size: 11});
+      D.text(c, "↕ glisse", tx - 18, sy + 22, {size: 10, color: pal.green, weight: 700});
+      D.display(c, S.fmt(Tn, 1) + "°", tx, 36, {w: 76, h: 34, size: 15});
+      D.text(c, "capteur", tx - 46, 36, {size: 10.5, color: "#fff", weight: 800, align: "right", halo: "#c98f66"});
+      /* boucle */
+      D.arrow(c, tx + 34, 108, rx + 6, 144, pal.violet, 2); D.text(c, "ordre : gain × écart", tx + 36, 98, {size: 10.5, color: pal.violet, weight: 800, align: "left"});
+      D.text(c, "écart = " + S.fmt(Ts.value - Tn, 1) + " °C", hx + hw - 50, 70, {size: 11, color: pal.ink, weight: 800});
+      /* ---------- courbe ---------- */
+      var gy = sh + 20; D.panel(c, 8, gy, W - 16, H - gy - 8, {shadow: false, fill: "#fbfcfe"});
+      var ymin = Math.min(Math.floor(Math.min(Te.value, Ts.value, T1, T2) / 2) * 2 - 2, 14), ymax = Math.ceil(Math.max(Ts.value, 22, Te.value, T1, T2) / 2) * 2 + 2;
+      var ax = D.axes(c, {x0: 0, x1: N, y0: ymin, y1: ymax, xl: "t (min)", stepX: 20, stepY: 4, t: gy + 10, b: 32, l: 40, r: 20});
+      D.line(c, ax.L, ax.Y(Ts.value), ax.R, ax.Y(Ts.value), pal.green, 1.6, [6, 4]); D.label(c, "consigne", ax.L + 6, ax.Y(Ts.value) - 11, {color: pal.green, align: "left", size: 11});
+      D.line(c, ax.X(30), ax.T, ax.X(30), ax.B, pal.amber, 1.5, [5, 4]); D.label(c, "perturbation", ax.X(30) + 4, ax.B - 12, {color: pal.amber, align: "left", size: 11});
+      B5.poly(c, ax, pts2, pal.grey, 2.2, [6, 4]); B5.poly(c, ax, pts1.slice(0, ii + 1), pal.violet, 3);
+      D.dot(c, ax.X(pts1[ii][0]), ax.Y(Tn), 5, pal.violet);
+      D.legend(c, [[pal.violet, "avec thermostat"], [pal.grey, "sans régulation", true]], ax.R - 4, ax.T + 2, {align: "right"});
+      uu = us[us.length - 1];
       ro.set(0, S.fmt(T1, 1) + " °C"); ro.set(1, S.fmt(T1 - Ts.value, 1) + " °C"); ro.set(2, S.fmt(T2, 1) + " °C"); ro.set(3, S.fmt(uu * 100, 0) + " % de la puissance");
       if (g.value === 0) nt.set("Gain nul : le thermostat ne commande rien, c'est comme s'il n'y avait pas de régulation (la pièce suit l'extérieur).", "warn");
       else if (uu <= 0.001 && T1 - Ts.value > 0.5) nt.set("Chauffage à l'arrêt (0 %) : la pièce est plus chaude que la consigne et ce thermostat ne sait que chauffer, il ne peut pas refroidir. La température dérive vers celle de l'extérieur.", "warn");

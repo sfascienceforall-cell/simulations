@@ -137,23 +137,34 @@ SFA.sim({
 });
 
 SFA.sim({
-  id:"b4-c05-phases", ch:"c05", tag:"Phases · original",
+  id:"b4-c05-phases", ch:"c05", tag:"Chloroplaste animé · modèle",
   titre:"Phase lumineuse et cycle de Calvin : qui travaille quand ?",
-  resume:"Coupe la lumière : le cycle de Calvin continue un moment avec les réserves d'ATP et de NADPH, puis s'arrête.",
-  but:"Pendant que la simulation tourne, règle la lumière et le CO₂ et suis la réserve d'ATP/NADPH, la production d'O₂ et le sucre fabriqué.",
+  resume:"Dans un chloroplaste vivant, la lumière charge une réserve d'ATP et de NADPH que le cycle de Calvin consomme. Coupe la lumière ou le CO₂.",
+  but:"Pendant que la simulation tourne, règle la lumière et le CO₂ : suis les jetons d'énergie, la réserve, l'O₂ dégagé et le sucre fabriqué.",
   aRetenir:"Phase lumineuse (thylacoïdes) : lumière → photolyse de l'eau, libération d'O₂, production d'ATP et de NADPH. Cycle de Calvin (stroma) : le CO₂ est fixé puis transformé en sucre en utilisant cet ATP et ce NADPH. Les deux phases s'enchaînent : sans lumière, le cycle s'arrête quand les réserves sont épuisées ; sans CO₂, les réserves se remplissent et la phase lumineuse se bloque.",
   piege:"La « phase sombre » n'a pas lieu dans le noir : elle ne demande pas la lumière directement, mais dépend de ce qu'elle produit. Modèle qualitatif en unités arbitraires.",
   build:function(k, S){
-    var c = k.canvas(0, {ratio:.95});
+    var P = S.draw.palette, c = k.canvas(0, {ratio:1.16});
     var L = k.slider("Lumière", 0, 100, 5, 100, "%");
     var CO = k.slider("CO₂ disponible", 0, 100, 5, 100, "%");
     var ro = k.readouts(["Réserve ATP + NADPH", "Débit d'O₂", "Débit de fixation du CO₂", "Sucre fabriqué"]);
     var nt = k.note("", "");
-    var st = {t:0, P:60, sug:0, h:[]}, W0 = 150;
+    var st = {t:0, P:60, sug:0, h:[], parts:[], acc:0, sa:0}, W0 = 150, rr = B4.rng(5);
     function rates(){ var Lg = L.value / 100, C = CO.value / 100, prod = 8 * Lg * (1 - st.P / 100), cons = 4 * C * st.P / (st.P + 15); return {prod:prod, cons:cons}; }
+    function add(k2, a, b, life, extra){ var o = {k:k2, a:a, b:b, t:0, life:life}; if (extra) for (var q in extra) o[q] = extra[q]; st.parts.push(o); }
     var lp = k.loop(function(dt){
-      for (var s = 0; s < 5; s++){ var r = rates(), h = dt / 5; st.P = Math.max(0, Math.min(100, st.P + (r.prod - r.cons) * h)); st.sug += r.cons * h / 10; }
-      st.t += dt; st.acc = (st.acc || 0) + dt; if (st.acc >= 0.5){ st.acc = 0; var rr = rates(); st.h.push([st.t, st.P, rr.prod * 0.6 * 10, rr.cons * 10]); if (st.h.length > 2 * W0) st.h.shift(); }
+      var r = rates();
+      for (var s = 0; s < 5; s++){ r = rates(); var h = dt / 5; st.P = Math.max(0, Math.min(100, st.P + (r.prod - r.cons) * h)); st.sug += r.cons * h / 10; }
+      st.t += dt; st.acc += dt; if (st.acc >= 0.5){ st.acc = 0; var r2 = rates(); st.h.push([st.t, st.P, r2.prod * 0.6 * 10, r2.cons * 10]); if (st.h.length > 2 * W0) st.h.shift(); }
+      /* génération de particules (positions relatives à la scène) */
+      function chance(rate){ return rr() < rate * dt; }
+      if (chance(L.value / 100 * 4)) add("ph", [0.06 + rr() * 0.05, 0.08], [0.1 + rr() * 0.24, 0.5], 0.9);
+      if (chance(r.prod * 0.9)){ add("o2", [0.1 + rr() * 0.24, 0.45], [0.02 + rr() * 0.3, -0.12], 1.6); add("tok", [0.3, 0.55 + rr() * 0.1], [0.47, 0.8 - rr() * 0.3], 1.0); }
+      if (chance(r.cons * 1.6)){ add("tok2", [0.47, 0.7 - rr() * 0.3], [0.7, 0.58], 0.9); add("adp", [0.7, 0.58], [0.25, 0.9], 1.6); }
+      if (chance(CO.value / 100 * (r.cons / 4) * 5)) add("co2", [0.92, -0.05], [0.76, 0.5], 1.1);
+      if (st.sa >= 1){ st.sa -= 1; add("sug", [0.8, 0.66], [0.96, 1.05], 1.4); }
+      st.sa += r.cons * dt * 0.35;
+      st.parts.forEach(function(p){ p.t += dt; }); st.parts = st.parts.filter(function(p){ return p.t < p.life; });
       k.redraw();
     });
     lp.play();
@@ -161,24 +172,47 @@ SFA.sim({
     k.button("Rallumer", function(){ L.set(100); });
     k.button("Retirer le CO₂", function(){ CO.set(0); });
     k.button("Remettre le CO₂", function(){ CO.set(100); });
-    k.button("↺ Recommencer", function(){ st.t = 0; st.P = 60; st.sug = 0; st.h = []; });
+    k.button("↺ Recommencer", function(){ st.t = 0; st.P = 60; st.sug = 0; st.h = []; st.parts = []; });
+    function ease(x){ return x * x * (3 - 2 * x); }
     k.draw(function(){
-      c.clear(); var ctx = c.ctx, W = c.W, H = c.H, r = rates();
-      /* schéma du chloroplaste */
-      var hh = H * 0.3;
-      B4.rr(c, 6, 6, W - 12, hh, 18, "rgba(220,252,231,.7)", "#2e6b55", 2.5);
-      B4.rr(c, W * 0.05, 14, W * 0.42, hh - 16, 8, "rgba(34,197,94,.4)", "#14532d", 2);
-      B4.txt(c, "Thylacoïdes", W * 0.26, 28, B4.pal.ink, 12); B4.txt(c, "lumière + H₂O", W * 0.26, 46, "#14532d", 12); B4.txt(c, "→ O₂, ATP, NADPH", W * 0.26, 62, "#14532d", 12);
-      B4.txt(c, "Stroma (Calvin)", W * 0.75, 28, B4.pal.ink, 12); B4.txt(c, "CO₂ + ATP + NADPH", W * 0.75, 46, B4.pal.acc, 12); B4.txt(c, "→ sucre", W * 0.75, 62, B4.pal.acc, 12);
-      S.draw.arrow(c, W * 0.48, 44, W * 0.55, 44, B4.pal.violet, 2 + st.P / 20);
-      var ax = S.draw.axes(c, {x0:0, x1:W0, y0:0, y1:100, xl:"t (s, fenêtre glissante)", stepX:30, stepY:25, t:hh + 28, l:40});
-      var t0 = Math.max(0, st.t - W0), t1 = Math.max(W0, st.t);
-      /* fenêtre glissante : on redessine l'axe temporel relatif */
-      var cols = [B4.pal.violet, B4.pal.green, B4.pal.acc], names = ["réserve ATP+NADPH", "débit d'O₂", "fixation du CO₂"];
-      for (var s = 0; s < 3; s++){
+      c.clear(); var ctx = c.ctx, W = c.W, H = c.H, r = rates(), hs = H * 0.52;
+      function X(u){ return u * W; } function Y(v){ return v * hs; }
+      /* chloroplaste */
+      S.draw.rrect(c, 6, Y(0.16), W - 12, hs * 0.82, 30); var eg = ctx.createLinearGradient(0, 0, W, hs); eg.addColorStop(0, "#e2f5e6"); eg.addColorStop(1, "#cfeed9"); ctx.fillStyle = eg; ctx.fill(); ctx.strokeStyle = "#2f8a5e"; ctx.lineWidth = 3; ctx.stroke();
+      S.draw.rrect(c, 12, Y(0.16) + 6, W - 24, hs * 0.82 - 12, 24); ctx.strokeStyle = "rgba(47,138,94,.35)"; ctx.lineWidth = 1.2; ctx.stroke();
+      /* soleil */
+      var sl = L.value / 100; S.draw.glow(c, 26, 20, 34, P.yellow, 0.25 + 0.6 * sl); ctx.beginPath(); ctx.arc(26, 20, 11, 0, 6.2832); ctx.fillStyle = sl > 0 ? "#f4c542" : "#c9ced6"; ctx.fill();
+      /* grana */
+      for (var s = 0; s < 3; s++){ for (var j = 0; j < 4; j++){ S.draw.rrect(c, X(0.1 + s * 0.11) - 15, Y(0.5) + j * 9, 30, 6.5, 3); ctx.fillStyle = "#3f9d62"; ctx.fill(); ctx.strokeStyle = "#1f6b43"; ctx.lineWidth = 1; ctx.stroke(); } }
+      S.draw.label(c, "Thylacoïdes", X(0.22), Y(0.4), {color:"#1f6b43", size:10});
+      /* réserve */
+      var tx = X(0.455), tw = 20, ty0 = Y(0.34), th = Y(0.5);
+      S.draw.rrect(c, tx, ty0, tw, th, 7); ctx.fillStyle = "#fff"; ctx.fill(); ctx.strokeStyle = P.violet; ctx.lineWidth = 2; ctx.stroke();
+      ctx.save(); S.draw.rrect(c, tx, ty0, tw, th, 7); ctx.clip(); var lvl = th * st.P / 100; var tg = ctx.createLinearGradient(0, ty0 + th - lvl, 0, ty0 + th); tg.addColorStop(0, "#ffd45e"); tg.addColorStop(1, "#c8a2ec"); ctx.fillStyle = tg; ctx.fillRect(tx, ty0 + th - lvl, tw, lvl); ctx.restore();
+      S.draw.label(c, "réserve", tx + tw / 2, ty0 - 9, {color:P.violet, size:10}); S.draw.text(c, "ATP + NADPH", tx + tw / 2, ty0 + th + 11, {size:9, color:P.violet});
+      /* Calvin */
+      var ccx = X(0.74), ccy = Y(0.62), cr = Math.min(W * 0.1, hs * 0.2); ctx.save(); ctx.lineWidth = 6; ctx.strokeStyle = "rgba(36,119,90,.25)"; ctx.beginPath(); ctx.arc(ccx, ccy, cr, 0, 6.2832); ctx.stroke(); ctx.setLineDash([10, 8]); ctx.lineDashOffset = -st.t * r.cons * 14; ctx.strokeStyle = P.green; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(ccx, ccy, cr, 0, 6.2832); ctx.stroke(); ctx.restore();
+      S.draw.text(c, "cycle de", ccx, ccy - 6, {size:10, color:P.green}); S.draw.text(c, "Calvin", ccx, ccy + 6, {size:10, color:P.green}); S.draw.label(c, "Stroma", ccx, Y(0.34), {color:P.green, size:10});
+      /* particules */
+      st.parts.forEach(function(p){
+        var u = ease(Math.min(1, p.t / p.life)), x = X(p.a[0] + (p.b[0] - p.a[0]) * u), y = Y(p.a[1] + (p.b[1] - p.a[1]) * u), al = p.t > p.life - 0.25 ? (p.life - p.t) / 0.25 : 1; ctx.save(); ctx.globalAlpha = Math.max(0, al);
+        if (p.k === "ph"){ ctx.strokeStyle = "#f4c542"; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(x - 3, y - 4); ctx.lineTo(x + 3, y + 4); ctx.stroke(); }
+        else if (p.k === "o2"){ ctx.beginPath(); ctx.arc(x, y, 4.5, 0, 6.2832); ctx.fillStyle = "#5aa0e8"; ctx.fill(); S.draw.text(c, "O₂", x + 9, y - 3, {size:8, color:P.blue}); }
+        else if (p.k === "tok" || p.k === "tok2"){ S.draw.glow(c, x, y, 9, P.yellow, 0.5); ctx.beginPath(); ctx.arc(x, y, 3.6, 0, 6.2832); ctx.fillStyle = p.k === "tok" ? "#f4c542" : "#d9a521"; ctx.fill(); }
+        else if (p.k === "adp"){ ctx.beginPath(); ctx.arc(x, y, 2.8, 0, 6.2832); ctx.fillStyle = "#b9a0cf"; ctx.fill(); }
+        else if (p.k === "co2"){ ctx.beginPath(); ctx.arc(x, y, 4.5, 0, 6.2832); ctx.fillStyle = "#9aa4b2"; ctx.fill(); S.draw.text(c, "CO₂", x - 11, y - 2, {size:8, color:"#5f6b7a"}); }
+        else if (p.k === "sug"){ ctx.beginPath(); for (var q = 0; q < 6; q++){ var a = q * Math.PI / 3; q ? ctx.lineTo(x + 6 * Math.cos(a), y + 6 * Math.sin(a)) : ctx.moveTo(x + 6 * Math.cos(a), y + 6 * Math.sin(a)); } ctx.closePath(); ctx.fillStyle = "#f7dc7a"; ctx.fill(); ctx.strokeStyle = "#7a5b12"; ctx.lineWidth = 1; ctx.stroke(); }
+        ctx.restore();
+      });
+      S.draw.text(c, "sucre →", W - 12, hs - 2, {size:10, color:"#8a6d1a", align:"right"});
+      /* graphe */
+      var ax = S.draw.axes(c, {x0:0, x1:W0, y0:0, y1:100, xl:"t (s, fenêtre glissante)", stepX:30, stepY:25, t:hs + 24, l:40});
+      var t0 = Math.max(0, st.t - W0);
+      var cols = [P.violet, P.green, P.acc], names = ["réserve ATP+NADPH", "débit d'O₂", "fixation du CO₂"];
+      for (s = 0; s < 3; s++){
         ctx.save(); ctx.beginPath(); ctx.rect(ax.L, ax.T, ax.R - ax.L, ax.B - ax.T); ctx.clip(); ctx.strokeStyle = cols[s]; ctx.lineWidth = 2.4; ctx.beginPath(); var first = true;
         st.h.forEach(function(p){ var x = ax.X(p[0] - t0), y = ax.Y(p[1 + s]); if (first){ ctx.moveTo(x, y); first = false; } else ctx.lineTo(x, y); }); ctx.stroke(); ctx.restore();
-        B4.txt(c, names[s], ax.L + 6, ax.T + 10 + s * 15, cols[s], 12, "left");
+        S.draw.text(c, names[s], ax.L + 6, ax.T + 10 + s * 14, {size:11, color:cols[s], align:"left"});
       }
       ro.set(0, S.fmt(st.P, 0)); ro.set(1, S.fmt(r.prod * 6, 1)); ro.set(2, S.fmt(r.cons * 10, 1)); ro.set(3, S.fmt(st.sug, 1) + " u.a.");
       var msg;

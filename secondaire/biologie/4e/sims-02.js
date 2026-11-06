@@ -172,14 +172,14 @@ SFA.sim({
 });
 
 SFA.sim({
-  id:"b4-c02-mito", ch:"c02", tag:"Modèle quantitatif",
+  id:"b4-c02-mito", ch:"c02", tag:"Cellule musculaire · modèle",
   titre:"Mitochondries malades : l'effort impossible",
-  resume:"Compare la demande en ATP d'un muscle à ce que ses mitochondries peuvent fournir.",
-  but:"Règle le nombre de mitochondries, la part de mitochondries défaillantes et l'effort. Cherche l'effort à partir duquel le muscle passe en fermentation, puis en épuisement.",
+  resume:"Une fibre musculaire vit : ses mitochondries fournissent l'ATP. Retire-en, abîme-les et pousse l'effort.",
+  but:"Règle le nombre de mitochondries, la part défaillante et l'effort (ou glisse le point rouge sur le graphique). Cherche l'effort à partir duquel le muscle passe en fermentation, puis en épuisement.",
   aRetenir:"Le muscle couvre sa demande en ATP surtout par respiration (mitochondries). Quand elles sont moins nombreuses ou défaillantes, la capacité aérobie baisse : à effort plus faible la cellule doit recourir à la fermentation lactique (peu rentable) et s'épuise vite.",
   piege:"Modèle simplifié en unités relatives : 100 = capacité aérobie d'un muscle sain. La fermentation ne fournit qu'un complément limité (ici 15 unités) et fait monter le lactate.",
   build:function(k, S){
-    var c = k.canvas(0, {ratio:.78});
+    var P = S.draw.palette, c = k.canvas(0, {ratio:1.2});
     var N = k.slider("Nombre de mitochondries (100 % = normal)", 10, 150, 5, 100, "%");
     var dy = k.slider("Part de mitochondries défaillantes", 0, 100, 5, 0, "%");
     var e = k.slider("Effort musculaire", 0, 100, 1, 50, "%");
@@ -187,18 +187,55 @@ SFA.sim({
     var nt = k.note("", "");
     k.button("Muscle sain", function(){ N.set(100); dy.set(0); });
     k.button("Myopathie mitochondriale (60 % défaillantes)", function(){ N.set(100); dy.set(60); });
-    var ANA = 15;
+    var ANA = 15, rr = B4.rng(21), slots = [], parts = [], tt = 0, geo = {};
+    for (var i = 0; i < 30; i++) slots.push({x:0.04 + (i % 10) * 0.095 + (rr() - .5) * 0.02, y:i < 10 ? 0.12 : i < 20 ? 0.5 : 0.84, a:rr() * 6.28, order:rr()});
+    var order = slots.map(function(s, i){ return i; }).sort(function(a, b){ return slots[a].order - slots[b].order; });
+    function model(){ var cap = 100 * N.value / 100 * (1 - dy.value / 100), dem = 10 + 0.9 * e.value; return {cap:cap, dem:dem, aer:Math.min(dem, cap), ana:Math.min(Math.max(dem - cap, 0), ANA), def:Math.max(dem - cap - ANA, 0)}; }
+    var lp = k.loop(function(dt){
+      tt += dt; var m = model(), nm = Math.round(N.value / 100 * 20), healthy = [];
+      order.slice(0, nm).forEach(function(ix, j){ if (j >= Math.round(nm * dy.value / 100)) healthy.push(ix); });
+      if (healthy.length && rr() < m.aer / 100 * 14 * dt * 3){ var s = slots[healthy[Math.floor(rr() * healthy.length)]]; parts.push({k:"atp", x:s.x, y:s.y, tx:0.1 + rr() * 0.8, ty:0.5, t:0, d:1.2}); }
+      if (m.ana > 0 && rr() < m.ana / 15 * 3 * dt) parts.push({k:"lac", x:0.2 + rr() * 0.6, y:0.5, tx:0.2 + rr() * 0.6, ty:0.1, t:0, d:2});
+      parts.forEach(function(p){ p.t += dt; }); parts = parts.filter(function(p){ return p.t < p.d; });
+      k.redraw();
+    });
+    lp.play();
+    function ease(x){ return x * x * (3 - 2 * x); }
     k.draw(function(){
-      c.clear();
-      var cap = 100 * N.value / 100 * (1 - dy.value / 100), dem = 10 + 0.9 * e.value, aer = Math.min(dem, cap), ana = Math.min(Math.max(dem - cap, 0), ANA), def = Math.max(dem - cap - ANA, 0);
-      var ax = S.draw.axes(c, {x0:0, x1:100, y0:0, y1:170, xl:"effort (%)", yl:"ATP (unités rel.)", stepX:20, stepY:50});
-      S.draw.line(c, ax.X(0), ax.Y(10), ax.X(100), ax.Y(100), B4.pal.red, 3);
-      S.draw.line(c, ax.X(0), ax.Y(cap), ax.X(100), ax.Y(cap), B4.pal.green, 3);
-      S.draw.line(c, ax.X(0), ax.Y(cap + ANA), ax.X(100), ax.Y(cap + ANA), B4.pal.amber, 2, [6, 4]);
-      B4.txt(c, "demande", ax.X(78), ax.Y(10 + 0.9 * 78) - 14, B4.pal.red, 12);
-      B4.txt(c, "capacité aérobie", ax.X(22), ax.Y(cap) + (cap > 140 ? 14 : -10), B4.pal.green, 12);
-      B4.txt(c, "+ fermentation", ax.X(62), ax.Y(cap + ANA) - 10 + (cap + ANA > 150 ? 22 : 0), B4.pal.amber, 12);
-      S.draw.dot(c, ax.X(e.value), ax.Y(dem), 7, B4.pal.red);
+      var m = model(), cap = m.cap, dem = m.dem, aer = m.aer, ana = m.ana, def = m.def;
+      c.clear(); var ctx = c.ctx, W = c.W, H = c.H, fh = H * 0.36, nm = Math.round(N.value / 100 * 20), nbad = Math.round(nm * dy.value / 100);
+      /* fibre musculaire */
+      var fx = 8, fw = W - 16, fy = 8;
+      S.draw.rrect(c, fx, fy, fw, fh, 22); var fg = ctx.createLinearGradient(0, fy, 0, fy + fh); fg.addColorStop(0, "#fde3df"); fg.addColorStop(1, "#f7c9c4"); ctx.fillStyle = fg; ctx.fill(); ctx.strokeStyle = def > 0 ? P.red : "#c97b73"; ctx.lineWidth = def > 0 ? 3.5 : 2.5; ctx.stroke();
+      var amp = def > 0 ? 0.15 : 0.08 + e.value / 100 * 0.45, sp = 14, sh = Math.sin(tt * (3 + e.value / 25)) * amp * (def > 0 ? 0.3 : 1);
+      ctx.save(); ctx.beginPath(); S.draw.rrect(c, fx, fy, fw, fh, 22); ctx.clip();
+      for (var x = fx + 12; x < fx + fw; x += sp + sh * 4){ ctx.fillStyle = "rgba(160,50,60,.22)"; ctx.fillRect(x, fy + 5, 3, fh - 10); ctx.fillStyle = "rgba(160,50,60,.1)"; ctx.fillRect(x + 6 + sh * 3, fy + 12, 1.5, fh - 24); }
+      ctx.restore();
+      /* mitochondries */
+      for (var i = 0; i < nm; i++){ var s = slots[order[i]], bad = i < nbad, x = fx + 14 + s.x * (fw - 40), y = fy + 16 + (s.y) * (fh - 44) * 0.98;
+        ctx.save(); ctx.translate(x + 8, y + 5); ctx.rotate(Math.sin(s.a) * 0.4); S.draw.rrect(c, -11, -6, 22, 12, 6); var mg = ctx.createLinearGradient(0, -6, 0, 6); mg.addColorStop(0, bad ? "#d5d9e0" : "#8fd6ad"); mg.addColorStop(1, bad ? "#aeb6c2" : "#4fb584"); ctx.fillStyle = mg; ctx.fill(); ctx.strokeStyle = bad ? "#6b7585" : "#1f7a52"; ctx.lineWidth = 1.4; ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(-5, -4); ctx.lineTo(-5, 2); ctx.moveTo(0, 4); ctx.lineTo(0, -2); ctx.moveTo(5, -4); ctx.lineTo(5, 2); ctx.strokeStyle = bad ? "#6b7585" : "#1f7a52"; ctx.lineWidth = 1; ctx.stroke(); ctx.restore();
+        if (bad){ S.draw.text(c, "×", x + 8, y + 5, {size:12, color:P.red}); } }
+      /* particules */
+      parts.forEach(function(p){ var u = ease(p.t / p.d), x = fx + 14 + (p.x + (p.tx - p.x) * u) * (fw - 40), y = fy + 16 + (p.y + (p.ty - p.y) * u) * (fh - 44); var al = p.t > p.d - 0.3 ? (p.d - p.t) / 0.3 : 1; ctx.save(); ctx.globalAlpha = Math.max(0, al);
+        if (p.k === "atp"){ S.draw.glow(c, x, y, 8, P.yellow, 0.6); S.draw.dot(c, x, y, 3.4, "#f4c542"); } else { S.draw.dot(c, x, y, 3.6, P.pink); } ctx.restore(); });
+      S.draw.label(c, "fibre musculaire · " + nm + " mitochondries" + (nbad ? " dont " + nbad + " défaillantes" : ""), 14, fy + fh + 12, {color:P.ink, size:10.5, align:"left"});
+      S.draw.label(c, "● ATP", W - 100, fy + fh + 12, {color:P.amber, size:10}); S.draw.label(c, "● lactate", W - 50, fy + fh + 12, {color:P.pink, size:10});
+      if (def > 0) S.draw.label(c, "ÉPUISEMENT", W / 2, fy + fh / 2, {color:P.red, size:14});
+      /* barre demande / apports */
+      var by = fy + fh + 40, bw = W - 28, sc = bw / 170, bx = 14;
+      S.draw.text(c, "Demande en ATP couverte par :", bx, by - 10, {size:10.5, color:"#5f6b7a", align:"left"});
+      S.draw.rrect(c, bx, by, bw, 16, 8); ctx.fillStyle = "#eef1f5"; ctx.fill();
+      var segs = [[aer, P.green], [ana, P.amber], [def, P.red]], acc = 0; segs.forEach(function(sg){ if (sg[0] > 0.01){ ctx.fillStyle = sg[1]; ctx.fillRect(bx + acc * sc, by + 1, sg[0] * sc, 14); acc += sg[0]; } });
+      S.draw.line(c, bx + dem * sc, by - 4, bx + dem * sc, by + 20, P.ink, 2); S.draw.text(c, "demande " + S.fmt(dem, 0), Math.min(W - 40, bx + dem * sc), by + 28, {size:10, color:P.ink});
+      /* graphe */
+      var ax = S.draw.axes(c, {x0:0, x1:100, y0:0, y1:170, xl:"effort (%)", yl:"ATP (unités rel.)", stepX:20, stepY:50, t:by + 44, b:30, l:44});
+      geo = {ax:ax};
+      S.draw.line(c, ax.X(0), ax.Y(10), ax.X(100), ax.Y(100), P.red, 3);
+      S.draw.line(c, ax.X(0), ax.Y(cap), ax.X(100), ax.Y(cap), P.green, 3);
+      S.draw.line(c, ax.X(0), ax.Y(cap + ANA), ax.X(100), ax.Y(cap + ANA), P.amber, 2, [6, 4]);
+      S.draw.label(c, "demande", ax.X(80), ax.Y(10 + 0.9 * 80) - 16, {color:P.red, size:10}); S.draw.label(c, "capacité aérobie", ax.X(24), ax.Y(cap) + (cap > 140 ? 16 : -12), {color:P.green, size:10}); S.draw.label(c, "+ fermentation", ax.X(62), ax.Y(cap + ANA) - 10 + (cap + ANA > 150 ? 22 : 0), {color:P.amber, size:10});
+      S.draw.dot(c, ax.X(e.value), ax.Y(dem), 8, P.red);
       var thr = (cap - 10) / 0.9, thr2 = (cap + ANA - 10) / 0.9;
       ro.set(0, S.fmt(dem, 0)); ro.set(1, S.fmt(aer, 0)); ro.set(2, S.fmt(ana, 0));
       ro.set(3, thr < 0 ? "dès le repos" : thr >= 100 ? "> 100 % (jamais)" : S.fmt(thr, 0) + " %");
@@ -208,5 +245,7 @@ SFA.sim({
       else { msg = "La respiration couvre toute la demande : effort durable, pas d'accumulation de lactate."; kind = "ok"; }
       nt.set((cap < 10 ? "Même au repos (demande 10), l'apport aérobie (" + S.fmt(cap, 0) + ") est insuffisant. " : "") + msg + (thr2 >= 0 && thr2 < 100 ? " Effort maximal tenable (avec fermentation) : " + S.fmt(thr2, 0) + " %." : ""), kind);
     });
+    c.pointer(function(type, p){ if (type === "move" || !geo.ax) return; if (type === "down" && (p.y < geo.ax.T - 6 || p.y > geo.ax.B + 6)) return; e.set(Math.max(0, Math.min(100, Math.round(geo.ax.ix(p.x))))); k.redraw(); });
+    c.cv.style.touchAction = "pan-y";
   }
 });

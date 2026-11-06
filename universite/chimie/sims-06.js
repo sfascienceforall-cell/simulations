@@ -18,7 +18,7 @@ SFA.sim({
   aRetenir:"Après mélange, chaque concentration est divisée par le volume total. Précipité si Q = [M]<sup>a</sup>[X]<sup>b</sup> &gt; Ks ; à l’équilibre, Q retombe exactement à Ks.",
   piege:"Erreur classique : comparer Q à Ks avec les concentrations AVANT mélange (il faut tenir compte de la dilution). Ne pas oublier non plus que, pour CaF₂, PbI₂ ou Mg(OH)₂, la concentration de l'anion est élevée au carré.",
   build:function(k,S){
-    var c = k.canvas(300);
+    var c = k.canvas(0, {ratio:1.08});
     var sel = k.select("Sel peu soluble",[["AgCl","AgCl"],["BaSO4","BaSO₄"],["CaF2","CaF₂"],["PbI2","PbI₂"],["MgOH2","Mg(OH)₂"]],"BaSO4");
     var p1 = k.slider("log₁₀ c(cation) avant mélange",-5,-1,0.1,-3,"");
     var p2 = k.slider("log₁₀ c(anion) avant mélange",-5,-1,0.1,-3,"");
@@ -26,6 +26,9 @@ SFA.sim({
     var v2 = k.slider("Volume solution de l’anion",10,200,5,50,"mL");
     var ro = k.readouts(["[cation] après mélange","[anion] après mélange","Q","Ks","Solide formé"]);
     var nt = k.note("","");
+    k.button("Mélanger", function(){ st.t = 0; lp.play(); }, true);
+    var st = {t:1, key:""};
+    var lp = k.loop(function(dt){ if (st.t < 1){ st.t = Math.min(1, st.t + dt / 2.4); k.redraw(); } }); lp.play();
     function solve(){
       var s = SALTS[sel.value], V = v1.value+v2.value;
       var cM = Math.pow(10,p1.value)*v1.value/V, cX = Math.pow(10,p2.value)*v2.value/V;
@@ -37,28 +40,52 @@ SFA.sim({
       }
       return {s:s,V:V,cM:cM,cX:cX,Q:Q,x:x,mol:x*V/1000,mg:x*V/1000*s.M*1000};
     }
+    function beaker(c, x, y, w, h, frac, col, alpha){
+      var ctx = c.ctx; ctx.save();
+      if (frac > 0){ var g = ctx.createLinearGradient(0, y + h * (1 - frac), 0, y + h); g.addColorStop(0, S.draw.tint(col, alpha * 0.7)); g.addColorStop(1, S.draw.tint(col, alpha)); ctx.fillStyle = g; ctx.fillRect(x + 1.5, y + h * (1 - frac), w - 3, h * frac - 1.5); }
+      ctx.strokeStyle = "#5f6b7a"; ctx.lineWidth = 2.2; ctx.lineJoin = "round"; ctx.beginPath(); ctx.moveTo(x - 4, y - 2); ctx.lineTo(x, y); ctx.lineTo(x, y + h); ctx.lineTo(x + w, y + h); ctx.lineTo(x + w, y); ctx.lineTo(x + w + 4, y - 2); ctx.stroke(); ctx.restore();
+    }
     k.draw(function(){
-      var r = solve(), ctx = c.ctx; c.clear();
-      var L=60, R=c.W-20, y0=70;
-      function X(lg){ return L+(lg+16)/16*(R-L); }
-      ctx.save(); ctx.strokeStyle="#8a95a3"; ctx.lineWidth=1.2; ctx.beginPath(); ctx.moveTo(L,y0+70); ctx.lineTo(R,y0+70); ctx.stroke();
-      ctx.font="600 11px Mulish, system-ui"; ctx.fillStyle="#5f6b7a"; ctx.textAlign="center"; ctx.textBaseline="top";
-      for (var g=-16; g<=0; g+=2){ ctx.fillText(String(g).replace("-","−"), X(g), y0+76); ctx.beginPath(); ctx.moveTo(X(g),y0+66); ctx.lineTo(X(g),y0+70); ctx.stroke(); }
-      ctx.restore();
-      S.draw.text(c,"log₁₀ (produit ionique)",(L+R)/2,y0+104,{size:12,color:P().grey});
-      var lq = Math.log10(r.Q), lk = Math.log10(r.s.Ks);
-      S.draw.line(c,X(lk),y0-20,X(lk),y0+70,P().green,2.5,[5,4]);
-      S.draw.text(c,"Ks",X(lk),y0-30,{color:P().green,size:12});
-      var qx = Math.max(X(-16)+2, Math.min(X(0), X(lq)));
-      S.draw.dot(c,qx,y0+30,8,r.Q>r.s.Ks?P().red:P().acc);
-      S.draw.text(c,"Q (avant précipitation)",qx,y0+8,{color:r.Q>r.s.Ks?P().red:P().acc,size:12});
-      /* béchers */
-      var bx=c.W-120, by=c.H-110;
-      ctx.save(); ctx.strokeStyle="#13233a"; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(bx,by); ctx.lineTo(bx,by+80); ctx.lineTo(bx+80,by+80); ctx.lineTo(bx+80,by); ctx.stroke();
-      ctx.fillStyle="rgba(30,63,143,.12)"; ctx.fillRect(bx+1,by+20,78,59);
-      if (r.x>0){ var h = Math.min(30, 4+8*Math.log10(1+r.mg*10)); ctx.fillStyle="#e8e2d0"; ctx.fillRect(bx+1,by+79-h,78,h); ctx.strokeStyle="#b9b08f"; ctx.strokeRect(bx+1,by+79-h,78,h); }
-      ctx.restore();
-      S.draw.text(c,r.x>0?"solide":"limpide",bx+40,by-10,{size:12,color:r.x>0?P().red:P().green});
+      var r = solve(), ctx = c.ctx, W = c.W, H = c.H, P = S.draw.palette, t = st.t;
+      var key = sel.value + p1.value + p2.value + v1.value + v2.value; if (key !== st.key){ st.key = key; st.t = 0; t = 0; lp.play(); }
+      UC.bg(c, "#f8fafd", "#ffffff");
+      var bh = Math.round(H * 0.38), by = 46, bw = Math.round(W * 0.2), mw = Math.round(W * 0.28);
+      var bx1 = Math.round(W * 0.07), bx2 = Math.round(W * 0.07) + bw + 28, mx = W - mw - Math.round(W * 0.07);
+      var pour = Math.min(1, t / 0.4), f1 = (v1.value / 200) * (1 - pour * 0.85) + 0.05, f2 = (v2.value / 200) * (1 - pour * 0.85) + 0.05, fm = Math.min(0.95, (r.V / 400) * 1.3 + 0.05) * pour;
+      beaker(c, bx1, by, bw, bh, f1, P.blue, 0.4); beaker(c, bx2, by, bw, bh, f2, P.orange, 0.4); beaker(c, mx, by, mw, bh, fm, "#8a95a3", 0.22);
+      S.draw.text(c, r.s.cat, bx1 + bw / 2, by - 20, {size:12, color:P.blue, math:true}); S.draw.text(c, r.s.an, bx2 + bw / 2, by - 20, {size:12, color:P.orange, math:true});
+      S.draw.text(c, S.fmt(v1.value, 0) + " mL", bx1 + bw / 2, by + bh + 12, {size:10, color:P.grey}); S.draw.text(c, S.fmt(v2.value, 0) + " mL", bx2 + bw / 2, by + bh + 12, {size:10, color:P.grey});
+      S.draw.text(c, "mélange : " + S.fmt(r.V, 0) + " mL", mx + mw / 2, by + bh + 12, {size:10, color:P.grey});
+      S.draw.text(c, S.sci(Math.pow(10, p1.value), 1), bx1 + bw / 2, by + bh - 12, {size:9.5, color:P.blue});
+      S.draw.text(c, S.sci(Math.pow(10, p2.value), 1), bx2 + bw / 2, by + bh - 12, {size:9.5, color:P.orange});
+      /* filets versés */
+      if (t < 0.4){ ctx.save(); ctx.strokeStyle = S.draw.tint(P.blue, 0.7); ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(bx1 + bw + 4, by - 2); ctx.quadraticCurveTo(mx - 20, by - 26, mx + mw * 0.3, by + bh * 0.5); ctx.stroke(); ctx.strokeStyle = S.draw.tint(P.orange, 0.7); ctx.beginPath(); ctx.moveTo(bx2 + bw + 4, by - 2); ctx.quadraticCurveTo(mx - 6, by - 36, mx + mw * 0.55, by + bh * 0.5); ctx.stroke(); ctx.restore(); }
+      S.draw.text(c, "+", bx1 + bw + 14, by + bh / 2, {size:18, color:P.grey});
+      /* précipité : grains qui tombent puis se déposent */
+      if (r.x > 0 && t > 0.35){
+        var n = Math.min(70, Math.round(8 + 14 * Math.log10(1 + r.mg * 10))), u = Math.min(1, (t - 0.35) / 0.65), ytop = by + bh * (1 - fm) + 6, ybot = by + bh - 4;
+        ctx.save(); ctx.beginPath(); ctx.rect(mx + 2, by, mw - 4, bh); ctx.clip();
+        for (var i = 0; i < n; i++){
+          var rx = ((i * 37 + 11) % 89) / 89, ry = ((i * 71 + 31) % 97) / 97, gx = mx + 6 + rx * (mw - 12), land = ybot - ry * Math.min(26, 5 + n * 0.35) * (1 - Math.abs(rx - 0.5));
+          var y = ytop + (land - ytop) * Math.min(1, u * (0.7 + 0.5 * ry)), op = 0.5 + 0.5 * u;
+          ctx.fillStyle = "rgba(235,228,205," + op + ")"; ctx.strokeStyle = "rgba(160,150,110,.8)"; ctx.lineWidth = 0.8; ctx.beginPath(); ctx.arc(gx, y, 2.2 + (i % 3) * 0.5, 0, 7); ctx.fill(); ctx.stroke();
+        }
+        ctx.restore();
+      }
+      S.draw.label(c, r.x > 0 && t > 0.6 ? "précipité !" : r.x > 0 ? "…" : "solution limpide", mx + mw / 2, by - 20, {color:r.x > 0 ? P.red : P.green, size:11.5});
+      /* jauge logarithmique Q / Ks */
+      var gy = H - 54, L = 22, R = W - 22;
+      function X(lg){ return L + (lg + 16) / 16 * (R - L); }
+      S.draw.text(c, "log₁₀ du produit ionique", W / 2, gy - 44, {size:11, color:P.grey});
+      var lk = Math.log10(r.s.Ks), lq = Math.log10(Math.max(r.Q, 1e-16));
+      S.draw.rrect(c, L, gy - 8, X(lk) - L, 16, 8); ctx.fillStyle = S.draw.tint(P.green, 0.18); ctx.fill();
+      S.draw.rrect(c, X(lk), gy - 8, R - X(lk), 16, 8); ctx.fillStyle = S.draw.tint(P.red, 0.16); ctx.fill();
+      S.draw.text(c, "limpide", (L + X(lk)) / 2, gy, {size:10, color:P.green}); S.draw.text(c, "précipité", (X(lk) + R) / 2, gy, {size:10, color:P.red});
+      for (var g = -16; g <= 0; g += 4){ S.draw.line(c, X(g), gy + 10, X(g), gy + 15, P.grey, 1); S.draw.text(c, String(g).replace("-", "−"), X(g), gy + 26, {size:10, color:P.grey}); }
+      S.draw.line(c, X(lk), gy - 20, X(lk), gy + 10, P.green, 2.4);
+      S.draw.text(c, "Ks", X(lk), gy - 28, {size:11.5, color:P.green});
+      S.draw.dot(c, Math.max(L + 2, Math.min(R - 2, X(lq))), gy, 7, r.Q > r.s.Ks ? P.red : P.acc);
+      S.draw.label(c, "Q", Math.max(L + 10, Math.min(R - 10, X(lq))), gy - 26, {color:r.Q > r.s.Ks ? P.red : P.acc, size:11.5});
       ro.set(0,S.sci(r.cM,2)+" mol/L"); ro.set(1,S.sci(r.cX,2)+" mol/L");
       ro.set(2,S.sci(r.Q,2)); ro.set(3,S.sci(r.s.Ks,2));
       ro.set(4,r.x>0?(r.mg<0.1?S.sci(r.mg*1000,2)+" µg":S.fmt(r.mg,r.mg<10?2:1)+" mg"):"aucun");

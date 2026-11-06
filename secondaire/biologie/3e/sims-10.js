@@ -52,19 +52,42 @@ SFA.sim({
   id:"b3-c10-peche-durable", ch:"c10", tag:"Modèle chiffré · défi",
   titre:"Pêche durable : jusqu'où peut-on prélever ?",
   resume:"Un stock de poissons se reproduit, la pêche prélève. Où est la limite avant l'effondrement ?",
-  but:"Choisis un mode de gestion (quota fixe ou part prélevée), règle-le et suis le stock pendant 50 ans. Teste le choc d'une mauvaise année.",
+  but:"Choisis un mode de gestion (quota fixe ou part prélevée), règle-le et regarde le bateau pêcher pendant 50 ans : les poissons nagent dans l'eau, la pêche les prélève. Teste le choc d'une mauvaise année.",
   aRetenir:"Un stock se renouvelle au maximum quand il vaut environ la moitié de sa capacité : c'est le rendement maximal durable (ici r × K / 4). Pêcher davantage ne donne pas plus de poissons : on vide le stock. Avec un quota fixe voisin du maximum, un seul choc (mauvaise année) peut provoquer l'effondrement.",
   piege:"« Plus de bateaux = plus de poissons » est faux au-delà d'un seuil. Un quota fixe est plus dangereux qu'une part fixe du stock : si le stock baisse, le quota ne s'ajuste pas. (Modèle logistique de Schaefer, simplifié ; stock en tonnes.)",
   build:function(k,S){
-    var c1 = k.canvas(210), c2 = k.canvas(200);
+    var cs = k.canvas(0,{ratio:.5}), c1 = k.canvas(190), c2 = k.canvas(190);
     var md = k.seg("Gestion", [["q","Quota fixe (t/an)"],["f","Part du stock prélevée (%)"]], "q");
     var r = k.slider("Renouvellement naturel du stock (r)", .2, .8, .05, .4, "/an");
     var q = k.slider("Quota annuel", 0, 200, 10, 80, "t/an");
     var f = k.slider("Part du stock prélevée", 0, 80, 5, 20, "%");
     var sh = k.toggle("Mauvaise année à l'an 15 (stock − 25 %)", false);
+    var yr = k.slider("Année affichée", 0, 50, 1, 50, "ans");
     var ro = k.readouts(["Rendement maximal durable","Stock après 50 ans","Prise la dernière année","Issue"]);
     var nt = k.note("","");
-    var K = 1000;
+    var K = 1000, fish=[], play=false, seed=4, spl=[];
+    function rnd(){ seed=(seed*16807)%2147483647; return seed/2147483647; }
+    for (var qi=0;qi<70;qi++) fish.push({x:rnd(),y:.3+rnd()*.62,v:(rnd()-.5)*.06,ph:rnd()*6});
+    k.button("Lancer le film (50 ans)", function(){ if (yr.value>=50) yr.set(0); play=true; lp.play(); }, true);
+    var lp = k.loop(function(dt){ if (play){ var ny=yr.value+dt*4; if (ny>=50){ ny=50; play=false; } yr.set(ny); }
+      fish.forEach(function(f2){ f2.x+=f2.v*dt*2+Math.sin(f2.ph+Date.now()/1500)*.0004; if (f2.x<0||f2.x>1){ f2.v*=-1; f2.x=Math.max(0,Math.min(1,f2.x)); } }); k.redraw(); }); lp.play();
+    function sea(N,h2){
+      var g=cs.ctx, W=cs.W, H=cs.H, tt=Date.now()/1000; cs.clear();
+      var sk=g.createLinearGradient(0,0,0,H*.28); sk.addColorStop(0,"#d8ebf8"); sk.addColorStop(1,"#f1f8fc"); g.fillStyle=sk; g.fillRect(0,0,W,H*.28);
+      var sw=g.createLinearGradient(0,H*.26,0,H); sw.addColorStop(0,"#79c3e6"); sw.addColorStop(1,"#1f6fa0"); g.fillStyle=sw; g.fillRect(0,H*.26,W,H*.74);
+      g.strokeStyle="rgba(255,255,255,.5)"; g.lineWidth=2; g.beginPath(); for (var x=0;x<=W;x+=8){ var yy=H*.26+Math.sin(x/18+tt*2)*2; x?g.lineTo(x,yy):g.moveTo(x,yy); } g.stroke();
+      /* bateau */
+      var bx=W*.5+Math.sin(tt*.8)*8, by=H*.2+Math.sin(tt*1.6)*2;
+      g.fillStyle="#b3402e"; g.beginPath(); g.moveTo(bx-46,by); g.lineTo(bx+46,by); g.lineTo(bx+32,by+17); g.lineTo(bx-32,by+17); g.closePath(); g.fill(); g.fillStyle="#f3efe6"; g.fillRect(bx-10,by-18,22,18); g.strokeStyle="#4a3a2a"; g.lineWidth=2; g.beginPath(); g.moveTo(bx+22,by-30); g.lineTo(bx+22,by); g.stroke();
+      g.strokeStyle="#e8e2d2"; g.lineWidth=1.3; g.beginPath(); g.moveTo(bx-36,by-4); g.lineTo(bx-36,by+(H*.5)); g.stroke(); g.beginPath(); g.moveTo(bx-36,by+H*.5); g.lineTo(bx-70,by+H*.5-20); g.lineTo(bx-2,by+H*.5-20); g.closePath(); g.fillStyle="rgba(255,255,255,.18)"; g.fill();
+      /* poissons */
+      var nf=Math.round(Math.min(70,N/K*70+(N>1?1:0)));
+      for (var i=0;i<nf;i++){ var f2=fish[i]; B3H.poisson(cs,f2.x*W,f2.y*H,Math.max(15,W*.045),f2.v>=0?1:-1,i%5?"#f2a33c":"#f0c24a"); }
+      D.display(cs,S.fmt(N,0)+" t",W-62,H*.16,{w:104,h:46,caption:"stock",color:N<K*.3?"#a8321d":"#13233a"});
+      D.label(cs,"prise : "+S.fmt(h2,0)+" t/an",8,H*.07,{size:11.5,color:"#fff",fill:"rgba(15,60,90,.7)",align:"left"});
+      D.label(cs,"an "+Math.round(yr.value),8,H*.19,{size:11.5,color:"#fff",fill:"rgba(15,60,90,.7)",align:"left"});
+      if (N<1) D.label(cs,"stock effondré",W/2,H*.62,{size:13,color:P.red});
+    }
     function run(){
       var N = K, dt = .05, out = [], i, dead = null;
       for (i=0;i<=1000;i++){
@@ -78,8 +101,10 @@ SFA.sim({
     }
     k.draw(function(){
       var o = run().out, res = run(), msy = r.value*K/4;
+      var yi=Math.min(o.length-1,Math.round(yr.value*2)); sea(o[yi][1],o[yi][2]);
       c1.clear(); var ax = D.axes(c1,{x0:0,x1:50,y0:0,y1:K,xl:"année",yl:"stock (t)",stepX:10,stepY:250,l:50});
       D.fn(c1,ax,function(x){ return o[Math.min(o.length-1,Math.round(x*2))][1]; },P.teal,3);
+      D.line(c1,ax.X(yr.value),ax.B,ax.X(yr.value),ax.T,P.grey,1.5,[4,4]);
       c1.ctx.save(); c1.ctx.setLineDash([5,4]); c1.ctx.strokeStyle = P.grey; c1.ctx.beginPath(); c1.ctx.moveTo(ax.L,ax.Y(K/2)); c1.ctx.lineTo(ax.R,ax.Y(K/2)); c1.ctx.stroke(); c1.ctx.restore(); T(c1,"stock de rendement maximal (K/2)",ax.R-4,ax.Y(K/2)-9,{size:12,align:"right",color:P.grey});
       /* diagramme production / prélèvement */
       c2.clear(); var bx = D.axes(c2,{x0:0,x1:K,y0:0,y1:Math.max(120,Math.ceil(Math.max(msy,md.value==="q"?q.value:0)/20)*20+40),xl:"stock N (t)",yl:"t/an",stepX:250,l:50,t:32});
@@ -102,11 +127,12 @@ SFA.sim({
   id:"b3-c10-invasive", ch:"c10", tag:"Modèle chiffré",
   titre:"Espèce invasive : exclusion, coexistence ou échec ?",
   resume:"Une espèce introduite partage les ressources d'une espèce locale. Qui gagne ?",
-  but:"Choisis un scénario (ou règle toi-même les effets de chaque espèce sur l'autre) et le nombre d'individus introduits. Observe l'issue sur 100 ans.",
+  but:"Choisis un scénario (ou règle toi-même les effets de chaque espèce sur l'autre) et le nombre d'individus introduits. Lance le film : regarde les deux populations se partager (ou non) le milieu pendant 100 ans.",
   aRetenir:"Une espèce introduite peut exclure une espèce locale si elle exploite mieux les ressources (peu de prédateurs ou de maladies dans son nouveau milieu). Parfois il y a coexistence ; parfois l'envahisseur échoue. La rapidité de reproduction et le nombre d'individus introduits comptent.",
   piege:"Toutes les espèces introduites ne deviennent pas invasives : beaucoup disparaissent. Mais celles qui s'installent peuvent être très difficiles à éliminer. Et la disparition d'une espèce locale n'est pas sans effet sur le réseau : d'autres espèces en dépendent. (Modèle de compétition de Lotka-Volterra, simplifié ; capacité de 100 pour chaque espèce.)",
   build:function(k,S){
-    var c = k.canvas(260);
+    var ca = k.canvas(0,{ratio:.62});
+    var c = k.canvas(230);
     var sc = k.select("Scénario", [["x","À moi de régler"],["d","Envahisseur dominant"],["c","Coexistence"],["r","Espèce locale résistante"],["u","Duel incertain"]], "d", function(v){
       var T0 = {d:[1.5,.5],c:[.6,.6],r:[.5,1.5],u:[1.4,1.4]}; if (T0[v]){ al.set(T0[v][0]); be.set(T0[v][1]); }
     });
@@ -114,8 +140,25 @@ SFA.sim({
     var be = k.slider("Effet de l'espèce locale sur l'envahisseur", .2, 2, .1, .5, "×");
     var r2 = k.slider("Reproduction de l'envahisseur", .2, 1.2, .1, .8, "/an");
     var n0 = k.slider("Individus introduits", 1, 60, 1, 5, "");
+    var yr = k.slider("Année affichée", 0, 100, 1, 100, "ans");
     var ro = k.readouts(["Espèce locale après 100 ans","Envahisseur après 100 ans","Issue"]);
     var nt = k.note("","");
+    var agents = {a:[],b:[]}, play=false, seed=21, OUT=[];
+    function rnd(){ seed=(seed*16807)%2147483647; return seed/2147483647; }
+    function mk(){ return {x:rnd(),y:rnd(),vx:(rnd()-.5)*.12,vy:(rnd()-.5)*.12}; }
+    for (var q=0;q<44;q++){ agents.a.push(mk()); agents.b.push(mk()); }
+    k.button("Lancer le film (100 ans)", function(){ if (yr.value>=100) yr.set(0); play=true; lp.play(); }, true);
+    var lp = k.loop(function(dt){ if (play){ var ny=yr.value+dt*12; if (ny>=100){ ny=100; play=false; } yr.set(ny); }
+      ["a","b"].forEach(function(n){ agents[n].forEach(function(p){ p.vx+=(rnd()-.5)*.08*dt*20; p.vy+=(rnd()-.5)*.08*dt*20; p.vx*=.97; p.vy*=.97; p.x+=p.vx*dt*2; p.y+=p.vy*dt*2; if (p.x<.03||p.x>.97) p.vx*=-1; if (p.y<.05||p.y>.95) p.vy*=-1; p.x=Math.max(.02,Math.min(.98,p.x)); p.y=Math.max(.04,Math.min(.96,p.y)); }); }); k.redraw(); }); lp.play();
+    function arena(n1,n2){
+      var g=ca.ctx, W=ca.W, H=ca.H; ca.clear(); var bgc=g.createLinearGradient(0,0,0,H); bgc.addColorStop(0,"#d9ecc9"); bgc.addColorStop(1,"#bcdca6"); g.fillStyle=bgc; g.fillRect(0,0,W,H);
+      g.fillStyle="rgba(255,255,255,.25)"; for (var i=0;i<30;i++){ g.beginPath(); g.arc(((i*.137)%1)*W,((i*.291)%1)*H,3,0,6.3); g.fill(); }
+      function bug(p,col,dk){ var x=p.x*W,y=p.y*H,ang=Math.atan2(p.vy,p.vx); g.save(); g.translate(x,y); g.rotate(ang); g.fillStyle=col; g.strokeStyle=dk; g.lineWidth=1.2; g.beginPath(); g.ellipse(0,0,8,5,0,0,6.3); g.fill(); g.stroke(); g.fillStyle="#fff"; g.beginPath(); g.arc(5,-2,1.8,0,6.3); g.arc(5,2,1.8,0,6.3); g.fill(); g.restore(); }
+      var ka=Math.round(Math.min(44,n1/100*44+(n1>.5?1:0))), kb=Math.round(Math.min(44,n2/100*44+(n2>.5?1:0)));
+      for (i=0;i<ka;i++) bug(agents.a[i],"#52b36e","#1d5a33"); for (i=0;i<kb;i++) bug(agents.b[i],"#e2523c","#8a2316");
+      D.legend(ca,[["#52b36e","Espèce locale : "+S.fmt(n1,0)],["#e2523c","Envahisseur : "+S.fmt(n2,0)]],6,6,{});
+      D.label(ca,"année "+Math.round(yr.value),W-8,14,{size:11.5,color:P.ink,align:"right"});
+    }
     k.draw(function(){
       var N1 = 100, N2 = n0.value, r1 = .5, dt = .02, out = [], i, a = al.value, b = be.value;
       for (i=0;i<=5000;i++){
@@ -124,9 +167,11 @@ SFA.sim({
         var k1a = d1(N1,N2), k1b = d2(N1,N2), k2a = d1(N1+dt/2*k1a,N2+dt/2*k1b), k2b = d2(N1+dt/2*k1a,N2+dt/2*k1b), k3a = d1(N1+dt/2*k2a,N2+dt/2*k2b), k3b = d2(N1+dt/2*k2a,N2+dt/2*k2b), k4a = d1(N1+dt*k3a,N2+dt*k3b), k4b = d2(N1+dt*k3a,N2+dt*k3b);
         N1 = Math.max(0,N1+dt*(k1a+2*k2a+2*k3a+k4a)/6); N2 = Math.max(0,N2+dt*(k1b+2*k2b+2*k3b+k4b)/6);
       }
+      OUT=out; var ci=Math.min(out.length-1,Math.round(yr.value/.5)); arena(out[ci][1],out[ci][2]);
       c.clear(); var ax = D.axes(c,{x0:0,x1:100,y0:0,y1:110,xl:"temps (années)",yl:"effectif",stepX:20,stepY:25,l:46});
       D.fn(c,ax,function(x){ return out[Math.min(out.length-1,Math.round(x/.5))][1]; },P.green,3);
       D.fn(c,ax,function(x){ return out[Math.min(out.length-1,Math.round(x/.5))][2]; },P.red,3);
+      D.line(c,ax.X(yr.value),ax.B,ax.X(yr.value),ax.T,P.grey,1.5,[4,4]);
       T(c,"espèce locale",ax.X(22),ax.T+8,{size:12,align:"left",color:P.green}); T(c,"envahisseur",ax.X(58),ax.T+8,{size:12,align:"left",color:P.red});
       var p1 = out[out.length-21][1], p2 = out[out.length-21][2], g1 = N1<1 || (N1<10 && N1<p1*.9), g2 = N2<1 || (N2<10 && N2<p2*.9);
       ro.set(0,N1<1 ? "disparue" : g1 ? S.fmt(N1,0)+" (en voie de disparition)" : S.fmt(N1,0)); ro.set(1,N2<1 ? "disparu" : g2 ? S.fmt(N2,0)+" (en voie de disparition)" : S.fmt(N2,0));

@@ -8,29 +8,79 @@ SFA.sim({
   id: "b5-c10-frise", ch: "c10", tag: "Frise",
   titre: "La frise du développement : de la nidation à la naissance",
   resume: "Semaine de grossesse → stade, taille, masse et événements marquants.",
-  but: "Déplace le curseur de 4 à 41 semaines d'aménorrhée (SA). Repère le passage d'embryon à fœtus, la croissance en masse (plus de 3 000 fois en 30 semaines) et les grandes étapes. Convertis les SA en semaines de développement.",
+  but: "Fais glisser le repère sur la frise (ou le curseur) de 4 à 41 semaines d'aménorrhée (SA). Repère le passage d'embryon à fœtus, la croissance en masse (plus de 3 000 fois en 30 semaines) et les grandes étapes. Convertis les SA en semaines de développement.",
   aRetenir: "En Belgique on compte la grossesse en semaines d'aménorrhée (SA), à partir du début des dernières règles : la fécondation a lieu vers 2 SA. L'embryon devient un fœtus à 10 SA, quand l'organogenèse est terminée : après cela, les organes grandissent et mûrissent. La croissance en masse est surtout tardive : environ la moitié du poids de naissance (1 700 g sur 3 400 g) se gagne après 32 SA.",
   piege: "Un embryon n'est pas un « petit adulte » : à 8 SA il mesure 1,6 cm (de la tête au bassin) et pèse environ 1 g. Il ne respire pas par les poumons : le placenta assure les échanges. Valeurs moyennes arrondies ; la taille est mesurée tête–bassin avant 20 SA, tête–talon ensuite.",
   build: function(k, S){
-    var c = k.canvas(260), pal = S.draw.palette;
+    var c = k.canvas(520), pal = S.draw.palette, D = S.draw;
     var sa = k.slider("Semaines d'aménorrhée (SA)", 4, 41, 1, 12, "SA");
     var ro = k.readouts(["Semaines de développement", "Stade", "Taille", "Masse"]);
     var nt = k.note("", "");
+    var geo = {}, drag = false;
+    c.cv.style.touchAction = "none";
+    c.pointer(function(t, p){ if (t === "down") drag = p.y > geo.gy; if (drag && (t === "down" || t === "drag") && geo.ax){ sa.set(Math.max(4, Math.min(41, Math.round(geo.ax.ix(p.x))))); k.redraw(); } if (t === "up") drag = false; });
+    var FRUIT = [[4, "graine de pavot"], [6, "lentille"], [8, "framboise"], [10, "prune"], [12, "citron"], [16, "avocat"], [20, "banane"], [24, "épi de maïs"], [28, "aubergine"], [32, "ananas"], [36, "melon"], [40, "pastèque"]];
+    function fruit(w){ var f = FRUIT[0]; FRUIT.forEach(function(e){ if (w >= e[0]) f = e; }); return f[1]; }
     k.draw(function(){
-      c.clear();
-      var g = grow(Math.min(sa.value, 40)), ax = S.draw.axes(c, {x0: 4, x1: 41, y0: 0, y1: 3500, xl: "SA", yl: "masse (g)", stepX: 4, stepY: 500}), pts = [], x;
-      for (x = 4; x <= 40; x += 0.5) pts.push([x, grow(x).w]);
-      c.ctx.fillStyle = "rgba(91,33,182,.08)"; c.ctx.fillRect(ax.X(4), ax.T, ax.X(10) - ax.X(4), ax.B - ax.T); S.draw.text(c, "embryon", ax.X(7), ax.T + 14, {size: 12, color: pal.violet});
-      S.draw.text(c, "fœtus", ax.X(25), ax.T + 14, {size: 12, color: pal.violet});
-      B5.poly(c, ax, pts, pal.violet, 2.8); S.draw.line(c, ax.X(sa.value), ax.T, ax.X(sa.value), ax.B, pal.ink, 1.4, [5, 4]); S.draw.dot(c, ax.X(Math.min(sa.value, 40)), ax.Y(g.w), 6, pal.red);
-      /* silhouette proportionnelle à la taille (échelle fixe 0–55 cm) */
-      var hpx = (ax.B - ax.T) * 0.9 * g.len / 55, cx = ax.L + 70, base = ax.B - 4;
-      B5.rect(c, cx - 7, base - hpx, 14, Math.max(2, hpx), "rgba(180,35,24,.35)", pal.red, 1.2);
-      B5.circ(c, cx, base - hpx - 5, Math.max(2, hpx * 0.14), "rgba(180,35,24,.35)", pal.red, 1.2);
+      c.clear(); var ctx = c.ctx, W = c.W, H = c.H, w = Math.min(sa.value, 40), g = grow(w), emb = sa.value < 10, sh = 280;
+      /* ---------- scène : utérus ---------- */
+      D.rrect(c, 8, 8, W - 16, sh, 12); var bg = ctx.createLinearGradient(0, 0, 0, sh); bg.addColorStop(0, "#fdf1ee"); bg.addColorStop(1, "#f8dcd6"); ctx.fillStyle = bg; ctx.fill();
+      var rw = 84, cx = rw + (W - rw) / 2 + 4, cy = 8 + sh / 2 + 6, ru = Math.min((W - rw - 40) / 2, sh / 2 - 12);
+      /* taille de la cavité : croît avec la grossesse */
+      var cav = 0.32 + 0.68 * Math.min(1, (g.len > 0 ? Math.sqrt(g.len / 51) : 0.05));
+      ctx.save(); D.rrect(c, 8, 8, W - 16, sh, 12); ctx.clip();
+      ctx.beginPath(); ctx.ellipse(cx, cy, ru * (0.55 + 0.45 * cav), ru * (0.6 + 0.4 * cav), 0, 0, 7); ctx.fillStyle = "#f2b8ad"; ctx.fill(); ctx.strokeStyle = "#d98a7b"; ctx.lineWidth = 5; ctx.stroke();
+      var rr = ru * (0.46 + 0.42 * cav);
+      ctx.beginPath(); ctx.ellipse(cx, cy, rr * 0.92, rr * 0.98, 0, 0, 7); var ag = ctx.createRadialGradient(cx, cy, 4, cx, cy, rr); ag.addColorStop(0, "#e9f4fb"); ag.addColorStop(1, "#bcdcf0"); ctx.fillStyle = ag; ctx.fill(); ctx.strokeStyle = "#8cbbd8"; ctx.lineWidth = 2; ctx.stroke();
+      /* placenta */
+      ctx.beginPath(); ctx.ellipse(cx + rr * 0.55, cy - rr * 0.62, rr * 0.34, rr * 0.2, -0.6, 0, 7); ctx.fillStyle = "#b3392b"; ctx.fill();
+      D.text(c, "placenta", cx + rr * .78, cy - rr * 1.02, {size: 10.5, color: "#8a2a1a", weight: 800});
+      /* fœtus : taille d'affichage = fraction du rayon de la cavité */
+      var Lpx = Math.max(7, rr * 1.5 * Math.pow(Math.max(g.len, 0.2) / 51, 0.42) + 4), headF = emb ? 0.42 : 0.28 - 0.04 * ((w - 10) / 30);
+      var hr = Lpx * headF * 0.52, bx = cx - Lpx * 0.1, by = cy + Lpx * 0.12;
+      ctx.save(); ctx.translate(bx, by); ctx.rotate(-0.3);
+      var skin = emb ? "#f0aaa0" : "#f4bfb2", edge = "#c9695b"; ctx.fillStyle = skin; ctx.strokeStyle = edge; ctx.lineWidth = Math.max(1, Lpx / 60);
+      /* cordon ombilical vers le placenta */
+      ctx.restore();
+      ctx.strokeStyle = "#e4a64e"; ctx.lineWidth = Math.max(2, Lpx / 16); ctx.beginPath(); ctx.moveTo(bx + Lpx * .05, by); ctx.bezierCurveTo(bx + Lpx * .5, by - Lpx * .1, cx + rr * .35, cy - rr * .3, cx + rr * .52, cy - rr * .58); ctx.stroke();
+      ctx.save(); ctx.translate(bx, by); ctx.rotate(-0.3); ctx.fillStyle = skin; ctx.strokeStyle = edge; ctx.lineWidth = Math.max(1, Lpx / 60);
+      /* corps (courbé) */
+      ctx.beginPath(); ctx.ellipse(0, 0, Lpx * .34, Lpx * .22, 0, 0, 7); ctx.fill(); ctx.stroke();
+      /* tête */
+      ctx.beginPath(); ctx.arc(-Lpx * .36, -Lpx * .05, hr * 1.05, 0, 7); ctx.fill(); ctx.stroke();
+      /* queue (embryon) */
+      if (w < 9){ ctx.beginPath(); ctx.moveTo(Lpx * .3, Lpx * .08); ctx.quadraticCurveTo(Lpx * .5, Lpx * .2, Lpx * .44, Lpx * .02); ctx.lineWidth = Math.max(2, Lpx / 22); ctx.stroke(); ctx.lineWidth = Math.max(1, Lpx / 60); }
+      /* membres */
+      if (w >= 6){ var lm = Lpx * (w < 8 ? .1 : w < 12 ? .16 : .22); ctx.lineCap = "round"; ctx.lineWidth = Math.max(2.5, Lpx / 17); ctx.strokeStyle = skin;
+        ctx.beginPath(); ctx.moveTo(-Lpx * .18, Lpx * .14); ctx.lineTo(-Lpx * .18 + lm * .5, Lpx * .14 + lm); ctx.stroke(); ctx.beginPath(); ctx.moveTo(Lpx * .12, Lpx * .18); ctx.lineTo(Lpx * .12 + lm * .6, Lpx * .18 + lm); ctx.stroke(); ctx.beginPath(); ctx.moveTo(Lpx * .26, Lpx * .12); ctx.lineTo(Lpx * .3 + lm * .5, Lpx * .12 + lm * .9); ctx.stroke(); ctx.strokeStyle = edge; ctx.lineWidth = Math.max(1, Lpx / 60); }
+      /* œil / oreille */
+      ctx.fillStyle = "#6b2a1f"; ctx.beginPath(); ctx.arc(-Lpx * .36 - hr * .35, -Lpx * .08, Math.max(1, hr * (w < 9 ? .18 : .1)), 0, 7); ctx.fill();
+      ctx.restore();
+      ctx.restore();
+      D.text(c, "liquide amniotique", cx - rr * .78, cy + rr * .98, {size: 10, color: "#3a7ba6", weight: 700});
+      D.display(c, (sa.value) + " SA", 52, 36, {w: 84, h: 44, caption: "grossesse", size: 18});
+      D.label(c, emb ? "EMBRYON" : "FŒTUS", 52, 72, {color: emb ? pal.amber : pal.violet, size: 11});
+      D.text(c, "≈ " + fruit(sa.value), cx, 22, {size: 12, color: "#8a2a1a", weight: 800});
+      /* règle verticale en vraie proportion (0–55 cm) */
+      var rt = 98, rb = sh - 6, rxx = 40, hp = (rb - rt) * g.len / 55;
+      D.line(c, rxx + 18, rt, rxx + 18, rb, "#8a95a3", 2); for (var m = 0; m <= 55; m += 5){ var yy = rb - (rb - rt) * m / 55; D.line(c, rxx + 14, yy, rxx + 22, yy, "#8a95a3", 1.5); if (m % 10 === 0) D.text(c, m, rxx + 33, yy, {size: 10, color: pal.grey, weight: 700}); }
+      D.rrect(c, rxx - 8, rb - Math.max(3, hp), 22, Math.max(3, hp), 6); ctx.fillStyle = "rgba(192,50,29,.35)"; ctx.fill(); ctx.strokeStyle = pal.red; ctx.lineWidth = 2; ctx.stroke();
+      D.text(c, "cm", rxx + 18, rt - 8, {size: 10, color: pal.grey, weight: 700});
+      /* ---------- frise de masse ---------- */
+      var gy = sh + 22; geo.gy = gy - 6;
+      D.panel(c, 8, gy - 4, W - 16, H - gy - 4, {shadow: false, fill: "#fbfcfe"});
+      var ax = D.axes(c, {x0: 4, x1: 41, y0: 0, y1: 3500, xl: "SA  ·  glisse le repère", stepX: 4, stepY: 1000, t: gy + 16, b: 36, l: 46, r: 18});
+      geo.ax = ax; D.text(c, "masse (g)", 16, gy + 6, {size: 11, color: pal.grey, align: "left"});
+      var pts = [], x; for (x = 4; x <= 40; x += 0.5) pts.push([x, grow(x).w]);
+      ctx.fillStyle = "rgba(98,54,196,.09)"; ctx.fillRect(ax.X(4), ax.T, ax.X(10) - ax.X(4), ax.B - ax.T); D.text(c, "embryon", ax.X(7), ax.T + 10, {size: 10.5, color: pal.violet, weight: 800}); D.text(c, "fœtus", ax.X(25), ax.T + 10, {size: 10.5, color: pal.violet, weight: 800});
+      D.area(c, ax, function(xx){ return grow(xx).w; }, 4, w, pal.violet, .16);
+      B5.poly(c, ax, pts, pal.violet, 3);
+      EVT.forEach(function(e){ if (e[0] <= 40) D.dot(c, ax.X(e[0]), ax.Y(grow(e[0]).w), 3.4, e[0] <= sa.value ? pal.amber : "#c9ced6"); });
+      D.line(c, ax.X(sa.value), ax.T, ax.X(sa.value), ax.B, pal.ink, 1.3, [5, 4]); D.glow(c, ax.X(w), ax.Y(g.w), 18, pal.red, .5); D.dot(c, ax.X(w), ax.Y(g.w), 7, pal.red);
       var ev = EVT[0]; EVT.forEach(function(e){ if (sa.value >= e[0]) ev = e; });
       var st = sa.value < 10 ? "embryon" : "fœtus";
       ro.set(0, (sa.value - 2) + " sem."); ro.set(1, st); ro.set(2, g.len < 0.1 ? "< 1 mm" : S.fmt(g.len, 1) + " cm" + (sa.value < 20 ? " (tête–bassin)" : " (tête–talon)")); ro.set(3, g.w < 0.1 ? "< 0,1 g" : g.w < 10 ? S.fmt(g.w, 1) + " g" : S.fmt(g.w, 0) + " g");
-      nt.set(ev[1] + ".", "ok");
+      nt.set(ev[1] + "." + (sa.value >= 20 && sa.value <= 21 ? " Note : à partir de 20 SA on mesure de la tête au talon, d'où le saut de taille." : ""), "ok");
     });
   }
 });

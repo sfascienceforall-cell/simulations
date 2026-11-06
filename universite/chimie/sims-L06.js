@@ -252,7 +252,7 @@ SFA.sim({
         var sp = Math.sqrt(p.gx * p.gx + p.gy * p.gy + p.gz * p.gz) * sg, hi = sp >= vthr; if (hi) nAbove++;
         ball(c2x, 10 + p.x * (w2 - 20), 10 + p.y * (h2 - 20), 5.2, hi ? "#b42318" : A.col === "#3b4350" ? "#6b7a8c" : A.col, 1);
       });
-      S.draw.text(c2, "90 molécules de " + A.n + " tirées au hasard dans la distribution : " + nAbove + " au-dessus du seuil", 10, h2 - 14, {size:10.5, color:P.grey, align:"left", bg:"rgba(246,248,251,.9)"});
+      S.draw.text(c2, "90 molécules " + A.n + " : " + nAbove + " au-dessus du seuil", 10, h2 - 14, {size:10.5, color:P.grey, align:"left", bg:"rgba(246,248,251,.9)"});
       /* lectures */
       var frA = fracAbove(Ma, T, vthr), frB = B ? fracAbove(B.M / 1000, T, vthr) : null;
       function pc(x){ return x < 1e-4 ? S.sci(x * 100, 2) + " %" : S.fmt(x * 100, x < 0.1 ? 2 : 1) + " %"; }

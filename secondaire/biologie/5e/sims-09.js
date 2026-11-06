@@ -17,33 +17,73 @@ SFA.sim({
   id: "b5-c09-cycle", ch: "c09", tag: "Classique",
   titre: "Le cycle menstruel : hormones, follicule, endomètre",
   resume: "Jour du cycle et durée du cycle → quatre hormones, follicule, endomètre, température.",
-  but: "Déplace le jour du cycle et observe les quatre hormones, la taille du follicule, l'épaisseur de l'endomètre. Puis change la durée du cycle (21 à 35 jours) : repère le jour de l'ovulation. Quelle phase dure toujours environ 14 jours ?",
+  but: "Lance la lecture du cycle (ou glisse le repère sur le graphique) et observe l'ovaire, l'utérus et les quatre hormones en même temps. Puis change la durée du cycle (21 à 35 jours) : repère le jour de l'ovulation. Quelle phase dure toujours environ 14 jours ?",
   aRetenir: "Un cycle commence le 1er jour des règles. La FSH fait mûrir un follicule, qui sécrète des œstrogènes ; leur pic provoque un pic de LH (rétrocontrôle positif), qui déclenche l'ovulation. Le corps jaune sécrète ensuite progestérone et œstrogènes, qui préparent l'endomètre à la nidation. Sans fécondation, le corps jaune dégénère et les règles surviennent. La phase lutéale dure toujours ≈ 14 jours : l'ovulation a lieu environ 14 jours avant les règles suivantes.",
   piege: "L'ovulation n'a pas toujours lieu le 14e jour : dans un cycle de 35 jours, c'est vers le 21e jour ; dans un cycle de 21 jours, vers le 7e. Seule la phase lutéale (≈ 14 jours) est constante. Courbes qualitatives, niveaux relatifs.",
   build: function(k, S){
-    var c1 = k.canvas(210), c2 = k.canvas(150), pal = S.draw.palette;
+    var c = k.canvas(540), pal = S.draw.palette, D = S.draw;
     var L = k.slider("Durée du cycle", 21, 35, 1, 28, "jours");
     var dd = k.slider("Jour du cycle", 1, 35, 1, 14, "");
     var ro = k.readouts(["Phase", "Jour de l'ovulation", "Follicule / corps jaune", "Endomètre"]);
     var nt = k.note("", "");
+    var playing = false, acc = 0, geo = {}, drag = false;
+    var lp = k.loop(function(dt){ if (!playing) return; acc += dt; if (acc > 0.35){ acc = 0; var l = L.value, nd = dd.value + 1; if (nd > l) nd = 1; dd.set(nd); } k.redraw(); });
+    k.button("Lire le cycle / pause", function(){ playing = !playing; if (playing) lp.play(); }, true);
+    c.cv.style.touchAction = "none";
+    c.pointer(function(t, p){ if (t === "down") drag = p.y > geo.gy; if (drag && (t === "down" || t === "drag") && geo.ax){ dd.set(Math.max(1, Math.min(L.value, Math.round(geo.ax.ix(p.x))))); k.redraw(); } if (t === "up") drag = false; });
     k.draw(function(){
-      var l = L.value, d = Math.min(dd.value, l), o = l - 14, hs = hormones(d, l), x;
-      c1.clear();
-      var ax = S.draw.axes(c1, {x0: 1, x1: l, y0: 0, y1: 1.05, xl: "jour du cycle", yl: "niveau relatif", stepX: l > 28 ? 5 : 4, stepY: 0.25});
+      var l = L.value, d = Math.min(dd.value, l), o = l - 14, x;
+      c.clear(); var ctx = c.ctx, W = c.W, H = c.H, sh = 232, hs = hormones(d, l);
+      D.rrect(c, 8, 8, W - 16, sh, 12); var bg = ctx.createLinearGradient(0, 0, 0, sh); bg.addColorStop(0, "#fdf6f4"); bg.addColorStop(1, "#f8e6e1"); ctx.fillStyle = bg; ctx.fill();
+      var half = (W - 16) / 2;
+      /* ---------- ovaire ---------- */
+      var ox = 8 + half * 0.5, oy = 8 + sh * 0.52, orad = Math.min(88, half * 0.42);
+      ctx.beginPath(); ctx.ellipse(ox, oy, orad, orad * .88, 0, 0, 7); var og = ctx.createRadialGradient(ox - 14, oy - 14, 8, ox, oy, orad); og.addColorStop(0, "#fbe0c4"); og.addColorStop(1, "#efb98c"); ctx.fillStyle = og; ctx.fill(); ctx.strokeStyle = "#c9954a"; ctx.lineWidth = 3; ctx.stroke();
+      D.text(c, "ovaire", ox, 8 + sh - 12, {size: 11, color: "#8a5a2b", weight: 800});
+      var fm = folliculeMm(d, l), fr = 7 + fm * 1.9, fxp = ox + orad * .12, fyp = oy - orad * .1;
+      var postO = d > o, fresh = d === o;
+      /* petits follicules en arrière-plan */
+      [[-.5, -.35], [-.45, .35], [.5, .45], [.15, .6], [-.2, -.6]].forEach(function(q, qi){ B5.circ(c, ox + q[0] * orad, oy + q[1] * orad, 5 + (qi % 3) * 1.5, "rgba(255,255,255,.7)", "#d9a76a", 1); });
+      if (!postO){
+        B5.circ(c, fxp, fyp, fr, "#fff", "#c9954a", 2.5); B5.circ(c, fxp, fyp, Math.max(3, fr * .45) * 0 + fr - 6, "#eaf5fc", "#9fc4de", 1.5);
+        B5.circ(c, fxp - fr * .25, fyp + fr * .2, 4.2, "#f6c8bd", "#c0321d", 1.5);
+        D.label(c, S.fmt(fm, 0) + " mm", fxp, fyp - fr - 10, {size: 10.5, color: pal.red});
+      } else {
+        var cj = Math.max(.35, 1 - (d - o) / 16 * (d > l - 3 ? 1.1 : .4)), rcj = 8 + 12 * cj;
+        B5.circ(c, fxp, fyp, rcj, d > l - 2 ? "#e7c98c" : "#f4c542", "#b8860b", 2); D.glow(c, fxp, fyp, rcj * 2, pal.yellow, .3 * cj);
+        D.label(c, "corps jaune", fxp, fyp - rcj - 10, {size: 10.5, color: "#8a6508"});
+        /* ovocyte libéré en route vers la trompe (jour o + 0 à 1) */
+      }
+      if (fresh){ B5.circ(c, fxp + fr + 10, fyp - fr - 4, 6, "#fff1ef", pal.red, 2); D.glow(c, fxp + fr + 10, fyp - fr - 4, 24, pal.red, .5); D.arrow(c, fxp + fr * .4, fyp - fr * .4, fxp + fr + 4, fyp - fr - 1, pal.red, 2); D.label(c, "ovulation", fxp + fr + 14, fyp - fr - 22, {size: 10.5, color: pal.red, align: "left"}); }
+      /* ---------- utérus : endomètre ---------- */
+      var ux = 8 + half + half * 0.5, uy = 8 + sh * 0.5, uw = Math.min(150, half * .66), uh = sh - 64, em = endo(d, l);
+      ctx.beginPath(); ctx.moveTo(ux - uw / 2, uy - uh / 2 + 10); ctx.bezierCurveTo(ux - uw / 2, uy + 10, ux - 14, uy + uh * .35, ux - 12, uy + uh / 2); ctx.lineTo(ux + 12, uy + uh / 2); ctx.bezierCurveTo(ux + 14, uy + uh * .35, ux + uw / 2, uy + 10, ux + uw / 2, uy - uh / 2 + 10); ctx.bezierCurveTo(ux + uw * .25, uy - uh / 2 - 8, ux - uw * .25, uy - uh / 2 - 8, ux - uw / 2, uy - uh / 2 + 10); ctx.closePath();
+      ctx.fillStyle = "#e9a99c"; ctx.fill(); ctx.strokeStyle = "#c9695b"; ctx.lineWidth = 3; ctx.stroke();
+      /* cavité + endomètre (épaisseur px = mm × 3,2) */
+      ctx.save(); ctx.clip();
+      var th = em * 2.6, cx0 = ux - uw / 2 + 12, cx1 = ux + uw / 2 - 12, cy0 = uy - uh / 2 + 22, cy1 = uy + uh / 2 - 8;
+      ctx.fillStyle = "#f8d3c8"; ctx.beginPath(); ctx.moveTo(cx0, cy0); ctx.lineTo(cx0 + th * .3, cy0 + th * .1); ctx.lineTo(cx1 - th * .3, cy0 + th * .1); ctx.lineTo(cx1, cy0); ctx.lineTo(cx1 - 6, cy0 + uh * .5); ctx.lineTo(cx0 + 6, cy0 + uh * .5); ctx.closePath(); ctx.fill();
+      /* tapisserie : endomètre = bande sur les parois */
+      ctx.fillStyle = d > o ? "#e26b66" : "#ee8f86"; ctx.fillRect(cx0, cy0, uw - 24, Math.max(6, th * .5)); /* fond */
+      ctx.fillStyle = "#fff4f1"; ctx.fillRect(cx0 + th * .6, cy0 + th * .5, uw - 24 - th * 1.2, uh * .55);
+      ctx.restore();
+      var bleed = d <= 5; if (bleed){ for (var q = 0; q < 6; q++){ var fy = cy1 - 26 + ((q * 17 + (d * 11)) % 24); B5.circ(c, ux - 10 + q * 4 + (q % 2) * 3, fy, 3, pal.red); } }
+      D.text(c, "utérus · endomètre " + S.fmt(em, 0) + " mm", ux, 8 + sh - 12, {size: 11, color: "#8a2a1a", weight: 800});
+      D.display(c, "J" + d, 8 + half, sh - 36, {w: 72, h: 40, size: 18, caption: phase(d, l).split(" ")[1] || phase(d, l)});
+      /* ---------- hormones ---------- */
+      var gy = sh + 22; geo.gy = gy - 6;
+      D.panel(c, 8, gy - 4, W - 16, H - gy - 4, {shadow: false, fill: "#fbfcfe"});
+      var ax = D.axes(c, {x0: 1, x1: l, y0: 0, y1: 1.05, xl: "jour du cycle  ·  glisse pour te déplacer", stepX: l > 28 ? 5 : 4, stepY: 0.5, t: gy + 10, b: 36, l: 40, r: 18});
+      geo.ax = ax; D.text(c, "niveau relatif", 14, gy + 4, {size: 11, color: pal.grey, align: "left"});
       var P = {fsh: [], lh: [], e2: [], p: []};
       for (x = 1; x <= l + 0.01; x += 0.25){ var h = hormones(x, l); P.fsh.push([x, h.fsh]); P.lh.push([x, h.lh]); P.e2.push([x, h.e2]); P.p.push([x, h.p]); }
-      c1.ctx.fillStyle = "rgba(180,35,24,.10)"; c1.ctx.fillRect(ax.X(1), ax.T, ax.X(5.5) - ax.X(1), ax.B - ax.T);
-      B5.poly(c1, ax, P.fsh, pal.amber, 2.4); B5.poly(c1, ax, P.lh, pal.teal, 2.4); B5.poly(c1, ax, P.e2, pal.red, 2.4); B5.poly(c1, ax, P.p, pal.violet, 2.4);
-      B5.leg(c1, [["FSH", pal.amber], ["LH", pal.teal], ["œstrogènes", pal.red], ["progestérone", pal.violet]], ax.L + 8, ax.T + 34);
-      S.draw.line(c1, ax.X(d), ax.T, ax.X(d), ax.B, pal.ink, 1.4, [5, 4]);
-      S.draw.line(c1, ax.X(o), ax.T, ax.X(o), ax.B, pal.green, 1.2, [3, 4]); S.draw.text(c1, "ovulation", ax.X(o), ax.B - 10, {size: 12, color: pal.green});
-      c2.clear();
-      var ax2 = S.draw.axes(c2, {x0: 1, x1: l, y0: 0, y1: 22, xl: "jour du cycle", yl: "mm", stepX: l > 28 ? 5 : 4, stepY: 5});
-      var pf = [], pe = []; for (x = 1; x <= l + 0.01; x += 0.5){ pf.push([x, folliculeMm(x, l)]); pe.push([x, endo(x, l)]); }
-      B5.poly(c2, ax2, pf, pal.red, 2.4); B5.poly(c2, ax2, pe, pal.violet, 2.4);
-      B5.leg(c2, [["follicule", pal.red], ["endomètre", pal.violet]], ax2.L + 8, ax2.T + 34);
-      S.draw.line(c2, ax2.X(d), ax2.T, ax2.X(d), ax2.B, pal.ink, 1.4, [5, 4]);
-      ro.set(0, phase(d, l)); ro.set(1, "jour " + o); ro.set(2, S.fmt(folliculeMm(d, l), 0) + " mm"); ro.set(3, S.fmt(endo(d, l), 0) + " mm");
+      ctx.fillStyle = "rgba(192,50,29,.10)"; ctx.fillRect(ax.X(1), ax.T, ax.X(5.5) - ax.X(1), ax.B - ax.T);
+      B5.poly(c, ax, P.fsh, pal.amber, 2.6); B5.poly(c, ax, P.lh, pal.teal, 2.6); B5.poly(c, ax, P.e2, pal.red, 2.6); B5.poly(c, ax, P.p, pal.violet, 2.6);
+      D.line(c, ax.X(o), ax.T, ax.X(o), ax.B, pal.green, 1.3, [3, 4]); D.label(c, "ovulation", ax.X(o), ax.B - 12, {size: 10.5, color: pal.green});
+      D.line(c, ax.X(d), ax.T, ax.X(d), ax.B, pal.ink, 1.4, [5, 4]);
+      [[hs.fsh, pal.amber], [hs.lh, pal.teal], [hs.e2, pal.red], [hs.p, pal.violet]].forEach(function(q){ D.dot(c, ax.X(d), ax.Y(q[0]), 5, q[1]); });
+      D.legend(c, [[pal.amber, "FSH"], [pal.teal, "LH"], [pal.red, "œstrogènes"], [pal.violet, "progestérone"]], ax.R - 4, ax.T + 2, {align: "right"});
+      ro.set(0, phase(d, l)); ro.set(1, "jour " + o); ro.set(2, S.fmt(fm, 0) + " mm"); ro.set(3, S.fmt(em, 0) + " mm");
       var dom = d <= 5 ? "Les œstrogènes et la progestérone sont au plus bas : l'endomètre se détache (règles)." : d < o - 1 ? "La FSH fait grandir des follicules ; le follicule dominant sécrète de plus en plus d'œstrogènes, qui épaississent l'endomètre." : d <= o ? "Pic d'œstrogènes puis pic de LH : l'ovulation a lieu environ 24 à 36 h après le début du pic de LH." : "Le corps jaune sécrète progestérone et œstrogènes : l'endomètre se prépare à la nidation. Sans fécondation, ils chutent et les règles reviennent.";
       nt.set(dom + (l !== 28 ? " Dans un cycle de " + l + " jours, l'ovulation a lieu le jour " + o + ", pas le 14e." : ""), "ok");
     });
@@ -110,30 +150,72 @@ SFA.sim({
   id: "b5-c09-fenetre", ch: "c09", tag: "Calendrier",
   titre: "La fenêtre de fertilité : quels jours risquent une fécondation ?",
   resume: "Durée du cycle et jour du rapport → probabilité de conception ; jours suivant l'ovulation.",
-  but: "Choisis la durée du cycle et le jour d'un rapport non protégé. Lis la probabilité de conception et repère la fenêtre fertile (6 jours). Déplace ensuite le curseur du temps après l'ovulation pour suivre les étapes de la fécondation à la nidation.",
+  but: "Touche un jour du calendrier pour y placer un rapport non protégé (ou utilise le curseur) et change la durée du cycle : lis la probabilité de conception et repère la fenêtre fertile (6 jours). Déplace ensuite le curseur du temps après l'ovulation pour suivre le trajet de l'embryon, de la fécondation à la nidation.",
   aRetenir: "L'ovocyte reste fécondable environ 12 à 24 h, mais les spermatozoïdes peuvent survivre jusqu'à 5 jours dans les voies génitales féminines : la fenêtre fertile compte donc les 5 jours avant l'ovulation et le jour de l'ovulation. Fécondation (dans la trompe) et nidation (dans l'utérus, vers 6 à 10 jours) sont deux événements différents.",
   piege: "Fécondation et nidation ne sont pas la même chose ; l'ovulation n'est pas le 14e jour de tous les cycles ; et la méthode du calendrier (ou « Ogino ») est peu fiable comme contraception parce que le jour de l'ovulation varie d'un cycle à l'autre. Probabilités : ordre de grandeur d'études d'observation (couples cherchant une grossesse).",
   build: function(k, S){
-    var c = k.canvas(210), pal = S.draw.palette;
+    var c = k.canvas(470), pal = S.draw.palette, D = S.draw;
     var L = k.slider("Durée du cycle", 21, 35, 1, 28, "jours");
     var d = k.slider("Jour du rapport", 1, 35, 1, 12, "");
     var t = k.slider("Temps écoulé depuis l'ovulation", 0, 10, 0.5, 0, "jours");
     var ro = k.readouts(["Jour de l'ovulation", "Fenêtre fertile", "Probabilité de conception (ce jour)", "Étape"]);
     var nt = k.note("", "");
+    var geo = {};
+    c.cv.style.touchAction = "none";
+    c.pointer(function(ty, p){ if (ty !== "down" || !geo.cells) return; geo.cells.forEach(function(q){ if (p.x >= q.x && p.x <= q.x + q.w && p.y >= q.y && p.y <= q.y + q.h){ d.set(q.d); k.redraw(); } }); });
     k.draw(function(){
       var l = L.value, o = l - 14, dj = Math.min(d.value, l), rel = dj - o;
-      c.clear();
-      var ax = S.draw.axes(c, {x0: 0.5, x1: l + 0.5, y0: 0, y1: 0.4, xl: "jour du cycle", yl: "probabilité", stepX: l > 28 ? 5 : 4, stepY: 0.1});
-      var bw = (ax.X(1) - ax.X(0)) * 0.7, i;
-      for (i = 1; i <= l; i++){
-        var r = i - o, p = CONC[String(r)] || 0;
-        if (p > 0){ c.ctx.fillStyle = (i === dj) ? "rgba(180,35,24,.8)" : "rgba(91,33,182,.5)"; c.ctx.fillRect(ax.X(i) - bw / 2, ax.Y(p), bw, ax.Y(0) - ax.Y(p)); }
+      c.clear(); var ctx = c.ctx, W = c.W, H = c.H;
+      /* ---------- calendrier ---------- */
+      var cols = 7, rows = Math.ceil(l / cols), gap = 4, cw = (W - 32 - gap * 6) / cols, chh = 36, top = 62;
+      D.rrect(c, 8, 8, W - 16, top + rows * (chh + gap) + 10, 12); ctx.fillStyle = "#faf8fd"; ctx.fill();
+      D.text(c, "Cycle de " + l + " jours · touche un jour pour y placer le rapport", 18, 24, {align: "left", size: 12, color: pal.ink, weight: 800});
+      geo.cells = [];
+      for (var i = 1; i <= l; i++){
+        var r = i - o, p = CONC[String(r)] || 0, col = (i - 1) % cols, row = Math.floor((i - 1) / cols), x = 16 + col * (cw + gap), y = top + row * (chh + gap);
+        geo.cells.push({x: x, y: y, w: cw, h: chh, d: i});
+        D.rrect(c, x, y, cw, chh, 8); ctx.fillStyle = p > 0 ? D.tint(pal.violet, .12 + 2.0 * p) : (i <= 5 ? "#fde9e6" : "#f1f3f7"); ctx.fill();
+        if (i === dj){ ctx.strokeStyle = pal.red; ctx.lineWidth = 3; ctx.stroke(); }
+        else if (p > 0){ ctx.strokeStyle = "rgba(98,54,196,.5)"; ctx.lineWidth = 1.2; ctx.stroke(); }
+        D.text(c, i, x + 9, y + 11, {size: 10.5, color: p > .2 ? "#fff" : pal.grey, weight: 800, align: "left"});
+        if (p > 0) D.text(c, S.fmt(p * 100, 0) + " %", x + cw / 2, y + chh - 11, {size: 11, color: p > .2 ? "#fff" : pal.violet, weight: 900});
+        else if (i <= 5) D.text(c, "règles", x + cw / 2, y + chh - 11, {size: 10, color: pal.red, weight: 700});
+        if (i === o){ B5.circ(c, x + cw - 11, y + 11, 6, "#fff", pal.green, 2.5); }
+        if (i === dj){ B5.circ(c, x + cw - 11, y + 11, 5, pal.red); }
       }
-      S.draw.line(c, ax.X(14), ax.T, ax.X(14), ax.B, pal.grey, 1.3, [4, 4]); S.draw.text(c, "J14", ax.X(14) + 3, ax.T + 34, {align: "left", size: 12, color: pal.grey});
-      S.draw.line(c, ax.X(dj), ax.T, ax.X(dj), ax.B, pal.red, 1.8, [5, 4]); S.draw.text(c, "rapport", ax.X(dj) + 3, ax.T + 50, {align: "left", size: 12, color: pal.red});
-      S.draw.text(c, "ovulation", ax.X(o), ax.B - 8, {size: 12, color: pal.green});
+      var ly = top + rows * (chh + gap) - 2;
+      B5.circ(c, 24, 42, 5, "#fff", pal.green, 2.5); D.text(c, "ovulation", 34, 42, {align: "left", size: 11, color: pal.ink, weight: 700}); B5.circ(c, 104, 42, 5, pal.red); D.text(c, "rapport choisi", 114, 42, {align: "left", size: 11, color: pal.ink, weight: 700}); D.text(c, "% = chance de conception", W - 18, 42, {align: "right", size: 11, color: pal.violet, weight: 700});
+      /* ---------- trajet de l'embryon ---------- */
+      var sy = ly + 28, sh = H - sy - 8;
+      D.rrect(c, 8, sy, W - 16, sh, 12); ctx.fillStyle = "#fdf4f2"; ctx.fill();
+      D.text(c, "Après l'ovulation : jour " + S.fmt(t.value, t.value % 1 ? 1 : 0), 18, sy + 16, {align: "left", size: 12, color: pal.ink, weight: 800});
+      var x0 = 40, x1 = W - 34, yc = sy + sh * .56;
+      /* trompe */
+      ctx.lineCap = "round"; ctx.strokeStyle = "#e8a99e"; ctx.lineWidth = 26; ctx.beginPath(); ctx.moveTo(x0, yc); ctx.bezierCurveTo(x0 + (x1 - x0) * .3, yc - 22, x0 + (x1 - x0) * .5, yc + 22, x0 + (x1 - x0) * .62, yc); ctx.stroke();
+      ctx.strokeStyle = "#fbe4df"; ctx.lineWidth = 18; ctx.stroke();
+      /* utérus */
+      var ux = x0 + (x1 - x0) * .62, uw = x1 - ux + 12; D.rrect(c, ux, yc - sh * .3, uw, sh * .6, 24); ctx.fillStyle = "#fbe4df"; ctx.fill(); ctx.strokeStyle = "#e8a99e"; ctx.lineWidth = 3; ctx.stroke();
+      D.rrect(c, ux + 6, yc + sh * .2, uw - 12, 9, 4); ctx.fillStyle = "#e08a7a"; ctx.fill();
+      D.text(c, "endomètre", ux + uw / 2, yc + sh * .2 + 21, {size: 10, color: "#a5463a", weight: 700});
+      D.text(c, "trompe", x0 + 24, yc - 24, {size: 10.5, color: "#a5463a", weight: 800}); D.text(c, "utérus", ux + uw / 2, yc - sh * .3 - 9, {size: 10.5, color: "#a5463a", weight: 800});
+      var ticks = [[0, "ovulation"], [0.5, "fécond."], [1.5, "2 cell."], [3, "morula"], [5, "blastocyste"], [7, "nidation"]];
+      function px(tt){ return x0 + 14 + (ux + uw * .4 - x0 - 14) * Math.min(1, tt / 7); }
+      ticks.forEach(function(e){ var xx = px(e[0]); D.line(c, xx, yc + 22, xx, yc + 30, pal.grey, 1.2); if (e[0] === 0.5 || e[0] === 1.5) return; D.text(c, "J" + e[0], xx, yc + 40, {size: 9.5, color: pal.grey, weight: 700}); });
+      var tv = t.value, xe = px(tv), ye = tv >= 7 ? yc + sh * .2 - 10 : yc + Math.sin(tv * 1.1) * 3;
+      /* spermatozoïdes près de l'ampoule avant J1 */
+      if (tv < 1){ for (var q = 0; q < 6; q++){ var sx = x0 + 22 + q * 12, sy2 = yc + (q % 2 ? 7 : -7); ctx.strokeStyle = pal.violet; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.moveTo(sx, sy2); ctx.lineTo(sx - 9, sy2 + 3); ctx.stroke(); B5.circ(c, sx, sy2, 2.2, pal.violet); } }
+      /* embryon : dessin selon le stade */
+      var R = 11;
+      D.glow(c, xe, ye, 40, pal.amber, .4);
+      if (tv < 0.5){ B5.circ(c, xe, ye, R, "#fff1ef", pal.red, 2); B5.circ(c, xe, ye, 4, "#f2b8ad"); }
+      else if (tv < 1.5){ B5.circ(c, xe, ye, R, "#fff1ef", pal.red, 2); B5.circ(c, xe - 3.5, ye, 3.2, "#c9a7e8"); B5.circ(c, xe + 3.5, ye, 3.2, "#9bb8dd"); }
+      else if (tv < 3){ [[-5, 0], [5, 0]].forEach(function(o2){ B5.circ(c, xe + o2[0] * 1.3, ye, 8, "#fff1ef", pal.red, 2); }); }
+      else if (tv < 5){ B5.circ(c, xe, ye, R + 3, "#fff1ef", pal.red, 2); for (q = 0; q < 9; q++){ B5.circ(c, xe + Math.cos(q * 2.4) * (3 + q * .9), ye + Math.sin(q * 2.4) * (3 + q * .9), 3.2, "#f6c8bd", "#c9695b", 1); } }
+      else if (tv < 7){ B5.circ(c, xe, ye, R + 5, "#e9f4fb", pal.red, 2); B5.circ(c, xe - 3, ye - 2, 6, "#f0a79b", "#c9695b", 1.5); D.text(c, "massif embryonnaire", xe, ye - R - 14, {size: 9.5, color: "#a5463a", weight: 700}); }
+      else { B5.circ(c, xe, ye, R + 4, "#e9f4fb", pal.red, 2); B5.circ(c, xe, ye - 3, 6, "#f0a79b", "#c9695b", 1.5); ctx.fillStyle = "#b3392b"; ctx.fillRect(xe - 18, ye + R + 1, 36, 5); }
       var p0 = CONC[String(rel)] || 0, ev = EVT[0];
       EVT.forEach(function(e){ if (t.value >= e[0]) ev = e; });
+      D.text(c, ev[1].split(":")[0], W / 2, sy + sh - 12, {size: 11.5, color: pal.ink, weight: 800});
       ro.set(0, "jour " + o); ro.set(1, "jours " + (o - 5) + " à " + o); ro.set(2, p0 > 0 ? S.fmt(p0 * 100, 0) + " %" : "≈ 0 %"); ro.set(3, ev[1]);
       nt.set(p0 > 0 ? "Rapport " + (rel < 0 ? Math.abs(rel) + " jour" + (rel < -1 ? "s" : "") + " avant" : "le jour de") + " l'ovulation : environ " + S.fmt(p0 * 100, 0) + " % de chances de conception pour ce rapport (ordre de grandeur). Un rapport 2 jours avant l'ovulation est le plus favorable avec celui de la veille et du jour même." : "Hors de la fenêtre fertile : la probabilité de conception est très faible dans ce modèle, mais l'estimation du jour d'ovulation reste incertaine d'un cycle à l'autre.", p0 > 0 ? "ok" : "warn");
     });

@@ -127,7 +127,7 @@ SFA.sim({
     k.draw(function(){
       c.clear(); var ctx = c.ctx, ped = PEDS[fam.value], by = {}, R = res(fam.value, hyp.value), i;
       pos = {};
-      ped.people.forEach(function(p){ pos[p[0]] = [p[3] * c.W * 0.94 + c.W * 0.03, 52 + p[4] * 100, p]; by[p[0]] = pos[p[0]]; });
+      ped.people.forEach(function(p){ pos[p[0]] = [p[3] * c.W * 0.94 + c.W * 0.03, 58 + p[4] * 100, p]; by[p[0]] = pos[p[0]]; });
       /* liens */
       ctx.strokeStyle = "#4b5868"; ctx.lineWidth = 1.6;
       ped.unions.forEach(function(u){
@@ -141,11 +141,14 @@ SFA.sim({
         var x = pos[p[0]][0], y = pos[p[0]][1], out = ped.out.indexOf(p[0]) >= 0;
         ctx.save(); ctx.lineWidth = 2; ctx.strokeStyle = sel === p[0] ? P.red : "#13233a"; if (out) ctx.setLineDash([4, 3]);
         ctx.fillStyle = p[2] ? "#13233a" : "#fff"; ctx.beginPath();
-        if (p[1] === "M") ctx.rect(x - 14, y - 14, 28, 28); else ctx.arc(x, y, 15, 0, 6.2832);
+        if (p[1] === "M") ctx.rect(x - 15, y - 15, 30, 30); else ctx.arc(x, y, 16, 0, 6.2832);
         ctx.fill(); ctx.stroke(); ctx.restore();
         if (sel === p[0]){ ctx.strokeStyle = P.red; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(x, y, 24, 0, 6.2832); ctx.stroke(); }
-        S.draw.text(c, p[0], x, y + 26, {size: 12, color: P.grey, weight: 600});
+        S.draw.text(c, p[0], x, y + 26, {size: 11, color: P.grey, weight: 600});
+        if (R.ok && R.sets[p[0]]){ var gk = Object.keys(R.sets[p[0]]); S.draw.text(c, gk.length === 1 ? gk[0] : gk.length <= 2 ? gk.join(" ou ") : "?", x, y + 40, {size: 11, color: gk.length === 1 ? P.green : P.amber, weight: 800}); }
       });
+      S.draw.label(c, R.ok ? "Hypothèse compatible" : "Hypothèse impossible", c.W / 2, 14, {color: R.ok ? P.green : P.red, size: 12.5});
+      S.draw.text(c, "vert = génotype certain · orange = plusieurs possibles", c.W / 2, c.H - 12, {size: 10.5, color: P.grey});
       ro.set(0, HYPS[hyp.value] + (R.ok ? " : compatible" : " : impossible"));
       var tx = "";
       if (sel && R.ok){ tx = "<b>" + sel + "</b> : génotype(s) possible(s) → " + Object.keys(R.sets[sel]).join(" ou "); ro.set(1, sel + " : " + Object.keys(R.sets[sel]).join(" / ")); }

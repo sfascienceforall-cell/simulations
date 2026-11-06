@@ -43,24 +43,37 @@ SFA.sim({
   piege: "Dans b(x − h), le décalage horizontal vaut h et non b·h : écrire f(2x − 6) = f(2(x − 3)) montre une translation de 3, pas de 6. Et h > 0 déplace vers la droite.",
   build: function(k, S){
     var c = k.canvas(400), tp = k.select("Fonction de référence f", [["x2", "x²"], ["abs", "|x|"], ["sin", "sin x"], ["sqrt", "√x"], ["inv", "1/x"], ["exp", "eˣ"], ["ln", "ln x"]], "x2");
+    (function(){ var r0 = c.resize; c.resize = function(){ c.ratio = (c.cv.parentNode && c.cv.parentNode.clientWidth < 560) ? 1 : 0.78; r0(); }; c.resize(); })();
     var a = k.slider("a (dilatation verticale)", -3, 3, 0.25, 1.5, ""), b = k.slider("b (dilatation horizontale)", -3, 3, 0.25, 1, ""), h = k.slider("h (translation horizontale)", -4, 4, 0.25, 1, ""), kk = k.slider("k (translation verticale)", -4, 4, 0.25, -1, "");
+    var TG = [[2, 1, 0, -1], [-1, 1, 1, 2], [1, 2, 0, 1], [1.5, -1, -1, 0.5], [0.5, 1, 2, -2]], ti = 0, gd = k.toggle("Défi : épouse la courbe cible (orange)", false);
+    k.button("Nouvelle cible", function(){ ti = (ti + 1) % TG.length; gd.set(true); });
     k.button("Remettre a = b = 1, h = k = 0", function(){ a.set(1); b.set(1); h.set(0); kk.set(0); });
-    var ro = k.readouts(["Domaine de g", "Image de g", "Point repère"]), nt = k.note("", "");
+    var ro = k.readouts(["Domaine de g", "Image de g", "Point repère"]), nt = k.note("", ""), ax = null, grab = false;
+    function sn(x){ return Math.round(x * 4) / 4; }
+    c.cv.style.touchAction = "none";
+    c.pointer(function(t, p){
+      if (!ax) return; var T = T1[tp.value], B = b.value;
+      if (t === "down"){ if (B !== 0){ var x1 = h.value + T.kp[0] / B, y1 = a.value * T.kp[1] + kk.value; grab = Math.hypot(ax.X(x1) - p.x, ax.Y(y1) - p.y) < 26; } }
+      else if (t === "drag" && grab && B !== 0){ h.set(sn(Math.max(-4, Math.min(4, ax.ix(p.x) - T.kp[0] / B)))); kk.set(sn(Math.max(-4, Math.min(4, ax.iy(p.y) - a.value * T.kp[1])))); k.redraw(); }
+      else if (t === "up") grab = false;
+    });
     k.draw(function(){
-      c.clear(); var ax = D.axes(c, {x0: -7, x1: 7, y0: -6, y1: 6, equal: true, stepX: 1, stepY: 1, xl: "x", yl: "y"});
+      c.clear(); ax = D.axes(c, {x0: -7, x1: 7, y0: -6, y1: 6, equal: true, stepX: 1, stepY: 1, xl: "x", yl: "y"});
       var T = T1[tp.value], f = T.f, A = a.value, B = b.value, H = h.value, K = kk.value;
       D.fn(c, ax, f, "#aab2bd", 2.2, [6, 4]);
-      var g = function(x){ return A * f(B * (x - H)) + K; };
-      if (B !== 0) D.fn(c, ax, g, P.acc, 3);
+      var g = function(x){ return A * f(B * (x - H)) + K; }, ok = false;
+      if (gd.value){ var q = TG[ti], gt = function(x){ return q[0] * f(q[1] * (x - q[2])) + q[3]; }; D.fn(c, ax, gt, P.orange, 3.2, [9, 5]); var n = 0, bad = 0; for (var i = -60; i <= 60; i++){ var x = i / 10, u = g(x), v = gt(x); if (isFinite(u) && isFinite(v) && Math.abs(u) < 12 && Math.abs(v) < 12){ n++; if (Math.abs(u - v) > 0.12) bad++; } else if (isFinite(u) !== isFinite(v)) bad++; } ok = n > 15 && bad === 0; }
+      if (B !== 0) D.fn(c, ax, g, ok ? P.green : P.acc, 3.4);
       var x0 = T.kp[0], y0 = T.kp[1];
-      pt(c, ax, x0, y0, "#8a95a3", 4.5);
-      if (B !== 0){ var x1 = H + x0 / B, y1 = A * y0 + K; D.arrow(c, ax.X(x0), ax.Y(y0), ax.X(x1), ax.Y(y1), P.red, 2); pt(c, ax, x1, y1, P.red, 5.5); ro.set(2, "(" + F(x0, 2) + " ; " + F(y0, 2) + ") → (" + F(x1, 2) + " ; " + F(y1, 2) + ")"); }
-      lab(c, "f(x) = " + T.n, ax.L + 8, ax.T + 12, "#6b7380", 13, "left");
-      lab(c, "g(x) = " + F(A, 2) + "·f(" + F(B, 2) + "(x " + (H < 0 ? "+ " + F(-H, 2) : "− " + F(H, 2)) + ")) " + (K < 0 ? "− " + F(-K, 2) : "+ " + F(K, 2)), ax.L + 8, ax.T + 30, P.acc, 13, "left");
+      D.dot(c, ax.X(x0), ax.Y(y0), 5, "#8a95a3");
+      if (B !== 0){ var x1 = H + x0 / B, y1 = A * y0 + K; D.arrow(c, ax.X(x0), ax.Y(y0), ax.X(x1), ax.Y(y1), P.red, 2); D.dot(c, ax.X(x1), ax.Y(y1), 8, P.red); D.label(c, "glisse-moi", ax.X(x1) + 12, ax.Y(y1) - 16, {color:P.red, size:10.5, align:"left", math:false}); ro.set(2, "(" + F(x0, 2) + " ; " + F(y0, 2) + ") → (" + F(x1, 2) + " ; " + F(y1, 2) + ")"); }
+      D.label(c, "f(x) = " + T.n, ax.L + 8, ax.T + 8, {color:"#6b7380", align:"left", base:"top", math:true});
+      D.label(c, "g(x) = " + F(A, 2) + "·f(" + F(B, 2) + "(x " + (H < 0 ? "+ " + F(-H, 2) : "− " + F(H, 2)) + ")) " + (K < 0 ? "− " + F(-K, 2) : "+ " + F(K, 2)), ax.L + 8, ax.T + 32, {color:P.acc, align:"left", base:"top", math:true, size:c.W < 520 ? 10.5 : 11.5});
       ro.set(0, B === 0 ? "—" : dom1(tp.value, B, H)); ro.set(1, B === 0 ? "{" + F(A * f(0) + K) + "}" : img1(tp.value, A, K));
-      if (B === 0) { nt.set("b = 0 : g est constante (on n'a plus de dilatation, tout x donne le même f(0)).", "warn"); ro.set(2, "—"); }
+      if (gd.value) nt.set(ok ? "Bravo : g coïncide avec la cible (a = " + F(TG[ti][0], 2) + ", b = " + F(TG[ti][1], 2) + ", h = " + F(TG[ti][2], 2) + ", k = " + F(TG[ti][3], 2) + "). Procède dans l'ordre : forme (a, b), puis position (h, k)." : "Fais coïncider la courbe bleue avec la courbe orange. Astuce : glisse le point rouge pour régler h et k, puis ajuste a et b.", ok ? "ok" : "warn");
+      else if (B === 0) { nt.set("b = 0 : g est constante (on n'a plus de dilatation, tout x donne le même f(0)).", "warn"); ro.set(2, "—"); }
       else if (A === 0) nt.set("a = 0 : g est constante, égale à k.", "warn");
-      else nt.set("Teste : change le signe de a, puis de b, et compare les deux symétries.", "");
+      else nt.set("Teste : change le signe de a, puis de b, et compare les deux symétries. Glisse le point rouge pour translater.", "");
     });
   }
 });
