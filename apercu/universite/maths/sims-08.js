@@ -81,7 +81,7 @@ function sub3(a, b){ return [a[0] - b[0], a[1] - b[1], a[2] - b[2]]; }
 function mul3(a, s){ return [a[0] * s, a[1] * s, a[2] * s]; }
 function v3s(a, d){ return "(" + fx(a[0], d) + " ; " + fx(a[1], d) + " ; " + fx(a[2], d) + ")"; }
 function rng(seed){ var s = seed >>> 0; return function(){ s = (s + 0x6D2B79F5) >>> 0; var t = s; t = Math.imul(t ^ t >>> 15, t | 1); t ^= t + Math.imul(t ^ t >>> 7, t | 61); return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
-function autoRatio(c, wide, tall){ var r0 = c.resize; c.resize = function(){ c.ratio = (c.cv.parentNode && c.cv.parentNode.clientWidth < 560) ? tall : wide; r0(); }; c.resize(); }
+function autoRatio(c, wide, tall, thr){ var r0 = c.resize; c.resize = function(){ c.ratio = (c.cv.parentNode && c.cv.parentNode.clientWidth < (thr || 560)) ? tall : wide; r0(); }; c.resize(); }
 var UM = {autoRatio:autoRatio, C:C, fx:fx, rgba:rgba, cstr:cstr, Pane:Pane, vec:vec, pt:pt, seg:seg, arc:arc, circ:circ, dragPts:dragPts, View3:View3, dot3:dot3, cross3:cross3, norm3:norm3, add3:add3, sub3:sub3, mul3:mul3, v3s:v3s, rng:rng};
 window.UMB = UM;
 })();
@@ -187,7 +187,7 @@ SFA.sim({
     k.button("↺ Recommencer", function(){ step = 0; });
     k.button("⏩ Tout résoudre", function(){ step = G.steps.length - 1; });
     k.button("🎲 Nouveau système aléatoire", function(){ sel.set("r"); load("r"); });
-    var nt = k.note("", "ok"); load("a"); U.autoRatio(c, 0.62, 0.98);
+    var nt = k.note("", "ok"); load("a"); step = Math.min(2, G.steps.length - 1); U.autoRatio(c, 0.62, 0.8);
     k.draw(function(){
       c.clear(); var ctx = c.ctx, W = c.W, H = c.H, st = G.steps[step], M = st.M, n = M.length, narrow = W < 560, RC = [C.blue, C.violet, C.teal];
       var cw = narrow ? Math.min(62, (W - 60) / 4.4) : Math.min(68, (W * 0.5) / 4.6), rh = narrow ? 44 : 50, mw = 4 * cw, x0 = narrow ? Math.max(30, (W - mw) / 2 - 6) : 34, y0 = narrow ? 40 : 52, fs0 = Math.round(Math.min(22, cw * 0.34));
@@ -264,7 +264,7 @@ SFA.sim({
   piege:"Le produit de matrices n'est pas commutatif : une rotation puis un cisaillement ne donne pas la même figure qu'un cisaillement puis une rotation. Les dimensions doivent être compatibles : (m × n)(n × p) = (m × p).",
   build:function(k, S){
     var c = k.canvas(0, {ratio:0.56}), opts = Object.keys(TR).map(function(q){ return [q, TR[q][0]]; }), D = S.draw;
-    U.autoRatio(c, 0.58, 1.5);
+    U.autoRatio(c, 0.62, 1.5, 440);
     var sa = k.select("Transformation A", opts, "rot", function(v){ setP(pa, v); }), pa = k.slider("Paramètre de A", -180, 180, 1, 40, "");
     var sb = k.select("Transformation B", opts, "she", function(v){ setP(pb, v); }), pb = k.slider("Paramètre de B", -2, 2, 0.1, 1, "");
     var at = k.slider("Animation (0 → 1 : première, 1 → 2 : seconde)", 0, 2, 0.02, 2, "");
@@ -275,7 +275,7 @@ SFA.sim({
     function img(M, f){ return f.map(function(p){ return [M[0][0] * p[0] + M[0][1] * p[1], M[1][0] * p[0] + M[1][1] * p[1]]; }); }
     function lerp(I, M, t){ return [[I[0][0] + (M[0][0] - I[0][0]) * t, I[0][1] + (M[0][1] - I[0][1]) * t], [I[1][0] + (M[1][0] - I[1][0]) * t, I[1][1] + (M[1][1] - I[1][1]) * t]]; }
     k.draw(function(){
-      c.clear(); var W = c.W, H = c.H, A = tmat(sa.value, pa.value), B = tmat(sb.value, pb.value), I = [[1, 0], [0, 1]], BA = mm(B, A), AB = mm(A, B), t = at.value, ctx = c.ctx, st = W < 560, gap = 8;
+      c.clear(); var W = c.W, H = c.H, A = tmat(sa.value, pa.value), B = tmat(sb.value, pb.value), I = [[1, 0], [0, 1]], BA = mm(B, A), AB = mm(A, B), t = at.value, ctx = c.ctx, st = W < 440, gap = 8;
       var pw = st ? W : (W - gap) / 2, ph = st ? (H - gap) / 2 : H;
       [[A, B, BA, "1) A puis B", 0, "BA"], [B, A, AB, "2) B puis A", 1, "AB"]].forEach(function(q){
         var first = q[0], tot = q[2], bx = st ? 0 : q[4] * (pw + gap), by = st ? q[4] * (ph + gap) : 0, P = U.Pane(c, bx, by, pw, ph, 4.8, 4.8, {ticks:false, dy:0.7});
@@ -304,7 +304,7 @@ SFA.sim({
   piege:"A⁻¹ n'est pas la matrice des inverses des coefficients : [a b ; c d]⁻¹ ≠ [1/a 1/b ; 1/c 1/d].",
   build:function(k, S){
     var c = k.canvas(0, {ratio:0.52}), PL, PR, X = {x:1, y:1}, Bv = {x:3, y:4}, cur = 0, D = S.draw;
-    U.autoRatio(c, 0.52, 1.45);
+    U.autoRatio(c, 0.55, 1.45, 440);
     var TG = [[4, 3], [-3, 2], [5, -2], [-2, -4]], ti = 0;
     var sa = k.slider("a", -3, 3, 0.1, 2, "", function(){ sync(); }), sb = k.slider("b", -3, 3, 0.1, 1, "", function(){ sync(); }), sc = k.slider("c", -3, 3, 0.1, 1, "", function(){ sync(); }), sd = k.slider("d", -3, 3, 0.1, 3, "", function(){ sync(); });
     var df = k.toggle("Défi : amène b sur la cible ◎ (en glissant x ou b)", false);
@@ -313,7 +313,7 @@ SFA.sim({
     function sync(){ Bv.x = sa.value * X.x + sb.value * X.y; Bv.y = sc.value * X.x + sd.value * X.y; }
     function inv(){ var det = sa.value * sd.value - sb.value * sc.value; return Math.abs(det) < 0.02 ? null : [[sd.value / det, -sb.value / det], [-sc.value / det, sa.value / det]]; }
     sync();
-    function layout(){ var W = c.W, H = c.H, st = W < 560, gap = 8;
+    function layout(){ var W = c.W, H = c.H, st = W < 440, gap = 8;
       if (st){ var h = (H - gap) / 2; PL = U.Pane(c, 0, 0, W, h, 5, 5, {xl:"x₁", yl:"x₂", step:1}); PR = U.Pane(c, 0, h + gap, W, h, 9, 9, {xl:"b₁", yl:"b₂", step:3}); }
       else { var w = (W - gap) / 2; PL = U.Pane(c, 0, 0, w, H, 5, 5, {xl:"x₁", yl:"x₂", step:1}); PR = U.Pane(c, w + gap, 0, w, H, 9, 9, {xl:"b₁", yl:"b₂", step:3}); } }
     k.draw(function(){

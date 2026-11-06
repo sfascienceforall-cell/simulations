@@ -262,7 +262,7 @@ SFA.sim({
     function gcell(x, y, r, kind, alpha){
       var ctx = c.ctx; ctx.save(); if (alpha != null) ctx.globalAlpha = alpha;
       if (kind === "spz"){ /* spermatozoïde */
-        ctx.strokeStyle = "#7a8aa5"; ctx.lineWidth = Math.max(2, r * .12); ctx.lineCap = "round"; ctx.beginPath(); ctx.moveTo(x - r * .6, y); for (var q = 1; q <= 14; q++) ctx.lineTo(x - r * .6 - q * r * .32, y + Math.sin(q * .9 + tt * 6) * r * .22 * (q / 14)); ctx.stroke();
+        ctx.strokeStyle = "#7a8aa5"; ctx.lineWidth = Math.max(2, r * .12); ctx.lineCap = "round"; ctx.beginPath(); ctx.moveTo(x - r * .6, y); for (var q = 1; q <= 10; q++) ctx.lineTo(x - r * .6 - q * r * .2, y + Math.sin(q * .9 + tt * 6) * r * .2 * (q / 10)); ctx.stroke();
         B.ball(c, x, y, r * .55, P.acc); ctx.fillStyle = P.amber; ctx.beginPath(); ctx.ellipse(x + r * .38, y, r * .22, r * .36, 0, 0, 7); ctx.fill(); }
       else if (kind === "pb"){ B.ball(c, x, y, r * .5, "#aab5c5"); }
       else { var col = kind === "ovule" ? "#fdeedb" : kind === "ovo" ? "#fff3e0" : "#e4edfb";

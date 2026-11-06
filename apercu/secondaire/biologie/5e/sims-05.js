@@ -117,22 +117,31 @@ SFA.sim({
   aRetenir: "Vaccin : protection retardée (une dizaine de jours) mais durable, grâce aux cellules mémoire : le 2e contact déclenche une réponse secondaire plus rapide (2 jours) et plus forte. Sérum : protection immédiate mais brève (les anticorps injectés disparaissent en quelques semaines ou mois), sans mémoire. Le sérum soigne, le vaccin prévient.",
   piege: "Confondre vaccin et sérum est l'erreur classique. Autre piège : croire qu'un taux d'anticorps bas signifie « pas protégé » : les cellules mémoire peuvent produire une réponse secondaire rapide. Modèle qualitatif, valeurs indicatives.",
   build: function(k, S){
-    var c = k.canvas(300), pal = S.draw.palette;
+    var c = k.canvas(360), pal = S.draw.palette;
     var d2 = k.slider("2e dose de vaccin (jour)", 14, 180, 7, 28, "j");
     var te = k.slider("Contact avec le pathogène (jour)", 1, 365, 1, 100, "j");
     var hl = k.slider("Demi-vie des anticorps du sérum", 7, 28, 7, 21, "j");
     var ro = k.readouts(["Protection vaccin (titre ≥ 10)", "Protection sérum", "Au contact : vaccin", "Au contact : sérum"]);
     var nt = k.note("", "");
+    var geoV = {}, dragV = false;
+    c.cv.style.touchAction = "none";
+    c.pointer(function(t, p){ if (t === "down") dragV = geoV.ax && p.y > geoV.ax.T - 4 && p.y < geoV.ax.B + 26; if (dragV && (t === "down" || t === "drag")){ te.set(Math.max(1, Math.min(365, Math.round(geoV.ax.ix(p.x))))); } if (t === "up") dragV = false; });
     k.draw(function(){
       c.clear();
       var ax = S.draw.axes(c, {x0: 0, x1: 365, y0: 0, y1: 4, xl: "jours", yl: "titre (log10)", stepX: 60, stepY: 1});
       S.draw.line(c, ax.X(0), ax.Y(1), ax.X(365), ax.Y(1), pal.red, 1.5, [6, 4]); S.draw.text(c, "seuil de protection", ax.R - 6, ax.Y(1) - 9, {align: "right", size: 12, color: pal.red});
       var pv = [], ps = [], t, vacDays = 0, serDays = 0, vacStart = null;
       for (t = 0; t <= 365; t += 1){ var a = titre(t, d2.value, "v"), b = titre(t, d2.value, "s", hl.value); pv.push([t, a]); ps.push([t, b]); if (a >= 1){ vacDays++; if (vacStart === null) vacStart = t; } if (b >= 1) serDays++; }
-      B5.poly(c, ax, ps, pal.amber, 2.6); B5.poly(c, ax, pv, pal.violet, 2.8);
-      S.draw.text(c, "2e dose", ax.X(d2.value) + 4, ax.B - 10, {align: "left", size: 12, color: pal.violet});
+      geoV.ax = ax;
+      var D = S.draw, ctx = c.ctx;
+      ctx.fillStyle = "rgba(36,119,90,.07)"; ctx.fillRect(ax.L, ax.T, ax.R - ax.L, ax.Y(1) - ax.T); D.text(c, "zone protégée (titre ≥ 10)", ax.R - 6, ax.T + 12, {align: "right", size: 11, color: pal.green});
+      D.area(c, ax, function(x){ return Math.max(1, titre(x, d2.value, "v")); }, 0, 365, pal.violet, .14, function(){ return 1; });
+      B5.poly(c, ax, ps, pal.amber, 3); B5.poly(c, ax, pv, pal.violet, 3);
+      [[0, "dose 1"], [d2.value, "dose 2"]].forEach(function(q){ var X = ax.X(q[0]), Y0 = ax.B + 2; ctx.fillStyle = pal.violet; ctx.beginPath(); ctx.moveTo(X, Y0); ctx.lineTo(X - 6, Y0 + 11); ctx.lineTo(X + 6, Y0 + 11); ctx.closePath(); ctx.fill(); });
+      D.label(c, "sérum injecté à J0", ax.X(4), ax.Y(2) - 14, {color: pal.amber, align: "left", size: 10.5});
+      S.draw.label(c, "2e dose", ax.X(d2.value) + 8, ax.B - 12, {align: "left", size: 10.5, color: pal.violet});
       B5.leg(c, [["vaccin", pal.violet], ["sérum", pal.amber]], ax.L + 8, ax.T + 34);
-      S.draw.line(c, ax.X(te.value), ax.T, ax.X(te.value), ax.B, pal.ink, 1.5, [5, 4]); S.draw.text(c, "contact", ax.X(te.value) + 4, ax.T + 10, {align: "left", size: 12});
+      S.draw.line(c, ax.X(te.value), ax.T, ax.X(te.value), ax.B, pal.red, 2, [5, 4]); S.draw.glow(c, ax.X(te.value), ax.Y(Math.max(titre(te.value, d2.value, "v"), .05)), 16, pal.red, .5); S.draw.label(c, "contact (glisse)", Math.min(ax.X(te.value) + 6, ax.R - 80), ax.T + 62, {align: "left", size: 10.5, color: pal.red});
       var tv = titre(te.value, d2.value, "v"), ts = titre(te.value, d2.value, "s", hl.value);
       var memV = te.value >= 5 ? (te.value >= d2.value ? 2 : 1) : 0;
       var rv = tv >= 1 ? "protégé (anticorps présents)" : (memV >= 1 && te.value > 15 ? "réponse secondaire rapide (mémoire)" : "non protégé"), rs = ts >= 1 ? "protégé (anticorps injectés)" : "non protégé";
