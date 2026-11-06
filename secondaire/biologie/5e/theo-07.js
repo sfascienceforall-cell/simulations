@@ -69,8 +69,8 @@
       var cs = [['spermatozoïde', 23, 'n'], ['ovule', 23, 'n'], ['cellule de la peau', 46, '2n'], ['zygote', 46, '2n']];
       cs.forEach(function (c, i) {
         var x = W * (.13 + i * .245), y = H * .42, r = i === 1 ? 36 : i === 0 ? 20 : 30, hap = c[1] === 23, col = hap ? DGREEN : BLUE_D;
-        if (i === 0) { BH.ci(x, y, 14, '#e3f4ec', col, 2.4); LN(x, y + 14, x - 8, y + 50, col, 2.4); } else BH.ci(x, y, r, hap ? '#e3f4ec' : '#e6f1fb', col, 2.4);
-        TB(c[0], x, H * .8, INK, 12); TB(c[1], x, y + 7, col, 20);
+        if (i === 0) { BH.ci(x, y, 17, '#e3f4ec', col, 2.4); LN(x, y + 17, x - 8, y + 54, col, 2.4); } else BH.ci(x, y, r, hap ? '#e3f4ec' : '#e6f1fb', col, 2.4);
+        TB(c[0], x, H * .8, INK, 12); TB(c[1], x, y + 6, col, i === 0 ? 15 : 20);
         if (p > 0) { BH.al(BH.ph(p, i * .15, i * .15 + .4)); TB(c[2], x, H * .1, col, 20); TB(hap ? 'haploïde' : 'diploïde', x, H * .9, col, 13); BH.a1(); }
       });
       if (!p) TB('n ou 2n ?', W * .5, H * .1, GREY, 18);
@@ -123,7 +123,7 @@
       var O = { x: W * .4, y: H * .84 }, w = W * .56, h = H * .6, my = function (v) { return O.y - v / 480 * h; }, bw = w / 4 - 8;
       BH.axes(O.x - 6, O.y, w + 8, h + 12, null, null);
       [['AaBb', 440, RED], ['aabb', 440, BLUE], ['Aabb', 60, ORANGE], ['aaBb', 60, ORANGE]].forEach(function (d, i) { var x = O.x + i * (bw + 8); BH.rr(x, my(d[1]), bw, O.y - my(d[1]), i < 2 ? '#e6f1fb' : '#fff3c9', d[2] === ORANGE ? ORANGE : d[2], 2, 2); TB(d[1], x + bw / 2, my(d[1]) - 6, d[2] === ORANGE ? ORANGE : INK, 13); TB(d[0], x + bw / 2, O.y + 15, INK, 12); });
-      if (p > 0) { BH.al(BH.ph(p, 0, .6)); TB('recombinants : 60 + 60 = 120', W * .02, H * .52, ORANGE, 13, 'left'); TB('120 / 1 000 = 12 %', W * .02, H * .62, ORANGE, 14, 'left'); BH.al(BH.ph(p, .5, 1)); TB('≈ 12 cM : gènes liés', W * .02, H * .76, DGREEN, 14, 'left'); BH.a1(); } else TB('liés ou indépendants ?', W * .02, H * .6, GREY, 13, 'left');
+      if (p > 0) { BH.al(BH.ph(p, 0, .6)); TB('recombinants :', W * .02, H * .5, ORANGE, 13, 'left'); TB('60 + 60 = 120', W * .02, H * .58, ORANGE, 13, 'left'); TB('120 / 1 000 = 12 %', W * .02, H * .68, ORANGE, 14, 'left'); BH.al(BH.ph(p, .5, 1)); TB('≈ 12 cM : liés', W * .02, H * .8, DGREEN, 14, 'left'); BH.a1(); } else TB('liés ou indépendants ?', W * .02, H * .6, GREY, 13, 'left');
     },
     /* 8 quel accident */
     function (p) {
@@ -139,7 +139,7 @@
       [[W * .04, 'clones (stolons)', false], [W * .54, 'plants issus de graines', true]].forEach(function (g, k) {
         var s = H * .058, y0 = H * .2; TB(g[1], W * (k ? .75 : .25), H * .08, k ? BLUE_D : ORANGE, 13);
         for (var i = 0; i < 100; i++) {
-          var cx = g[0] + (i % 10) * s * 1.35 + s / 2 + 4, cy = y0 + Math.floor(i / 10) * s + s / 2, col = k ? ['#7fb9e8', '#e8a95f', '#a89ee8', '#7dcaa8', '#e88a89'][i % 5] : ORANGE;
+          var cx = g[0] + (i % 10) * s * 1.15 + s / 2 + 4, cy = y0 + Math.floor(i / 10) * s + s / 2, col = k ? ['#7fb9e8', '#e8a95f', '#a89ee8', '#7dcaa8', '#e88a89'][i % 5] : ORANGE;
           var surv = k && (i === 7 || i === 23 || i === 41 || i === 66 || i === 88); if (p > 0) col = k ? (surv ? GREEN : '#d7dde5') : '#d7dde5'; DOT(cx, cy, s * .34, col); if (p > 0 && surv) { ctx.strokeStyle = DGREEN; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(cx, cy, s * .46, 0, 7); ctx.stroke(); }
         }
       });
@@ -149,7 +149,7 @@
     /* 10 deux enfants identiques */
     function (p) {
       TB('pour une paire : même chromosome maternel (½) et même paternel (½)', W * .5, H * .08, INK, 12.5);
-      for (var i = 0; i < 23; i++) { var x = W * (.045 + i * .0415); BH.rr(x - 7, H * .18, 14, 40, '#e6f1fb', BLUE_D, 3, 1.4); LN(x, H * .21, x, H * .29, RED, 3); LN(x, H * .3, x, H * .36, BLUE, 3); }
+      for (var i = 0; i < 23; i++) { var x = W * (.045 + i * .0415); BH.rr(x - 7, H * .18, 14, 44, '#e6f1fb', BLUE_D, 3, 1.4); LN(x, H * .18 + 6, x, H * .18 + 21, RED, 3); LN(x, H * .18 + 23, x, H * .18 + 38, BLUE, 3); }
       TB('= ¼ par paire', W * .5, H * .5, DRED, 16); TB('23 paires : (¼)²³ = 1 / 4²³', W * .5, H * .62, DRED, 15);
       if (p > 0) { BH.al(BH.ph(p, 0, .6)); TB('4²³ = 2⁴⁶ ≈ 7,0·10¹³', W * .5, H * .74, INK, 14); BH.sol(p, 'probabilité ≈ 1,4·10⁻¹⁴', W * .5, H * .89, DGREEN, 17); BH.a1(); }
     }

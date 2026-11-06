@@ -19,10 +19,10 @@ SFA.theo("c08",{
   var x0=W*.08,y0=H*.72,w=W*.52,h=H*.46;var X=function(s){return x0+s/8*w;},Y=function(c){return y0-c/4*h;};
   LN(x0,y0,x0+w+10,y0,INK,1.6);LN(x0,y0,x0,y0-h-6,INK,1.6);[1,2,4].forEach(function(c){TB(c+'c',x0-6,Y(c)+4,GREY,11,'right');LN(x0-3,Y(c),x0,Y(c),INK,1);});
   ctx.strokeStyle='#9aa0a6';ctx.lineWidth=2.6;ctx.beginPath();ctx.moveTo(X(0),Y(2));ctx.lineTo(X(1),Y(2));ctx.lineTo(X(2),Y(4));ctx.lineTo(X(3),Y(4));ctx.stroke();
-  ctx.strokeStyle=BLUE;ctx.beginPath();ctx.moveTo(X(3),Y(4));ctx.lineTo(X(4),Y(4));ctx.lineTo(X(5),Y(2));ctx.stroke();
-  ctx.strokeStyle=RED;ctx.beginPath();ctx.moveTo(X(3),Y(4));ctx.lineTo(X(4),Y(4));ctx.lineTo(X(5),Y(2));ctx.lineTo(X(7),Y(2));ctx.lineTo(X(8),Y(1));ctx.stroke();
+  ctx.save();ctx.translate(0,-3);ctx.strokeStyle=BLUE;ctx.beginPath();ctx.moveTo(X(3),Y(4));ctx.lineTo(X(4),Y(4));ctx.lineTo(X(5),Y(2));ctx.stroke();ctx.restore();
+  ctx.save();ctx.translate(0,3);ctx.strokeStyle=RED;ctx.beginPath();ctx.moveTo(X(3),Y(4));ctx.lineTo(X(4),Y(4));ctx.lineTo(X(5),Y(2));ctx.lineTo(X(7),Y(2));ctx.lineTo(X(8),Y(1));ctx.stroke();ctx.restore();
   var pos=[[0,2],[1,3],[2,4],[3,4],[4,4],[5,2],[6,2],[7,2],[8,1]];var pp=pos[idx];if(br===0&&idx===5)pp=[5,2];
-  DOT(X(pp[0]),Y(pp[1]),7,RED);TB('mitose',X(5)+10,Y(2)+16,BLUE_D,11,'left');TB('méiose',X(8),Y(1)-10,DRED,11);TB('ADN par cellule',x0+4,y0-h-10,GREY,11,'left');
+  DOT(X(pp[0]),Y(pp[1]),7,RED);TB('mitose (bleu) : 2c',X(5)+6,Y(2)-10,BLUE_D,11,'left');TB('méiose',X(8)-6,Y(1)+18,DRED,11);TB('ADN par cellule',x0+4,y0-h-10,GREY,11,'left');
   var cx=W*.8,cy=H*.4;TB(cur[1],cx,cy-70,INK,15);
   b8_cellw(cx,cy,48,44,br?RED:BLUE);
   var nchr=3;for(var i=0;i<nchr;i++){var dup=(idx>=2&&idx<=3)||(br===1&&idx>=4&&idx<=6&&true&&idx!==7)||(idx===1);var xx=cx+(i-1)*18;
@@ -38,9 +38,9 @@ SFA.figs("c08",[
   TB('46 chromosomes',W*.74,H*.34,INK,15);bio_pop(p,function(){TB('chacun à 2 chromatides',W*.74,H*.46,DGREEN,13);TB('→ 92 chromatides',W*.74,H*.58,DGREEN,15);TB('quantité d\'ADN : 4c',W*.74,H*.74,DRED,17);});},
  function(p){ /* 1 métaphase II */
   bio_cap('Métaphase II de la méiose',22);
-  b8_cellw(W*.32,H*.52,W*.22,H*.3,RED);LN(W*.32,H*.2,W*.32,H*.84,GREY,1.4,[4,4]);var cs=[RED,GREEN,BLUE,ORANGE,VIOLET];for(var i=0;i<5;i++)b8_chr(W*.32,H*.3+i*H*.1,34,cs[i],true,1.57);
-  TB('plaque équatoriale',W*.32,H*.9,GREY,12);TB('1 chromosome par « paire » : 23',W*.76,H*.4,INK,14);
-  bio_pop(p,function(){TB('23 chromosomes',W*.76,H*.55,DGREEN,16);TB('46 chromatides',W*.76,H*.67,DGREEN,16);});},
+  b8_cellw(W*.27,H*.52,W*.2,H*.3,RED);LN(W*.27,H*.2,W*.27,H*.84,GREY,1.4,[4,4]);var cs=[RED,GREEN,BLUE,ORANGE,VIOLET];for(var i=0;i<5;i++)b8_chr(W*.27,H*.3+i*H*.1,34,cs[i],true,1.57);
+  TB('plaque équatoriale',W*.27,H*.92,GREY,12);TB('chromosomes ? chromatides ?',W*.74,H*.4,GREY,14);
+  bio_pop(p,function(){TB('23 chromosomes',W*.74,H*.55,DGREEN,16);TB('46 chromatides',W*.74,H*.67,DGREEN,16);});},
  function(p){ /* 2 réplication ADN : cycle */
   bio_cap('Quelle phase réplique l\'ADN ?',22);
   b8_cycle(W*.5,H*.55,H*.28,p>0?'S':null,'cycle');
@@ -69,13 +69,13 @@ SFA.figs("c08",[
   b8_cellw(W*.22,H*.5,W*.14,H*.22,RED);b8_chr(W*.2,H*.5,34,BLUE,true);b8_chr(W*.25,H*.5,34,GREEN,true);
   A(W*.37,H*.5,32,0,GREY,'',2);
   b8_cellw(W*.62,H*.36,W*.12,H*.15,GREY,'#f1f3f5');b8_cellw(W*.62,H*.68,W*.12,H*.15,RED);
-  b8_chr(W*.6,H*.68,28,BLUE,true);b8_chr(W*.65,H*.68,28,GREEN,true);TB('ovocyte II : 2 chr 21',W*.62,H*.68+34,DRED,11);TB('globule polaire : 0',W*.62,H*.36+28,GREY,11);
+  b8_chr(W*.6,H*.68,28,BLUE,true);b8_chr(W*.65,H*.68,28,GREEN,true);TB('ovocyte II : 2 chr. 21',W*.62+W*.13,H*.68+4,DRED,11,'left');TB('globule polaire : 0',W*.62+W*.13,H*.36+4,GREY,11,'left');
   bio_pop(p,function(){TB('1/2 n+1 · 1/2 n−1 · 0 normal',W*.5,H*.9,DRED,15);TB('→ trisomie 21 ou monosomie 21',W*.5,H*.98,DGREEN,13);});},
  function(p){ /* 7 crossing-over */
   bio_cap('23 paires dont 10 avec crossing-over',22);
-  var x=W*.28,y=H*.42;b8_chr(x,y,70,RED,true,0);b8_chr(x+34,y,70,BLUE,true,0);
-  ctx.strokeStyle=GREEN;ctx.lineWidth=2.4;ctx.beginPath();ctx.arc(x+17,y-12,10,0,7);ctx.stroke();TB('crossing-over',x+17,y-34,DGREEN,12);
-  TB('chaque crossing-over entre locus hétérozygotes : × 2',W*.7,H*.3,INK,13);
+  var x=W*.2,y=H*.5;b8_chr(x,y,70,RED,true,0);b8_chr(x+34,y,70,BLUE,true,0);
+  ctx.strokeStyle=GREEN;ctx.lineWidth=2.4;ctx.beginPath();ctx.arc(x+17,y-12,10,0,7);ctx.stroke();TB('crossing-over',x+17,y-50,DGREEN,12);
+  TB('chaque crossing-over entre',W*.42,H*.38,INK,13,'left');TB('locus hétérozygotes : × 2',W*.42,H*.48,INK,13,'left');
   bio_pop(p,function(){TB('2²³ × 2¹⁰ = 2³³ ≈ 8,6·10⁹ gamètes',W*.5,H*.76,DRED,17);TB('zygotes : 2⁶⁶ ≈ 7,4·10¹⁹',W*.5,H*.88,DGREEN,16);});},
  function(p){ /* 8 p53 absente */
   bio_cap('Dommages à l\'ADN · point de contrôle G1/S',22);
@@ -84,12 +84,12 @@ SFA.figs("c08",[
   TB('avec p53 : arrêt, réparation',W*.76,H*.4,DGREEN,13);bio_pop(p,function(){TB('sans p53 : le cycle continue',W*.76,H*.58,DRED,14);TB('ADN lésé répliqué',W*.76,H*.68,DRED,13);TB('→ mutations, cancer',W*.76,H*.78,DRED,15);});},
  function(p){ /* 9 tumeur */
   bio_cap('Croissance d\'une tumeur · 1 division / 24 h',22);
-  var x0=W*.14,y0=H*.8,w=W*.78,h=H*.58;bio_ax(x0,y0,w,h,'divisions (jours)','cellules (log)');
+  var x0=W*.14,y0=H*.74,w=W*.78,h=H*.54;bio_ax(x0,y0,w,h,'divisions (jours)','cellules (log)');
   var X=function(n){return x0+n/32*w;},Y=function(v){return y0-(Math.log(v)/Math.LN10)/10*h;};
   [0,10,20,30].forEach(function(n){TB(''+n,X(n),y0+15,GREY,11);});[1,3,6,9].forEach(function(e){TB('10'+'⁰¹²³⁴⁵⁶⁷⁸⁹'[e],x0-6,y0-e/10*h+4,GREY,11,'right');});
   LN(x0,Y(1e9),x0+w,Y(1e9),GREY,1.2,[5,4]);TB('10⁹ cellules (1 cm³)',x0+4,Y(1e9)-5,GREY,12,'left');
   bio_fn(function(n){return Math.pow(2,n);},0,30,X,Y,BLUE,2.8,40);
-  bio_pop(p,function(){DOT(X(30),Y(1e9),6,RED);TB('30 divisions = 30 jours',X(30)-10,Y(1e9)+24,DRED,13,'right');TB('en réalité 100 jours : doublement 3,3 j (≈ 30 %)',W*.5,H*.95,DGREEN,13);});},
+  bio_pop(p,function(){DOT(X(30),Y(1e9),6,RED);TB('30 divisions = 30 jours',x0+10,Y(1e9)+34,DRED,13,'left');TB('en réalité 100 jours : doublement 3,3 j (≈ 30 %)',W*.5,H*.97,DGREEN,13);});},
  function(p){ /* 10 anaphase II */
   bio_cap('Anaphase II',22);
   b8_cellw(W*.3,H*.52,W*.2,H*.3,RED);var cs=[RED,GREEN,BLUE];for(var i=0;i<3;i++){b8_chr(W*.22+i*W*.08,H*.52-26,30,cs[i],false);b8_chr(W*.22+i*W*.08,H*.52+26,30,cs[i],false);}
@@ -105,7 +105,7 @@ SFA.figs("c08",[
   bio_cap('Trisomie 21 : mères < 25 ans et ≥ 40 ans (2 000 chacune)',22);
   var y0=H*.8,h=H*.5;LN(W*.1,y0,W*.9,y0,INK,1.6);
   var d=[['< 25 ans',1,.05,GREEN],['≥ 40 ans',20,1,RED]];d.forEach(function(q,i){var x=W*.2+i*W*.34,bh=q[1]/20*h;ctx.fillStyle=i?'#fdece4':'#e1f5ee';ctx.fillRect(x,y0-bh,70,bh);ctx.strokeStyle=q[3];ctx.lineWidth=2;ctx.strokeRect(x,y0-bh,70,bh);TB(q[1]+' / 2 000',x+35,y0-bh-6,dk(q[3]),13);TB(q[0],x+35,y0+18,INK,13);});
-  bio_pop(p,function(){TB('0,05 % → 1 % : × 20',W*.5,H*.28,DRED,16);TB('χ² ≈ 17,3 > 10,83 : p < 0,001',W*.5,H*.38,DRED,14);});},
+  bio_pop(p,function(){TB('0,05 % → 1 % : × 20',W*.3,H*.3,DRED,15);TB('χ² ≈ 17,3 > 10,83',W*.3,H*.4,DRED,14);TB('p < 0,001',W*.3,H*.5,DRED,14);});},
  function(p){ /* 13 quelle non-disjonction */
   bio_cap('Mère A/a · père a/a · enfant A/a/a',22);
   var rows=[['mère, méiose I','ovule A/a + spz a','✓',1],['mère, méiose II','ovule a/a ou A/A','✗',0],['père, méiose I ou II','spz a/a + ovule A','✓',1]];

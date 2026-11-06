@@ -57,20 +57,20 @@ SFA.figs("c09",[
   if(p<=0)TB('substitution ou délétion ?',W*.5,H*.97,GREY,16);if(p>0)b4ans(p,'la délétion décale tout le cadre de lecture',GREEN,H-14);},
  /* 7 drépanocytose */
  function(p){var cols=[W*.3,W*.72],hd=['normal','drépanocytaire'],cod=[['G','A','G'],['G','T','G']],mat=[['C','T','C'],['C','A','C']],rn=[['G','A','G'],['G','U','G']];
-  TB('brin codant',W*.02,H*.2,GREY,12,'left');TB("matrice 3'→5'",W*.02,H*.38,GREY,12,'left');TB('ARNm',W*.02,H*.56,GREY,12,'left');TB('acide aminé',W*.02,H*.74,GREY,12,'left');
-  cols.forEach(function(cx,k){TB(hd[k],cx,H*.07,k?DRED:DGREEN,15);for(var j=0;j<3;j++){var x=cx+(j-1)*30;b4base(x,H*.2,cod[k][j],.9);b4base(x,H*.38,mat[k][j],.9);if(p>0){b4al(b4r(p,0,.4));b4base(x,H*.56,rn[k][j],.9);b4al(1);}}
-   if(p>0){b4al(b4r(p,.3,.8));b4aa(cx,H*.74,k?'Val':'Glu',k?RED:BLUE,22);var ry=H*.88;if(k){ctx.fillStyle='#fcebeb';ctx.strokeStyle=RED;ctx.lineWidth=2.4;ctx.beginPath();ctx.moveTo(cx-26,ry+10);ctx.quadraticCurveTo(cx,ry-22,cx+26,ry-8);ctx.quadraticCurveTo(cx,ry+2,cx-26,ry+10);ctx.fill();ctx.stroke();}else{b4ell(cx,ry,20,11,'#fcebeb',RED,2.4);}b4al(1);}});
-  A(W*.5,H*.2,W*.1,0,GREY,'',2.5);if(p<=0)TB('?',W*.72,H*.74,GREY,30);
-  if(p>0)b4ans(p,'Val · faux-sens · hémoglobine S en fibres',GREEN,H-20+10);},
+  TB('brin codant',W*.02,H*.19,GREY,12,'left');TB("matrice 3'→5'",W*.02,H*.34,GREY,12,'left');TB('ARNm',W*.02,H*.49,GREY,12,'left');TB('acide aminé',W*.02,H*.64,GREY,12,'left');
+  cols.forEach(function(cx,k){TB(hd[k],cx,H*.07,k?DRED:DGREEN,15);for(var j=0;j<3;j++){var x=cx+(j-1)*30;b4base(x,H*.19,cod[k][j],.9);b4base(x,H*.34,mat[k][j],.9);if(p>0){b4al(b4r(p,0,.4));b4base(x,H*.49,rn[k][j],.9);b4al(1);}}
+   if(p>0){b4al(b4r(p,.3,.8));b4aa(cx,H*.64,k?'Val':'Glu',k?RED:BLUE,22);var ry=H*.79;if(k){ctx.fillStyle='#fcebeb';ctx.strokeStyle=RED;ctx.lineWidth=2.4;ctx.beginPath();ctx.moveTo(cx-26,ry+10);ctx.quadraticCurveTo(cx,ry-22,cx+26,ry-8);ctx.quadraticCurveTo(cx,ry+2,cx-26,ry+10);ctx.fill();ctx.stroke();}else{b4ell(cx,ry,20,11,'#fcebeb',RED,2.4);}b4al(1);}});
+  A(W*.5,H*.19,W*.1,0,GREY,'',2.5);if(p<=0)TB('?',W*.72,H*.64,GREY,30);
+  if(p>0)b4ans(p,'Val · faux-sens · hémoglobine S en fibres',GREEN,H-20);},
  /* 8 polysome */
  function(p){var y=H*.32,x0=W*.06,x1=W*.94;LN(x0,y,x1,y,GREEN,3);TB("5'",x0-2,y+22,GREY,13,'left');TB("3'",x1,y+22,GREY,13,'right');TB('ARNm',W*.5,H*.1,DGREEN,14);
-  for(var i=0;i<12;i++){var x=x0+W*.06+i*(x1-x0-W*.1)/12*1;b4ribo2(x,y,Math.min(.9,W/700+.4));var len=(i/12)*(H*.5)+8;ctx.strokeStyle=ORANGE;ctx.lineWidth=2.6;ctx.beginPath();ctx.moveTo(x,y+12);for(var k=1;k<=10;k++){var yy=y+12+k/10*len;ctx.lineTo(x+Math.sin(k*1.4+i)*3,yy);}ctx.stroke();}
+  for(var i=0;i<12;i++){var x=x0+W*.06+i*(x1-x0-W*.1)/12*1;b4ribo2(x,y,Math.min(.9,W/700+.4));var len=(i/12)*(H*.36)+8;ctx.strokeStyle=ORANGE;ctx.lineWidth=2.6;ctx.beginPath();ctx.moveTo(x,y+12);for(var k=1;k<=10;k++){var yy=y+12+k/10*len;ctx.lineTo(x+Math.sin(k*1.4+i)*3,yy);}ctx.stroke();}
   TB('chaînes de plus en plus longues',W*.5,H*.9,GREY,13);
   if(p<=0){TB('? s · ? protéines',W*.5,H*.97,GREY,15);}
-  if(p>0){b4al(b4r(p,0,.5));b4box(W*.5,H*.78,W*.84,H*.14,GREEN,'#f2fbf7',2);TB('50 s · 0,24 /s · ≈ 276 en 20 min · 30 ribosomes max',W*.5,H*.78+5,DGREEN,Math.max(12,Math.min(15,W/34)));b4al(1);}},
+  if(p>0){b4al(b4r(p,0,.5));b4box(W*.5,H*.8,W*.84,H*.14,GREEN,'#f2fbf7',2);TB('50 s · 0,24 /s · ≈ 276 en 20 min · 30 ribosomes max',W*.5,H*.8+5,DGREEN,Math.max(12,Math.min(15,W/34)));b4al(1);}},
  /* 9 mutation inaperçue */
  function(p){var c=['CCU','CCC','CCA','CCG'],y=H*.32;c.forEach(function(s,i){var x=W*(.14+i*.19);b4box(x,y,W*.16,H*.2,GREEN,'#fff',2);for(var j=0;j<3;j++)TB(s[j],x+(j-1)*18,y+6,j===2?RED:INK,20);if(p>0){b4al(b4r(p,i*.1,i*.1+.3));A(x,y+H*.12,0,H*.08,GREY,'',2);b4aa(x,H*.68,'Pro',BLUE,19);b4al(1);}});
-  TB('3e base',W*.14+W*.19*1.5,y-H*.2,RED,14);TB('substitution en 3e base ?',W*.5,H*.09,GREY,15);
+  TB('substitution de la base en rouge (3e base) ?',W*.45,H*.1,GREY,15);
   b4box(W*.88,y,W*.16,H*.2,RED,'#fcebeb',2);TB('AUG',W*.88,y+6,DRED,17);TB('départ',W*.88,y+H*.16,GREY,12);
-  if(p>0){b4al(b4r(p,.4,.9));TB('4 codons → même acide aminé',W*.4,H*.85,DGREEN,15);b4al(1);b4ans(p,'substitution de la 3e base',GREEN,H-20+10);}}
+  if(p>0){b4al(b4r(p,.4,.9));TB('4 codons → même acide aminé',W*.4,H*.85,DGREEN,15);b4al(1);b4ans(p,'substitution de la 3e base',GREEN,H-20);}}
 ]);

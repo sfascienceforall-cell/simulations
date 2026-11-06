@@ -53,12 +53,12 @@ SFA.theo("c05", {
   TB('95 °C',gx+gw*.16,gy-gh-8,DRED,13);TB('55 °C',gx+gw*.5,gy-18,BLUE_D,13);TB('72 °C',gx+gw*.84,gy-gh*.44-10,DGREEN,13);
   TB('cycle '+(n+1),gx,gy+22,INK,14,'left');
   /* molécule */
-  var x0=50,w=300,y=120,sep=ph===0?pu:ph===1?1:1;
+  var x0=50,w=300,y=100,sep=ph===0?pu:ph===1?1:1;
   var gap=ph===0?3+30*Math.min(1,pu*1.4):33;
   if(ph===0){dbl(x0,y,w,RED,BLUE,gap);TB('dénaturation : les brins se séparent',x0+w/2,50,DRED,15);}
-  if(ph===1){dbl(x0,y,w,RED,BLUE,33);ctx.fillStyle=ORANGE;ctx.fillRect(x0+w-50,y-33-5,50,6);ctx.fillRect(x0,y+33-1,50,6);TB('amorces',x0+w-25,y-50,ORANGE,13);TB('amorces',x0+25,y+60,ORANGE,13);TB('hybridation des amorces',x0+w/2,50,BLUE_D,15);}
+  if(ph===1){dbl(x0,y,w,RED,BLUE,33);ctx.fillStyle=ORANGE;ctx.fillRect(x0+w-50,y-33-5,50,6);ctx.fillRect(x0,y+33-1,50,6);TB('amorces',x0+w-25,y-50,ORANGE,13);TB('amorces',x0+25,y+58,ORANGE,13);TB('hybridation des amorces',x0+w/2,50,BLUE_D,15);}
   if(ph===2){dbl(x0,y,w,RED,BLUE,33);var L=pu*(w-50);ctx.fillStyle=ORANGE;ctx.fillRect(x0+w-50,y-33-5,50,6);ctx.fillRect(x0,y+33-1,50,6);LN(x0+w-50,y-26,x0+w-50-L,y-26,GREEN,4);LN(x0+50,y+40,x0+50+L,y+40,GREEN,4);TB('élongation par l\'ADN polymérase',x0+w/2,50,DGREEN,15);}
-  if(ph===2&&pu>.9){TB('→ 2 molécules',x0+w/2,200,DGREEN,16);}
+  if(ph===2&&pu>.9){TB('→ 2 molécules',x0+w/2,176,DGREEN,16);}
   /* comptage */
   TB('N = N₀ × 2ⁿ',540,36,INK,18);
   for(var k=0;k<16;k++){var i=k%4,j=(k/4)|0,x=450+i*50,yy=70+j*36,lit=k<N;ga(lit?1:.18);dbl(x,yy,36,RED,BLUE,3);g1();}
@@ -137,9 +137,9 @@ SFA.figs("c05", [
   var seq='ATGCGAATTCGGTAC'.split('');
   for(var i=0;i<seq.length;i++){var x=40+i*26,hi=i>=4&&i<=9,left=i<=4;var dx=(left?-1:1)*s*22;ctx.fillStyle=hi?'#fdf5e9':'#fff';ctx.fillRect(x-11+dx,y-18,22,36);ctx.strokeStyle=hi?ORANGE:AX;ctx.lineWidth=1.6;ctx.strokeRect(x-11+dx,y-18,22,36);TB(seq[i],x+dx,y+6,hi?DRED:INK,18);}
   ga(1-s);LN(40+4*26+13,y-34,40+4*26+13,y+34,RED,2.6,[4,3]);g1();
-  TB('GAATTC',40+7*26,y+56,ORANGE,16);TB('site de reconnaissance',40+7*26,y+76,GREY,12);
-  ga(sg(p,.5,1));box(80,176,300,64,DGREEN,'#e8f7f1',10);TB('coupe l\'ADN à une séquence précise',230,214,DGREEN,16);g1();
-  ga(1-sg(p,0,.5));TB('rôle ?',230,214,GREY,18);g1();
+  TB('GAATTC',40+7*26,y+44,ORANGE,16);TB('site de reconnaissance',40+7*26,y+62,GREY,12);
+  ga(sg(p,.5,1));box(70,190,320,56,DGREEN,'#e8f7f1',10);TB('coupe l\'ADN à une séquence précise',230,224,DGREEN,16);g1();
+  ga(1-sg(p,0,.5));TB('rôle ?',230,224,GREY,18);g1();
  }),
  F(function(p){ /* 3 bandes sur le gel */
   var x0=20,w=240,y=50,k=w/5000;TB('5 000 pb',x0+w/2,28,INK,14);
@@ -161,7 +161,7 @@ SFA.figs("c05", [
   [[2,RED],[1.9,BLUE]].forEach(function(q){ctx.strokeStyle=q[1];ctx.lineWidth=3.2;ctx.beginPath();for(var n=0;n<=20*a;n+=.5){var x=gx+n/20*gw,y=gy-100*Math.pow(q[0],n)/(100*Math.pow(2,20))*gh;n?ctx.lineTo(x,y):ctx.moveTo(x,y);}ctx.stroke();});
   for(var n=0;n<=20;n+=5)TB(String(n),gx+n/20*gw,gy+16,GREY,11);
   ga(sg(p,.6,1));TB('100 % : 1,05·10⁸',gx+gw-6,gy-gh-8,DRED,14,'right');TB('90 % : 3,8·10⁷ (36 %)',gx+gw+16,gy-gh*.36-14,BLUE_D,14,'right');g1();
-  TB('départ : 100 copies, 20 cycles',250,26,INK,14);
+  TB('départ : 100 copies, 20 cycles',230,268,INK,14);
  }),
  F(function(p){ /* 5 compter les colonies */
   var pos=[[80,'sans antibiotique'],[230,'ampicilline'],[380,'amp. + X-gal']],r=62,y=96;
@@ -205,18 +205,18 @@ SFA.figs("c05", [
   cell(220,130,44,BLUE,GREEN);TB('embryon',220,190,GREY,12);
   A(268,130,50,0,GREY,'',2.4);TB('mère porteuse',350,96,GREY,12);ell(350,120,26,18,'#f6f9fc',INK,2);
   A(350,146,0,34,GREY,'',2.4);cell(350,210,32,BLUE,GREEN);TB('Dolly',350,262,INK,14);
-  var a=sg(p,.2,.9);ga(a);box(392,20,60,26,BLUE,'#e6f1fb',6);TB('ADN nucléaire',422,38,BLUE_D,1);g1();
-  ga(a);ctx.fillStyle=BLUE;TB('● noyau : celui de la donneuse',410,90,BLUE_D,12,'left');TB('● mitochondries : celles de l\'ovocyte',410,120,DGREEN,12,'left');TB('→ clone très proche,',410,160,INK,12,'left');TB('pas strictement identique',410,178,INK,12,'left');TB('(ni OGM)',410,196,GREY,12,'left');g1();
+  var a=sg(p,.2,.9);ga(a);TB('noyau : donneuse',420,60,BLUE_D,12);TB('mitochondries : ovocyte',415,160,DGREEN,12);g1();
+  ga(a);TB('clone très proche, pas strictement identique, ni OGM',230,276,INK,12);g1();
  }),
  F(function(p){ /* 9 cycles pour un signal */
-  var gx=50,gy=232,gw=330,gh=190;LN(gx,gy,gx+gw+10,gy,AX,1.6);LN(gx,gy,gx,gy-gh-10,AX,1.6);TB('cycles',gx+gw,gy+20,GREY,12);TB('copies (échelle log)',gx+8,gy-gh-14,GREY,12,'left');
+  var gx=50,gy=232,gw=330,gh=190;LN(gx,gy,gx+gw+10,gy,AX,1.6);LN(gx,gy,gx,gy-gh-10,AX,1.6);TB('cycles',gx+gw,gy+20,GREY,12);TB('copies (échelle log)',gx+8,gy-gh-20,GREY,12,'left');
   function Y(v){return gy-Math.log10(v)/10*gh;}
   for(var e=0;e<=10;e+=2){LN(gx-3,Y(Math.pow(10,e)),gx,Y(Math.pow(10,e)),GREY,1);TB('10'+['⁰','','²','','⁴','','⁶','','⁸','','¹⁰'][e],gx-6,Y(Math.pow(10,e))+4,GREY,11,'right');}
   LN(gx,Y(1e10),gx+gw,Y(1e10),INK,1.6,[5,4]);
   var a=sg(p,0,.8);
   [[2,30,RED],[1.9,33,BLUE]].forEach(function(q){var n1=q[1]*a;ctx.strokeStyle=q[2];ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(gx,Y(10));ctx.lineTo(gx+n1/35*gw,Y(10*Math.pow(q[0],n1)));ctx.stroke();});
   ga(sg(p,.7,1));DOT(gx+30/35*gw,Y(1e10),5,RED);DOT(gx+33/35*gw,Y(1e10),5,BLUE);TB('30 cycles',gx+30/35*gw-4,Y(1e10)+22,DRED,13,'right');TB('33 cycles',gx+33/35*gw+10,Y(1e10)+38,BLUE_D,13,'right');
-  TB('10¹⁰ copies × 800 pb ≈ 8,6 ng',gx+gw*.5,Y(1e10)-10,DGREEN,14);g1();
+  TB('10¹⁰ copies × 800 pb ≈ 8,6 ng',gx+gw*.5,Y(1e7)+0,DGREEN,14);g1();
   TB('100 %',gx+80,Y(1e5)-20,DRED,13);TB('90 %',gx+gw*.55,Y(1e3)+10,BLUE_D,13);
  }),
  F(function(p){ /* 10 13 marqueurs */

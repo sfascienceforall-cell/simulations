@@ -35,8 +35,8 @@ SFA.theo("c09", {
   var Q=BB(s)/Math.max(AA(s),.01),K=3,tx=W*.8;
   TB('A ⇌ B   K = 3,0',tx,H*.14,INK,17);
   TB('Q = '+Q.toFixed(1).replace('.',','),tx,H*.34,Math.abs(Q-3)<.1?DGREEN:DRED,26);
-  var msg=!pert?(Math.abs(Q-3)<.1?'équilibre':'vers l\'équilibre'):(Math.abs(Q-3)<.1?'nouvel équilibre':'Q < K : vers la droite');
-  TB(msg,tx,H*.5,pert&&Math.abs(Q-3)>=.1?DRED:DGREEN,16);
+  var msg=!pert?(Math.abs(Q-3)<.1?'équilibre':'vers l\'équilibre'):(Math.abs(Q-3)<.1?'nouvel équilibre':'Q < K : → droite');
+  TB(msg,tx,H*.5,pert&&Math.abs(Q-3)>=.1?DRED:DGREEN,15);
   if(pert&&Math.abs(Q-3)>=.1)A(tx-40,H*.6,80,0,RED,'',4);
   TB('on ajoute A à l\'équilibre : le système consomme A',W*.5,H*.93,GREY,15);
  },
@@ -49,11 +49,11 @@ SFA.theo("c09", {
 SFA.figs("c09", [
  // 0 ajouter, retirer
  F(function(p){
-  [[40,'ajout de H₂',70,0],[150,'retrait de NH₃',330,1]].forEach(function(r,i){var y=r[0]+30;box(8,r[0]-24,444,112,AX,'#fff',12);
-   TB('N₂ + 3 H₂',140,y+20,INK,22);TB('⇌',230,y+20,GREY,24);TB('2 NH₃',330,y+20,INK,22);
-   TB(r[1],r[2],y-12,DRED,15);A(r[2],y-4,0,i?18:-0,DRED,'',0);
-   if(p>0){ga(sg(p,i*.25,i*.25+.4));A(180,y+40,100,0,DGREEN,'',5);TB('vers la droite',230,y+66,DGREEN,15);g1();}
-   else TB('→ ou ← ?',230,y+60,GREY,16);});
+  [['H₂ ajouté',140],['NH₃ retiré',330]].forEach(function(r,i){var y0=8+i*138;box(8,y0,444,128,AX,'#fff',12);
+   TB('(' + (i?'b':'a') + ')',24,y0+24,GREY,15,'left');TB(i?'− NH₃':'+ H₂',r[1],y0+30,DRED,17);
+   TB('N₂ + 3 H₂',140,y0+70,INK,22);TB('⇌',230,y0+70,GREY,24);TB('2 NH₃',330,y0+70,INK,22);
+   if(p>0){ga(sg(p,i*.25,i*.25+.4));A(150,y0+90,160,0,DGREEN,'',5);TB('vers la droite',230,y0+118,DGREEN,15);g1();}
+   else TB('→ ou ← ?',230,y0+110,GREY,16);});
  }),
  // 1 pression
  F(function(p){
@@ -65,9 +65,9 @@ SFA.figs("c09", [
  // 2 chauffer
  F(function(p){
   TB('2 NO₂ ⇌ N₂O₄ · exothermique',230,24,INK,16);
-  flask(60,50,100,110,'rgba(150,80,30,.35)');TB('25 °C',110,190,INK,15);
-  var a=p>0?sg(p,0,.6):0;flask(260,50,100,110,'rgba(150,80,30,'+(.35+.4*a)+')');TB('chauffé',310,190,INK,15);
-  ctx.fillStyle=ORANGE;ctx.beginPath();ctx.ellipse(310,178,14,10,0,0,7);ctx.fill();ctx.fillStyle='#ffd34d';ctx.beginPath();ctx.ellipse(310,180,7,6,0,0,7);ctx.fill();
+  flask(60,50,100,110,'rgba(150,80,30,.35)');TB('25 °C',110,198,INK,15);
+  var a=p>0?sg(p,0,.6):0;flask(260,50,100,110,'rgba(150,80,30,'+(.35+.4*a)+')');TB('chauffé',310,198,INK,15);
+  ctx.fillStyle=ORANGE;ctx.beginPath();ctx.ellipse(310,172,14,10,0,0,7);ctx.fill();ctx.fillStyle='#ffd34d';ctx.beginPath();ctx.ellipse(310,174,7,6,0,0,7);ctx.fill();
   A(170,105,70,0,GREY,'',3);
   if(p>0){ga(sg(p,.2,.8));box(30,210,400,58,DGREEN,'#e3f5ee',10);TB('vers la gauche (NO₂) · plus brun · K diminue',230,236,DGREEN,16);TB('on favorise le sens endothermique',230,258,INK,14);g1();}
   else TB('sens ? couleur ? K ?',230,242,GREY,18);
@@ -76,20 +76,20 @@ SFA.figs("c09", [
  F(function(p){
   var Y=function(E){return 200-E*1.4;};
   ctx.strokeStyle=ORANGE;ctx.lineWidth=3.2;ctx.beginPath();ctx.moveTo(40,Y(0));ctx.lineTo(110,Y(0));ctx.bezierCurveTo(170,Y(0),180,Y(100),250,Y(100));ctx.bezierCurveTo(320,Y(100),330,Y(-20),390,Y(-20));ctx.lineTo(440,Y(-20));ctx.stroke();
-  TB('sans catalyseur',270,Y(100)-8,ORA2,14);TB('réactifs',70,Y(0)-10,INK,14);TB('produits',415,Y(-20)+22,INK,14);TB('énergie',46,22,GREY,13,'left');
+  TB('sans catalyseur',270,Y(100)-8,ORA2,14);TB('réactifs',70,Y(0)-10,INK,14);TB('produits',405,Y(-20)-10,INK,14);TB('énergie',46,22,GREY,13,'left');
   if(p>0){ga(sg(p,0,.5));ctx.strokeStyle=GREEN;ctx.lineWidth=3.2;ctx.beginPath();ctx.moveTo(110,Y(0));ctx.bezierCurveTo(170,Y(0),180,Y(55),250,Y(55));ctx.bezierCurveTo(320,Y(55),330,Y(-20),390,Y(-20));ctx.stroke();TB('avec catalyseur',250,Y(55)-8,DGREEN,14);g1();
    ga(sg(p,.5,1));box(40,236,380,36,DGREEN,'#e3f5ee',8);TB('même ΔH, même K : équilibre atteint plus vite',230,260,DGREEN,15);g1();}
   else TB('le rendement augmente-t-il ?',230,250,GREY,18);
  }),
  // 4 ajout de H2
  F(function(p){
-  var k=60,base=200;TB('H₂ + I₂ ⇌ 2 HI · K = 50',230,22,INK,17);
-  bar(20,base,26,.22*k,CA,'H₂','0,22',13);bar(52,base,26,.22*k,CBc,'I₂','0,22',13);bar(84,base,26,1.56*k,VIOLET,'HI','1,56',13);TB('équilibre',65,226,GREY,14);
-  bar(156,base,26,.72*k,CA,'H₂','0,72',13);bar(188,base,26,.22*k,CBc,'I₂','0,22',13);bar(220,base,26,1.56*k,VIOLET,'HI','1,56',13);TB('+ 0,50 H₂',201,226,DRED,14);
-  if(p>0){ga(sg(p,0,.5));TB('Q ≈ 15 < K',250,50,DRED,15,'left');g1();
-   ga(sg(p,.4,1));bar(312,base,26,.61*k,CA,'H₂','0,61',13);bar(344,base,26,.11*k,CBc,'I₂','0,11',13);bar(376,base,26,1.79*k,VIOLET,'HI','1,79',13);TB('nouvel équilibre',360,226,DGREEN,14);g1();
+  var k=60,base=190;TB('H₂ + I₂ ⇌ 2 HI · K = 50',230,22,INK,17);
+  bar(14,base,30,.22*k,CA,'H₂','0,22',13);bar(48,base,30,.22*k,CBc,'I₂','0,22',13);bar(82,base,30,1.56*k,VIOLET,'HI','1,56',13);TB('équilibre',63,222,GREY,14);
+  bar(144,base,30,.72*k,CA,'H₂','0,72',13);bar(178,base,30,.22*k,CBc,'I₂','0,22',13);bar(212,base,30,1.56*k,VIOLET,'HI','1,56',13);TB('+ 0,50 H₂',193,222,DRED,14);
+  if(p>0){ga(sg(p,0,.5));TB('Q ≈ 15 < K',144,48,DRED,15,'left');g1();
+   ga(sg(p,.4,1));bar(284,base,30,.61*k,CA,'H₂','0,61',13);bar(318,base,30,.11*k,CBc,'I₂','0,11',13);bar(352,base,30,1.79*k,VIOLET,'HI','1,79',13);TB('nouvel équilibre',333,222,DGREEN,14);g1();
    ga(sg(p,.6,1));box(20,240,420,32,DGREEN,'#e3f5ee',8);TB('vers la droite : [I₂] ↓ · [HI] ↑',230,262,DGREEN,15);g1();}
-  else {TB('Q = ?  sens ?',380,110,GREY,18);}
+  else {TB('Q = ?  sens ?',300,110,GREY,18);}
  }),
  // 5 boisson tiède
  F(function(p){
@@ -112,7 +112,7 @@ SFA.figs("c09", [
   P.forEach(function(q){DOT(XP(q[0]),Y(q[1]),4,BLUE_D);TB(String(q[1]).replace('.',','),XP(q[0])+4,Y(q[1])-8,GREY,12);TB(String(q[0]),XP(q[0]),224,GREY,12);});
   if(p>0){ga(sg(p,0,.5));DOT(XT(450),Y(25),8,RED,false);DOT(XP(200),Y(25),8,RED,false);g1();
    ga(sg(p,.4,1));box(20,248,420,28,DGREEN,'#e3f5ee',8);TB('compromis : 450 °C · 200 bar · catalyseur Fe',230,268,DGREEN,14);g1();}
-  else TB('quelles conditions ?',150,70,GREY,16);
+  else TB('quelles conditions ?',350,60,GREY,16);
  }),
  // 7 gaz inerte
  F(function(p){
@@ -139,11 +139,11 @@ SFA.figs("c09", [
   ctx.fillStyle='#d9ecfa';ctx.strokeStyle=INK;ctx.lineWidth=2.4;ctx.beginPath();ctx.roundRect(40,70,64,150,10);ctx.fill();ctx.stroke();ctx.fillRect(60,40,24,34);ctx.strokeRect(60,40,24,34);
   for(var i=0;i<9;i++){ga(.9);ball(52+rnd(i)*40,90+((i*29+p*60)%110),3.5,'#fff','',null);g1();}TB('CO₂ · 3,0 atm',72,244,INK,14);
   var X=function(v){return 190+v*80;},Y=function(c){return 220-c*1500;};
-  ax(190,220,450,50);TB('p (atm)',450,242,GREY,13,'right');TB('c (mol/L)',196,44,GREY,13,'left');
+  ax(190,220,450,50);TB('p (atm)',450,252,GREY,13,'right');TB('c (mol/L)',196,44,GREY,13,'left');
   LN(190,220,X(3),Y(.102),BLUE,3);DOT(X(3),Y(.102),6,BLUE_D);[1,2,3].forEach(function(v){TB(String(v),X(v),236,GREY,12);});
-  if(p>0){ga(sg(p,0,.4));TB('c = 0,034 × 3,0',X(3)-6,Y(.102)-16,INK,14,'right');TB('= 0,102 mol/L ≈ 4,5 g/L',X(3)-6,Y(.102)+6,DRED,14,'right');g1();
+  if(p>0){ga(sg(p,0,.4));TB('c = 0,034 × 3,0',200,80,INK,14,'left');TB('= 0,102 mol/L ≈ 4,5 g/L',200,102,DRED,14,'left');g1();
    ga(sg(p,.4,1));box(20,258,420,20,DGREEN,'#e3f5ee',6);TB('ouvert : 1,4·10⁻⁵ mol/L → ≈ 1,2 L de CO₂ libérés (0,50 L)',230,273,DGREEN,12);g1();}
-  else TB('concentration dissoute ?',320,120,GREY,16);
+  else TB('concentration dissoute ?',350,200,GREY,16);
  })
 ]);
 })();

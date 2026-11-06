@@ -28,3 +28,4 @@ Nouvelle structure (kit/) : chaque cours = une page `index.html` → chapitres �
 | 10:22 | Théorie chimie BA1 : 19 chapitres OK (theo-L.js pour L01-L18), _tchimie supprimé | fait |
 | 10:23 | Théorie biologie 3e complète (10 chapitres, 0 erreur) | fait |
 | 10:23 | Théorie maths 3e + 6e + statistique complètes (index corrigés) | fait |
+| 10:25 | Designer terminé (moteur embelli, ~75 pages en échec réparées, navigation précédent/suivant/clavier). Phase 2 lancée : inspecteurs | fait |
