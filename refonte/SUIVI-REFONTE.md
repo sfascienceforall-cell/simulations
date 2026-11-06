@@ -52,3 +52,4 @@ Nouvelle structure (kit/) : chaque cours = une page `index.html` → chapitres �
 | 20:09 | V3 biologie 3e : 19 refaites + 2 retouchées, 0 erreur. À vérifier : c08 facteurs limitants passe à min(L,C,T) — exercices/théo c08 citent-ils des valeurs ? | fait |
 | 20:10 | V3 biologie 4e : 15 refaites, 0 erreur ; restent à 2 : lactase, bilans (c05-c07), mb, adn, spécialisées, microscope | fait |
 | 20:12 | V3 biologie BA1 : 14 refaites, 0 erreur ; restent : courbes enzymatiques, dérive/sélection/logistique, Nernst/Goldman, croisements… | fait |
+| 20:15 | V3 biologie 5e : 19 refaites, 0 erreur ; restent : vih, pilule, courbes seules (pompe, repas, chaleur, fièvre, gamètes-âge, hcg)… | fait |
