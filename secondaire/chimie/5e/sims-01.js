@@ -1,4 +1,61 @@
 /* Chapitre 1 · Structure électronique et schéma de Lewis */
+/* ---- aides graphiques communes à tout le cours (chargées avec le chapitre 1 sur chaque page) ---- */
+C5.shade = function(col, k){   /* k > 0 : éclaircit ; k < 0 : fonce */
+  var m = /^#([0-9a-f]{6})$/i.exec(col), r, g, b, t = k > 0 ? 255 : 0, a = Math.abs(k);
+  if (m){ r = parseInt(m[1].slice(0, 2), 16); g = parseInt(m[1].slice(2, 4), 16); b = parseInt(m[1].slice(4, 6), 16); }
+  else if ((m = /rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/.exec(col))){ r = +m[1]; g = +m[2]; b = +m[3]; }
+  else return col;
+  return "rgb(" + Math.round(r + (t - r) * a) + "," + Math.round(g + (t - g) * a) + "," + Math.round(b + (t - b) * a) + ")";
+};
+C5.CPK = {H: "#f4f6fa", C: "#59636f", N: "#4f7be0", O: "#e8594a", F: "#86d06f", Cl: "#3fb878", S: "#e8c63a", P: "#f09a3a", B: "#eba98a", Be: "#a8d86a", X: "#f3c987", A: "#bfe0cf", Na: "#9b7be6", Xe: "#8fd3e0", Br: "#b5523b", I: "#8a5cc4"};
+/* sphère ombrée avec étiquette facultative */
+C5.atom = function(c, x, y, r, col, label, tcol){
+  var S = window.SFA, ctx = c.ctx;
+  if (!(r > 0) || !isFinite(x) || !isFinite(y)) return;
+  ctx.save();
+  var g = ctx.createRadialGradient(x - r * 0.35, y - r * 0.4, r * 0.08, x, y, r);
+  g.addColorStop(0, C5.shade(col, 0.6)); g.addColorStop(0.55, col); g.addColorStop(1, C5.shade(col, -0.2));
+  ctx.beginPath(); ctx.arc(x, y, r, 0, 2 * Math.PI); ctx.fillStyle = g; ctx.fill();
+  ctx.strokeStyle = "rgba(15,27,45,.38)"; ctx.lineWidth = r > 5 ? 1.1 : 0.7; ctx.stroke();
+  ctx.restore();
+  if (label) S.draw.text(c, label, x, y, {size: r > 14 ? 14 : 12, color: tcol || "#0f1b2d"});
+};
+C5.rng = function(seed){ var s = seed; return function(){ s = (s * 16807) % 2147483647; return (s - 1) / 2147483646; }; };
+C5.rot = function(v, yaw, pitch){
+  var x1 = v[0] * Math.cos(yaw) + v[2] * Math.sin(yaw), z1 = -v[0] * Math.sin(yaw) + v[2] * Math.cos(yaw);
+  var y2 = v[1] * Math.cos(pitch) - z1 * Math.sin(pitch), z2 = v[1] * Math.sin(pitch) + z1 * Math.cos(pitch);
+  return [x1, y2, z2];
+};
+C5.drag3d = function(c, st){   /* le pointeur fait tourner la molécule ; st = {yaw, pitch} */
+  var last = null;
+  c.pointer(function(type, p){
+    if (type === "down"){ last = p; st.dragging = true; }
+    else if (type === "drag" && last){ st.yaw += (p.x - last.x) * 0.012; st.pitch = Math.max(-1.4, Math.min(1.4, st.pitch + (p.y - last.y) * 0.012)); last = p; st.dirty = true; }
+    else if (type === "up"){ last = null; st.dragging = false; }
+  });
+};
+/* projection perspective : renvoie [x, y, échelle] */
+C5.proj = function(v, cx, cy, R, persp){ var s = 1 / (1 - (persp == null ? 0.12 : persp) * v[2]); return [cx + R * v[0] * s, cy - R * v[1] * s, s]; };
+/* fond de scène doux (paillasse) : dégradé léger */
+C5.bench = function(c, y){
+  var ctx = c.ctx, g = ctx.createLinearGradient(0, y, 0, c.H); g.addColorStop(0, "#e9edf3"); g.addColorStop(1, "#f6f8fb");
+  ctx.save(); ctx.fillStyle = g; ctx.fillRect(0, y, c.W, c.H - y); ctx.fillStyle = "#d3dae4"; ctx.fillRect(0, y, c.W, 2); ctx.restore();
+};
+/* bécher : contour de verre + liquide (niveau 0..1) ; renvoie {x, y, w, h, top} */
+C5.beaker = function(c, x, y, w, h, fill, level, opt){
+  opt = opt || {}; var ctx = c.ctx, S = window.SFA, top = y + h * (1 - level);
+  ctx.save();
+  ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + (opt.taper || 0), y + h); ctx.lineTo(x + w - (opt.taper || 0), y + h); ctx.lineTo(x + w, y); ctx.closePath();
+  ctx.fillStyle = "rgba(230,240,250,.35)"; ctx.fill(); ctx.clip();
+  if (level > 0){ var g = ctx.createLinearGradient(0, top, 0, y + h); g.addColorStop(0, C5.shade(fill, 0.25)); g.addColorStop(1, fill); ctx.fillStyle = g; ctx.fillRect(x - 2, top, w + 4, y + h - top + 2);
+    ctx.fillStyle = "rgba(255,255,255,.35)"; ctx.fillRect(x - 2, top, w + 4, 2); }
+  ctx.restore();
+  ctx.save(); ctx.strokeStyle = "#51627a"; ctx.lineWidth = 2.4; ctx.lineJoin = "round"; ctx.lineCap = "round";
+  ctx.beginPath(); ctx.moveTo(x - 3, y); ctx.lineTo(x, y); ctx.lineTo(x + (opt.taper || 0), y + h); ctx.lineTo(x + w - (opt.taper || 0), y + h); ctx.lineTo(x + w, y); ctx.lineTo(x + w + 3, y); ctx.stroke();
+  ctx.strokeStyle = "rgba(255,255,255,.7)"; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(x + 7, y + 8); ctx.lineTo(x + 7 + (opt.taper || 0) * 0.9, y + h - 10); ctx.stroke();
+  ctx.restore();
+  return {x: x, y: y, w: w, h: h, top: top};
+};
 C5.rgb = function(nm){   /* longueur d'onde (nm) → couleur approximative */
   var r = 0, g = 0, b = 0, f;
   if (nm >= 380 && nm < 440){ r = -(nm - 440) / 60; b = 1; }

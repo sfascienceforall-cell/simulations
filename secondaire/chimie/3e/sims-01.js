@@ -1,4 +1,38 @@
 /* Chapitre 1 · Mélanges, corps purs et techniques de séparation */
+/* ---------- aides graphiques partagées du cours de chimie 3e (chargées avec le chapitre 1) ---------- */
+(function(){
+var D = SFA.draw, P = D.palette;
+var CH = window.CH = {};
+CH.lite = function(col,t){ var m=/^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(col); if(!m) return col; var v=[1,2,3].map(function(i){ var x=parseInt(m[i],16); return Math.round(x+(255-x)*t); }); return "rgb("+v.join(",")+")"; };
+CH.rng = function(seed){ var a=seed>>>0; return function(){ a|=0; a=a+0x6D2B79F5|0; var t=Math.imul(a^a>>>15,1|a); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; }; };
+CH.rr = function(c,x,y,w,h,fill,stroke,lw,r){ var g=c.ctx; g.save(); g.beginPath(); if(g.roundRect) g.roundRect(x,y,w,h,r==null?8:r); else g.rect(x,y,w,h); if(fill){g.fillStyle=fill;g.fill();} if(stroke){g.strokeStyle=stroke;g.lineWidth=lw||1.5;g.stroke();} g.restore(); };
+CH.circ = function(c,x,y,r,fill,stroke,lw){ var g=c.ctx; g.beginPath(); g.arc(x,y,r,0,6.2832); if(fill){g.fillStyle=fill;g.fill();} if(stroke){g.strokeStyle=stroke;g.lineWidth=lw||1;g.stroke();} };
+/* fond de scène : dégradé doux + plan de paillasse optionnel */
+CH.bg = function(c, bench){ var g=c.ctx, gr=g.createLinearGradient(0,0,0,c.H); gr.addColorStop(0,"#f7f9fd"); gr.addColorStop(1,"#eaf0f8"); g.fillStyle=gr; g.fillRect(0,0,c.W,c.H);
+  if(bench){ var y=bench; g.fillStyle="#d9e0ea"; g.fillRect(0,y,c.W,c.H-y); g.fillStyle="#c5cedb"; g.fillRect(0,y,c.W,2); } };
+/* sphère ombrée (atome, ion, molécule) */
+CH.ball = function(c,x,y,r,col,txt,o){ o=o||{}; var g=c.ctx; g.save(); var gr=g.createRadialGradient(x-r*.35,y-r*.4,r*.1,x,y,r); gr.addColorStop(0,CH.lite(col,.5)); gr.addColorStop(1,col);
+  g.beginPath(); g.arc(x,y,r,0,6.2832); g.fillStyle=gr; g.fill(); g.lineWidth=o.lw||1.2; g.strokeStyle=o.stroke||"rgba(255,255,255,.9)"; g.stroke(); g.restore();
+  if(txt!=null&&txt!=="") D.text(c,txt,x,y+.5,{size:o.size||Math.max(11,Math.min(16,r*.9)),color:o.tc||"#fff",math:o.math,halo:o.halo}); };
+/* bécher / éprouvette : liquide à niveau lvl (0-1), graduations */
+CH.glass = function(c,x,y,w,h,lvl,col,o){ o=o||{}; var g=c.ctx, tw=o.taper||0; g.save();
+  function path(){ g.beginPath(); g.moveTo(x,y); g.lineTo(x+tw,y+h-(o.round||6)); g.quadraticCurveTo(x+tw,y+h,x+tw+(o.round||6),y+h); g.lineTo(x+w-tw-(o.round||6),y+h); g.quadraticCurveTo(x+w-tw,y+h,x+w-tw,y+h-(o.round||6)); g.lineTo(x+w,y); }
+  if(lvl>0){ g.save(); path(); g.lineTo(x,y); g.closePath(); g.clip(); var ly=y+h*(1-lvl); var gr=g.createLinearGradient(0,ly,0,y+h); gr.addColorStop(0,col); gr.addColorStop(1,CH.lite(col,.45)); g.fillStyle=gr; g.fillRect(x-2,ly,w+4,h); g.fillStyle="rgba(255,255,255,.35)"; g.fillRect(x-2,ly,w+4,2); g.restore(); }
+  path(); g.strokeStyle="#6b7a90"; g.lineWidth=2.4; g.lineCap="round"; g.lineJoin="round"; g.stroke();
+  g.beginPath(); g.moveTo(x+5+tw,y+8); g.lineTo(x+5+tw,y+h*.7); g.strokeStyle="rgba(255,255,255,.7)"; g.lineWidth=3; g.stroke();
+  if(o.ticks){ for(var i=1;i<=o.ticks;i++){ var ty=y+h-h*i/(o.ticks+1)*.92; D.line(c,x+w-(i%2?10:16),ty,x+w,ty,"#8a95a3",1.2); } }
+  g.restore(); };
+/* pastille texte avec titre de scène */
+CH.title = function(c,s,col){ D.label(c,s,10,14,{align:"left",color:col||P.mat,size:12}); };
+/* légende sous la scène */
+CH.cap = function(c,s,x,y,col){ D.text(c,s,x==null?c.W/2:x,y==null?c.H-10:y,{size:12,color:col||"#5f6b7a",weight:700}); };
+/* bouton dessiné sur le canvas (zone cliquable) : renvoie le rectangle */
+CH.chip = function(c,s,x,y,col,on,w){ var g=c.ctx; g.save(); g.font="800 12px Mulish, system-ui"; var ww=w||g.measureText(s).width+22; g.restore();
+  CH.rr(c,x,y,ww,28,on?col:"#fff",col,1.6,14); D.text(c,s,x+ww/2,y+14.5,{size:12,color:on?"#fff":col}); return {x:x,y:y,w:ww,h:28}; };
+CH.hit = function(r,p){ return p.x>=r.x&&p.x<=r.x+r.w&&p.y>=r.y&&p.y<=r.y+r.h; };
+/* taille de police adaptée à la largeur (téléphone) */
+CH.fs = function(c,a,b){ return c.W<420?a:b; };
+})();
 (function(){
 var D = SFA.draw, P = D.palette, T = D.text, F = SFA.fmt;
 function rr(c,x,y,w,h,fill,stroke,lw,r){ var g=c.ctx; g.save(); g.beginPath(); if(g.roundRect) g.roundRect(x,y,w,h,r||6); else g.rect(x,y,w,h); if(fill){g.fillStyle=fill;g.fill();} if(stroke){g.strokeStyle=stroke;g.lineWidth=lw||1.5;g.stroke();} g.restore(); }
@@ -57,7 +91,7 @@ SFA.sim({
           st.cur = cur.filter(function(x){return x.kind!=="liq";});
           st.cur.forEach(function(x){ if(x.kind==="diss"){ x.kind="sol"; x.n="sel"; } });
           msg="Les liquides sont recueillis dans l'ordre de leurs températures d'ébullition ; les solides restent dans le ballon."; } }
-      log.push(msg); lg.set("<b>Journal.</b> "+log.map(function(x,i){return (i+1)+". "+x;}).join("<br>"), "");
+      pulse=1; log.push(msg); lg.set("<b>Journal.</b> "+log.map(function(x,i){return (i+1)+". "+x;}).join("<br>"), "");
       check();
     }
     function check(){
@@ -73,27 +107,39 @@ SFA.sim({
       } else nt.set("Un groupe contient encore plusieurs constituants : continue.","warn");
     }
     [["Aimant","aimant"],["Ajouter de l'eau","eau"],["Filtration","filtre"],["Décantation","decante"],["Évaporation","evap"],["Distillation","dist"]].forEach(function(p){ k.button(p[0], function(){ act(p[1]); }); });
-    k.button("Recommencer", function(){ reset(); }, true);
-    function chips(x,y,w,items){
-      var g=c.ctx, cx=x, cy=y; g.save(); g.font="700 13px Mulish, system-ui";
-      items.forEach(function(it){ var tw=g.measureText(it.n).width+24; if(cx+tw>x+w){cx=x;cy+=24;}
-        rr(c,cx,cy,tw,20,"#fff",COL[it.n]||"#999",2,10); g.fillStyle=COL[it.n]||"#999"; g.beginPath(); g.arc(cx+10,cy+10,5,0,6.3); g.fill();
-        g.fillStyle="#0f1b2d"; g.textAlign="left"; g.textBaseline="middle"; g.fillText(it.n,cx+19,cy+10); cx+=tw+6; });
-      g.restore(); return cy+26-y;
+    var pulse=0, nfr=0;
+    var lp = k.loop(function(dt){ if(pulse>0){ pulse=Math.max(0,pulse-dt*1.4); k.redraw(); } });
+    lp.play();
+    k.button("Recommencer", function(){ reset(); pulse=0; }, true);
+    var KC = {sable:"#c9a45c", fer:"#3b424d", sel:"#f4f6fa", "sel (dissous)":"#dfe7f2"};
+    function grains(g,x,y,w,h,items,seed){ var R=CH.rng(seed); items.forEach(function(it,ii){ var col=KC[it.n]; if(!col||it.kind==="liq"||it.kind==="diss") return; var n=Math.round(w*h/(it.kind==="mag"?60:34)); for(var i=0;i<n;i++){ var gx=x+R()*w, gy=y+h-R()*h*(1-Math.pow(R(),0.7)); g.fillStyle=col; g.globalAlpha=.95; g.beginPath(); g.arc(gx,gy,it.kind==="mag"?1.6:2,0,6.3); g.fill(); if(it.n==="sel"){ g.strokeStyle="#b8c2d0"; g.lineWidth=.6; g.stroke(); } } g.globalAlpha=1; }); }
+    function vessel(x,y,w,h,items,seed,label,hi){
+      var g=c.ctx, liq=items.filter(function(i){return i.kind==="liq";}), diss=items.filter(function(i){return i.kind==="diss";});
+      var lvl=liq.length||diss.length?0.6:0, lc="rgba(111,177,230,.55)";
+      var hasOil=liq.some(function(i){return i.id==="org";}), hasAq=liq.some(function(i){return i.id==="aq";}), hasEth=liq.some(function(i){return i.n==="éthanol";}), hasW=liq.some(function(i){return i.n==="eau";});
+      if(hasEth&&hasW) lc="rgba(160,150,230,.5)"; else if(hasEth) lc="rgba(177,156,217,.5)"; else if(hasOil&&!hasAq) lc="rgba(224,184,50,.65)"; else if(!liq.length&&diss.length) lc="rgba(111,177,230,.55)";
+      if(hi){ D.glow(c,x+w/2,y+h/2,w*.9,P.green,.5); }
+      CH.glass(c,x,y,w,h,lvl,lc,{taper:w>90?6:3});
+      if(hasOil&&hasAq){ g.save(); g.beginPath(); g.rect(x+3,y+h*(1-lvl),w-6,h*lvl*.36); g.fillStyle="rgba(232,190,40,.8)"; g.fill(); g.restore(); }
+      g.save(); g.beginPath(); g.rect(x+2,y+2,w-4,h-4); g.clip(); grains(g,x+4,y+h-h*.22,w-8,h*.2,items,seed);
+      if(diss.length&&lvl){ var R=CH.rng(seed+3); g.fillStyle="rgba(255,255,255,.8)"; for(var i=0;i<26;i++){ g.beginPath(); g.arc(x+6+R()*(w-12),y+h*(1-lvl)+8+R()*h*lvl*.7,1.3,0,6.3); g.fill(); } } g.restore();
+      D.text(c,label,x+w/2,y+h+11,{size:c.W<420?10.5:11.5,color:hi?P.green:"#4b586a",weight:800});
     }
     reset();
     k.draw(function(){
-      c.clear(); var W=c.W, y=8;
-      var boxes = [{l:"Mélange dans le bécher", a:st.cur, cur:true}].concat(st.fr);
-      boxes.forEach(function(b){
-        var h = 30 + (function(){ var g=c.ctx; g.save(); g.font="700 13px Mulish, system-ui"; var cx=0, rows=1; b.a.forEach(function(it){ var tw=g.measureText(it.n).width+30; if(cx+tw>W-36){cx=0;rows++;} cx+=tw; }); g.restore(); return rows*24; })();
-        if (y+h > c.H-4) return;
-        rr(c,8,y,W-16,h,b.cur?"#f3f6fb":"#f2f8f4",b.cur?P.acc:P.green,1.5,10);
-        T(c,b.l+(b.a.length>1?"  (mélange)":""),18,y+13,{size:12,color:P.grey,align:"left"});
-        if (b.a.length) chips(18,y+24,W-36,b.a); else T(c,"(vide)",18,y+34,{size:13,color:P.grey,align:"left"});
-        y += h + 6;
-      });
-      if (lost.length && y+24 < c.H) T(c,"Perdu dans l'air : "+lost.join(", "),14,y+8,{size:13,color:P.red,align:"left"});
+      c.clear(); CH.bg(c,c.H-8); var W=c.W,H=c.H,g=c.ctx;
+      var bw=Math.min(150,W*0.34), bh=H*0.5, bx=14, by=H*0.2;
+      CH.title(c,"Paillasse · "+MIX[sel.value].t.split(" (")[0]);
+      vessel(bx,by,bw,bh,st.cur,7,"Bécher de départ",false);
+      // légende des constituants
+      var ly=by+bh+30; st.cur.forEach(function(it,i){ var col=COL[it.n]||"#999"; CH.circ(c,bx+6,ly+i*17,5,col); D.text(c,it.n,bx+16,ly+i*17,{size:11.5,align:"left",color:"#2c3a4e",weight:700}); });
+      // fractions
+      var fx=bx+bw+22, fw=W-fx-8, cw=Math.min(66,fw/Math.max(2,Math.min(3,st.fr.length||1))-8), per=Math.max(1,Math.floor(fw/(cw+8)));
+      if(!st.fr.length){ D.text(c,"Les fractions",fx+fw/2,H*0.4,{size:12.5,color:"#7b8798"}); D.text(c,"séparées arriveront ici",fx+fw/2,H*0.4+17,{size:12.5,color:"#7b8798"}); }
+      st.fr.forEach(function(f,i){ var col=i%per, row=Math.floor(i/per), x=fx+col*(cw+8), y=by-6+row*(bh*0.62+26), isN=i===st.fr.length-1; var l=f.l.replace("Distillat n°","Distillat ").replace(" (dessus)","").replace("Sur le filtre","Filtre"); var items=f.a.map(function(a){ return {n:a.n,kind:a.kind,id:a.id}; });
+        vessel(x,y,cw,bh*0.62,items,20+i,l.length>16?l.slice(0,15)+"…":l,isN&&pulse>0); });
+      if(lost.length){ D.label(c,"Perdu dans l'air : "+lost.join(", "),W-8,H-24,{align:"right",color:P.red,size:11.5}); }
+      var ok=log.length>0; if(ok){ D.text(c,"Étape "+log.length,W-10,16,{size:11.5,align:"right",color:P.grey}); }
     });
   }
 });
@@ -217,12 +263,13 @@ SFA.sim({
   aRetenir:"Le liquide qui bout le plus facilement (éthanol, 78 °C) passe en premier, mais jamais de façon parfaitement pure : on recueille des fractions successives de plus en plus riches en eau. La température en tête monte pendant que le mélange s'appauvrit en éthanol.",
   piege:"Une distillation simple ne donne pas de l'éthanol pur : il reste de l'eau dans la première fraction (limite vers 96 % en réalité). Modèle simplifié : proportions en volume, valeurs qualitatives mais de bon ordre de grandeur.",
   build:function(k,S){
-    var c = k.canvas(340);
+    var c = k.canvas(370);
     var ph0 = k.slider("Éthanol dans le mélange de départ", 10, 70, 5, 30, "%");
     var sp = k.slider("Vitesse de la simulation", 1, 4, 1, 2, "×");
     var ro = k.readouts(["Température en tête","Dans le ballon","Distillat recueilli","Éthanol du tube 1"]);
     var nt = k.note("Lance le chauffage, puis compare la couleur et le pourcentage des tubes.","");
     var V0=200, alpha=7, st;
+    function H0(){ return c.H-4; }
     function yOf(x){ return Math.min(0.96, alpha*x/(1+(alpha-1)*x)); }
     function bp(x){ return 100-22*(1-Math.pow(1-x,3)); }
     function init(){ var e=V0*ph0.value/100; st={E:e, V:V0, col:0, tubes:[0,0,0,0,0], vol:[0,0,0,0,0], done:false, head:bp(ph0.value/100)}; }
@@ -236,28 +283,39 @@ SFA.sim({
     k.button("Recommencer", function(){ lp.pause(); init(); });
     ph0.el.addEventListener("input", function(){ lp.pause(); init(); k.redraw(); });
     k.draw(function(){
-      c.clear(); var W=c.W,H=c.H,g=c.ctx;
-      var x=st.V>0?st.E/st.V:0;
-      // ballon
-      var bx=W*0.16, by=H*0.62, br=Math.min(48,W*0.12);
-      g.save(); g.strokeStyle="#556"; g.lineWidth=2; g.beginPath(); g.arc(bx,by,br,0,6.3); g.stroke();
-      g.beginPath(); g.moveTo(bx-br*0.3,by-br*0.95); g.lineTo(bx-br*0.3,by-br*1.9); g.lineTo(bx+br*0.3,by-br*1.9); g.lineTo(bx+br*0.3,by-br*0.95); g.stroke(); g.restore();
-      var lvl=st.V/V0; g.save(); g.beginPath(); g.arc(bx,by,br-2,0,6.3); g.clip(); g.fillStyle="rgba(120,90,200,"+(0.15+0.5*x).toFixed(2)+")"; g.fillRect(bx-br,by+br-2*br*lvl*0.92,2*br,2*br); g.restore();
-      T(c,"ballon",bx,by+br+14,{size:12,color:P.grey});
-      // thermomètre
-      var tx=bx+br*0.85, ty=by-br*1.9; D.line(c,bx+br*0.3,ty+6,tx+10,ty+6,"#556",2);
-      T(c,F(st.head,1)+" °C",tx+14,ty-8,{size:14,color:P.red,align:"left"});
-      // condenseur
-      var cx0=bx+br*0.3, cy0=ty+6, cx1=W*0.56, cy1=H*0.42;
-      D.line(c,cx0,cy0,cx1,cy1,"#556",3); D.line(c,cx1,cy1,cx1+10,cy1+30,"#556",3);
-      T(c,"condenseur",(cx0+cx1)/2+10,(cy0+cy1)/2+18,{size:12,color:P.grey});
-      // tubes
-      var tw=Math.min(36,(W-cx1-30)/5-6), th=H*0.5, tx0=cx1-6+(W-cx1-6-(5*(tw+8)))/2+4;
-      for(var i=0;i<5;i++){ var xx=tx0+i*(tw+8), yy=H*0.34, yb=yy+th; rr(c,xx,yy,tw,th,"#fff","#556",1.5,4);
-        var v=st.vol[i], f=v/20; if(v>0){ var e=st.tubes[i]/v; var hh=th*Math.min(1,f); g.save(); g.fillStyle="rgba(120,90,200,"+(0.12+0.7*e).toFixed(2)+")"; g.fillRect(xx+1,yb-hh,tw-2,hh-1); g.restore();
-          T(c,Math.round(e*100)+" %",xx+tw/2,yb+13,{size:12,color:P.violet}); } else T(c,"—",xx+tw/2,yb+13,{size:12,color:P.grey});
-        T(c,String(i+1),xx+tw/2,yy-9,{size:12,color:P.grey}); }
-      T(c,"fractions de 20 mL (violet = éthanol)",cx1+(W-cx1)/2-2,H-10,{size:12,color:P.grey});
+      c.clear(); CH.bg(c,H0()); var W=c.W,H=c.H,g=c.ctx, tt=Date.now()/1000;
+      var x=st.V>0?st.E/st.V:0, run=lp.running&&!st.done;
+      var br=Math.min(44,W*0.11), bx=W*0.15, by=H*0.66, ny=H*0.2, top=ny-4;
+      CH.title(c,"Distillation fractionnée · eau + éthanol");
+      // plaque chauffante + flamme
+      CH.rr(c,bx-br-8,by+br+4,2*br+16,14,"#5b6677",null,0,5);
+      if(run){ for(var f=0;f<5;f++){ var fx=bx-br*.6+f*br*.3, fh=7+4*Math.sin(tt*14+f*2); g.fillStyle="rgba(244,160,40,.9)"; g.beginPath(); g.moveTo(fx-4,by+br+4); g.quadraticCurveTo(fx,by+br+4-fh*1.6,fx+4,by+br+4); g.fill(); } D.glow(c,bx,by+br,br*1.3,P.orange,.4); }
+      // ballon à fond rond
+      g.save(); g.beginPath(); g.arc(bx,by,br,0,6.2832); g.moveTo(bx-br*.28,by-br*.95); g.lineTo(bx-br*.28,top); g.moveTo(bx+br*.28,by-br*.95); g.lineTo(bx+br*.28,top);
+      g.strokeStyle="#6b7a90"; g.lineWidth=2.4; g.stroke(); g.restore();
+      var lvl=st.V/V0; g.save(); g.beginPath(); g.arc(bx,by,br-1.5,0,6.2832); g.clip(); var gr=g.createLinearGradient(0,by-br,0,by+br); gr.addColorStop(0,"rgba(150,125,225,"+(0.3+0.4*x).toFixed(2)+")"); gr.addColorStop(1,"rgba(110,90,200,"+(0.45+0.4*x).toFixed(2)+")"); g.fillStyle=gr; g.fillRect(bx-br,by+br-2*br*lvl*.9,2*br,2*br); 
+      if(run){ for(var q=0;q<7;q++){ var ph=(tt*1.4+q*.37)%1; CH.circ(c,bx+Math.sin(q*5.1)*br*.6,by+br*.8-ph*br*1.4*lvl,1.8+q%3,"rgba(255,255,255,.7)"); } } g.restore();
+      D.text(c,"ballon : "+F(st.V,0)+" mL",bx,by+br+30,{size:11.5,color:"#4b586a"});
+      // thermomètre dans le col
+      var tx=bx+br*.05; var th=Math.max(0,Math.min(1,(st.head-70)/35)); CH.rr(c,tx-3,top-16,6,50,"#fff","#8a95a3",1.2,3); CH.rr(c,tx-1.6,top+34-th*46,3.2,th*46,P.red,null,0,2);
+      D.label(c,F(st.head,1)+" °C",tx,top-28,{color:P.red,size:12.5});
+      // tuyau + condenseur de Liebig
+      var cx0=bx+br*.28, cx1=W*0.62, cy1=H*0.4; D.line(c,cx0,ny,W*.3,ny,"#6b7a90",3);
+      var ux=W*.3, uy=ny, dx=cx1-ux, dy=cy1-uy; g.save(); g.translate(ux,uy); g.rotate(Math.atan2(dy,dx)); var L=Math.hypot(dx,dy);
+      CH.rr(c,0,-9,L,18,"rgba(120,190,240,.45)","#6b7a90",2,6); D.line(c,0,0,L,0,"#6b7a90",2.4);
+      for(var w=0;w<6;w++){ var wx=((tt*40+w*L/6)%L); if(run) D.arrow(c,wx,5.5,wx+8,5.5,"rgba(255,255,255,.9)",1.4); }
+      g.restore(); D.text(c,"condenseur (eau froide)",(ux+cx1)/2-4,(uy+cy1)/2-22,{size:11,color:"#4b586a",weight:700});
+      if(run){ for(var v=0;v<L*.9;v+=L*.2){ var pv=((tt*0.5+v/L)%1); } }
+      // tubes à essai
+      var tx0=W*.34, avail=W-tx0-8, tw=Math.min(40,avail/5-6), gap=(avail-5*tw)/4, tyy=H*.5, th2=H*.36, ti=Math.min(4,Math.floor(st.col/20));
+      for(var i=0;i<5;i++){ var xx=tx0+i*(tw+gap), v=st.vol[i], e=v>0?st.tubes[i]/v:0, hh=th2*Math.min(1,v/20);
+        CH.glass(c,xx,tyy,tw,th2,0,"#fff",{taper:2,round:tw/2-2});
+        if(v>0){ g.save(); CH.rr(c,xx+2,tyy+th2-hh-1,tw-4,hh,"rgba("+Math.round(150-60*e)+","+Math.round(130-50*e)+",230,"+(0.25+0.65*e).toFixed(2)+")",null,0,4); g.restore(); }
+        D.text(c,v>0?Math.round(e*100)+" %":"—",xx+tw/2,tyy+th2+12,{size:12,color:v>0?P.violet:P.grey,weight:800});
+        D.text(c,String(i+1),xx+tw/2,tyy-9,{size:11.5,color:i===ti&&run?P.mat:P.grey}); }
+      // gouttes
+      if(run&&st.col<100){ var dxp=tx0+ti*(tw+gap)+tw/2, ph2=(tt*2.2)%1, sy=cy1+4+ph2*(tyy+10-cy1-4); D.line(c,cx1,cy1+9,dxp,cy1+16,"#6b7a90",2.4); CH.circ(c,dxp,cy1+16+ph2*(tyy-cy1-12),2.8,"rgba(150,125,225,.95)"); }
+      CH.cap(c,"tubes de 20 mL (violet = éthanol)",W*.66,H-8);
       ro.set(0,F(st.head,1)+" °C"); ro.set(1,F(st.V,0)+" mL ("+F(x*100,0)+" % éth.)"); ro.set(2,F(st.col,0)+" mL");
       ro.set(3,st.vol[0]>0?F(st.tubes[0]/st.vol[0]*100,0)+" %":"—");
       if (st.done) nt.set("Terminé : le tube 1 contient "+F(st.tubes[0]/st.vol[0]*100,0)+" % d'éthanol, le tube 5 seulement "+F(st.tubes[4]/Math.max(st.vol[4],1e-9)*100,0)+" %. La température en tête est montée jusqu'à "+F(st.head,0)+" °C.","ok");

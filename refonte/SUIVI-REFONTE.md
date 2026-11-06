@@ -38,3 +38,4 @@ Nouvelle structure (kit/) : chaque cours = une page `index.html` → chapitres �
 | 11:36 | V1 maths 4e inspecté : 16 refaites (lecture de graphe, cercle trigo, ellipse, médiatrice, histogramme…), 0 erreur | fait |
 | 11:38 | V1 maths 3e inspecté : 14 refaites (vase, pavage, spirale, cercle, clinomètre…), 0 erreur | fait |
 | 11:38 | V1 physique 3e inspecté : ch. 6-10 réécrits (20 sims). VAGUE 1 TERMINÉE. À la fin : vignettes avec kit/thumbs_fit.py (garde toute la scène). V2 lancée | fait |
+| 14:48 | V2 lancée à ~12:50 puis arrêtée (« par l'utilisateur ») ; retouches partielles dans 4 fichiers, 938 pages 0 échec. Reprise 14:45 reçue : EN ATTENTE de l'accord d'Enzo avant de relancer V2 | en attente |

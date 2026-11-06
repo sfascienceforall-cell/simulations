@@ -16,45 +16,58 @@ SFA.sim({
   but:"Choisis une substance et fais varier sa température. Observe comment les particules s'ordonnent, bougent et s'écartent aux trois états.",
   aRetenir:"Solide : particules serrées, rangées, qui vibrent sur place. Liquide : serrées mais désordonnées, elles glissent les unes sur les autres. Gaz : très écartées, libres et rapides. Quand la température monte, l'agitation augmente ; entre les particules, il n'y a que du vide.",
   piege:"Les particules ne grossissent pas quand on chauffe : c'est l'agitation qui augmente (et la distance moyenne dans un gaz). Les particules sont dessinées comme des disques pour simplifier ; une vraie particule n'est pas un point coloré.",
-  build:function(k,S){
-    var c = k.canvas(300);
+build:function(k,S){
+    var c = k.canvas(330);
     var sb = k.select("Substance", Object.keys(SUBS).map(function(i){return [i,SUBS[i].n+" (fusion "+SUBS[i].tm+" °C, ébullition "+SUBS[i].tb+" °C)"];}), "eau");
     var tp = k.slider("Température", -250, 400, 1, 20, "°C");
     var ro = k.readouts(["État","Température absolue","Agitation relative","Entre les particules"]);
     var nt = k.note("","");
-    var N=48, ps=[], i, R=rng(7);
-    function getBox(){ var w=Math.min(c.W-24,280); return {x:(c.W-w)/2,y:10,w:w,h:c.H-20}; }
-    for(i=0;i<N;i++){ ps.push({x:0,y:0,vx:0,vy:0,ph:R()*6.28,gx:i%8,gy:Math.floor(i/8),init:false}); }
-    var topB = 0, last="";
+    var DEF=[["eau","l","Amène l'eau à l'état liquide."],["eth","g","Fais bouillir l'éthanol (état gazeux)."],["hg","l","Le mercure est-il liquide à 20 °C ? Mets-le à l'état liquide."],["n2","l","Liquéfie le diazote (entre −210 et −196 °C)."],["eau","s","Solidifie l'eau (glace)."],["hg","g","Vaporise le mercure : jusqu'où faut-il chauffer ?"]];
+    var di=0, dn=k.note("<b>Défi :</b> "+DEF[0][2],"warn");
+    k.button("Défi suivant", function(){ di=(di+1)%DEF.length; sb.set(DEF[di][0]); }, true);
+    var N=48, ps=[], i, R=CH.rng(7), SP=18, RD=8;
+    for(i=0;i<N;i++){ ps.push({x:0,y:0,vx:0,vy:0,ph:R()*6.28,gx:i%8,gy:Math.floor(i/8)}); }
+    var topB=0, last="", TMIN=-250, TMAX=400, tpix=null;
+    function getBox(){ var w=Math.max(170,Math.min(c.W-96,320)); return {x:12,y:30,w:w,h:c.H-48}; }
     function state(){ var s=SUBS[sb.value], t=tp.value; return t<s.tm?"s":(t<s.tb?"l":"g"); }
-    function reinit(box,mode){
-      ps.forEach(function(p,j){ if(mode==="s"){ p.x=box.x+box.w*0.5+(p.gx-3.5)*22; p.y=box.y+box.h-20-(5-p.gy)*22; } else { p.x=box.x+12+R()*(box.w-24); p.y=box.y+box.h*0.5+R()*box.h*0.45; }
-        var a=R()*6.28; p.vx=Math.cos(a); p.vy=Math.sin(a); });
-    }
+    function reinit(box,mode){ ps.forEach(function(p){ if(mode==="s"){ p.x=box.x+box.w/2+(p.gx-3.5)*SP; p.y=box.y+box.h-16-(5-p.gy)*SP; } else { p.x=box.x+12+R()*(box.w-24); p.y=box.y+box.h*0.5+R()*box.h*0.45; } var a=R()*6.28; p.vx=Math.cos(a); p.vy=Math.sin(a); }); }
     var lp = k.loop(function(dt,tt){
       var box=getBox(), s=state(), Tk=tp.value+273.15;
-      if(s!==last){ if(last==="" || last==="s" || s==="s") reinit(box,s); last=s; }
-      var sp = 5.5*Math.sqrt(Math.max(Tk,5)) * (s==="g"?1:0.32);
-      var targetTop = s==="g" ? box.y : box.y+box.h-66; topB += (targetTop-topB)*Math.min(1,dt*4);
-      ps.forEach(function(p,j){
-        if(s==="s"){ var Tm=SUBS[sb.value].tm+273.15, A=1+3.5*Math.min(1,Tk/Tm); var hx=box.x+box.w*0.5+(p.gx-3.5)*22, hy=box.y+box.h-20-(5-p.gy)*22; p.x+=((hx+A*Math.sin(tt*9+p.ph))-p.x)*Math.min(1,dt*10); p.y+=((hy+A*Math.cos(tt*8+p.ph*1.3))-p.y)*Math.min(1,dt*10); }
-        else { p.vx+=(R()-0.5)*dt*8; p.vy+=(R()-0.5)*dt*8; var m=Math.hypot(p.vx,p.vy)||1; p.vx=p.vx/m; p.vy=p.vy/m; p.x+=p.vx*sp*dt; p.y+=p.vy*sp*dt;
-          var top=topB+8; if(p.x<box.x+8){p.x=box.x+8;p.vx=Math.abs(p.vx);} if(p.x>box.x+box.w-8){p.x=box.x+box.w-8;p.vx=-Math.abs(p.vx);} if(p.y<top){p.y=top;p.vy=Math.abs(p.vy);} if(p.y>box.y+box.h-8){p.y=box.y+box.h-8;p.vy=-Math.abs(p.vy);} }
-      });
-      if(s==="l"){ for(var a=0;a<N;a++)for(var b=a+1;b<N;b++){ var dx=ps[b].x-ps[a].x, dy=ps[b].y-ps[a].y, d=Math.hypot(dx,dy), md=17; if(d<md&&d>0.01){ var f=(md-d)/2/d; ps[a].x-=dx*f; ps[a].y-=dy*f; ps[b].x+=dx*f; ps[b].y+=dy*f; } } }
+      if(s!==last){ if(last===""||last==="s"||s==="s") reinit(box,s); last=s; }
+      var sp=5.5*Math.sqrt(Math.max(Tk,5))*(s==="g"?1:0.32);
+      var targetTop=s==="g"?box.y:box.y+box.h-SP*6.2; topB+=(targetTop-topB)*Math.min(1,dt*4);
+      ps.forEach(function(p){
+        if(s==="s"){ var Tm=SUBS[sb.value].tm+273.15, A=0.6+3.2*Math.min(1,Tk/Tm); var hx=box.x+box.w/2+(p.gx-3.5)*SP, hy=box.y+box.h-16-(5-p.gy)*SP; p.x+=((hx+A*Math.sin(tt*9+p.ph))-p.x)*Math.min(1,dt*10); p.y+=((hy+A*Math.cos(tt*8+p.ph*1.3))-p.y)*Math.min(1,dt*10); }
+        else { p.vx+=(R()-0.5)*dt*8; p.vy+=(R()-0.5)*dt*8; var m=Math.hypot(p.vx,p.vy)||1; p.vx/=m; p.vy/=m; p.x+=p.vx*sp*dt; p.y+=p.vy*sp*dt;
+          var top=topB+RD; if(p.x<box.x+RD){p.x=box.x+RD;p.vx=Math.abs(p.vx);} if(p.x>box.x+box.w-RD){p.x=box.x+box.w-RD;p.vx=-Math.abs(p.vx);} if(p.y<top){p.y=top;p.vy=Math.abs(p.vy);} if(p.y>box.y+box.h-RD){p.y=box.y+box.h-RD;p.vy=-Math.abs(p.vy);} } });
+      if(s==="l"){ for(var a=0;a<N;a++)for(var b=a+1;b<N;b++){ var dx=ps[b].x-ps[a].x, dy=ps[b].y-ps[a].y, d=Math.hypot(dx,dy), md=RD*2; if(d<md&&d>0.01){ var f=(md-d)/2/d; ps[a].x-=dx*f; ps[a].y-=dy*f; ps[b].x+=dx*f; ps[b].y+=dy*f; } } }
       k.redraw();
     });
+    function Ty(box,t){ return box.y+box.h-(t-TMIN)/(TMAX-TMIN)*box.h; }
+    c.pointer(function(type,pt){ if(type==="up"||type==="move"||!tpix) return; if(pt.x>tpix-26){ var box=getBox(); tp.set(Math.round(TMIN+(box.y+box.h-pt.y)/box.h*(TMAX-TMIN))); k.redraw(); } });
     k.draw(function(){
-      c.clear(); var W=c.W,H=c.H, box=getBox(), s=state(), sub=SUBS[sb.value], t=tp.value;
-      rr(c,box.x,box.y,box.w,box.h,"#fbfcfe","#b8c2d0",2,10);
-      var col = s==="s"?P.acc:(s==="l"?P.teal:P.red);
-      ps.forEach(function(p){ circ(c,p.x||box.x+30,p.y||box.y+30,7.5,col,"#fff",1); });
-      var name = s==="s"?"solide":(s==="l"?"liquide":"gaz");
-      var edge = (Math.abs(t-sub.tm)<0.5)?" (fusion : solide ⇄ liquide)":(Math.abs(t-sub.tb)<0.5?" (ébullition : liquide ⇄ gaz)":"");
-      T(c,name.toUpperCase(),W/2,box.y+16,{size:13,color:col});
-      ro.set(0,name+(edge?" / changement d'état":"")); ro.set(1,F(t+273.15,0)+" K"); ro.set(2,F(Math.sqrt((t+273.15)/293.15)*100,0)+" %");
-      ro.set(3,"du vide");
-      nt.set(s==="s"?"Solide : chaque particule vibre autour d'une position fixe ; plus T monte, plus la vibration est ample.":s==="l"?"Liquide : particules au contact mais désordonnées, qui glissent : le liquide prend la forme du récipient.":"Gaz : particules très éloignées, rapides, qui occupent tout le volume disponible.", "ok");
+      c.clear(); CH.bg(c); var W=c.W, box=getBox(), s=state(), sub=SUBS[sb.value], t=tp.value, g=c.ctx;
+      var col=s==="s"?P.acc:(s==="l"?P.teal:P.red), name=s==="s"?"solide":(s==="l"?"liquide":"gaz");
+      CH.title(c,sub.n+" · "+name,col);
+      CH.rr(c,box.x,box.y,box.w,box.h,"#fbfcfe","#8996a8",2.4,10);
+      if(s==="l"){ g.save(); g.beginPath(); g.rect(box.x+1.2,topB,box.w-2.4,box.y+box.h-topB-1.2); g.fillStyle=D.tint(col,.12); g.fill(); g.restore(); }
+      if(s==="s"){ g.save(); CH.rr(c,box.x+box.w/2-4*SP-4,box.y+box.h-16-5*SP-RD-3,8*SP+8,6*SP+6,D.tint(col,.1),null,0,6); g.restore(); }
+      ps.forEach(function(p){ CH.ball(c,p.x||box.x+30,p.y||box.y+30,RD,col,"",{lw:1}); });
+      if(s==="g"){ var spd=Math.min(14,Math.sqrt(t+273.15)*0.55); for(var q=0;q<8;q++){ var p=ps[q*5]; D.arrow(c,p.x,p.y,p.x+p.vx*spd,p.y+p.vy*spd,"rgba(15,27,45,.5)",1.3); } }
+      // thermomètre : zones d'état, curseur déplaçable
+      var tx=box.x+box.w+44; tpix=tx; var tw=16, y0=Ty(box,TMAX), y1=Ty(box,TMIN), ym=Ty(box,Math.max(TMIN,Math.min(TMAX,sub.tm))), yb=Ty(box,Math.max(TMIN,Math.min(TMAX,sub.tb)));
+      CH.rr(c,tx-tw/2,y0,tw,y1-y0,"#eef2f7","#8996a8",1.6,8);
+      g.save(); g.beginPath(); g.rect(tx-tw/2+2,y0+1,tw-4,y1-y0-2); g.clip();
+      g.fillStyle=D.tint(P.red,.25); g.fillRect(tx-tw/2,y0,tw,yb-y0); g.fillStyle=D.tint(P.teal,.28); g.fillRect(tx-tw/2,yb,tw,ym-yb); g.fillStyle=D.tint(P.acc,.28); g.fillRect(tx-tw/2,ym,tw,y1-ym);
+      g.fillStyle=P.red; g.fillRect(tx-2.5,Ty(box,t),5,y1-Ty(box,t)); g.restore();
+      CH.circ(c,tx,Ty(box,t),8,"#fff",col,3);
+      [[sub.tm,"fusion"],[sub.tb,"ébullition"]].forEach(function(m){ if(m[0]>=TMIN&&m[0]<=TMAX){ var yy=Ty(box,m[0]); D.line(c,tx-tw/2-6,yy,tx+tw/2+6,yy,P.ink,1.4); D.text(c,m[1]+" "+m[0]+" °C",tx-tw/2-9,yy+(m[1]==="fusion"?9:-9),{size:10.5,color:"#4b586a",align:"right",weight:700}); } });
+      D.text(c,F(t,0)+" °C",tx,y0-10,{size:12.5,color:col});
+      D.text(c,"glisse",tx,y1+9,{size:10.5,color:P.grey});
+      var edge=(Math.abs(t-sub.tm)<0.5)?" (fusion)":(Math.abs(t-sub.tb)<0.5?" (ébullition)":"");
+      ro.set(0,name+edge); ro.set(1,F(t+273.15,0)+" K"); ro.set(2,F(Math.sqrt((t+273.15)/293.15)*100,0)+" %"); ro.set(3,"du vide");
+      nt.set(s==="s"?"Solide : chaque particule vibre autour d'une position fixe ; plus T monte, plus la vibration est ample.":s==="l"?"Liquide : particules au contact mais désordonnées, qui glissent : le liquide prend la forme du récipient.":"Gaz : particules très éloignées, rapides (flèches = vitesse), qui occupent tout le volume disponible.", "ok");
+      var ok=DEF[di][0]===sb.value&&s===DEF[di][1]; dn.set("<b>Défi :</b> "+DEF[di][2]+(ok?" ✓ Réussi !":""), ok?"ok":"warn");
     });
     lp.play();
   }
@@ -69,48 +82,59 @@ SFA.sim({
   but:"Compare le modèle de Thomson (charge répartie) et celui de Rutherford (noyau). Tire des particules α sur la cible et compte celles qui sont déviées.",
   aRetenir:"Presque toutes les particules α traversent la feuille sans être déviées : l'atome est surtout du vide. Quelques-unes sont fortement déviées, certaines rebroussent chemin : il existe un noyau minuscule, très dense, chargé positivement. Plus Z est grand, plus les déviations sont fréquentes.",
   piege:"Le noyau est dessiné beaucoup trop gros pour qu'on le voie, et les proportions de particules déviées sont volontairement exagérées (dans l'expérience réelle, environ 1 sur 8 000 rebondit). Les trajectoires sont des hyperboles ; on les a simplifiées en deux segments.",
-  build:function(k,S){
-    var c = k.canvas(330);
+build:function(k,S){
+    var c = k.canvas(350);
     var md = k.seg("Modèle de l'atome", [["th","Thomson"],["ru","Rutherford"]], "ru");
     var cb = k.select("Cible", Object.keys(CIBLES).map(function(i){return [i,CIBLES[i].n];}), "au");
     var ro = k.readouts(["Particules tirées","Quasi tout droit (< 5°)","Déviées (5° à 90°)","Rebroussent chemin (> 90°)"]);
-    var R=rng(11), tally, tracks;
-    function reset(){ tally={n:0,s:0,m:0,b:0}; tracks=[]; }
+    var nt = k.note("<b>Vise</b> : touche ou glisse dans la scène pour orienter le canon et tirer une particule α. Plus tu vises près du noyau, plus elle est déviée.","");
+    var R=CH.rng(11), tally, flies, flashes, aim=0.55, Bm=150;
+    function reset(){ tally={n:0,s:0,m:0,b:0}; flies=[]; flashes=[]; }
     reset();
-    var Bm=150;
-    function shot(){
-      var th=md.value==="th", z=CIBLES[cb.value].z, b=(R()*2-1)*Bm, ang;
-      if(th){ ang=(R()-0.5)*0.01; }
-      else { var a=0.025*z; ang=2*Math.atan(a/Math.max(Math.abs(b),1e-6)); if(b<0) ang=-ang; }
-      var deg=Math.abs(ang)*180/Math.PI;
-      tally.n++; if(deg<5) tally.s++; else if(deg<=90) tally.m++; else tally.b++;
-      tracks.push({b:b,ang:ang,th:th}); if(tracks.length>40) tracks.shift();
+    function geom(){ var W=c.W,H=c.H; return {xn:W*0.46, yc:H*0.52, rs:Math.min(H*0.42,W*0.4), ym:Math.min(H*0.36,130)}; }
+    function shot(b, u, anim){
+      var th=md.value==="th", z=CIBLES[cb.value].z, ang;
+      if(th) ang=(R()-0.5)*0.02; else { var a=0.025*z; ang=2*Math.atan(a/Math.max(Math.abs(b),1e-6)); if(b<0) ang=-ang; }
+      var deg=Math.abs(ang)*180/Math.PI; tally.n++; if(deg<5) tally.s++; else if(deg<=90) tally.m++; else tally.b++;
+      var gm=geom(), sgn=b>=0?1:-1, y0=gm.yc+sgn*Math.abs(u)*gm.ym, aa=Math.abs(ang), dir=[Math.cos(aa),sgn*Math.sin(aa)];
+      var pts=[[24,y0]], s0=30, i, A=[gm.xn-s0,y0], C=[gm.xn,y0], E=[C[0]+dir[0]*s0,C[1]+dir[1]*s0];
+      if(th) { pts.push([gm.xn+gm.rs*Math.cos(0),y0+0]); }
+      else { for(i=0;i<=10;i++){ var q=i/10; pts.push([(1-q)*(1-q)*A[0]+2*q*(1-q)*C[0]+q*q*E[0],(1-q)*(1-q)*A[1]+2*q*(1-q)*C[1]+q*q*E[1]]); }
+        var dx=dir[0], dy=dir[1], px=C[0]-gm.xn, py=C[1]-gm.yc, bq=px*dx+py*dy, cq=px*px+py*py-gm.rs*gm.rs, t2=-bq+Math.sqrt(Math.max(0,bq*bq-cq)); pts.push([C[0]+dx*t2,C[1]+dy*t2]); }
+      var end=pts[pts.length-1], ex=th?gm.xn+Math.sqrt(Math.max(0,gm.rs*gm.rs-(y0-gm.yc)*(y0-gm.yc))):end[0]; if(th) end=[ex,y0];
+      pts[pts.length-1]=end; var fl={x:end[0],y:end[1],deg:deg};
+      if(anim) flies.push({pts:pts,d:0,fl:fl,deg:deg}); else flashes.push({x:fl.x,y:fl.y,a:1,deg:deg});
+      if(flashes.length>500) flashes.shift();
     }
-    function fire(n){ for(var i=0;i<n;i++) shot(); }
-    k.button("Tirer 1", function(){ fire(1); });
-    k.button("Tirer 20", function(){ fire(20); }, true);
+    function randShot(){ var u=(R()*2-1), b=u*u*Bm*(u<0?-1:1)*(u<0?1:1); b=Math.abs(u)*Math.abs(u)*Bm*(u<0?-1:1); shot(b,u,false); }
+    function fire(n){ for(var i=0;i<n;i++) randShot(); }
+    k.button("Tirer 1 (visé)", function(){ var u=aim*2-1; shot(Math.abs(u)*Math.abs(u)*Bm*(u<0?-1:1),u,true); });
+    k.button("Tirer 20", function(){ for(var i=0;i<20;i++) setTimeout(randShotAnim,i*45); }, true);
     k.button("Tirer 500", function(){ fire(500); });
     k.button("Effacer", function(){ reset(); });
-    md.set && 0;
+    function randShotAnim(){ var u=(R()*2-1); shot(Math.abs(u)*Math.abs(u)*Bm*(u<0?-1:1),u,true); k.redraw(); }
+    c.pointer(function(type,pt){ if(type==="move"||type==="up") return; var gm=geom(); var u=Math.max(-1,Math.min(1,(pt.y-gm.yc)/gm.ym)); aim=(u+1)/2; if(type==="down"){ shot(Math.abs(u)*Math.abs(u)*Bm*(u<0?-1:1),u,true); } k.redraw(); });
+    var lp = k.loop(function(dt){ var any=false; flies.forEach(function(f){ f.d+=dt*520; any=true; });
+      flies=flies.filter(function(f){ var L=0,i; for(i=1;i<f.pts.length;i++) L+=Math.hypot(f.pts[i][0]-f.pts[i-1][0],f.pts[i][1]-f.pts[i-1][1]); if(f.d>=L){ flashes.push({x:f.fl.x,y:f.fl.y,a:1,deg:f.deg}); return false; } return true; });
+      flashes.forEach(function(f){ if(f.a>0.35) f.a-=dt*0.9; }); if(any||flashes.some(function(f){return f.a>0.36;})) k.redraw(); });
+    lp.play();
+    function at(f){ var d=f.d,i,p=f.pts; for(i=1;i<p.length;i++){ var l=Math.hypot(p[i][0]-p[i-1][0],p[i][1]-p[i-1][1]); if(d<=l){ var q=l?d/l:0; return [p[i-1][0]+(p[i][0]-p[i-1][0])*q,p[i-1][1]+(p[i][1]-p[i-1][1])*q,i]; } d-=l; } return [p[p.length-1][0],p[p.length-1][1],p.length-1]; }
     k.draw(function(){
-      c.clear(); var W=c.W,H=c.H,g=c.ctx, xn=W*0.5, yc=H/2, ys=(H*0.45)/Bm;
-      // cloud
-      if(md.value==="th"){ var rr0=H*0.3; g.save(); g.fillStyle="rgba(214,87,70,0.18)"; g.beginPath(); g.arc(xn,yc,rr0,0,6.28); g.fill(); g.restore();
-        for(var i=0;i<14;i++){ var a=i*2.4, r=rr0*0.8*Math.sqrt((i+1)/14); T(c,"−",xn+r*Math.cos(a),yc+r*Math.sin(a),{size:16,color:P.acc}); }
-        T(c,"charge + répartie",xn,yc+rr0+14,{size:12,color:P.grey}); }
-      else { g.save(); g.strokeStyle="#c3ccd8"; g.setLineDash([4,4]); g.beginPath(); g.arc(xn,yc,H*0.3,0,6.28); g.stroke(); g.restore(); circ(c,xn,yc,6,P.red); T(c,"noyau (+) : pas à l'échelle",xn,yc+H*0.3+14,{size:12,color:P.grey}); }
-      // faisceau
-      D.arrow(c,10,yc,40,yc,P.grey,2); T(c,"α",22,yc-12,{size:14,color:P.grey});
-      tracks.forEach(function(t,i){
-        var y0=yc+t.b*ys, alpha=0.25+0.75*(i+1)/tracks.length, dg=Math.abs(t.ang)*180/Math.PI, col=dg<5?"rgba(46,107,85,"+alpha+")":dg<=90?"rgba(180,83,9,"+alpha+")":"rgba(180,35,24,"+alpha+")";
-        g.save(); g.strokeStyle=col; g.lineWidth=1.6; g.beginPath(); g.moveTo(8,y0); g.lineTo(xn,y0);
-        var L=W, dx=Math.cos(t.ang), dy=-Math.sin(t.ang)*(t.b>=0?-1:-1);
-        // l'angle est signé comme b : déviation s'éloignant du noyau
-        var sgn=t.b>=0?1:-1, ex=xn+L*Math.cos(Math.abs(t.ang)), ey=y0+sgn*L*Math.sin(Math.abs(t.ang));
-        g.lineTo(ex,ey); g.stroke(); g.restore();
-      });
-      // écran de comptage
-      D.line(c,W-8,6,W-8,H-6,P.grey,3);
+      c.clear(); CH.bg(c); var W=c.W,H=c.H,g=c.ctx, gm=geom(), xn=gm.xn, yc=gm.yc;
+      CH.title(c,md.value==="th"?"Modèle de Thomson : charge + répartie":"Modèle de Rutherford : noyau minuscule",md.value==="th"?P.amber:P.red);
+      // écran circulaire
+      g.save(); g.beginPath(); g.arc(xn,yc,gm.rs,0,6.2832); g.strokeStyle="rgba(46,160,120,.35)"; g.lineWidth=7; g.stroke(); g.restore();
+      D.text(c,"écran fluorescent (ZnS)",xn,yc-gm.rs-10,{size:11,color:"#4b586a"});
+      // atome
+      var ra=Math.min(gm.ym*0.95,70);
+      if(md.value==="th"){ CH.circ(c,xn,yc,ra,"rgba(214,87,70,.22)","#c77",1.5); for(var i=0;i<12;i++){ var a=i*2.4, r=ra*.78*Math.sqrt((i+.5)/12); D.text(c,"−",xn+r*Math.cos(a),yc+r*Math.sin(a),{size:17,color:P.acc}); } }
+      else { g.save(); g.setLineDash([4,4]); CH.circ(c,xn,yc,ra,null,"#aab4c4",1.4); g.restore(); D.glow(c,xn,yc,26,P.red,.5); CH.ball(c,xn,yc,6,P.red,""); D.text(c,"noyau (+)",xn+10,yc+ra*.45+8,{size:11,color:P.red,align:"left"}); }
+      // faisceau visé
+      var yaim=yc+(aim*2-1)*gm.ym; D.line(c,40,yaim,xn-ra,yaim,"rgba(31,75,158,.25)",1.2,[3,5]);
+      CH.rr(c,6,yaim-9,36,18,"#5b6677",null,0,5); CH.rr(c,38,yaim-4,10,8,"#3c4656",null,0,2); D.text(c,"α",24,yaim+1,{size:12,color:"#fff"});
+      flashes.forEach(function(f){ var col=f.deg<5?"46,107,85":f.deg<=90?"180,83,9":"180,35,24"; g.fillStyle="rgba("+col+","+f.a.toFixed(2)+")"; g.beginPath(); g.arc(f.x,f.y,f.a>.9?4:2.4,0,6.3); g.fill(); });
+      flies.forEach(function(f){ var p=at(f), col=f.deg<5?"#2e6b55":f.deg<=90?"#b45309":"#b42318"; g.strokeStyle=col; g.lineWidth=1.6; g.globalAlpha=.6; g.beginPath(); g.moveTo(f.pts[0][0],f.pts[0][1]); for(var i=1;i<p[2];i++) g.lineTo(f.pts[i][0],f.pts[i][1]); g.lineTo(p[0],p[1]); g.stroke(); g.globalAlpha=1; CH.circ(c,p[0],p[1],3.8,col,"#fff",1); });
+      D.label(c,"vert : < 5°   orange : 5–90°   rouge : > 90°",W-8,H-14,{align:"right",size:10.5,color:"#4b586a"});
       ro.set(0,String(tally.n)); var n=Math.max(1,tally.n);
       ro.set(1,tally.s+" ("+F(100*tally.s/n,0)+" %)"); ro.set(2,tally.m+" ("+F(100*tally.m/n,0)+" %)"); ro.set(3,tally.b+" ("+F(100*tally.b/n,1)+" %)");
     });
