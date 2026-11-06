@@ -51,3 +51,4 @@ Nouvelle structure (kit/) : chaque cours = une page `index.html` → chapitres �
 | 20:04 | V3 chimie BA1 : 12 refaites + 7 retouches, 62 sims 0 erreur. À faire moteur : option axe en bas (Arrhenius, van 't Hoff) | fait |
 | 20:09 | V3 biologie 3e : 19 refaites + 2 retouchées, 0 erreur. À vérifier : c08 facteurs limitants passe à min(L,C,T) — exercices/théo c08 citent-ils des valeurs ? | fait |
 | 20:10 | V3 biologie 4e : 15 refaites, 0 erreur ; restent à 2 : lactase, bilans (c05-c07), mb, adn, spécialisées, microscope | fait |
+| 20:12 | V3 biologie BA1 : 14 refaites, 0 erreur ; restent : courbes enzymatiques, dérive/sélection/logistique, Nernst/Goldman, croisements… | fait |
