@@ -53,3 +53,4 @@ Nouvelle structure (kit/) : chaque cours = une page `index.html` → chapitres �
 | 20:10 | V3 biologie 4e : 15 refaites, 0 erreur ; restent à 2 : lactase, bilans (c05-c07), mb, adn, spécialisées, microscope | fait |
 | 20:12 | V3 biologie BA1 : 14 refaites, 0 erreur ; restent : courbes enzymatiques, dérive/sélection/logistique, Nernst/Goldman, croisements… | fait |
 | 20:15 | V3 biologie 5e : 19 refaites, 0 erreur ; restent : vih, pilule, courbes seules (pompe, repas, chaleur, fièvre, gamètes-âge, hcg)… | fait |
+| 20:28 | TOUTES LES VAGUES TERMINÉES (maths BA1 : 16 refaites). Contrôle final : 20 cours reconstruits, 938 pages 0 échec, check-course 0 erreur partout. Correctif téléphone (bandeau qui recouvrait la simulation). Sauvegarde + aperçu | fait |
