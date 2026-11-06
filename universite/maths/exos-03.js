@@ -1,8 +1,8 @@
 /* Mathématiques BA1 · chapitre 3 : dérivées et applications · exercices */
 SFA.exos("c03", [
   {t:"Dérivée d'un polynôme", s:1, enonce:"Soit f(x) = x³ − 4x. Que vaut f′(2) ?",
-   choix:["8","0","12","2"], bonne:0,
-   pourquoi:{1:"Tu as calculé f(2) = 8 − 8 = 0 au lieu de f′(2) : la valeur de la fonction n'est pas la pente de la tangente.",2:"Tu as oublié de dériver −4x : (x³ − 4x)′ = 3x² − 4, et pas 3x².",3:"Tu as dérivé x³ en 3x sans élever x à la bonne puissance : (xⁿ)′ = n·xⁿ⁻¹, donc (x³)′ = 3x²."},
+   choix:["0","8","12","2"], bonne:1,
+   pourquoi:{0:"Tu as calculé f(2) = 8 − 8 = 0 au lieu de f′(2) : la valeur de la fonction n'est pas la pente de la tangente.",2:"Tu as oublié de dériver −4x : (x³ − 4x)′ = 3x² − 4, et pas 3x².",3:"Tu as dérivé x³ en 3x sans élever x à la bonne puissance : (xⁿ)′ = n·xⁿ⁻¹, donc (x³)′ = 3x²."},
    corrige:"f′(x) = 3x² − 4. Donc f′(2) = 3·4 − 4 = 12 − 4 = 8."},
 
   {t:"Produit et fonction composée", s:1, enonce:"Dérive f(x) = x²·e<sup>3x</sup> et mets le résultat sous forme factorisée.",
@@ -18,8 +18,8 @@ SFA.exos("c03", [
    corrige:"<ol><li>u = x² + 1, u′ = 2x ; v = x − 1, v′ = 1.</li><li>f′(x) = [2x(x − 1) − (x² + 1)·1]/(x − 1)².</li><li>Numérateur : 2x² − 2x − x² − 1 = x² − 2x − 1.</li></ol>", reponse:"f′(x) = (x² − 2x − 1)/(x − 1)²"},
 
   {t:"Dérivée d'un logarithme composé", s:2, enonce:"Quelle est la dérivée de f(x) = ln(x² + 1) ?",
-   choix:["1/(x² + 1)","2x/(x² + 1)","2x·ln(x² + 1)","2x(x² + 1)"], bonne:1,
-   pourquoi:{0:"Tu as dérivé ln comme si l'argument était x : il faut multiplier par la dérivée de l'argument (règle de la chaîne), ici 2x.",2:"Tu as mélangé avec la dérivée d'un produit : (ln u)′ = u′/u, il n'y a pas de logarithme dans le résultat.",3:"Tu as multiplié par u au lieu de diviser : (ln u)′ = u′/u."},
+   choix:["1/(x² + 1)","2x·ln(x² + 1)","2x(x² + 1)","2x/(x² + 1)"], bonne:3,
+   pourquoi:{0:"Tu as dérivé ln comme si l'argument était x : il faut multiplier par la dérivée de l'argument (règle de la chaîne), ici 2x.",1:"Tu as mélangé avec la dérivée d'un produit : (ln u)′ = u′/u, il n'y a pas de logarithme dans le résultat.",2:"Tu as multiplié par u au lieu de diviser : (ln u)′ = u′/u."},
    corrige:"Règle de la chaîne : (ln u)′ = u′/u avec u = x² + 1 et u′ = 2x. Donc f′(x) = 2x/(x² + 1)."},
 
   {t:"Dérivation implicite", s:2, enonce:"Soit le cercle x² + y² = 25. Détermine la pente de la tangente et l'équation de la tangente au point (3 ; 4).",
@@ -31,8 +31,8 @@ SFA.exos("c03", [
    corrige:"<ol><li>f′(x) = 3x² − 12x + 9 = 3(x − 1)(x − 3).</li><li>Signes : f′ > 0 sur ]−∞ ; 1[ et ]3 ; +∞[ (croissante) ; f′ < 0 sur ]1 ; 3[ (décroissante).</li><li>Maximum local en x = 1 : f(1) = 5 ; minimum local en x = 3 : f(3) = 1.</li><li>f″(x) = 6x − 12 : f″ < 0 si x < 2 (concave), f″ > 0 si x > 2 (convexe). Point d'inflexion en (2 ; 3).</li></ol>", reponse:"max (1 ; 5), min (3 ; 1), inflexion (2 ; 3)"},
 
   {t:"Règle de l'Hospital", s:3, enonce:"Que vaut lim<sub>x→0</sub> (e<sup>x</sup> − 1 − x)/x² ?",
-   choix:["0","1/2","1","+∞"], bonne:1,
-   pourquoi:{0:"Le numérateur tend vers 0 mais le dénominateur aussi : c'est une forme 0/0 qu'il faut lever, pas une preuve que la limite est nulle.",2:"Tu as appliqué la règle une fois, obtenu (e<sup>x</sup> − 1)/(2x), puis oublié le facteur 2 en citant la limite remarquable (e<sup>x</sup> − 1)/x → 1.",3:"Le dénominateur x² tend vers 0 mais le numérateur aussi (et il est du même ordre que x²) : la limite est finie."},
+   choix:["0","1","1/2","+∞"], bonne:2,
+   pourquoi:{0:"Le numérateur tend vers 0 mais le dénominateur aussi : c'est une forme 0/0 qu'il faut lever, pas une preuve que la limite est nulle.",1:"Tu as appliqué la règle une fois, obtenu (e<sup>x</sup> − 1)/(2x), puis oublié le facteur 2 en citant la limite remarquable (e<sup>x</sup> − 1)/x → 1.",3:"Le dénominateur x² tend vers 0 mais le numérateur aussi (et il est du même ordre que x²) : la limite est finie."},
    corrige:"Forme 0/0. L'Hospital : (e<sup>x</sup> − 1)/(2x), toujours de la forme 0/0. Une seconde application donne e<sup>x</sup>/2 → 1/2. (Avec Taylor : e<sup>x</sup> − 1 − x ≈ x²/2.) Contrôle : pour x = 0,001, le quotient vaut 0,50017."},
 
   {t:"Pic de concentration d'un médicament", s:3, enonce:"Après une injection, la concentration plasmatique est C(t) = 20·t·e<sup>−0,5t</sup> (C en mg/L, t en heures). À quel instant est-elle maximale et que vaut-elle ?",
@@ -53,8 +53,8 @@ SFA.exos("c03", [
    corrige:"<ol><li>(a) f(0) = 0, f′(0) = 1, f″(0) = −1, f‴(0) = 2. T₃(x) = x − x²/2 + x³/3. Pour x = 0,1 : 0,1 − 0,005 + 0,000333 ≈ 0,095333.</li><li>(b) Le terme suivant vaut −x⁴/4 = −2,5·10⁻⁵ : l'erreur est de cet ordre. Valeur exacte ln(1,1) ≈ 0,095310 : erreur réelle 2,3·10⁻⁵. ✓</li><li>(c) ln(1 + x) − x ≈ −x²/2 + x³/3, donc le quotient tend vers −1/2.</li></ol>", reponse:"T₃(0,1) ≈ 0,09533 (erreur ≈ 2,5·10⁻⁵) ; limite −1/2"},
 
   {t:"Taux liés : une bulle qui grandit", s:5, enonce:"Une bulle sphérique de gaz se gonfle à un débit constant de 100 cm³/s. À quelle vitesse son rayon augmente-t-il quand r = 5 cm ?",
-   choix:["1/π ≈ 0,32 cm/s","4/π ≈ 1,27 cm/s","≈ 1,59 cm/s","≈ 3,14 cm/s"], bonne:0,
-   pourquoi:{1:"Tu as pris dV/dr = πr² (aire d'un disque) au lieu de 4πr², l'aire de la sphère : le facteur 4 a disparu.",2:"Tu as utilisé 4πr au lieu de 4πr² : dV/dr = 4πr² (et non 4πr).",3:"Tu as inversé le rapport : dr/dt = (dV/dt)/(4πr²), pas 4πr²/(dV/dt)."},
+   choix:["4/π ≈ 1,27 cm/s","≈ 1,59 cm/s","≈ 3,14 cm/s","1/π ≈ 0,32 cm/s"], bonne:3,
+   pourquoi:{0:"Tu as pris dV/dr = πr² (aire d'un disque) au lieu de 4πr², l'aire de la sphère : le facteur 4 a disparu.",1:"Tu as utilisé 4πr au lieu de 4πr² : dV/dr = 4πr² (et non 4πr).",2:"Tu as inversé le rapport : dr/dt = (dV/dt)/(4πr²), pas 4πr²/(dV/dt)."},
    corrige:"V = (4/3)πr³ ⇒ dV/dt = 4πr²·dr/dt. Donc dr/dt = (dV/dt)/(4πr²) = 100/(4π·25) = 1/π ≈ 0,318 cm/s. Plus la bulle est grande, plus son rayon grossit lentement pour un débit fixé."},
 
   {t:"Étude de x²·exp(−x)", s:5, enonce:"Étudie complètement f(x) = x²·e<sup>−x</sup> : limites, variations, extrema, concavité, points d'inflexion, asymptote.",

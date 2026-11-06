@@ -58,5 +58,14 @@ function start() {
     });
   }
 }
-document.addEventListener("DOMContentLoaded", start);
+/* Les aides communes d'un cours (ex. B4 en biologie 4e, C4 en chimie 4e) sont définies dans sims-01.js :
+   on le charge d'abord s'il manque, pour éviter un premier essai en échec. */
+function boot() {
+  var has01 = Array.prototype.some.call(document.scripts, function (s) { return /sims-01\.js/.test(s.src || ""); });
+  if (has01 || !window.SFA || !window.SFA.meta) { start(); return; }
+  var s = document.createElement("script"); s.src = "../sims-01.js";
+  s.onload = s.onerror = function () { start(); };
+  document.head.appendChild(s);
+}
+document.addEventListener("DOMContentLoaded", boot);
 })();

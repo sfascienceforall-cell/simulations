@@ -1,8 +1,8 @@
 /* Mathématiques BA1 · chapitre 1 : fonctions réelles et graphes · exercices */
 SFA.exos("c01", [
   {t:"Domaine d'un logarithme", s:1, enonce:"Quel est le domaine de définition de f(x) = ln(4 − x) ?",
-   choix:["]−∞ ; 4[","]−∞ ; 4]","]4 ; +∞[","ℝ"], bonne:0,
-   pourquoi:{1:"En x = 4 on obtient ln 0, qui n'existe pas : l'argument doit être strictement positif.",2:"On a inversé l'inégalité : 4 − x > 0 donne x < 4, pas x > 4.",3:"Le logarithme n'est défini que sur les réels strictement positifs, donc le domaine est restreint."},
+   choix:["]−∞ ; 4]","]4 ; +∞[","]−∞ ; 4[","ℝ"], bonne:2,
+   pourquoi:{0:"En x = 4 on obtient ln 0, qui n'existe pas : l'argument doit être strictement positif.",1:"On a inversé l'inégalité : 4 − x > 0 donne x < 4, pas x > 4.",3:"Le logarithme n'est défini que sur les réels strictement positifs, donc le domaine est restreint."},
    corrige:"Le logarithme exige un argument strictement positif : 4 − x > 0, c'est-à-dire x < 4. Le domaine est ]−∞ ; 4[."},
 
   {t:"Parité", s:1, enonce:"La fonction f(x) = x⁴ − 3x² est-elle paire, impaire ou ni l'une ni l'autre ? Justifie par un calcul.",
@@ -27,8 +27,8 @@ SFA.exos("c01", [
    corrige:"<ol><li>e<sup>2x</sup> = 12/3 = 4.</li><li>On applique ln (croissante, réciproque de l'exponentielle) : 2x = ln 4 = 2 ln 2.</li><li>x = ln 2 ≈ 0,693.</li></ol>Contrôle : 3·e<sup>2 ln 2</sup> = 3·4 = 12. ✓", reponse:"x = ln 2 ≈ 0,693"},
 
   {t:"arcsin d'un sinus", s:3, enonce:"Que vaut arcsin(sin(5π/6)) ?",
-   choix:["5π/6","π/6","−π/6","π/3"], bonne:1,
-   pourquoi:{0:"arcsin renvoie toujours une valeur dans [−π/2 ; π/2] ; 5π/6 est en dehors de cet intervalle, donc arcsin(sin x) ≠ x ici.",2:"Le signe est faux : sin(5π/6) = + 1/2 (second quadrant), donc le résultat est positif.",3:"sin(π/3) = √3/2 et non 1/2 : tu as confondu avec un autre angle usuel."},
+   choix:["5π/6","−π/6","π/3","π/6"], bonne:3,
+   pourquoi:{0:"arcsin renvoie toujours une valeur dans [−π/2 ; π/2] ; 5π/6 est en dehors de cet intervalle, donc arcsin(sin x) ≠ x ici.",1:"Le signe est faux : sin(5π/6) = + 1/2 (second quadrant), donc le résultat est positif.",2:"sin(π/3) = √3/2 et non 1/2 : tu as confondu avec un autre angle usuel."},
    corrige:"sin(5π/6) = sin(π − π/6) = sin(π/6) = 1/2. La valeur principale de arcsin(1/2), dans [−π/2 ; π/2], est π/6. Donc arcsin(sin(5π/6)) = π/6, pas 5π/6."},
 
   {t:"Élimination d'un médicament", s:3, enonce:"Un médicament est éliminé selon C(t) = C₀·e<sup>−kt</sup>. On mesure C(2 h) = 80 mg/L et C(6 h) = 20 mg/L. Calcule la constante k, la concentration initiale C₀ et la demi-vie.",
@@ -40,8 +40,8 @@ SFA.exos("c01", [
    corrige:"<ol><li>(a) x² − 4x + 3 = (x − 1)(x − 3) > 0 : le trinôme est positif à l'extérieur des racines. Domaine : ]−∞ ; 1[ ∪ ]3 ; +∞[.</li><li>(b) f(0) = ln 3 ≈ 1,099.</li><li>(c) f(x) = 0 ⇔ x² − 4x + 3 = 1 ⇔ x² − 4x + 2 = 0, de discriminant 8 : x = 2 ± √2 ≈ 0,586 ou 3,414.</li><li>Les deux valeurs sont dans le domaine (0,586 < 1 et 3,414 > 3) : elles sont acceptables.</li></ol>", reponse:"domaine ]−∞ ; 1[ ∪ ]3 ; +∞[ ; f(0) = ln 3 ; x = 2 ± √2"},
 
   {t:"Acidose et logarithme décimal", s:4, enonce:"Le pH du sang artériel vaut normalement 7,4 ; en acidose sévère il descend à 7,1. Par quel facteur approximatif la concentration en ions H⁺ est-elle multipliée ? (pH = −log₁₀[H⁺])",
-   choix:["≈ 2","≈ 1,04","≈ 3","≈ 0,5"], bonne:0,
-   pourquoi:{1:"Tu as comparé 7,4 et 7,1 comme si la concentration variait de façon linéaire (−4 %). L'échelle de pH est logarithmique : 0,3 unité représente un facteur 10<sup>0,3</sup>.",2:"Tu as pris 10<sup>0,3</sup> ≈ 3 au lieu de 2 : retiens 10<sup>0,3</sup> ≈ 2 (car log 2 ≈ 0,301).",3:"Le sens est inversé : un pH plus bas signifie plus d'ions H⁺, donc un facteur supérieur à 1."},
+   choix:["≈ 1,04","≈ 2","≈ 3","≈ 0,5"], bonne:1,
+   pourquoi:{0:"Tu as comparé 7,4 et 7,1 comme si la concentration variait de façon linéaire (−4 %). L'échelle de pH est logarithmique : 0,3 unité représente un facteur 10<sup>0,3</sup>.",2:"Tu as pris 10<sup>0,3</sup> ≈ 3 au lieu de 2 : retiens 10<sup>0,3</sup> ≈ 2 (car log 2 ≈ 0,301).",3:"Le sens est inversé : un pH plus bas signifie plus d'ions H⁺, donc un facteur supérieur à 1."},
    corrige:"[H⁺] = 10<sup>−pH</sup>. Rapport : 10<sup>−7,1</sup>/10<sup>−7,4</sup> = 10<sup>0,3</sup> ≈ 1,995 ≈ 2. Une baisse de seulement 0,3 unité de pH double la concentration en H⁺ (de ≈ 40 nmol/L à ≈ 80 nmol/L)."},
 
   {t:"Réciproque après restriction", s:4, enonce:"Soit f(x) = x² − 4x + 1. (a) Explique pourquoi f n'a pas de réciproque sur ℝ. (b) On restreint f à [2 ; +∞[ : détermine f⁻¹, son domaine et calcule f⁻¹(6).",
@@ -53,8 +53,8 @@ SFA.exos("c01", [
    corrige:"<ol><li>Période : 2π / (π/12) = 24 h.</li><li>Maximum 36,8 + 0,4 = 37,2 °C quand π(t − 10)/12 = π/2, soit t = 16 h ; minimum 36,4 °C pour t = 4 h.</li><li>T = 37,0 ⇔ sin(π(t − 10)/12) = 0,5 ⇔ π(t − 10)/12 = π/6 ou 5π/6 (modulo 2π).</li><li>t − 10 = 2 ou 10, donc t = 12 h ou t = 20 h.</li></ol>Contrôle : à 12 h, 0,4·sin(π/6) = 0,2. ✓", reponse:"période 24 h ; max 37,2 °C à 16 h ; min 36,4 °C à 4 h ; T = 37,0 °C à 12 h et à 20 h"},
 
   {t:"Une réciproque surprenante", s:5, enonce:"Soit f(x) = ln(x + √(x² + 1)), définie sur ℝ. Quelle est sa réciproque ?",
-   choix:["f⁻¹(y) = (e<sup>y</sup> + e<sup>−y</sup>)/2","f⁻¹(y) = (e<sup>y</sup> − e<sup>−y</sup>)/2","f⁻¹(y) = e<sup>y</sup> − 1","f⁻¹(y) = ln(y + √(y² − 1))"], bonne:1,
-   pourquoi:{0:"Cette expression (cosinus hyperbolique) est paire : elle ne peut pas être la réciproque d'une fonction impaire et strictement croissante comme f.",2:"Elle est trop simple : en y = 0 elle vaut 0 (comme il faut), mais f(1) = ln(1 + √2) ≈ 0,881 et e<sup>0,881</sup> − 1 ≈ 1,41 ≠ 1.",3:"Elle n'est même pas définie pour |y| < 1, alors que f⁻¹ doit être définie pour tout réel y."},
+   choix:["f⁻¹(y) = (e<sup>y</sup> + e<sup>−y</sup>)/2","f⁻¹(y) = e<sup>y</sup> − 1","f⁻¹(y) = (e<sup>y</sup> − e<sup>−y</sup>)/2","f⁻¹(y) = ln(y + √(y² − 1))"], bonne:2,
+   pourquoi:{0:"Cette expression (cosinus hyperbolique) est paire : elle ne peut pas être la réciproque d'une fonction impaire et strictement croissante comme f.",1:"Elle est trop simple : en y = 0 elle vaut 0 (comme il faut), mais f(1) = ln(1 + √2) ≈ 0,881 et e<sup>0,881</sup> − 1 ≈ 1,41 ≠ 1.",3:"Elle n'est même pas définie pour |y| < 1, alors que f⁻¹ doit être définie pour tout réel y."},
    corrige:"Posons y = ln(x + √(x² + 1)) : e<sup>y</sup> = x + √(x² + 1). Comme (√(x² + 1) + x)(√(x² + 1) − x) = 1, on a e<sup>−y</sup> = √(x² + 1) − x. En soustrayant : e<sup>y</sup> − e<sup>−y</sup> = 2x, donc x = (e<sup>y</sup> − e<sup>−y</sup>)/2 (le sinus hyperbolique). Contrôle : f(0,7) ≈ 0,6527 et (e<sup>0,6527</sup> − e<sup>−0,6527</sup>)/2 = 0,7. ✓"},
 
   {t:"Croissance d'une culture bactérienne", s:5, enonce:"Une culture croît selon N(t) = N₀·e<sup>rt</sup>. On compte N(2 h) = 1 200 et N(5 h) = 4 050 bactéries. (a) Détermine r et N₀. (b) Quel est le temps de doublement ? (c) Quand atteint-on 10<sup>6</sup> bactéries ? (d) Comment ces données apparaissent-elles sur un papier semi-logarithmique ?",

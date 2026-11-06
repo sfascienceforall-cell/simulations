@@ -59,8 +59,8 @@ h3.sub{font:800 .78rem var(--f-ui);letter-spacing:.08em;text-transform:uppercase
 .ctl{min-width:0}
 .ctl label{display:flex;justify-content:space-between;align-items:center;gap:10px;font:700 .83rem/1.3 var(--f-ui);color:var(--ink2);margin-bottom:2px}
 .ctl label>span{min-width:0}
-.ctl label output{flex:none;font:500 .8rem/1.2 var(--f-num);font-variant-numeric:tabular-nums;color:var(--acc);background:var(--acc-t);border-radius:6px;padding:3px 7px;white-space:nowrap}
-.ctl label output i{font:700 .74rem var(--f-ui);font-style:normal;opacity:.8}
+.ctl label output{flex:none;font:800 .84rem/1.2 var(--f-ui);font-variant-numeric:tabular-nums;color:var(--acc);background:var(--acc-t);border-radius:6px;padding:3px 8px;white-space:nowrap}
+.ctl label output i{font:700 .76rem var(--f-ui);font-style:normal;opacity:.75}
 /* curseurs : piste fine, remplissage coloré à gauche (--p calculé par le moteur), pastille blanche cerclée */
 .ctrl input[type=range],.stage input[type=range],.ctl input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:24px;margin:0;padding:0;cursor:pointer;accent-color:var(--acc);
   --pc:var(--acc);background:linear-gradient(to right,var(--pc) var(--p,0%),var(--line2) var(--p,0%)) center/100% 4px no-repeat;border:0;border-radius:0}
@@ -101,12 +101,17 @@ h3.sub{font:800 .78rem var(--f-ui);letter-spacing:.08em;text-transform:uppercase
 /* afficheurs de valeurs : cartes d'instrument */
 .read{display:grid;grid-template-columns:repeat(auto-fit,minmax(118px,1fr));gap:8px}
 .ro{background:#fff;border:1px solid var(--line);border-radius:10px;padding:8px 11px 9px;min-width:0;box-shadow:0 1px 2px rgba(15,27,45,.04);position:relative;overflow:hidden}
-.ro small{display:block;font:700 .72rem/1.3 var(--f-ui);color:var(--muted);margin-bottom:3px;overflow-wrap:anywhere}
-.ro b{display:block;font:500 1.06rem/1.3 var(--f-num);font-variant-numeric:tabular-nums;letter-spacing:-.015em;color:var(--ink);overflow-wrap:anywhere}
-.ro b.long{font-size:.92rem}
-.ro b.txt{font:800 .92rem/1.35 var(--f-ui);letter-spacing:0}
+.ro small{display:block;font:700 .72rem/1.3 var(--f-ui);color:var(--muted);margin-bottom:4px;overflow-wrap:anywhere}
+.ro::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--acc);opacity:.0;transition:opacity .2s}
+.ro.hot::before{opacity:.55}
+.ro b{display:block;font:800 1.12rem/1.25 var(--f-ui);font-variant-numeric:tabular-nums lining-nums;letter-spacing:-.01em;color:var(--ink);overflow-wrap:anywhere}
+.ro b.mono{font:500 1.02rem/1.3 var(--f-num);letter-spacing:-.02em}
+.ro b.long{font-size:.96rem}
+.ro b.txt{font:800 .9rem/1.35 var(--f-ui);letter-spacing:0;color:var(--ink2)}
+.ro b .u{font-weight:700;font-size:.74em;color:var(--muted);letter-spacing:0;white-space:nowrap}
 .ro b sup,.ro b sub{font-size:.68em;line-height:0}
-.read.one .ro b{font-size:1.3rem}
+.read.one .ro b{font-size:1.4rem}
+@media(min-width:861px){.ctrl .read .ro:last-child:nth-child(odd):not(:first-child){grid-column:1/-1}}
 .read.one .ro b.txt{font-size:1rem}
 /* notes */
 .note{border-radius:10px;padding:10px 13px;font:600 .85rem/1.5 var(--f-ui);background:var(--sel);border-left:4px solid var(--acc);color:var(--ink2);overflow-wrap:break-word}

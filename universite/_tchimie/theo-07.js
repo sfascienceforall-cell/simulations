@@ -1,1 +1,0 @@
-../chimie/theo-07.js

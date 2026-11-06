@@ -1,1 +1,0 @@
-../chimie/exos-02.js

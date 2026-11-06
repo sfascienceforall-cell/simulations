@@ -1,1 +1,0 @@
-../chimie/course-meta.js

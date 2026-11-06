@@ -4,8 +4,21 @@
 "use strict";
 var S = window.SFA = {meta:null, sims:[], exos:{}, open:null};
 
-S.page = function(m){ S.meta = m; };
-S.sim  = function(d){ S.sims.push(d); };
+S.page = function(m){ S.meta = m; preload01(); };
+S.sim  = function(d){
+  /* même id déjà déclaré (fichier chargé deux fois) : on remplace sur place, sans doublon */
+  for (var i = 0; i < S.sims.length; i++) if (d && S.sims[i].id === d.id){ S.sims[i] = d; return; }
+  S.sims.push(d);
+};
+/* Page dédiée à une simulation : les aides communes d'un cours (B4, C4…) vivent dans sims-01.js ;
+   on l'insère avant les fichiers des autres chapitres pour qu'ils les trouvent.
+   Appelé depuis S.page (page.js) : le script écrit s'exécute juste après page.js, donc après ses aides (C5…). */
+var preloaded = false;
+function preload01(){
+  if (preloaded || !window.SFA_SIMPAGE || document.readyState !== "loading" || window.SFA_NO_PRELOAD) return;
+  preloaded = true;
+  try { document.write('<script src="../sims-01.js"><\/script>'); } catch (e){}
+}
 S.exos = function(ch, list){ (S.exos[ch] = S.exos[ch] || []).push.apply(S.exos[ch], list); };
 
 function el(tag, attrs, html){
@@ -149,10 +162,20 @@ Kit.prototype.readouts = function(labels){
   if (labels.length === 1) box.classList.add("one");
   var cells = labels.map(function(l){ var r = el("div", {"class":"ro"}, "<small>" + l + "</small><b>—</b>"); box.appendChild(r); return r.querySelector("b"); });
   /* chiffres : police d'instrument (monospace) ; texte sans chiffre : police du site, plus lisible */
-  return {set:function(i, html){ var c = cells[i]; if (!c) return; c.innerHTML = html;
-    var t = String(html == null ? "" : html).replace(/<[^>]+>/g, "");
-    c.classList.toggle("txt", !/[0-9∞]/.test(t) || t.replace(/[^A-Za-zÀ-ÿ]/g, "").length > 12);
-    c.classList.toggle("long", t.length > 16); }, el:box};
+  return {set:function(i, html){ var c = cells[i]; if (!c) return;
+    html = html == null ? "" : String(html);
+    var same = c._h === html, first = c._h === undefined; c._h = html;
+    /* « 787 kJ/mol » : l'unité en plus discret (texte simple seulement) */
+    var mu = html.indexOf("<") < 0 ? /^([^A-Za-zÀ-ÿ]*[0-9∞])\s+([A-Za-zµμΩÅ°%][A-Za-zµμΩÅ°%\/·⋅²³⁻¹⁰-⁹0-9\-]{0,9})$/.exec(html.trim()) : null;
+    c.innerHTML = mu ? mu[1] + ' <span class="u">' + mu[2] + "</span>" : html;
+    var t = html.replace(/<[^>]+>/g, "").replace(/&[a-z]+;/g, " ").trim();
+    /* « valeur + unité courte » = nombre ; une phrase (« 1er quadrant », « retombe au sol ») = texte */
+    var words = t.replace(/[^A-Za-zÀ-ÿ\s]/g, " ").split(/\s+/).filter(function(w){ return w.length >= 3; });
+    var unitish = /^[\s−\-+±≈~<>≤≥=0-9,.·×^⁰-⁹()∞%°\/a-zA-Zµμ²³⁻¹\[\]]*$/.test(t) && words.join("").length <= 7;
+    c.classList.toggle("txt", !/[0-9∞]/.test(t) || (!unitish && words.length >= 1));
+    c.classList.toggle("long", t.length > 16);
+    if (!first && !same){ var ro = c.parentNode; ro.classList.add("hot"); clearTimeout(ro._t); ro._t = setTimeout(function(){ ro.classList.remove("hot"); }, 450); }
+  }, el:box};
 };
 Kit.prototype.note = function(html, kind, where){
   var n = el("div", {"class":"note" + (kind ? " " + kind : "")}, html);
