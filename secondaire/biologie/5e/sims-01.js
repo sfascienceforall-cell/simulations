@@ -32,12 +32,11 @@ SFA.sim({
     var tt = null, best = null, tries = 0;       /* tt : temps de balayage (ms) ou null */
     var lp = k.loop(function(dt){ tt += dt * (mode.value === "s" ? 40 : 5); if (tt > (mode.value === "s" ? 60 : 8)){ tt = null; lp.pause(); } k.redraw(); });
     k.button("Stimuler", function(){ tt = 0; tries++; if (I.value >= 15 && (best === null || I.value < best)) best = I.value; lp.play(); }, true);
-    var geo = {};
+    var geo = {}, drag = false;
     c.cv.style.touchAction = "none";
     c.pointer(function(type, p){
       if (type === "down" || type === "drag"){
-        if (type === "down" && Math.abs(p.x - geo.hx) > 36 && p.x > geo.hx + 40) return;
-        if (type === "down" && (Math.abs(p.x - geo.hx) > 40 || p.y < geo.top - 10)) return;
+        if (type === "down" && (Math.abs(p.x - geo.hx) > 44 || p.y < geo.top)) { drag = false; return; } if (type === "down") drag = true; if (!drag) return;
         var v = geo.ay.iy ? geo.ay.iy(p.y) : 0; I.set(Math.round(Math.max(0, Math.min(40, v - REST)))); k.redraw();
       }
     });
@@ -82,11 +81,10 @@ SFA.sim({
         for (t = 0; t <= tend + 1e-9; t += 0.1){ var v2 = REST; if (f){ var a1 = ap(t % per); v2 = a1 === null ? REST : a1; } pts.push([t, v2]); if (v2 > vmax) vmax = v2; }
         n = f ? Math.floor(T / per + 1e-9) + 1 : 0;
       }
-      if (ok) D.area(c, ax, function(x){ var vv = soutenu ? REST : trace(i, x); return vv; }, 0, 0, pal.violet, 0);
       B5.poly(c, ax, pts, pal.violet, 3);
       if (tt !== null){ var lastp = pts[pts.length - 1]; D.glow(c, ax.X(lastp[0]), ax.Y(lastp[1]), 16, pal.violet, 0.6); D.dot(c, ax.X(lastp[0]), ax.Y(lastp[1]), 4, pal.violet); }
       /* flèche d'amplitude du PA */
-      if (ok && !soutenu && tt === null){ var tc = 15 * 0.4 / i; D.line(c, ax.X(tc + 0.7) + 14, ax.Y(REST), ax.X(tc + 0.7) + 14, ax.Y(40), pal.amber, 1.5, [3, 3]); D.label(c, "110 mV", ax.X(tc + 0.7) + 20, ax.Y(-15), {color: pal.amber, align: "left"}); }
+      if (ok && !soutenu && tt === null){ var tc = 15 * 0.4 / i; D.line(c, ax.X(tc + 0.7) + 14, ax.Y(REST), ax.X(tc + 0.7) + 14, ax.Y(40), pal.amber, 1.5, [3, 3]); D.label(c, "110 mV", ax.X(tc + 0.7) + 20, ax.Y(22), {color: pal.amber, align: "left"}); }
       /* poignée de stimulus */
       var hy = ax.Y(REST + i); D.line(c, geo.hx, ax.Y(REST), geo.hx, hy, pal.red, 3);
       D.glow(c, geo.hx, hy, 20, pal.red, 0.35); D.dot(c, geo.hx, hy, 8, pal.red);

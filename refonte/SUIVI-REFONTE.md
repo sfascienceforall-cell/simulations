@@ -45,3 +45,4 @@ Nouvelle structure (kit/) : chaque cours = une page `index.html` → chapitres �
 | 19:15 | V2 physique 5e : 4 refaites (ascenseur, chariot, accélérateur, deux mailles), 0 erreur ; à reprendre : c01-cables, c01-somme, c02-nappe, c08-charge-essai, c09-rc | fait |
 | 19:28 | V2 chimie 3e : 14 refaites + 26 retouchées, 0 erreur. À CORRIGER (moteur) : à 390 px le bandeau fixe recouvre le haut du canvas sur certaines pages de simulation | fait |
 | 19:42 | Enzo : « fais le maximum jusqu'à 19 h 50 » → V3 + V4 lancées en même temps que la fin de V2 (11 inspecteurs). Sauvegarde + aperçu à 19 h 45 | en cours |
+| 19:42 | VAGUE 2 TERMINÉE : physique 6e (17 refaites), chimie 6e (28 refaites), chimie 5e (18 refaites), chimie 3e (14), physique 5e (4), chimie 4e (déjà au niveau). V3+V4 en cours (8 inspecteurs) | fait |

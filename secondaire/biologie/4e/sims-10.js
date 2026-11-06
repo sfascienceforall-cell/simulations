@@ -1,87 +1,165 @@
 /* Biologie 4e · chapitre 10 · Cycle cellulaire et mitose */
 SFA.sim({
-  id:"b4-c10-mitose", ch:"c10", tag:"Classique · animation",
+  id:"b4-c10-mitose", ch:"c10", tag:"Animation · défi",
   titre:"Mitose pas à pas : chromosomes, chromatides, ADN",
-  resume:"Parcours le cycle d'une cellule à 6 chromosomes et suis le nombre de chromosomes, de chromatides et la quantité d'ADN.",
-  but:"Déplace le curseur de phase (ou lance l'animation) et lis les compteurs. Repère l'étape où l'ADN est répliqué et celle où les chromatides se séparent.",
+  resume:"Fais avancer le cycle d'une cellule à 6 chromosomes, glisse sur la frise des phases et relève chromosomes, chromatides et ADN.",
+  but:"Anime le cycle ou glisse le curseur rouge sur la frise du bas (ou touche une phase). Relève les compteurs, puis relève les défis.",
   aRetenir:"L'ADN est répliqué pendant la phase S de l'interphase, pas pendant la mitose. Prophase : les chromosomes (à 2 chromatides) se condensent. Métaphase : alignés au centre. Anaphase : les chromatides sœurs se séparent et migrent vers les pôles. Télophase : deux noyaux se reforment, puis la cytocinèse sépare deux cellules filles à 2n chromosomes identiques à la cellule mère.",
   piege:"En anaphase, il y a momentanément 12 chromosomes (chaque chromatide devient un chromosome) dans la cellule, avant la division en deux cellules de 6. Une cellule fille a 2C d'ADN, comme la cellule en G1.",
   build:function(k, S){
-    var c = k.canvas(0, {ratio:.8});
-    var ph = k.slider("Phase", 0, 6, 1, 0, "");
+    var P = S.draw.palette, c = k.canvas(0, {ratio:.98});
+    var ph = k.slider("Avancement du cycle", 0, 6.99, 0.01, 0, "");
     var ro = k.readouts(["Phase", "Chromosomes (dans la cellule)", "Chromatides", "ADN par noyau (2C = quantité en G1)"]);
+    var ntD = k.note("", "");
     var nt = k.note("", "");
-    var lp = k.loop(function(dt){ st.t += dt; if (st.t > 1.6){ st.t = 0; var n = ph.value + 1; if (n > 6){ lp.pause(); return; } ph.set(n); k.redraw(); } });
-    var st = {t:0};
-    k.button("▶ Animer le cycle", function(){ if (ph.value >= 6) ph.set(0); st.t = 0; lp.play(); }, true);
+    var lp = k.loop(function(dt){ var u = ph.value + dt * 0.55; if (u >= 6.99){ ph.set(6.99); lp.pause(); } else ph.set(u); k.redraw(); });
+    k.button("▶ Animer le cycle", function(){ if (ph.value >= 6.95) ph.set(0); lp.play(); }, true);
     k.button("❚❚ Pause", function(){ lp.pause(); });
+    var GOALS = [
+      ["Trouve un moment où la cellule contient 12 chromosomes (et non 6).", function(u){ return u >= 5.05 && u < 6.6; }],
+      ["Trouve un moment où il y a 12 chromatides mais seulement 6 chromosomes.", function(u){ return u >= 2 && u < 5; }],
+      ["Arrête-toi quand la quantité d'ADN du noyau est en train de doubler.", function(u){ return u >= 1.1 && u < 1.95; }],
+      ["Place les chromosomes alignés sur le plan équatorial.", function(u){ return u >= 4.15 && u < 5; }],
+      ["Trouve l'instant où une cellule fille a 6 chromosomes et 2C d'ADN.", function(u){ return u >= 6.6; }]
+    ], gi = 0;
+    k.button("Défi suivant", function(){ gi = (gi + 1) % GOALS.length; });
     var NAMES = ["Interphase : G1", "Interphase : phase S", "Interphase : G2", "Prophase", "Métaphase", "Anaphase", "Télophase et cytocinèse"];
-    var DATA = [[6, 6, "2C"], [6, "6 → 12", "2C → 4C"], [6, 12, "4C"], [6, 12, "4C"], [6, 12, "4C"], [12, 12, "4C (2 lots de 2C)"], ["12 (6 + 6)", "12 (6 + 6)", "2C dans chaque noyau"]];
+    var SHORT = ["G1", "S", "G2", "P", "M", "A", "T"];
     var TXT = [
-      "La cellule est en G1 : elle croît et fonctionne. Chaque chromosome n'a qu'une chromatide (1 molécule d'ADN) ; la chromatine est étalée dans le noyau.",
-      "Phase S : l'ADN est répliqué (semi-conservative). Les chromosomes passent de 1 à 2 chromatides sœurs, jointes au centromère ; le nombre de chromosomes ne change pas.",
-      "G2 : la réplication est finie, la cellule contrôle son ADN et se prépare : 6 chromosomes à 2 chromatides (12 chromatides, 4C).",
-      "Prophase : les chromosomes se condensent et deviennent visibles ; l'enveloppe nucléaire se désagrège ; le fuseau de division se forme entre les deux centrosomes.",
-      "Métaphase : les chromosomes, rattachés aux fibres du fuseau par leur centromère, s'alignent dans le plan équatorial.",
-      "Anaphase : les chromatides sœurs se séparent et sont tirées vers les pôles ; chacune est désormais un chromosome : 12 chromosomes, 6 vers chaque pôle.",
-      "Télophase : deux noyaux se reforment, les chromosomes se décondensent ; la cytocinèse sépare deux cellules filles à 6 chromosomes (2C), identiques à la cellule mère."
+      "La cellule croît et fonctionne. Chaque chromosome n'a qu'une chromatide (1 molécule d'ADN) ; la chromatine est étalée dans le noyau.",
+      "L'ADN est répliqué (semi-conservatif) : chaque chromosome passe de 1 à 2 chromatides sœurs, jointes au centromère. Le nombre de chromosomes ne change pas.",
+      "La réplication est finie, la cellule contrôle son ADN : 6 chromosomes à 2 chromatides = 12 chromatides, 4C.",
+      "Les chromosomes se condensent et deviennent visibles ; l'enveloppe nucléaire se désagrège ; le fuseau se forme entre les deux centrosomes.",
+      "Les chromosomes, accrochés aux fibres du fuseau par leur centromère, s'alignent dans le plan équatorial.",
+      "Les chromatides sœurs se séparent et sont tirées vers les pôles ; chacune est désormais un chromosome : 12 chromosomes, 6 vers chaque pôle.",
+      "Deux noyaux se reforment, les chromosomes se décondensent ; la cytocinèse sépare deux cellules filles à 6 chromosomes (2C), identiques à la mère."
     ];
-    var COL = ["#1e3f8f", "#b42318", "#2e6b55"], LEN = [0.30, 0.30, 0.22, 0.22, 0.15, 0.15];
-    k.draw(function(){
-      c.clear(); var ctx = c.ctx, W = c.W, H = c.H, p = ph.value, cx = W / 2, cy = H / 2, R = Math.min(W * 0.4, H * 0.44), r = B4.rng(21);
-      function cell(){
-        if (p < 5){ B4.ell(c, cx, cy, R, R, "rgba(254,242,242,.8)", "#9f1239", 3); }
-        else if (p === 5){ B4.ell(c, cx, cy, R * 1.25, R * 0.85, "rgba(254,242,242,.8)", "#9f1239", 3); }
-        else { B4.ell(c, cx - R * 0.55, cy, R * 0.68, R * 0.68, "rgba(254,242,242,.8)", "#9f1239", 3); B4.ell(c, cx + R * 0.55, cy, R * 0.68, R * 0.68, "rgba(254,242,242,.8)", "#9f1239", 3); }
+    var LF = [1, 1, 0.82, 0.82, 0.64, 0.64], MAT = "#c0321d", PAT = "#1f4b9e";
+    var BASE = [[-.28,-.22],[.22,-.3],[-.34,.12],[.3,.08],[-.05,.3],[.08,-.05]], ANG = [0.4, -0.7, 1.1, 0.2, -0.3, 0.9];
+    function ease(x){ x = Math.max(0, Math.min(1, x)); return x * x * (3 - 2 * x); }
+    function lerp(a, b, t){ return a + (b - a) * t; }
+    /* chromosome à une ou deux chromatides : (x,y) centre, ang, longueur, couleur, condensation, duplication (0→1) */
+    function chromo(x, y, ang, L, col, cd, dup, seed){
+      var ctx = c.ctx, ca = Math.cos(ang), sa = Math.sin(ang), n = 14, g = lerp(2.2, 3.4, cd), A = (1 - cd) * 4.5 + 0.4;
+      ctx.save(); ctx.lineCap = "round"; ctx.lineJoin = "round"; ctx.strokeStyle = col;
+      var nch = dup > 0.02 ? 2 : 1;
+      for (var s = 0; s < nch; s++){
+        var sg = nch === 1 ? 0 : (s ? 1 : -1), lenS = (s === 1 && dup < 1) ? dup : 1;
+        ctx.lineWidth = lerp(1.7, 5.2, cd); ctx.globalAlpha = s ? 0.82 : 1; ctx.beginPath();
+        for (var q = 0; q <= n; q++){
+          var t = q / n * 2 - 1; if (Math.abs(t) > lenS + 0.001 && s === 1) break;
+          var tt = s === 1 && dup < 1 ? -1 + (q / n) * 2 * lenS : t;
+          var off = sg * g * (cd > 0.3 ? Math.abs(tt) * 0.9 + 0.1 : 0.5) + Math.sin(tt * 4.2 + seed) * A;
+          var lx = tt * L / 2, px = x + lx * ca - off * sa, py = y + lx * sa + off * ca;
+          q ? ctx.lineTo(px, py) : ctx.moveTo(px, py);
+        }
+        ctx.stroke();
       }
-      function col(i){ return COL[Math.floor(i / 2)]; }
-      function chroma(x0, y0, rad, doubled, n){
-        for (var i = 0; i < 6; i++){
-          var a = i / 6 * 6.283 + 0.4, rr = rad * (0.25 + r() * 0.5), x = x0 + Math.cos(a) * rr, y = y0 + Math.sin(a) * rr, L = LEN[i] * R * 1.6;
-          for (var d = 0; d < (doubled > i ? 2 : 1); d++){
-            ctx.save(); ctx.strokeStyle = col(i); ctx.globalAlpha = i % 2 ? 0.7 : 1; ctx.lineWidth = 1.8; ctx.beginPath(); ctx.moveTo(x - L / 2, y + d * 3);
-            for (var q = 1; q <= 8; q++) ctx.lineTo(x - L / 2 + q * L / 8, y + d * 3 + Math.sin(q * 1.7 + i) * 5); ctx.stroke(); ctx.restore();
-          }
+      ctx.restore();
+      if (cd > 0.5 && nch === 2){ ctx.save(); ctx.globalAlpha = (cd - 0.5) * 2; S.draw.dot(c, x, y, 3.2, "#13233a"); ctx.restore(); }
+    }
+    function vchrom(xc, yc, sg, L, col, cd, seed){      /* chromatide unique, centromère en tête vers le pôle sg */
+      var ctx = c.ctx; ctx.save(); ctx.strokeStyle = col; ctx.lineWidth = lerp(2, 5, cd); ctx.lineCap = "round"; ctx.lineJoin = "round";
+      ctx.beginPath(); ctx.moveTo(xc - sg * L * 0.42, yc - L * 0.5 * (cd > 0.3 ? 1 : 0.7)); ctx.lineTo(xc, yc); ctx.lineTo(xc - sg * L * 0.42, yc + L * 0.5 * (cd > 0.3 ? 1 : 0.7)); ctx.stroke(); ctx.restore();
+      S.draw.dot(c, xc, yc, 2.8, "#13233a");
+    }
+    var tl = {};   /* frise cliquable */
+    k.draw(function(){
+      c.clear(); var ctx = c.ctx, W = c.W, H = c.H, u = ph.value, p = Math.min(6, Math.floor(u)), f = u - p;
+      var hc = H * 0.70, cx = W / 2, cy = hc * 0.5 + 6, R = Math.min(W * 0.34, hc * 0.40);
+      /* fond : milieu de culture subtil */
+      var bg = ctx.createRadialGradient(cx, cy, R * 0.3, cx, cy, Math.max(W, hc) * 0.7); bg.addColorStop(0, "#fbf7fb"); bg.addColorStop(1, "#f3eef6");
+      ctx.fillStyle = bg; ctx.fillRect(0, 0, W, hc + 6);
+      /* forme de la cellule */
+      var rx = R, ry = R, pinch = 0;
+      if (p === 5){ rx = R * (1 + 0.36 * ease(f)); ry = R * (1 - 0.1 * ease(f)); }
+      if (p === 6){ rx = R * 1.36; ry = R * 0.9; pinch = ease(f * 1.15); }
+      if (p === 4){ rx = R * 1; }
+      ctx.save();
+      ctx.beginPath();
+      for (var q = 0; q <= 140; q++){
+        var th = q / 140 * 6.2832, xx = Math.cos(th) * rx, yy = Math.sin(th) * ry * (1 - pinch * 0.93 * Math.exp(-Math.pow(xx / (rx * 0.3), 2)));
+        q ? ctx.lineTo(cx + xx, cy + yy) : ctx.moveTo(cx + xx, cy + yy);
+      }
+      ctx.closePath(); var cg = ctx.createRadialGradient(cx - R * .3, cy - R * .3, R * .1, cx, cy, R * 1.5); cg.addColorStop(0, "#fff4f4"); cg.addColorStop(1, "#f9d9dc");
+      ctx.fillStyle = cg; ctx.shadowColor = "rgba(15,27,45,.16)"; ctx.shadowBlur = 14; ctx.shadowOffsetY = 4; ctx.fill(); ctx.shadowColor = "transparent"; ctx.lineWidth = 3; ctx.strokeStyle = "#9f1239"; ctx.stroke(); ctx.restore();
+      /* noyau */
+      var nuA = p <= 2 ? 1 : p === 3 ? 1 - ease(f * 1.4) : 0;
+      if (nuA > 0.02){ ctx.save(); ctx.globalAlpha = nuA; var ng = ctx.createRadialGradient(cx, cy, 2, cx, cy, R * 0.62); ng.addColorStop(0, "#e9f0ff"); ng.addColorStop(1, "#c9d9f7"); ctx.beginPath(); ctx.arc(cx, cy, R * 0.6, 0, 6.2832); ctx.fillStyle = ng; ctx.fill(); ctx.lineWidth = 2.5; ctx.strokeStyle = P.acc; ctx.stroke(); ctx.restore(); }
+      if (p === 6){ [-1, 1].forEach(function(sg){ var nx = cx + sg * rx * 0.5; ctx.save(); ctx.globalAlpha = ease(f * 1.4); ctx.beginPath(); ctx.arc(nx, cy, R * 0.4, 0, 6.2832); ctx.fillStyle = "#dbe6fb"; ctx.fill(); ctx.lineWidth = 2.5; ctx.strokeStyle = P.acc; ctx.stroke(); ctx.restore(); }); }
+      /* pôles / centrosomes */
+      var polX = p <= 2 ? 0.22 : p === 3 ? lerp(0.22, 0.88, ease(f)) : 0.88, spA = p <= 2 ? (p === 2 ? f * 0.5 : 0) : 1;
+      var pole = (p === 5 ? rx * 0.86 : p === 6 ? 0 : R * polX), showSp = p >= 3 && p <= 5;
+      if (p <= 3 || showSp){
+        [-1, 1].forEach(function(sg){ if (p === 6) return; var px = cx + sg * pole; ctx.save(); ctx.globalAlpha = p === 3 ? 0.4 + 0.6 * ease(f) : 1; S.draw.glow(c, px, cy, 14, P.amber, 0.45); S.draw.dot(c, px, cy, 4.8, P.amber); ctx.restore(); });
+      }
+      /* chromosomes */
+      var plateSp = R * 0.285;
+      for (var i = 0; i < 6; i++){
+        var col = i % 2 ? PAT : MAT, L1 = LF[i] * R * 0.62, bx = cx + BASE[i][0] * R * 1.3, by = cy + BASE[i][1] * R * 1.3, py = cy + (i - 2.5) * plateSp;
+        if (p <= 2){
+          var dup = p === 0 ? 0 : p === 1 ? f : 1;
+          chromo(bx, by, ANG[i], L1 * 0.95, col, 0, dup, i * 1.7);
+        } else if (p === 3){
+          var m = ease(f), x = lerp(bx, cx + BASE[i][0] * R * 0.7, m * 0.6), y = lerp(by, lerp(by, py, 0.5), m * 0.6);
+          chromo(x, y, lerp(ANG[i], Math.PI / 2, m * 0.5), L1 * lerp(0.95, 0.5, m), col, m, 1, i * 1.7);
+          if (f > 0.35){ S.draw.line(c, cx - pole, cy, x, y, "rgba(95,107,122," + (0.35 * ease((f - 0.35) * 1.5)) + ")", 1); S.draw.line(c, cx + pole, cy, x, y, "rgba(95,107,122," + (0.35 * ease((f - 0.35) * 1.5)) + ")", 1); }
+        } else if (p === 4){
+          var m2 = ease(f * 1.3), jit = Math.sin(i * 2.3 + u * 6) * (1 - m2) * 4;
+          var x4 = lerp(cx + BASE[i][0] * R * 0.7, cx + jit, m2), y4 = lerp(lerp(by, py, 0.5), py, m2);
+          S.draw.line(c, cx - pole, cy, x4, y4, "rgba(95,107,122,.38)", 1); S.draw.line(c, cx + pole, cy, x4, y4, "rgba(95,107,122,.38)", 1);
+          chromo(x4, y4, lerp(lerp(ANG[i], Math.PI / 2, 0.5), Math.PI / 2, m2), L1 * 0.52, col, 1, 1, i * 1.7);
+        } else if (p === 5){
+          var e5 = ease(f); [-1, 1].forEach(function(sg){
+            var xc = cx + sg * lerp(2, rx * 0.66, e5), yy5 = py * 1 + (cy - py) * (e5 * 0.45) * 0 + (py - cy) * (1 - e5 * 0.3) - (py - cy);
+            var ypos = cy + (py - cy) * lerp(1, 0.78, e5);
+            S.draw.line(c, cx + sg * pole, cy, xc, ypos, "rgba(95,107,122,.4)", 1);
+            if (f < 0.04) chromo(xc, ypos, Math.PI / 2, L1 * 0.52, col, 1, 1, i * 1.7); else vchrom(xc, ypos, sg, L1 * 0.52 * lerp(1, 0.85, e5), col, 1, i);
+          });
+        } else {
+          var e6 = ease(f * 1.2); [-1, 1].forEach(function(sg){
+            var xn = cx + sg * rx * 0.5, xp = cx + sg * rx * 0.66, ypos2 = cy + (py - cy) * lerp(0.78, 0.5, e6);
+            chromo(lerp(xp, xn + BASE[i][0] * R * 0.55, e6), lerp(ypos2, cy + BASE[i][1] * R * 0.6, e6), lerp(Math.PI / 2, ANG[i], e6), L1 * lerp(0.5, 0.65, e6), col, 1 - e6, 0, i * 1.7);
+          });
         }
       }
-      cell();
-      if (p <= 2){
-        B4.ell(c, cx, cy, R * 0.6, R * 0.6, "rgba(191,219,254,.45)", B4.pal.acc, 2.5);
-        chroma(cx, cy, R * 0.5, p === 0 ? 0 : p === 1 ? 3 : 6);
-        if (p === 1) B4.txt(c, "réplication en cours", cx, cy + R * 0.82, B4.pal.red, 12);
+      /* plan équatorial */
+      if (p === 4 && f > 0.4){ ctx.save(); ctx.globalAlpha = Math.min(0.7, (f - 0.4)); S.draw.line(c, cx, cy - R * 0.95, cx, cy + R * 0.95, P.amber, 1.5, [4, 4]); ctx.restore(); S.draw.label(c, "plan équatorial", cx, cy - R - 8, {color:P.amber, size:11}); }
+      if (p === 1) S.draw.label(c, "réplication de l'ADN", cx, cy + R * 0.9, {color:P.red});
+      if (p === 5 && f > 0.15) S.draw.label(c, "6 chromosomes vers chaque pôle", cx, cy + ry + 14, {color:P.acc});
+      if (p === 6 && f > 0.5) S.draw.label(c, "2 cellules filles : 6 chromosomes, 2C", cx, cy + ry + 14, {color:P.green});
+      S.draw.label(c, NAMES[p], 10, 16, {color:P.mat, align:"left", size:13});
+      /* légende */
+      S.draw.legend(c, [[MAT, "chromosome d'origine maternelle"], [PAT, "chromosome d'origine paternelle"]], W - 8, 8, {align:"right"});
+      /* frise du cycle + courbe d'ADN */
+      var fx0 = 34, fx1 = W - 14, fy0 = hc + 22, fy1 = H - 26, bw = (fx1 - fx0) / 7;
+      tl = {x0:fx0, x1:fx1, y0:fy0 - 14, y1:H};
+      var bands = ["#dbe7fb", "#fde9c4", "#cfe9de", "#e6dcfa", "#e6dcfa", "#e6dcfa", "#e6dcfa"];
+      for (i = 0; i < 7; i++){
+        ctx.fillStyle = bands[i]; ctx.globalAlpha = i === p ? 1 : 0.75; ctx.fillRect(fx0 + i * bw, fy0, bw - 1, fy1 - fy0); ctx.globalAlpha = 1;
+        S.draw.text(c, SHORT[i], fx0 + (i + 0.5) * bw, fy1 + 11, {size:11, color:i === p ? P.ink : "#5f6b7a", weight:i === p ? 800 : 700});
       }
-      var pole1 = cx - R * 0.95, pole2 = cx + R * 0.95;
-      function xchrom(x, y, L, i, vert){
-        ctx.save(); ctx.strokeStyle = col(i); ctx.lineWidth = 4; ctx.lineCap = "round"; ctx.globalAlpha = i % 2 ? 0.75 : 1;
-        if (vert){ ctx.beginPath(); ctx.moveTo(x - 3, y - L / 2); ctx.lineTo(x - 3, y + L / 2); ctx.moveTo(x + 3, y - L / 2); ctx.lineTo(x + 3, y + L / 2); ctx.stroke(); }
-        else { ctx.beginPath(); ctx.moveTo(x - L / 2, y - 3); ctx.lineTo(x + L / 2, y - 3); ctx.moveTo(x - L / 2, y + 3); ctx.lineTo(x + L / 2, y + 3); ctx.stroke(); }
-        ctx.restore(); S.draw.dot(c, x, y, 3.2, "#13233a");
-      }
-      if (p === 3){
-        ctx.save(); ctx.setLineDash([5, 5]); ctx.strokeStyle = B4.pal.acc; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(cx, cy, R * 0.62, 0, 6.283); ctx.stroke(); ctx.restore();
-        for (var i = 0; i < 6; i++){ var a = i / 6 * 6.283 + 0.3, rr = R * 0.35; xchrom(cx + Math.cos(a) * rr, cy + Math.sin(a) * rr, LEN[i] * R * 1.3, i, i % 2 === 0); }
-        S.draw.dot(c, pole1, cy, 5, B4.pal.amber); S.draw.dot(c, pole2, cy, 5, B4.pal.amber);
-        for (i = 0; i < 4; i++){ S.draw.line(c, pole1, cy, cx - R * 0.45, cy - R * 0.45 + i * R * 0.3, "rgba(95,107,122,.35)", 1); S.draw.line(c, pole2, cy, cx + R * 0.45, cy - R * 0.45 + i * R * 0.3, "rgba(95,107,122,.35)", 1); }
-      }
-      if (p === 4){
-        S.draw.dot(c, pole1, cy, 5, B4.pal.amber); S.draw.dot(c, pole2, cy, 5, B4.pal.amber);
-        for (i = 0; i < 6; i++){ var y = cy + (i - 2.5) * R * 0.28; S.draw.line(c, pole1, cy, cx, y, "rgba(95,107,122,.5)", 1); S.draw.line(c, pole2, cy, cx, y, "rgba(95,107,122,.5)", 1); }
-        for (i = 0; i < 6; i++) xchrom(cx, cy + (i - 2.5) * R * 0.28, LEN[i] * R * 1.0, i, false);
-        S.draw.line(c, cx, cy - R * 0.9, cx, cy + R * 0.9, "rgba(180,83,9,.4)", 1.5, [4, 4]);
-      }
-      if (p === 5){
-        S.draw.dot(c, cx - R * 1.15, cy, 5, B4.pal.amber); S.draw.dot(c, cx + R * 1.15, cy, 5, B4.pal.amber);
-        for (i = 0; i < 6; i++){ var y2 = cy + (i - 2.5) * R * 0.26, L = LEN[i] * R * 0.9;
-          [-1, 1].forEach(function(sg){ var xc = cx + sg * R * 0.62; S.draw.line(c, cx + sg * R * 1.15, cy, xc, y2, "rgba(95,107,122,.5)", 1); ctx.save(); ctx.strokeStyle = col(i); ctx.lineWidth = 3.5; ctx.lineCap = "round"; ctx.globalAlpha = i % 2 ? 0.75 : 1; ctx.beginPath(); ctx.moveTo(xc - sg * L * 0.7, y2 - L * 0.5); ctx.lineTo(xc, y2); ctx.lineTo(xc - sg * L * 0.7, y2 + L * 0.5); ctx.stroke(); ctx.restore(); }); }
-      }
-      if (p === 6){
-        [-1, 1].forEach(function(sg){ var nx = cx + sg * R * 0.55; B4.ell(c, nx, cy, R * 0.38, R * 0.38, "rgba(191,219,254,.45)", B4.pal.acc, 2.5); chroma(nx, cy, R * 0.32, 0); });
-        S.draw.line(c, cx, cy - R * 0.45, cx, cy + R * 0.45, "#9f1239", 3, [3, 3]);
-      }
-      var d0 = DATA[p];
-      ro.set(0, NAMES[p]); ro.set(1, d0[0]); ro.set(2, d0[1]); ro.set(3, d0[2]);
+      S.draw.text(c, "interphase", fx0 + 1.5 * bw, fy0 - 7, {size:10, color:"#5f6b7a"}); S.draw.text(c, "mitose", fx0 + 5 * bw, fy0 - 7, {size:10, color:"#5f6b7a"});
+      function Y(v){ return fy1 - (v / 4.4) * (fy1 - fy0); }
+      S.draw.text(c, "4C", fx0 - 9, Y(4), {size:10, color:"#5f6b7a"}); S.draw.text(c, "2C", fx0 - 9, Y(2), {size:10, color:"#5f6b7a"});
+      ctx.save(); ctx.strokeStyle = P.green; ctx.lineWidth = 2.6; ctx.lineJoin = "round"; ctx.beginPath();
+      var pts = [[0, 2], [1, 2], [2, 4], [6, 4], [6.55, 4], [6.99, 2]];
+      pts.forEach(function(q, j){ var xq = fx0 + q[0] * bw, yq = Y(q[1]); j ? ctx.lineTo(xq, yq) : ctx.moveTo(xq, yq); }); ctx.stroke(); ctx.restore();
+      S.draw.text(c, "ADN par noyau", fx1 - 2, fy0 + 9, {size:10, color:P.green, align:"right"});
+      var ux = fx0 + u * bw; S.draw.line(c, ux, fy0 - 3, ux, fy1 + 2, P.red, 2); S.draw.dot(c, ux, fy0 - 3, 5.5, P.red);
+      /* compteurs */
+      var chr = p < 5 ? 6 : 12, chm = p === 0 ? 6 : p === 1 ? 6 + Math.round(6 * f) : 12, dna = p === 0 ? "2C" : p === 1 ? S.fmt(2 + 2 * f, 1) + "C" : p < 6 ? "4C" : (f < 0.55 ? "4C" : "2C par cellule fille");
+      if (p === 6 && f >= 0.55) chr = "6 + 6";
+      ro.set(0, NAMES[p]); ro.set(1, chr); ro.set(2, chm === 12 && p >= 5 ? "12 (1 par chromosome)" : chm); ro.set(3, dna);
+      var ok = GOALS[gi][1](u);
+      ntD.set("<b>Défi " + (gi + 1) + "/" + GOALS.length + ".</b> " + GOALS[gi][0] + (ok ? " <b>Réussi !</b>" : ""), ok ? "ok" : "warn");
       nt.set("<b>" + NAMES[p] + ".</b> " + TXT[p], p === 5 ? "warn" : "");
     });
+    c.pointer(function(type, e){
+      if (!tl.x0 || e.y < tl.y0 || type === "move") return;
+      if (type === "down" || type === "drag"){ lp.pause(); ph.set(Math.max(0, Math.min(6.99, (e.x - tl.x0) / (tl.x1 - tl.x0) * 7))); k.redraw(); }
+    });
+    c.cv.style.touchAction = "pan-y";
   }
 });
 
