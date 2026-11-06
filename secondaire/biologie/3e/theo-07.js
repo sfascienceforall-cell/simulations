@@ -24,20 +24,19 @@ SFA.theo("c07", {
   },
   anim: function (t) {
     ctx.save(); ctx.scale(W / 700, H / 300); var op = (Math.sin(t * .025) + 1) / 2, i;
-    b3.leaf(80, 80, 560, 130, 2, [200, 440], [], op);
-    ctx.fillStyle = "#4b9bd6"; ctx.strokeStyle = BLUE_D; ctx.lineWidth = 2; b3.E(320, 145, 20, 20, "#d6ebfa", BLUE_D); b3.E(320, 138, 7, 7, "#4b9bd6", null); b3.E(320, 154, 7, 7, "#f0b040", null);
-    TB("nervure", 320, 180, BLUE_D, 12); TB("xylème (eau + sels)", 320, 66 + 0, BLUE_D, 12); ctx.globalAlpha = 0; ctx.globalAlpha = 1;
-    for (i = 0; i < 4; i++) { var u = (t * .008 + i / 4) % 1; DOT(320 - 7, 160 + (1 - u) * 130 - 0, 3.5, BLUE); }
-    for (i = 0; i < 3; i++) { var l = (t * .01 + i / 3) % 1; b3.ar(150 + i * 170, 14 + 0, 150 + i * 170 + 0, 56, "#e8b100", 3); }
-    TB("lumière", 60, 40, "#a07d00", 13);
-    LN(80, 210, 640, 210, "#4a8a3a", 2);
-    TB("épiderme + cuticule", 650, 92, GREY, 12, "right"); TB("parenchyme palissadique (chloroplastes)", 650, 130, DGREEN, 12, "right"); TB("parenchyme lacuneux (air)", 650, 175, "#5c8a4a", 12, "right"); TB("stomate", 200, 232, DGREEN, 14); TB("stomate", 440, 232, DGREEN, 14);
-    var sx = [200, 440];
+    b3.leaf(190, 80, 450, 130, 2, [110, 330], [], op);
+    b3.E(410, 150, 20, 20, "#d6ebfa", BLUE_D); b3.E(410, 143, 7, 7, "#4b9bd6", null); b3.E(410, 158, 7, 7, "#f0b040", null);
+    TB("nervure", 410, 192, BLUE_D, 12);
+    for (i = 0; i < 3; i++) b3.ar(240 + i * 150, 14, 240 + i * 150, 62, "#e8b100", 3);
+    TB("lumière", 190, 40, "#a07d00", 13, "right");
+    TB("épiderme", 180, 92, GREY, 12, "right"); TB("palissadique", 180, 120, DGREEN, 12, "right"); TB("(chloroplastes)", 180, 135, DGREEN, 11, "right"); TB("lacuneux (air)", 180, 175, "#5c8a4a", 12, "right"); TB("xylème : eau + sels", 410, 66, BLUE_D, 12);
+    var sx = [300, 520];
     for (i = 0; i < 2; i++) {
-      var x = sx[i]; for (var q = 0; q < 2; q++) { var v = (t * .012 + q / 2 + i * .3) % 1; DOT(x - 14 + q * 0 + 0, 262 - v * 62 * 1, 4.5, "#777"); }
-      var v2 = (t * .012 + .25 + i * .3) % 1; DOT(x + 12, 208 + v2 * 52, 4.5, BLUE); var v3 = (t * .012 + .75 + i * .3) % 1; DOT(x + 2, 208 + v3 * 52, 4, "#9fd0f0");
+      var x = sx[i]; var v = (t * .012 + i * .3) % 1; DOT(x - 8, 275 - v * 62, 4.5, "#777"); var v1 = (t * .012 + .5 + i * .3) % 1; DOT(x - 8, 275 - v1 * 62, 4.5, "#777");
+      var v2 = (t * .012 + .25 + i * .3) % 1; DOT(x + 8, 208 + v2 * 62, 4.5, BLUE); var v3 = (t * .012 + .75 + i * .3) % 1; DOT(x + 2, 208 + v3 * 62, 4, "#9fd0f0");
+      TB("stomate", x, 228, DGREEN, 13, "center");
     }
-    TB("CO₂ entre", 140, 270, "#555", 14); TB("O₂ et vapeur d'eau sortent", 520, 270, BLUE_D, 14);
+    TB("CO₂ entre", 190, 270, "#555", 14, "right"); TB("O₂ et vapeur d'eau sortent", 640, 285, BLUE_D, 14, "right");
     ctx.restore();
   },
   th: "<div class=\"tcard\"><b class=\"h\">Une feuille en coupe</b><p>La feuille est mince et plate : elle capte un maximum de lumière. De haut en bas : l'<b>épiderme supérieur</b> transparent et sa cuticule (protège, limite l'évaporation) ; le <b>parenchyme palissadique</b> (cellules allongées serrées, riches en <b>chloroplastes</b> : c'est là qu'a lieu l'essentiel de la photosynthèse) ; le <b>parenchyme lacuneux</b> (cellules espacées, avec des lacunes d'air pour la circulation des gaz) ; l'<b>épiderme inférieur</b> percé de <b>stomates</b>. Les <b>nervures</b> contiennent le <b>xylème</b> (sève brute : eau + sels minéraux des racines vers les feuilles) et le <b>phloème</b> (sève élaborée : sucres des feuilles vers le reste de la plante).</p></div>" +
@@ -65,7 +64,7 @@ SFA.figs("c07", [
   function (p) {
     var cx = W * .3, cy = H * .5, r = 90, i; b3.E(cx, cy, r, r, "#f2f7ec", INK); for (i = 0; i < 25; i++) { var a = i * 2.4, d = Math.sqrt((i + .5) / 25) * (r - 12); b3.E(cx + Math.cos(a) * d, cy + Math.sin(a) * d, 5, 3.5, "#6cb85a", DGREEN, a); }
     LN(cx - r, cy + r + 14, cx + r, cy + r + 14, ORANGE, 2); TB("0,4 mm", cx, cy + r + 30, ORANGE, 13); TB("25 stomates", cx, cy - r - 10, DGREEN, 14);
-    if (p > 0) { TB("aire = π × 0,2² ≈ 0,126 mm²", W * .64, H * .25, INK, 14, "left"); TB("25 / 0,126 ≈ 200 par mm²", W * .64, H * .45, DGREEN, 15, "left"); TB("× 4 000 mm² ≈ 800 000", W * .64, H * .65, DGREEN, 15, "left"); } else TB("densité ?", W * .75, H * .5, ORANGE, 22);
+    if (p > 0) { TB("aire = π × 0,2² ≈ 0,126 mm²", W * .56, H * .25, INK, 13, "left"); TB("25 / 0,126 ≈ 200 par mm²", W * .56, H * .45, DGREEN, 14, "left"); TB("× 4 000 mm² ≈ 800 000", W * .56, H * .65, DGREEN, 14, "left"); } else TB("densité ?", W * .75, H * .5, ORANGE, 22);
   },
   /* 3 Nénuphar et hêtre */
   function (p) {
@@ -93,14 +92,14 @@ SFA.figs("c07", [
   function (p) {
     var nm = ["A air calme", "B ventilateur", "C lampe", "D sac fermé"], v = [1.2, 3.0, 2.5, .3], gb = H * .8, k = H * .5 / 3, i; LN(W * .08, gb, W * .95, gb, INK, 2);
     for (i = 0; i < 4; i++) { var x = W * (.12 + i * .22); b3.box(x, gb - v[i] * k, W * .15, v[i] * k, ["#9ad28a", "#8ec3ea", "#f4c6a0", "#d6d6e0"][i], INK, 3); TB(nm[i], x + W * .075, gb + 17, INK, 12); if (p > 0) TB(String(v[i]).replace(".", ",") + " mm/min", x + W * .075, gb - v[i] * k - 8, INK, 13); }
-    if (p > 0) { b3.pill("B = 2,5 × A", W * .4, H * .1, "#e3f1fb", BLUE_D, 14); b3.pill("D : air saturé dans le sac", W * .78, H * .3, "#fff3de", ORANGE, 13); } else TB("vitesse de la bulle (mm/min) ?", W * .5, H * .1, ORANGE, 15);
+    if (p > 0) { b3.pill("B = 2,5 × A", W * .3, H * .1, "#e3f1fb", BLUE_D, 14); b3.pill("D : air saturé dans le sac", W * .7, H * .1, "#fff3de", ORANGE, 13); } else TB("vitesse de la bulle (mm/min) ?", W * .5, H * .1, ORANGE, 15);
   },
   /* 7 Vaseline sur la feuille */
   function (p) {
     var i; b3.leaf(W * .06, H * .36, W * .38, H * .24, 2, [W * .1, W * .26], [], 1); b3.leaf(W * .56, H * .36, W * .38, H * .24, 2, [W * .1, W * .26], [], 1);
     ctx.fillStyle = "#ffe58a"; ctx.fillRect(W * .06, H * .36 - 6, W * .38, 6); ctx.fillRect(W * .56, H * .6, W * .38, 6);
     TB("vaseline dessus", W * .25, H * .27, "#8a6a00", 14); TB("vaseline dessous", W * .75, H * .76, "#8a6a00", 14);
-    if (p > 0) { for (i = 0; i < 2; i++) b3.ar(W * (.16 + i * .16), H * .64, W * (.16 + i * .16), H * .86, BLUE, 3.5); TB("perd beaucoup", W * .25, H * .95, BLUE_D, 13); b3.cross(W * .75, H * .88, 12, RED); TB("perd très peu", W * .75, H * .95, DGREEN, 13); b3.pill("stomates dessous", W * .5, H * .1, "#e4f6ee", DGREEN, 13); } else TB("laquelle perd le moins d'eau ?", W * .5, H * .12, ORANGE, 15);
+    if (p > 0) { for (i = 0; i < 2; i++) b3.ar(W * (.16 + i * .16), H * .64, W * (.16 + i * .16), H * .86, BLUE, 3.5); TB("perd beaucoup", W * .25, H * .95, BLUE_D, 13); b3.cross(W * .75, H * .68, 12, RED); TB("perd très peu", W * .75, H * .95, DGREEN, 13); b3.pill("stomates dessous", W * .5, H * .1, "#e4f6ee", DGREEN, 13); } else TB("laquelle perd le moins d'eau ?", W * .5, H * .12, ORANGE, 15);
   },
   /* 8 Eau perdue, eau utilisée */
   function (p) {
@@ -111,6 +110,6 @@ SFA.figs("c07", [
   function (p) {
     var n1 = p > 0 ? 3 : 2, n2 = p > 0 ? 1 : 2; b3.leaf(W * .06, H * .28, W * .38, H * .42, n1, [W * .1, W * .2, W * .3], [], 1); b3.leaf(W * .56, H * .38, W * .38, H * .26, n2, [W * .19], [], 1);
     b3.sun(W * .25, H * .1, 9, tGlob); TB("soleil", W * .25, H * .82, ORANGE, 15); TB("ombre", W * .75, H * .82, BLUE_D, 15);
-    if (p > 0) { TB("épaisse · plusieurs couches · + de stomates", W * .25, H * .93, DGREEN, 12); TB("mince · étalée", W * .75, H * .93, DGREEN, 12); } else TB("quelles différences ?", W * .5, H * .1, ORANGE, 15);
+    if (p > 0) { TB("épaisse · + de stomates", W * .25, H * .93, DGREEN, 12); TB("mince · étalée", W * .75, H * .93, DGREEN, 12); } else TB("quelles différences ?", W * .5, H * .1, ORANGE, 15);
   }
 ]);

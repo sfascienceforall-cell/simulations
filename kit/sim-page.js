@@ -35,13 +35,23 @@ function start() {
     '<div class="sfa-titlecard"><div class="sfa-chips"><span class="sfa-chip">' + esc(M.court || M.titre) + " · Ch. " + (ci + 1) + '</span><span class="sfa-chip free">Gratuit</span>' + (d.tag ? '<span class="sfa-chip">' + esc(d.tag) + "</span>" : "") + "</div><h1>" + d.titre + "</h1><p>" + (d.but || d.resume || "") + "</p></div>" +
     '<section class="sfa-sim simhost" id="host"></section>' +
     '<div class="sp-next"><a class="sp-go" href="../#c=' + ci + '&v=theo"><small>Rappel</small><b>Théorie du chapitre</b></a><a class="sp-go ex" href="../#c=' + ci + '&v=list"><small>S\'entraîner</small><b>Exercices du chapitre ★ → ★★★★★</b></a>' +
-    (next ? '<a class="sp-go" href="../' + next.id + '/"><small>Simulation suivante</small><b>' + strip(next.titre) + "</b></a>" : "") + "</div>" +
+    (next ? '<a class="sp-go nx" href="../' + next.id + '/" rel="next"><small>Simulation suivante →</small><b>' + strip(next.titre) + "</b></a>"
+          : (M.chapitres[ci + 1] ? '<a class="sp-go nx" href="../#c=' + (ci + 1) + '"><small>Chapitre suivant →</small><b>' + esc(M.chapitres[ci + 1].titre) + "</b></a>" : "")) + "</div>" +
+    (prev ? '<a class="sp-prev" href="../' + prev.id + '/" rel="prev">← ' + strip(prev.titre) + "</a>" : "") +
     "</main>" +
     '<aside class="sfa-side"><div class="sfa-list"><h2>' + esc(c.titre) + "<span>" + mates.length + " simulation" + (mates.length > 1 ? "s" : "") + "</span></h2><ol>" +
     mates.map(function (s, j) { return '<li><a href="../' + s.id + '/"' + (s === d ? ' class="on" aria-current="page"' : "") + "><i>" + String(j + 1).padStart(2, "0") + "</i>" + strip(s.titre) + "</a></li>"; }).join("") + "</ol>" +
     '<div class="sp-chap"><a href="../#c=' + ci + '">Tout le chapitre ' + (ci + 1) + " →</a></div></div>" +
     '<div class="sfa-promo"><small>Envie d\'aller plus loin ?</small><b>La prépa concours médecine SFA : le cours complet, les exercices type examen corrigés et le suivi.</b><a href="' + prepa + '">Voir la prépa concours médecine</a></div></aside></div></div>' +
     '<footer class="sfa-foot">Science For All · ' + esc(M.court || M.titre) + "</footer>";
+  /* flèches du clavier : simulation précédente / suivante (sauf pendant la saisie ou sur un curseur) */
+  document.addEventListener("keydown", function (ev) {
+    if (ev.altKey || ev.ctrlKey || ev.metaKey || ev.shiftKey) return;
+    var t = ev.target, tag = t && t.tagName;
+    if (tag === "INPUT" || tag === "SELECT" || tag === "TEXTAREA" || (t && t.isContentEditable)) return;
+    if (ev.key === "ArrowRight" && next) location.href = "../" + next.id + "/";
+    else if (ev.key === "ArrowLeft" && prev) location.href = "../" + prev.id + "/";
+  });
   var host = document.getElementById("host");
   var kit = S.mount(d, host);
   /* Certaines simulations utilisent des aides communes définies dans le fichier d'un autre chapitre

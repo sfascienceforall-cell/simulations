@@ -42,19 +42,19 @@ SFA.figs("c07",[
   uh_al(q);uh_tag('t½ = ln 2 / k = 30 min',W*.62,H*.22,DRED,17);ctx.globalAlpha=1;TB('k = 0,0231 min⁻¹',W*.62,H*.1,GREY,13);},
  /* 1 vitesse */
  function(p){var q=uh_e(p,0,.6);TB('v = k [A] [B]²',W*.5,H*.22,BLUE_D,30);var y=H*.5;[[W*.18,'A',BLUE,.20],[W*.5,'B',ORANGE,.10]].forEach(function(r){uh_atom(r[0],y,r[1],r[2],20);TB('['+r[1]+'] = '+uh_f(r[3],2)+' mol/L',r[0],y+44,dk(r[2]),13);});uh_atom(W*.62,y,'B',ORANGE,20);TB('ordre 1 en A',W*.18,y-34,GREY,13);TB('ordre 2 en B',W*.56,y-34,GREY,13);
-  TB('k = 3,0·10⁻³ L²/(mol²·s)',W*.78,y+8,INK,13);uh_al(q);uh_rr(W*.12,H*.8,W*.76,38,'#fff7ea',ORANGE,2);TB('v = 3,0·10⁻³ × 0,20 × 0,10² = 6,0·10⁻⁶ mol/(L·s)',W*.5,H*.8+25,ORANGE,14);ctx.globalAlpha=1;},
+  TB('k = 3,0·10⁻³ L²/(mol²·s)',W*.5,H*.745,INK,13);uh_al(q);uh_rr(W*.12,H*.8,W*.76,38,'#fff7ea',ORANGE,2);TB('v = 3,0·10⁻³ × 0,20 × 0,10² = 6,0·10⁻⁶ mol/(L·s)',W*.5,H*.8+25,ORANGE,14);ctx.globalAlpha=1;},
  /* 2 ordre 1 */
  function(p){var q=uh_e(p,0,.6),k=Math.LN2/10,m=uh_ax(40,H-48,W*.42,H-90,0,35,0,1.05,'t','[A]'),m2=uh_ax(W*.58,H-48,W*.36,H-90,0,35,-3,.2,'t','ln [A]');uh_fn(m,function(t){return Math.exp(-k*t);},0,35,BLUE,3);uh_fn(m2,function(t){return -k*t;},0,35,GREEN,3);
-  [10,20,30].forEach(function(t,i){LN(m.X(t),H-48,m.X(t),m.Y(Math.exp(-k*t)),GREY,1.2,[3,3]);});uh_al(q);[[0,10],[10,20],[20,30]].forEach(function(r){A(m.X(r[0]),H-62,m.X(r[1])-m.X(r[0])-4,0,ORANGE,'',2);TB('t½',(m.X(r[0])+m.X(r[1]))/2,H-68,DRED,13);});TB('t½ constante',W*.25,H*.12,DRED,15);TB('droite de pente −k',W*.76,H*.12,DGREEN,15);ctx.globalAlpha=1;TB('ordre 1',W*.5,H*.06,GREY,13);},
+  [10,20,30].forEach(function(t,i){LN(m.X(t),H-48,m.X(t),m.Y(Math.exp(-k*t)),GREY,1.2,[3,3]);});uh_al(q);[[0,10],[10,20],[20,30]].forEach(function(r){A(m.X(r[0]),H-62,m.X(r[1])-m.X(r[0])-4,0,ORANGE,'',2);TB('t½',(m.X(r[0])+m.X(r[1]))/2,H-68,DRED,13);});TB('t½ constante',W*.3,H*.2,DRED,15);TB('droite de pente −k',W*.79,H*.2,DGREEN,15);ctx.globalAlpha=1;TB('ordre 1',W*.5,H*.06,GREY,13);},
  /* 3 ordres partiels */
  function(p){var q=uh_e(p,0,.6),rows=[['1','0,10','0,10','2,4·10⁻⁴'],['2','0,20','0,10','9,6·10⁻⁴'],['3','0,10','0,30','7,2·10⁻⁴']],x=[W*.1,W*.28,W*.46,W*.7];['exp.','[A]','[B]','v₀'].forEach(function(h,i){TB(h,x[i],H*.12,GREY,14);});
-  rows.forEach(function(r,j){var y=H*.28+j*H*.17;r.forEach(function(c,i){TB(c,x[i],y,INK,16);});});LN(W*.04,H*.16,W*.9,H*.16,AX,1.4);
-  uh_al(q);A(W*.28,H*.28+8,0,H*.17-24,BLUE,'',2.4);TB('×2',W*.34,H*.37,BLUE_D,15,'left');A(W*.7+34,H*.28+8,0,H*.17-24,RED,'',2.4);TB('×4',W*.7+44,H*.37,DRED,15,'left');TB('m = 2',W*.9,H*.37,DRED,15);
-  TB('[B] ×3 → v ×3 : n = 1',W*.5,H*.66,DGREEN,15);uh_rr(W*.1,H*.76,W*.8,40,'#fff7ea',ORANGE,2);TB('v = k[A]²[B] , k = 0,24 L²/(mol²·s)',W*.5,H*.76+26,ORANGE,16);ctx.globalAlpha=1;},
+  rows.forEach(function(r,j){var y=H*.26+j*H*.15;r.forEach(function(c,i){TB(c,x[i],y,INK,16);});});LN(W*.04,H*.16,W*.9,H*.16,AX,1.4);
+  uh_al(q);A(W*.28-34,H*.26+4,0,H*.15-22,BLUE,'',2.4);TB('×2',W*.28-42,H*.26+H*.075+4,BLUE_D,15,'right');A(W*.7-46,H*.26+4,0,H*.15-22,RED,'',2.4);TB('×4',W*.7-54,H*.26+H*.075+4,DRED,15,'right');TB('m = 2',W*.7+66,H*.26+H*.075+4,DRED,15);
+  TB('[B] ×3 → v ×3 : n = 1',W*.5,H*.69,DGREEN,15);uh_rr(W*.1,H*.77,W*.8,38,'#fff7ea',ORANGE,2);TB('v = k[A]²[B] , k = 0,24 L²/(mol²·s)',W*.5,H*.77+25,ORANGE,16);ctx.globalAlpha=1;},
  /* 4 Arrhenius */
  function(p){var q=uh_e(p,0,.6),x1=1/300,x2=1/320,m=uh_ax(64,H-50,W-100,H-90,.0030,.0034,-7.5,-3.5,'1/T (K⁻¹)','ln k');var y1=Math.log(2e-3),y2=Math.log(1.6e-2),sl=(y2-y1)/(x2-x1);uh_fn(m,function(x){return y1+sl*(x-x1);},.0030,.0034,RED,3,null);
-  [[x1,y1,'300 K · 2,0·10⁻³ s⁻¹',-1],[x2,y2,'320 K · 1,6·10⁻² s⁻¹',1]].forEach(function(P){DOT(m.X(P[0]),m.Y(P[1]),7,BLUE);tag(P[2],m.X(P[0])+P[3]*(-20)+(P[3]>0?-20:50),m.Y(P[1])+(P[3]>0?-24:24),BLUE_D,13);});
-  uh_al(q);TB('pente = −Ea/R',W*.62,H*.4,GREY,14);uh_tag('Ea ≈ '+uh_f(-sl*8.314/1000,1)+' kJ/mol',W*.66,H*.18,DRED,18);ctx.globalAlpha=1;},
+  [[x1,y1,'300 K · 2,0·10⁻³ s⁻¹',-1],[x2,y2,'320 K · 1,6·10⁻² s⁻¹',1]].forEach(function(P){DOT(m.X(P[0]),m.Y(P[1]),7,BLUE);tag(P[2],m.X(P[0])+(P[3]>0?18:-84),m.Y(P[1])+(P[3]>0?-24:26),BLUE_D,13);});
+  uh_al(q);TB('pente = −Ea/R',W*.62,H*.4,GREY,14);uh_tag('Ea ≈ '+uh_f(-sl*8.314/1000,1)+' kJ/mol',W*.76,H*.14,DRED,18);ctx.globalAlpha=1;},
  /* 5 90 % */
  function(p){var q=uh_e(p,0,.7),k=Math.LN2/20,m=uh_ax(60,H-48,W-100,H-90,0,120,0,1.05,'t (min)','[A]/[A]₀');uh_fn(m,function(t){return Math.exp(-k*t);},0,120,BLUE,3);[0,20,40,60,80,100].forEach(function(v){TB(v,m.X(v),H-31,GREY,11);});
   LN(60,m.Y(.1),W-30,m.Y(.1),GREY,1.4,[5,4]);TB('10 % restants',W-30,m.Y(.1)-8,GREY,13,'right');var tt=20*Math.log2(10);uh_al(q);LN(m.X(tt),H-48,m.X(tt),m.Y(.1),ORANGE,2,[4,3]);DOT(m.X(tt),m.Y(.1),7,ORANGE);uh_tag('t = 20 × log₂10 ≈ 66 min',m.X(tt)-20,m.Y(.1)-34,DRED,15);ctx.globalAlpha=1;TB('t½ = 20 min',W*.62,H*.12,GREY,14);},
@@ -63,10 +63,10 @@ SFA.figs("c07",[
   T.forEach(function(t,i){DOT(m1.X(t),m1.Y(Math.log(A_[i])),5,BLUE);DOT(m2.X(t),m2.Y(1/A_[i]),5,BLUE);});uh_fn(m1,function(t){return Math.log(.8)-.04*t;},0,40,GREEN,2.4,null,[5,4]);ctx.strokeStyle=RED;ctx.lineWidth=2.4;ctx.setLineDash([5,4]);ctx.beginPath();T.forEach(function(t,i){i?ctx.lineTo(m2.X(t),m2.Y(1/A_[i])):ctx.moveTo(m2.X(t),m2.Y(1/A_[i]));});ctx.stroke();ctx.setLineDash([]);
   uh_al(q);TB('droite : ordre 1 ✓',W*.25,H*.1,DGREEN,16);TB('courbe : pas ordre 2',W*.76,H*.1,DRED,16);uh_tag('k ≈ 0,040 min⁻¹ · t½ ≈ 17 min',W*.5,H*.2+4,ORANGE,14);ctx.globalAlpha=1;},
  /* 7 fluoration */
- function(p){var q=uh_e(p,0,.6),x0=40,w=W-80,y0=H*.8,h=H*.5/60;c7_prof(x0,w,y0,h,[[0,0],[.25,0],[.4,50],[.55,10],[.7,22],[.8,-30],[1,-30]],BLUE,3.4);TB('NO₂ + F₂',x0+8,y0+22,INK,13,'left');TB('NO₂F + F (intermédiaire)',x0+w*.5,y0-10*h+30,INK,13);TB('2 NO₂F',x0+w-4,y0+30*h+20,INK,13,'right');TB('étape 1 (lente)',x0+w*.4,y0-50*h-10,DRED,14);TB('étape 2 (rapide)',x0+w*.7,y0-22*h-10,DGREEN,13);
+ function(p){var q=uh_e(p,0,.6),x0=40,w=W-80,y0=H*.66,h=H*.42/60;c7_prof(x0,w,y0,h,[[0,0],[.25,0],[.4,50],[.55,10],[.7,22],[.8,-30],[1,-30]],BLUE,3.4);TB('NO₂ + F₂',x0+8,y0+22,INK,13,'left');TB('NO₂F + F (intermédiaire)',x0+w*.5,y0-10*h+30,INK,13);TB('2 NO₂F',x0+w-4,y0+30*h+20,INK,13,'right');TB('étape 1 (lente)',x0+w*.4,y0-50*h-10,DRED,14);TB('étape 2 (rapide)',x0+w*.7,y0-22*h-10,DGREEN,13);
   uh_al(q);uh_rr(W*.08,H*.06,W*.5,36,'#fff7ea',ORANGE,2);TB('v = k[NO₂][F₂]',W*.33,H*.06+25,ORANGE,18);TB('[NO₂] ×3 , [F₂] ×2 → v ×6',W*.78,H*.2,DRED,14);ctx.globalAlpha=1;},
  /* 8 mécanisme pré-équilibre */
- function(p){var q=uh_e(p,0,.6),x0=40,w=W-80,y0=H*.8,h=H*.5/60;c7_prof(x0,w,y0,h,[[0,0],[.2,0],[.3,14],[.4,8],[.55,8],[.7,50],[.85,-20],[1,-20]],BLUE,3.4);TB('A + B',x0+8,y0+22,INK,13,'left');TB('C',x0+w*.45,y0-8*h+22,INK,15);TB('D',x0+w-4,y0+20*h+18,INK,15,'right');TB('rapide, K',x0+w*.3,y0-14*h-10,DGREEN,13);TB('lente, k₂',x0+w*.7,y0-50*h-10,DRED,14);
+ function(p){var q=uh_e(p,0,.6),x0=40,w=W-80,y0=H*.66,h=H*.42/60;c7_prof(x0,w,y0,h,[[0,0],[.2,0],[.3,14],[.4,8],[.55,8],[.7,50],[.85,-20],[1,-20]],BLUE,3.4);TB('A + B',x0+8,y0+22,INK,13,'left');TB('C',x0+w*.45,y0-8*h+22,INK,15);TB('D',x0+w-4,y0+20*h+18,INK,15,'right');TB('rapide, K',x0+w*.3,y0-14*h-10,DGREEN,13);TB('lente, k₂',x0+w*.7,y0-50*h-10,DRED,14);
   uh_al(q);uh_rr(W*.08,H*.06,W*.56,36,'#fff7ea',ORANGE,2);TB('v = k₂ K [A][B]²',W*.36,H*.06+25,ORANGE,18);ctx.globalAlpha=1;},
  /* 9 doses répétées */
  function(p){var q=uh_e(p,0,.6),m=uh_ax(50,H-46,W-80,H-84,0,72,0,22,'t (h)','C (mg/L)');ctx.fillStyle='rgba(29,158,117,.13)';ctx.fillRect(m.X(0),m.Y(20),m.X(72)-m.X(0),m.Y(3)-m.Y(20));TB('fenêtre 3–20',m.X(70),m.Y(20)+14,DGREEN,12,'right');
@@ -81,10 +81,10 @@ SFA.figs("c07",[
   TB('Ea = 50',x0+w*.5+8,y0-50*h-8,GREY,13,'left');TB('Ea = 35 (catalysé)',x0+w*.5+8,y0-35*h-8+22,DGREEN,13,'left');TB('ΔH = −30',x0+w*.9,y0+10*h,INK,13,'right');uh_al(q);uh_tag('Ea(inverse) = 65 · K inchangée',W*.5,H*.1,DRED,15);ctx.globalAlpha=1;},
  /* 12 inhibition */
  function(p){var q=uh_e(p,0,.6),m=uh_ax(60,H-48,W-100,H-90,0,8,0,90,'[S] (mmol/L)','v (µmol/L/min)');var f=function(S,V,K){return V*S/(K+S);};uh_fn(m,function(S){return f(S,80,2);},0,8,BLUE,3);uh_fn(m,function(S){return f(S,80,8);},0,8,ORANGE,3);uh_fn(m,function(S){return f(S,20,2);},0,8,RED,3);
-  [0,2,4,6,8].forEach(function(v){TB(v,m.X(v),H-31,GREY,11);});TB('sans inhibiteur',m.X(5),m.Y(f(5,80,2))-10,BLUE_D,13);TB('compétitif (Km′ = 8)',m.X(8),m.Y(f(8,80,8))+18,dk(ORANGE),13,'right');TB('non compétitif (Vmax′ = 20)',m.X(8),m.Y(20)-8,DRED,13,'right');
-  uh_al(q);LN(m.X(0),m.Y(26.67),m.X(8),m.Y(26.67),GREY,1.3,[4,4]);DOT(m.X(1),m.Y(26.67),6,BLUE);DOT(m.X(4),m.Y(26.67),7,ORANGE);uh_tag('S = 4 mmol/L : surmonté',m.X(4)+20,m.Y(26.67)-26,DGREEN,13);TB('jamais atteint',m.X(2.4),m.Y(26.67)+22,DRED,13);ctx.globalAlpha=1;},
+  [0,2,4,6,8].forEach(function(v){TB(v,m.X(v),H-31,GREY,11);});TB('sans inhibiteur',m.X(5),m.Y(f(5,80,2))-10,BLUE_D,13);TB('compétitif (Km′ = 8)',m.X(8),m.Y(f(8,80,8))-10,dk(ORANGE),13,'right');TB('non compétitif (Vmax′ = 20)',m.X(8),m.Y(f(8,20,2))+22,DRED,13,'right');
+  uh_al(q);LN(m.X(0),m.Y(26.67),m.X(8),m.Y(26.67),GREY,1.3,[4,4]);DOT(m.X(1),m.Y(26.67),6,BLUE);DOT(m.X(4),m.Y(26.67),7,ORANGE);uh_tag('S = 4 mmol/L : surmonté',m.X(4.2),m.Y(6),DGREEN,13);TB('jamais atteint',m.X(.2),m.Y(26.67)-8,DRED,13,'left');ctx.globalAlpha=1;},
  /* 13 équilibre réversible */
- function(p){var q=uh_e(p,0,.6),m=uh_ax(60,H-48,W-100,H-90,0,1500,.5,1,'t (s)','fraction de B');[[2.05e-3,.976,BLUE,'300 K'],[2.756e-2,.931,RED,'330 K']].forEach(function(r){uh_fn(m,function(t){return .5*0+r[1]*(1-Math.exp(-r[0]*t));},0,1500,r[2],3);});
+ function(p){var q=uh_e(p,0,.6),m=uh_ax(60,H-48,W-100,H-90,0,1500,0,1,'t (s)','fraction de B');[[2.05e-3,.976,BLUE,'300 K'],[2.756e-2,.931,RED,'330 K']].forEach(function(r){uh_fn(m,function(t){return .5*0+r[1]*(1-Math.exp(-r[0]*t));},0,1500,r[2],3);});
   [0,500,1000,1500].forEach(function(v){TB(v,m.X(v),H-31,GREY,11);});LN(60,m.Y(.976),W-40,m.Y(.976),BLUE,1.2,[4,4]);LN(60,m.Y(.931),W-40,m.Y(.931),RED,1.2,[4,4]);
-  TB('300 K : 97,6 %',m.X(1500),m.Y(.976)-8,BLUE_D,14,'right');TB('330 K : 93,1 %',m.X(1500),m.Y(.931)+18,DRED,14,'right');uh_al(q);uh_tag('t½ : 338 s → 25 s',W*.5,H*.2,DRED,16);TB('plus rapide mais moins favorable',W*.5,H*.3,GREY,13);ctx.globalAlpha=1;}
+  TB('300 K : 97,6 %',m.X(1500),m.Y(.976)-8,BLUE_D,14,'right');TB('330 K : 93,1 %',m.X(1500),m.Y(.931)+18,DRED,14,'right');uh_al(q);uh_tag('t½ : 338 s → 25 s',W*.62,H*.62,DRED,16);TB('plus rapide mais moins favorable',W*.62,H*.76,GREY,13);ctx.globalAlpha=1;}
 ]);

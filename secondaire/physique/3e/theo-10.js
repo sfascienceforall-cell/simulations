@@ -140,7 +140,7 @@
     /* 6 Bateau de pâte */
     q_fig(function (p) {
       var g = q_s(p, 0, .6), k = 18, wy = 170, x = 230, w = 10 * k, hh = 3 * k, yb = wy + 1.5 * k;
-      water(30, 430, wy, 262, .3); tank(30, 430, wy, 262, 100);
+      water(30, 430, wy, 250, .3); tank(30, 430, wy, 250, 100);
       ctx.fillStyle = '#e9c7a0'; ctx.strokeStyle = ORANGE; ctx.lineWidth = 2.6; ctx.beginPath(); ctx.moveTo(x - w / 2, yb - hh); ctx.lineTo(x - w / 2, yb); ctx.lineTo(x + w / 2, yb); ctx.lineTo(x + w / 2, yb - hh); ctx.lineTo(x + w / 2 - 8, yb - hh); ctx.lineTo(x + w / 2 - 8, yb - 8); ctx.lineTo(x - w / 2 + 8, yb - 8); ctx.lineTo(x - w / 2 + 8, yb - hh); ctx.closePath(); ctx.fill(); ctx.stroke();
       TB('150 g · base 10 × 10 cm', x, 60, ORANGE, 15);
       if (g > 0) { ctx.globalAlpha = g; LN(x + w / 2 + 14, wy, x + w / 2 + 14, yb, DGREEN, 2); TB('1,5 cm', x + w / 2 + 22, (wy + yb) / 2 + 4, DGREEN, 14, 'left'); LN(x - w / 2 - 14, yb - hh, x - w / 2 - 14, yb, ORANGE, 2); TB('3 cm', x - w / 2 - 22, yb - hh / 2 + 4, ORANGE, 14, 'right'); TB('V déplacé = 150 cm³  →  charge max 300 g', 230, 272, DRED, 14); ctx.globalAlpha = 1; } else TB('tirant d\'eau ?', 230, 272, GREY, 15);

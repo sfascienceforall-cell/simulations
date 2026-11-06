@@ -1,6 +1,6 @@
 /* Biologie 4e · chapitre 6 · Respiration cellulaire et fermentation */
 function b4mitoB(x,y,w,h){b4ell(x,y,w/2,h/2,'#fdece4',ORA2,3);b4ell(x,y,w/2-5,h/2-5,null,ORA2,1.2);ctx.strokeStyle=ORA2;ctx.lineWidth=2.4;ctx.beginPath();
- var n=6;for(var i=0;i<n;i++){var xx=x-w*.4+i*w*.8/(n-1)*1,top=i%2===0;ctx.moveTo(xx,top?y-h/2+6:y+h/2-6);ctx.lineTo(xx,top?y+h*.12:y-h*.12);}ctx.stroke();}
+ var n=6;for(var i=0;i<n;i++){var xx=x-w*.4+i*w*.8/(n-1),u=(xx-x)/(w/2),e=h/2*Math.sqrt(Math.max(0,1-u*u))-5,top=i%2===0;ctx.moveTo(xx,top?y-e:y+e);ctx.lineTo(xx,top?y+e*.35:y-e*.35);}ctx.stroke();}
 function b4hex(x,y,r,col,lab){ctx.fillStyle=col||'#fdece4';ctx.strokeStyle=INK;ctx.lineWidth=2;ctx.beginPath();for(var i=0;i<6;i++){var a=i*1.0472+.5236;ctx.lineTo(x+r*Math.cos(a),y+r*Math.sin(a));}ctx.closePath();ctx.fill();ctx.stroke();if(lab)TB(lab,x,y+4,INK,Math.max(11,Math.round(r*.7)));}
 function b4flask(x,y,w,h,col,lvl){var nw=w*.28;ctx.beginPath();ctx.moveTo(x-nw/2,y-h);ctx.lineTo(x-nw/2,y-h*.55);ctx.lineTo(x-w/2,y);ctx.lineTo(x+w/2,y);ctx.lineTo(x+nw/2,y-h*.55);ctx.lineTo(x+nw/2,y-h);
  ctx.save();ctx.clip();ctx.fillStyle=col||'rgba(246,201,70,.35)';ctx.fillRect(x-w,y-h*lvl,2*w,h);ctx.restore();ctx.strokeStyle=INK;ctx.lineWidth=2.4;ctx.beginPath();ctx.moveTo(x-nw/2,y-h);ctx.lineTo(x-nw/2,y-h*.55);ctx.lineTo(x-w/2,y);ctx.lineTo(x+w/2,y);ctx.lineTo(x+nw/2,y-h*.55);ctx.lineTo(x+nw/2,y-h);ctx.stroke();}
@@ -34,21 +34,21 @@ SFA.figs("c06",[
   b4mitoB(W*.78,H*.5,W*.34,H*.5);TB('mitochondrie',W*.78,H*.2,DRED,13);
   var r=Math.min(24,H*.09);b4hex(W*.15,H*.5,r,'#fdece4','C₆');TB('glucose',W*.15,H*.5+r+18,INK,13);A(W*.24,H*.5,W*.1,0,GREY,'',3);b4hex(W*.42,H*.4,r*.65,'#fff3e0','C₃');b4hex(W*.42,H*.6,r*.65,'#fff3e0','C₃');TB('2 pyruvates',W*.42,H*.78,INK,13);
   if(p<=0)TB('où ? combien d\'ATP ? O₂ ?',W*.5,H*.07,GREY,15);
-  if(p>0){b4al(b4r(p,0,.5));ctx.strokeStyle=GREEN;ctx.lineWidth=3.5;ctx.setLineDash([8,5]);ctx.strokeRect(W*.07,H*.24,W*.46,H*.6);ctx.setLineDash([]);TB('glycolyse : + 2 ATP',W*.3,H*.32,DGREEN,15);TB('sans O₂',W*.3,H*.9-8,DGREEN,14);b4al(1);b4ans(p,'cytoplasme · 2 ATP · sans dioxygène',GREEN,H-6);}},
+  if(p>0){b4al(b4r(p,0,.5));ctx.strokeStyle=GREEN;ctx.lineWidth=3.5;ctx.setLineDash([8,5]);ctx.strokeRect(W*.07,H*.24,W*.46,H*.6);ctx.setLineDash([]);TB('glycolyse : + 2 ATP',W*.3,H*.32,DGREEN,15);TB('sans O₂',W*.3,H*.9-8,DGREEN,14);b4al(1);b4ans(p,'cytoplasme · 2 ATP · sans dioxygène',GREEN,H-20);}},
  /* 1 équation */
- function(p){var y=H*.3;TB('C₆H₁₂O₆ + 6 O₂',W*.3,y,DGREEN,Math.min(24,W/17));A(W*.52,y-8,W*.08,0,INK,'',3);
-  if(p<=0)TB('?',W*.78,y,GREY,36);else{b4al(b4r(p,0,.4));TB('6 CO₂ + 6 H₂O + ATP',W*.77,y,ORANGE,Math.min(24,W/17));b4al(1);}
-  b4mitoB(W*.5,H*.68,W*.34,H*.34);if(p>0){b4al(b4r(p,.3,.8));TB('≈ 30 ATP',W*.5,H*.7,VIOLET,18);TB('+ chaleur',W*.82,H*.7,DRED,15);b4al(1);}b4ans(p,'respiration · ATP + chaleur',GREEN,H-18);},
+ function(p){var y=H*.3;TB('C₆H₁₂O₆ + 6 O₂',W*.27,y,DGREEN,Math.min(22,W/19));A(W*.46,y-8,W*.08,0,INK,'',3);
+  if(p<=0)TB('?',W*.78,y,GREY,36);else{b4al(b4r(p,0,.4));TB('6 CO₂ + 6 H₂O + ATP',W*.77,y,ORANGE,Math.min(22,W/19));b4al(1);}
+  b4mitoB(W*.5,H*.68,W*.34,H*.34);if(p>0){b4al(b4r(p,.3,.8));TB('≈ 30 ATP',W*.5,H*.7,VIOLET,18);TB('+ chaleur',W*.82,H*.7,DRED,15);b4al(1);}b4ans(p,'respiration · ATP + chaleur',GREEN,H-20);},
  /* 2 où va O2 */
  function(p){b4ell(W*.5,H*.5,W*.46,H*.42,'#faf8f4',GREY,2);b4nuc(W*.12,H*.5,H*.1);TB('D noyau',W*.12,H*.72,VIOLET,13);TB('A cytoplasme (glycolyse)',W*.28,H*.28,INK,13);
   b4mitoB(W*.62,H*.52,W*.4,H*.5);TB('B matrice (Krebs)',W*.55,H*.4,INK,13);TB('C crêtes (chaîne)',W*.7,H*.68,INK,13);
-  if(p>0){b4al(b4r(p,0,.5));ctx.strokeStyle=RED;ctx.lineWidth=4;ctx.beginPath();ctx.ellipse(W*.7,H*.62,W*.12,H*.09,0,0,7);ctx.stroke();b4o2(W*.9,H*.85,1,RED);A(W*.88,H*.8,-W*.1,-H*.12,RED,'',2.5);TB('O₂ → H₂O',W*.86,H*.93,DRED,14);b4al(1);b4ans(p,'C : chaîne respiratoire',GREEN,H-6);}},
+  if(p>0){b4al(b4r(p,0,.5));ctx.strokeStyle=RED;ctx.lineWidth=4;ctx.beginPath();ctx.ellipse(W*.7,H*.62,W*.12,H*.09,0,0,7);ctx.stroke();b4o2(W*.9,H*.85,1,RED);A(W*.88,H*.8,-W*.1,-H*.12,RED,'',2.5);TB('O₂ → H₂O',W*.86,H*.93,DRED,14);b4al(1);b4ans(p,'C : chaîne respiratoire',GREEN,H-20);}},
  /* 3 fermentation alcoolique */
  function(p){var x0=W*.12,w=W*.76,y1=H*.2,h=H*.14,y2=H*.52;ctx.fillStyle='#fdece4';ctx.fillRect(x0,y1,w,h);ctx.strokeStyle=ORA2;ctx.lineWidth=2.4;ctx.strokeRect(x0,y1,w,h);TB('36 g de glucose  (0,20 mol)',x0+w/2,y1+h*.62,DRED,16);
   A(W*.5,y1+h+4,0,H*.1,GREY,'',3);TB('levures, sans air',W*.62,y1+h+H*.07,GREY,13,'left');
   if(p<=0){ctx.setLineDash([5,5]);ctx.strokeStyle=GREY;ctx.strokeRect(x0,y2,w,h);ctx.setLineDash([]);TB('? éthanol    + ? CO₂    + ? ATP',x0+w/2,y2+h*.62,GREY,16);}
   else{var f=b4r(p,0,.6),a=18.4/36;ctx.fillStyle='#e6f1fb';ctx.fillRect(x0,y2,w*a*f,h);ctx.fillStyle='#e9ecef';ctx.fillRect(x0+w*a,y2,w*(1-a)*f,h);ctx.strokeStyle=INK;ctx.lineWidth=2;ctx.strokeRect(x0,y2,w*f,h);if(f>.9){TB('éthanol 18,4 g',x0+w*a/2,y2+h*.62,BLUE_D,14);TB('CO₂ 17,6 g',x0+w*(a+(1-a)/2),y2+h*.62,INK,14);TB('0,40 mol',x0+w*a/2,y2+h+20,BLUE_D,14);TB('0,40 mol',x0+w*(a+(1-a)/2),y2+h+20,INK,14);TB('+ 0,40 mol d\'ATP',W*.5,y2+h+46,VIOLET,15);}}
-  b4ans(p,'18,4 + 17,6 = 36 g',GREEN,H-12);},
+  b4ans(p,'18,4 + 17,6 = 36 g',GREEN,H-20);},
  /* 4 rendement */
  function(p){var x0=W*.12,w=W*.76,h=H*.14;var rows=[['respiration',30,DGREEN,'30 ATP = 915 kJ  →  32 %'],['fermentation',2,ORANGE,'2 ATP = 61 kJ  →  2 %']];
   rows.forEach(function(r,i){var y=H*.28+i*H*.3;ctx.fillStyle='#eceef1';ctx.fillRect(x0,y,w,h);ctx.strokeStyle=INK;ctx.lineWidth=2;ctx.strokeRect(x0,y,w,h);TB(r[0],x0,y-10,INK,14,'left');TB('2 870 kJ',x0+w,y-10,GREY,14,'right');
@@ -60,17 +60,17 @@ SFA.figs("c06",[
   b4box(W*.66,y,W*.2,H*.16,ORANGE,'#fff',2);TB('Krebs + chaîne',W*.66,y+5,ORANGE,14);A(W*.77,y,W*.06,0,GREY,'',2.5);TB('30 ATP',W*.9,y+5,VIOLET,15);
   TB('cyanure',W*.66,y-H*.16,DRED,15);
   if(p<=0){TB('?',W*.66,H*.78,GREY,34);}
-  if(p>0){b4al(b4r(p,0,.5));LN(W*.57,y-H*.1,W*.75,y+H*.1,RED,5);LN(W*.75,y-H*.1,W*.57,y+H*.1,RED,5);TB('+ 2 ATP',W*.34,y-H*.14,DGREEN,15);ctx.strokeStyle=ORANGE;ctx.lineWidth=2.5;ctx.beginPath();ctx.moveTo(W*.34,y+H*.08);ctx.lineTo(W*.34,H*.72);ctx.lineTo(W*.5,H*.72);ctx.stroke();A(W*.46,H*.72,W*.05,0,ORANGE,'',2.5);TB('lactate',W*.62,H*.72+5,DRED,16);b4al(1);b4ans(p,'2 ATP seulement · lactate qui s\'accumule',GREEN,H-12);}},
+  if(p>0){b4al(b4r(p,0,.5));LN(W*.57,y-H*.1,W*.75,y+H*.1,RED,5);LN(W*.75,y-H*.1,W*.57,y+H*.1,RED,5);TB('+ 2 ATP',W*.34,y-H*.14,DGREEN,15);ctx.strokeStyle=ORANGE;ctx.lineWidth=2.5;ctx.beginPath();ctx.moveTo(W*.34,y+H*.08);ctx.lineTo(W*.34,H*.72);ctx.lineTo(W*.5,H*.72);ctx.stroke();A(W*.46,H*.72,W*.05,0,ORANGE,'',2.5);TB('lactate',W*.62,H*.72+5,DRED,16);b4al(1);b4ans(p,'2 ATP seulement · lactate qui s\'accumule',GREEN,H-20);}},
  /* 6 muscle sous effort */
  function(p){var M=b4ax(W*.12,H*.8,W*.78,H*.62,[100,300],[0,24],'puissance P (W)','lactate (mmol/L)');M.xl=W*.12;M.yb=H*.8;b4tick(M,[160,220,260],[1,10,12,16]);
   b4curve(M,function(P){return P<=160?1:1+.15*(P-160);},100,300,BLUE,3.2,200);LN(M.x(100),M.y(12),M.x(300),M.y(12),RED,2,[6,4]);TB('épuisement 12',M.x(298),M.y(12)-8,DRED,14,'right');LN(M.x(160),M.y(0),M.x(160),M.y(24),GREEN,1.5,[4,4]);TB('A = 160 W',M.x(158),M.y(21),DGREEN,14,'right');
-  if(p>0){b4al(b4r(p,0,.5));[[220,10,GREEN],[260,16,RED]].forEach(function(q){LN(M.x(q[0]),M.y(0),M.x(q[0]),M.y(q[1]),GREY,1,[3,3]);DOT(M.x(q[0]),M.y(q[1]),7,q[2]);TB(String(q[1]),M.x(q[0])-12,M.y(q[1])-6,dk(q[2]),15,'right');});b4al(1);b4ans(p,'10 mmol/L (tenable) · 16 mmol/L (épuisement)',GREEN,H-18);}},
+  if(p>0){b4al(b4r(p,0,.5));[[220,10,GREEN],[260,16,RED]].forEach(function(q){LN(M.x(q[0]),M.y(0),M.x(q[0]),M.y(q[1]),GREY,1,[3,3]);DOT(M.x(q[0]),M.y(q[1]),7,q[2]);TB(String(q[1]),M.x(q[0])-12,M.y(q[1])-6,dk(q[2]),15,'right');});b4al(1);b4ans(p,'10 mmol/L (tenable) · 16 mmol/L (épuisement)',GREEN,H-20);}},
  /* 7 levures */
  function(p){var fx=[W*.25,W*.7],fh=H*.5,fw=W*.2,gb=H*.78;
   b4flask(fx[0],gb,fw,fh,'rgba(246,201,70,.4)',.4);ctx.fillStyle=INK;ctx.fillRect(fx[0]-fw*.14,gb-fh-6,fw*.28,10);for(var i=0;i<5;i++)DOT(fx[0]-fw*.15+i*fw*.08,gb-fh*.3-(i%2)*14,3.5,'#fff');
-  b4flask(fx[1],gb,fw,fh,'rgba(246,201,70,.4)',.4);LN(fx[1]-fw*.14,gb-fh-2,fx[1]+fw*.14,gb-fh-2,GREY,2,[3,3]);A(fx[1]+fw*.25,gb-fh-30,-fw*.2,22,BLUE,'',2.4);TB('air',fx[1]+fw*.45,gb-fh-30,BLUE_D,13);
+  b4flask(fx[1],gb,fw,fh,'rgba(246,201,70,.4)',.4);LN(fx[1]-fw*.14,gb-fh-2,fx[1]+fw*.14,gb-fh-2,GREY,2,[3,3]);A(fx[1]+fw*.45,gb-fh-30,-fw*.3,26,BLUE,'',2.4);TB('air',fx[1]+fw*.55,gb-fh-34,BLUE_D,13,'left');
   TB('A : fermé, sans air',fx[0],gb+22,INK,14);TB('B : ouvert, agité',fx[1],gb+22,INK,14);
-  if(p>0){b4al(b4r(p,0,.5));TB('éthanol + CO₂',fx[0],H*.1,DGREEN,15);TB('2 ATP',fx[0],H*.18,VIOLET,14);TB('CO₂ + H₂O',fx[1],H*.1,DGREEN,15);TB('≈ 30 ATP · pas d\'éthanol',fx[1],H*.18,VIOLET,14);b4al(1);b4ans(p,'A : fermentation · B : respiration',GREEN,H-14);}
+  if(p>0){b4al(b4r(p,0,.5));TB('éthanol + CO₂',fx[0],H*.1,DGREEN,15);TB('2 ATP',fx[0],H*.18,VIOLET,14);TB('CO₂ + H₂O',fx[1],H*.1,DGREEN,15);TB('≈ 30 ATP · pas d\'éthanol',fx[1],H*.19,VIOLET,14);b4al(1);b4ans(p,'A : fermentation · B : respiration',GREEN,H-20);}
   else TB('?',W*.48,H*.5,GREY,34);},
  /* 8 bilan muscle */
  function(p){var items=[['0,60 mol O₂','',DRED],['0,10 mol glucose','18 g',ORANGE],['0,60 mol CO₂','15,3 L à 37 °C',GREY],['3,0 mol ATP','',VIOLET]],xs=[.13,.38,.63,.87];
@@ -82,5 +82,5 @@ SFA.figs("c06",[
   ctx.fillStyle='#fcebeb';ctx.strokeStyle=RED;ctx.lineWidth=2.4;ctx.beginPath();ctx.roundRect(W*.62,H*.2,W*.32,H*.6,10);ctx.fill();ctx.stroke();TB('sang',W*.78,H*.16,DRED,14);
   var n=p<=0?2:2+Math.round(14*p);for(var i=0;i<n;i++)DOT(W*.65+b4rnd(i,2)*W*.26,H*.24+b4rnd(i,3)*H*.5,5,ORANGE);TB(p>0?'lactate ↑':'lactate : ?',W*.78,H*.88,p>0?DRED:GREY,15);
   A(W*.56,H*.5,W*.05,0,ORANGE,'',3);
-  b4ans(p,'fermentation lactique de compensation',GREEN,H-6);}
+  b4ans(p,'fermentation lactique de compensation',GREEN,H-20);}
 ]);

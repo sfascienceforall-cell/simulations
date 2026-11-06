@@ -76,12 +76,12 @@ R.theo("c10",{
   [-1,0,1].forEach(function(z){M.vl(m,z,GREY,0,nd(z,0,1));});TB('μ − σ',m.X(-1),m.Y(0)+20,GREY,13);TB('μ',m.X(0),m.Y(0)+20,GREY,13);TB('μ + σ',m.X(1),m.Y(0)+20,GREY,13);
   TB('68 %',m.X(0),m.Y(.17),BLUE_D,22);TB('N(μ ; σ)  ·  B(n ; p)',W*.5,H*.96,ORANGE,Math.min(22,W*.048));},
  anim:function(t){
-  var n=Math.max(1,Math.round(1+59*(.5-.5*Math.cos(t/160)))),p=.5,mu=n*p,s=Math.sqrt(n*p*(1-p));
-  var m=M.map(-.5,60.5,0,.42,{l:40,r:14,t:30,b:30});M.axes(m,{xt:[0,10,20,30,40,50,60],nozero:false});
-  BARS(m,n,p,function(k){return Math.abs(k-mu)<=s;},BLUE,GREEN);
-  M.curve(m,function(x){return nd(x,mu,s);},-.5,60.5,RED,3);
-  TB('B('+n+' ; 0,5)',W*.5,20,BLUE_D,18);TB('barres vertes : μ ± σ  ·  courbe rouge : N('+M.f(mu,1)+' ; '+M.f(s,2)+')',W*.5,H-4,GREY,Math.min(14,W*.021));
-  TB('plus n est grand, plus la binomiale ressemble à une cloche',W*.97,20+(W<520?0:0),DGREEN,Math.min(13,W*.018),'right');
+  var n=Math.max(2,Math.round(2+58*(.5-.5*Math.cos(t/160)))),p=.5,mu=n*p,s=Math.sqrt(n*p*(1-p)),hw=Math.max(4.6,4.2*s),x0=mu-hw,x1=mu+hw,top=1.18*Math.max(nd(mu,mu,s),pm(n,Math.round(mu),p));
+  var m=M.map(x0,x1,0,top,{l:30,r:14,t:34,b:34});var st=n<=10?1:n<=30?5:10,tk=[],k;for(k=0;k<=n;k+=st)if(k>=x0&&k<=x1)tk.push(k);M.axes(m,{xt:tk,nozero:false});
+  BARS(m,n,p,function(k){return Math.abs(k-mu)<=s;},BLUE,GREEN,Math.max(0,Math.floor(x0)),Math.min(n,Math.ceil(x1)));
+  M.curve(m,function(x){return nd(x,mu,s);},x0,x1,RED,3);
+  TB('B('+n+' ; 0,5)',W*.04,22,BLUE_D,18,'left');TB('barres vertes : μ ± σ',W*.97,18,DGREEN,13,'right');TB('courbe rouge : N('+M.f(mu,1)+' ; '+M.f(s,2)+')',W*.97,36,DRED,13,'right');
+  TB('n grandit : la binomiale devient une cloche',W*.5,H-6,GREY,Math.min(14,W*.021));
  },
  th:'<div class="tcard"><b class="h">Variable aléatoire, espérance, écart-type</b><p>Une variable aléatoire discrète X prend des valeurs x<sub>i</sub> avec des probabilités p<sub>i</sub> (somme = 1). <b>E(X) = Σ x<sub>i</sub> p<sub>i</sub></b> (la moyenne « à long terme »), <b>V(X) = E(X²) − E(X)²</b>, σ = √V(X).</p><p><i>Deux lancers de pièce, X = nombre de piles :</i> P(0) = 1/4, P(1) = 1/2, P(2) = 1/4 ; E(X) = 1 ; E(X²) = 1,5 ; V(X) = 0,5. Un jeu est <b>équitable</b> si l\'espérance du gain est nulle : 10 × 1/6 − 2 × 5/6 = 0.</p></div>' +
   '<div class="tcard"><b class="h">Loi binomiale B(n ; p)</b><p>On répète n fois, de façon <b>indépendante</b>, une épreuve à deux issues (succès de probabilité p). Le nombre de succès X suit B(n ; p) : <b>P(X = k) = C(n,k) p<sup>k</sup> (1 − p)<sup>n−k</sup></b>, <b>E(X) = np</b>, <b>V(X) = np(1 − p)</b>.</p><p><i>Exemple :</i> B(5 ; 0,3) : P(X = 2) = 10 × 0,09 × 0,343 ≈ 0,309 ; E = 1,5 ; σ = √1,05 ≈ 1,02. « Au moins un succès » : 1 − P(X = 0), soit 1 − 0,8<sup>10</sup> ≈ 0,893 pour 10 tirs à 0,2.</p></div>' +
@@ -90,13 +90,13 @@ R.theo("c10",{
 });
 R.figs("c10",[
  function(p){var m=M.map(-.6,2.6,0,.7,{l:46,r:20,t:30,b:44});M.axes(m,{xt:[0,1,2],nozero:false,yt:[.25,.5],yd:2});DISC(m,[0,1,2],[.25,.5,.25],null,null,['1/4','1/2','1/4']);TB('X = nombre de piles',W*.5,20,BLUE_D,16);
-  FA(sg(p,.1,.6),function(){M.vl(m,1,GREEN,0,.62);TB('E(X) = 1',m.X(1)+10,m.Y(.62),DGREEN,18,'left');});FA(sg(p,.5,1),function(){TB('V(X) = 1,5 − 1 = 0,5',W*.72,H*.4,DRED,16,'center');});},
+  FA(sg(p,.1,.6),function(){M.vl(m,1,GREEN,.54,.68);TB('E(X) = 1',m.X(1)+14,m.Y(.66),DGREEN,17,'left');});FA(sg(p,.5,1),function(){TB('V(X) = 1,5 − 1 = 0,5',W*.8,H*.4,DRED,15,'center');});},
  function(p){var m=M.map(-4,12,0,1,{l:20,r:20,t:34,b:44});LN(m.X(-4),m.Y(0),m.X(12),m.Y(0),AX,1.6);var w=(m.X(1)-m.X(0))*1.6;
   [[-2,5/6,RED],[10,1/6,GREEN]].forEach(function(q){var x=m.X(q[0]),y=m.Y(q[1]*.9);ctx.fillStyle=M.rgba(q[2],.5);ctx.fillRect(x-w/2,y,w,m.Y(0)-y);ctx.strokeStyle=q[2];ctx.lineWidth=2;ctx.strokeRect(x-w/2,y,w,m.Y(0)-y);TB(q[0]>0?'+10 €':'−2 €',x,m.Y(0)+22,dk(q[2]),16);TB(q[0]>0?'1/6':'5/6',x,y-8,dk(q[2]),16);});
   TB('dé : 6 gagne 10 €, sinon −2 €',W*.5,22,BLUE_D,16);FA(sg(p,.1,.8),function(){TB('E = 10 × 1/6 − 2 × 5/6 = 0',W*.5,H*.42,DRED,Math.min(17,W*.036));TB('jeu équitable',W*.5,H*.42+28,DGREEN,20);});},
  function(p){var m=M.map(-.6,5.6,0,.42,{l:44,r:14,t:30,b:36});M.axes(m,{xt:[0,1,2,3,4,5],nozero:false});BARS(m,5,.3,function(k){return k===2&&p>0;},BLUE,RED);
   TB('B(5 ; 0,3)',W*.5,20,BLUE_D,17);[0,1,2,3,4,5].forEach(function(k){TB(M.f(pm(5,k,.3),3),m.X(k),m.Y(pm(5,k,.3))-5,GREY,11);});
-  FA(sg(p,.1,.7),function(){TB('P(X = 2) = 10 × 0,3² × 0,7³ ≈ 0,309',W*.97,H*.28,DRED,Math.min(14,W*.03),'right');TB('E = 1,5   σ = √1,05 ≈ 1,02',W*.97,H*.28+22,DGREEN,Math.min(14,W*.03),'right');});},
+  FA(sg(p,.1,.7),function(){TB('P(X = 2) ≈ 0,309',W*.97,H*.3,DRED,16,'right');TB('E = 1,5',W*.97,H*.3+24,DGREEN,15,'right');TB('σ ≈ 1,02',W*.97,H*.3+46,DGREEN,15,'right');});},
  function(p){var m=M.map(-.6,10.6,0,.4,{l:44,r:14,t:30,b:36});M.axes(m,{xt:[0,2,4,6,8,10],nozero:false});BARS(m,10,.2,function(k){return k>=1&&p>0;},BLUE,GREEN);
   TB('B(10 ; 0,2) : P(X = 0) = 0,8¹⁰ ≈ 0,107',W*.5,20,BLUE_D,Math.min(16,W*.034));FA(sg(p,.1,.8),function(){TB('P(X ≥ 1) = 1 − 0,107 ≈ 0,893',W*.97,H*.42,DGREEN,Math.min(16,W*.034),'right');});},
  function(p){var m=M.map(-.6,10.6,0,.3,{l:44,r:14,t:30,b:36});M.axes(m,{xt:[0,2,4,6,8,10],nozero:false});BARS(m,20,.15,function(k){return k>=3&&p>0;},BLUE,GREEN,0,10);
@@ -104,10 +104,10 @@ R.figs("c10",[
  function(p){var m=M.map(55,145,0,.03,{l:20,r:20,t:30,b:44});LN(m.X(55),m.Y(0),m.X(145),m.Y(0),AX,1.6);
   FA(sg(p,.1,.9),function(){BELLFILL(m,100,15,85,115,'rgba(55,138,221,.28)');BELLFILL(m,100,15,130,145,'rgba(226,75,74,.45)');});BELL(m,100,15,BLUE,3);
   [70,85,100,115,130].forEach(function(v){TB(String(v),m.X(v),m.Y(0)+20,GREY,13);LN(m.X(v),m.Y(0),m.X(v),m.Y(0)+5,GREY,1.2);});TB('QI ~ N(100 ; 15)',W*.5,20,BLUE_D,16);
-  FA(sg(p,.3,1),function(){TB('P(≤ 115) ≈ 0,841',W*.18,H*.4,DGREEN,14,'center');TB('P(85–115) ≈ 0,683',W*.5,H*.42,BLUE_D,15,'center');TB('P(> 130) ≈ 0,023',W*.86,H*.62,DRED,14,'center');});},
+  FA(sg(p,.3,1),function(){TB('P(X ≤ 115) ≈ 0,841',W*.03,H*.2,DGREEN,14,'left');TB('P(85 ≤ X ≤ 115) ≈ 0,683',W*.03,H*.31,BLUE_D,14,'left');TB('P(X > 130) ≈ 0,023',W*.03,H*.42,DRED,14,'left');});},
  function(p){var m=M.map(38,62,0,.085,{l:20,r:20,t:30,b:40});M.axes(m,{xt:[40,45,50,55,60],nozero:false});BARS(m,100,.5,function(k){return k>=60&&p>0;},BLUE,RED,38,62);
   M.curve(m,function(x){return nd(x,50,5);},38,62,GREEN,2.5);TB('X ~ B(100 ; 0,5) ≈ N(50 ; 5)',W*.5,20,BLUE_D,16);
-  FA(sg(p,.1,.8),function(){LN(m.X(59.5),m.Y(0),m.X(59.5),m.Y(.045),ORANGE,2.5,[5,4]);TB('59,5',m.X(59.5),m.Y(0)+22,DGREEN,13);TB('z = 9,5/5 = 1,9',W*.97,H*.34,DGREEN,15,'right');TB('P(X ≥ 60) ≈ 1 − 0,9713 = 0,029',W*.97,H*.34+22,DRED,Math.min(15,W*.032),'right');});},
+  FA(sg(p,.1,.8),function(){LN(m.X(59.5),m.Y(0),m.X(59.5),m.Y(.045),ORANGE,2.5,[5,4]);TB('59,5',m.X(59.5),m.Y(0)+22,DGREEN,13);TB('z = 1,9',W*.97,H*.2,DGREEN,16,'right');TB('P ≈ 1 − 0,9713',W*.97,H*.3,DRED,15,'right');TB('= 0,029',W*.97,H*.4,DRED,17,'right');});},
  function(p){var m=M.map(30,70,0,.11,{l:20,r:20,t:30,b:40});LN(m.X(30),m.Y(0),m.X(70),m.Y(0),AX,1.6);BELL(m,50,4,BLUE,3);BELL(m,50,8,ORANGE,3);
   FA(sg(p,.1,.8),function(){BELLFILL(m,50,8,46,54,'rgba(186,117,21,.3)');BELLFILL(m,50,4,46,54,'rgba(55,138,221,.3)');});
   [34,42,50,58,66].forEach(function(v){TB(String(v),m.X(v),m.Y(0)+20,GREY,13);});TB('σ = 4 (bleu)  ·  σ = 8 (orange)',W*.5,20,BLUE_D,15);

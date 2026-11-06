@@ -288,7 +288,10 @@ S.draw = {
     var pxs = xs.length > 1 ? Math.abs(ax.X(xs[1]) - ax.X(xs[0])) : 1e9, kx = Math.max(1, Math.ceil((wmax + 8) / pxs));
     var pys = ys.length > 1 ? Math.abs(ax.Y(ys[0]) - ax.Y(ys[1])) : 1e9, ky = Math.max(1, Math.ceil(16 / pys));
     ctx.textAlign = "center"; ctx.textBaseline = "top";
-    lx.forEach(function(p){ var i = Math.round((p[0] - xs[0]) / sx); if (i % kx) return; ctx.fillText(p[1], ax.X(p[0]), Math.min(H - B, yx) + 5); });
+    lx.forEach(function(p){ var i = Math.round((p[0] - xs[0]) / sx); if (i % kx) return;
+      /* « 0 » à l'origine : décalé à gauche de l'axe vertical, comme dans un manuel */
+      if (p[0] === 0 && Math.abs(ax.X(0) - xy) < 1 && xy > L + 8){ ctx.save(); ctx.textAlign = "right"; ctx.fillText(p[1], xy - 5, Math.min(H - B, yx) + 5); ctx.restore(); return; }
+      ctx.fillText(p[1], ax.X(p[0]), Math.min(H - B, yx) + 5); });
     ctx.textAlign = "right"; ctx.textBaseline = "middle";
     ys.forEach(function(v, i){ if (v === 0 || i % ky) return; ctx.fillText(S.fmt(v, 3), Math.max(L, xy) - 6, ax.Y(v)); });
     /* noms des axes, avec un liseré de la couleur du fond */

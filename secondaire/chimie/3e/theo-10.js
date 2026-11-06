@@ -38,9 +38,9 @@ SFA.theo("c10", {
   var cH=0,cO=0;
   TB('H⁺ : '+nH,gx+gw*.2,gy+gh+24,DRED,16);TB('OH⁻ : '+nO,gx+gw*.8,gy+gh+24,BLUE_D,16);
   tube(W*.64,H*.42,30,H*.42,bbt(pH));TB('BBT',W*.64+15,H*.42-8,INK,14);
-  TB('pH = '+pf(pH),W*.84,H*.55,INK,26);
-  var d=pH<6.5?'acide : excès de H⁺':(pH>7.5?'basique : excès de OH⁻':'neutre : H⁺ = OH⁻');
-  TB(d,W*.84,H*.70,pH<6.5?DRED:(pH>7.5?BLUE_D:DGREEN),17);
+  TB('pH = '+pf(pH),W*.8,H*.55,INK,24);
+  var d=pH<6.5?'acide : H⁺ en excès':(pH>7.5?'basique : OH⁻ en excès':'neutre : H⁺ = OH⁻');
+  TB(d,W*.8,H*.70,pH<6.5?DRED:(pH>7.5?BLUE_D:DGREEN),15);
   TB('schéma qualitatif · 1 unité de pH = concentration en H⁺ × 10',W*.5,H*.97,GREY,13);
  },
  th:
@@ -54,7 +54,7 @@ SFA.figs("c10", [
  F(function(p){
   var x0=30,w=400,X=function(v){return x0+v/14*w;};phbar(x0,120,w,30);
   var I=[['citron 2,2',2.2,1],['vinaigre 2,9',2.9,-1],['lait 6,5',6.5,1],['eau pure 7',7,-1],['savon 10',10,1],['ammoniaque 11,5',11.5,-1]];
-  I.forEach(function(q){var x=X(q[1]);if(q[2]>0){LN(x,100,x,120,INK,1.6);DOT(x,98,4,INK);TB(q[0],x,84,INK,14);}else{LN(x,150,x,176,INK,1.6);DOT(x,178,4,INK);TB(q[0],x,200,INK,14);}});
+  I.forEach(function(q){var x=X(q[1]);if(q[2]>0){LN(x,100,x,120,INK,1.6);DOT(x,98,4,INK);TB(q[0],x,84,INK,14);}else{LN(x,174,x,194,INK,1.6);DOT(x,196,4,INK);TB(q[0],x,216,INK,14);}});
   if(p>0){ga(sg(p,0,.5));TB('acide (pH < 7)',X(3.5),250,DRED,16);TB('basique (pH > 7)',X(10.5),250,BLUE_D,16);TB('neutre',X(7),250,DGREEN,15);g1();}
   else TB('classe chaque substance',230,40,GREY,18);
  }),
@@ -63,7 +63,7 @@ SFA.figs("c10", [
   glass(60,60,200,140,.8,'#eef5fc');
   var i;for(i=0;i<2;i++)ball(90+i*70,120+i*20,7,CR,'',null);for(i=0;i<10;i++)ball(80+rnd(i)*160,100+rnd(i+30)*85,7,CB,'',null);
   box(300,70,130,60,INK,'#10202a',10);TB('pH = 9',365,110,'#7ee0a8',26);
-  TB('H⁺',280,34,DRED,15);TB('OH⁻',320,34,BLUE_D,15);ball(262,30,6,CR,'',null);ball(302,30,6,CB,'',null);
+  TB('H⁺',258,35,DRED,15);TB('OH⁻',324,35,BLUE_D,15);ball(240,30,6,CR,'',null);ball(300,30,6,CB,'',null);
   if(p>0){ga(sg(p,0,.5));box(40,222,380,50,DGREEN,'#e3f5ee',12);TB('plus de OH⁻ que de H⁺ : basique',230,254,DGREEN,18);g1();}
   else TB('que contient la solution ?',230,250,GREY,18);
  }),
@@ -71,8 +71,8 @@ SFA.figs("c10", [
  F(function(p){
   var R=[['#f2d94a','#f4f6f8','pH < 6 · acide'],['#3a6fd8','#f4f6f8','7,6 < pH < 8,2 · basique faible'],['#3a6fd8','#e86aa5','pH > 10 · très basique']];
   R.forEach(function(r,i){var y=12+i*88;box(8,y,444,80,AX,'#fff',10);
-   tube(30,y+8,26,60,r[0]);tube(100,y+8,26,60,r[1]);TB('BBT',43,y+78,GREY,12);TB('phénolphtaléine',113,y+78,GREY,12);
-   TB(String.fromCharCode(97+i)+'.',16,y+20,INK,15,'left');
+   tube(50,y+6,26,50,r[0]);tube(120,y+6,26,50,r[1]);TB('BBT',63,y+72,GREY,13);TB('phénolphtaléine',133,y+72,GREY,13);
+   TB(String.fromCharCode(97+i)+'.',18,y+44,INK,16,'left');
    if(p>0){ga(sg(p,i*.2,i*.2+.4));TB(r[2],305,y+46,i==0?DRED:BLUE_D,15);g1();}else TB('pH ?',305,y+48,GREY,22);});
  }),
  // 3 écrire des neutralisations
@@ -96,14 +96,17 @@ SFA.figs("c10", [
  }),
  // 5 magnésium et acide
  F(function(p){
-  tube(60,40,46,170,'#d9ecfa');LN(74,90,92,190,'#a9b2bb',5);TB('HCl en excès',83,238,INK,14);
-  for(var i=0;i<6;i++){var yy=170-((i*29+p*30)%120);ga(.8);ball(76+rnd(i)*20,yy,4+rnd(i+2)*3,'#c5d0da','',null);g1();}
-  LN(106,50,250,50,INK,3);LN(250,50,250,90,INK,3);
-  var L=p>0?150:20;ctx.fillStyle='#eef2f6';ctx.strokeStyle=INK;ctx.lineWidth=2;ctx.fillRect(250,90,36,40+L);ctx.strokeRect(250,90,36,40+L);
-  ctx.fillRect(244,90+40+L,48,8);TB(p>0?'H₂ : 120 mL':'H₂ : ? mL',270,240,p>0?DRED:GREY,15);
-  if(p>0){ga(sg(p,0,.5));TB('Mg + 2 HCl → MgCl₂ + H₂',360,60,DGREEN,14);g1();ga(sg(p,.3,1));box(300,86,150,96,DGREEN,'#e3f5ee',10);TB('0,12 ÷ 24 = 0,0050 mol',375,112,INK,14);TB('0,0050 × 24 L/mol',375,136,INK,14);TB('= 0,12 L',375,162,DGREEN,18);g1();
-   ga(sg(p,.6,1));TB('Cu : aucune réaction',375,216,DRED,14);g1();}
-  else TB('quel volume de gaz ?',375,120,GREY,16);
+  tube(40,40,46,170,'#d9ecfa');LN(54,90,72,190,'#a9b2bb',5);TB('HCl en excès',63,238,INK,14);
+  for(var i=0;i<6;i++){var yy=170-((i*29+p*30)%120);ga(.8);ball(56+rnd(i)*20,yy,4+rnd(i+2)*3,'#c5d0da','',null);g1();}
+  ctx.lineWidth=3;LN(86,50,150,50,INK,3);LN(150,50,150,232,INK,3);LN(150,232,290,232,INK,3);LN(290,232,290,200,INK,3);
+  ctx.fillStyle='#d9ecfa';ctx.fillRect(176,206,230,38);ctx.strokeStyle=INK;ctx.lineWidth=2;ctx.strokeRect(176,206,230,38);
+  var gh=p>0?96:0;ctx.fillStyle='#d9ecfa';ctx.fillRect(272,70,36,150);ctx.fillStyle='#fff';ctx.fillRect(272,70,36,gh);
+  ctx.strokeStyle=INK;ctx.lineWidth=2.4;ctx.strokeRect(272,70,36,150);for(var k=0;k<6;k++)LN(272,70+k*25,280,70+k*25,INK,1.2);
+  if(p>0)TB('H₂',290,70+gh/2+5,GREY,14);
+  TB(p>0?'H₂ : 120 mL':'H₂ : ? mL',290,266,p>0?DRED:GREY,15);
+  if(p>0){ga(sg(p,0,.5));TB('Mg + 2 HCl → MgCl₂ + H₂',250,24,DGREEN,14);g1();ga(sg(p,.3,1));box(330,66,122,96,DGREEN,'#e3f5ee',10);TB('n = 0,0050 mol',391,94,INK,14);TB('V = 0,0050 × 24',391,120,INK,14);TB('= 0,12 L',391,148,DGREEN,16);g1();
+   ga(sg(p,.6,1));TB('Cu : rien',391,196,DRED,14);g1();}
+  else TB('quel volume de gaz ?',391,120,GREY,15);
  }),
  // 6 renversement
  F(function(p){
@@ -124,8 +127,8 @@ SFA.figs("c10", [
   ctx.strokeStyle=BLUE;ctx.lineWidth=3;ctx.beginPath();for(var v=0;v<=2;v+=.02){var xx=X(v),yy=Y(f(v));v?ctx.lineTo(xx,yy):ctx.moveTo(xx,yy);}ctx.stroke();
   TB('acide éthanoïque',360,Y(2.9)-24,BLUE_D,14);
   if(p>0){ga(sg(p,0,.5));LN(X(1),245,X(1),30,AX,1.4,[4,4]);TB('équivalence',X(1),262,GREY,13);DOT(X(1),Y(f(1)),7,RED);TB('pH ≈ 8 à 9 (> 7)',X(1)+12,Y(f(1))+22,DRED,15,'left');g1();
-   ga(sg(p,.5,1));DOT(X(1),Y(7),5,GREY);TB('acide fort : 7',X(1)-12,Y(7)+22,GREY,13,'right');g1();}
-  else TB('pH à l\'équivalence ?',320,120,GREY,18);
+   ga(sg(p,.5,1));DOT(X(1),Y(7),5,GREY);TB('acide fort : 7',X(1)+12,Y(7)+20,GREY,13,'left');g1();}
+  else TB('pH à l\'équivalence ?',330,195,GREY,18);
  }),
  // 8 combien de soude
  F(function(p){

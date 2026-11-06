@@ -27,6 +27,7 @@ function gam(x,y,r,c,l){DOT(x,y,r,c+'33');ctx.strokeStyle=c;ctx.lineWidth=2;ctx.
 function drop(x,y,s,col,lab,fs){ctx.beginPath();ctx.moveTo(x,y-s*1.5);ctx.bezierCurveTo(x+s*.3,y-s*.8,x+s,y-s*.3,x+s,y+s*.35);ctx.arc(x,y+s*.35,s,0,PI,false);ctx.bezierCurveTo(x-s,y-s*.3,x-s*.3,y-s*.8,x,y-s*1.5);ctx.fillStyle=col+'33';ctx.fill();ctx.strokeStyle=col;ctx.lineWidth=2.4;ctx.stroke();if(lab)TB(lab,x,y+s*.55,dk(col),fs||Math.round(s*.95));}
 function chX(x,y,s,col){LN(x-s*.5,y-s,x+s*.5,y+s,col,s*.3);LN(x+s*.5,y-s,x-s*.5,y+s,col,s*.3);}
 function chY(x,y,s,col){LN(x-s*.5,y-s,x,y,col,s*.3);LN(x+s*.5,y-s,x,y,col,s*.3);LN(x,y,x,y+s,col,s*.3);}
+function hsh(i){var s=Math.sin(i*127.1+311.7)*43758.5453;return s-Math.floor(s);}
 function al1(a,x,y,size,col){if(a==='Y')TB('Y',x,y,col||INK,size);else sup('X',a,x,y,col||INK,size,'center');}
 function xg(m,d,cx,cy,size,col){al1(m,cx-size*.55,cy,size,col);al1(d,cx+size*.6,cy,size,col);}
 function isrec(a){return a!=='Y'&&a===a.toLowerCase();}
@@ -46,7 +47,6 @@ function cat(x,y,s,pat){ell(x,y,34*s,20*s,pat?'#f2f0ea':'#e6a24a',INK,2.2);ell(x
  ctx.fillStyle='#e6a24a';ctx.beginPath();ctx.moveTo(x+26*s,y-22*s);ctx.lineTo(x+30*s,y-34*s);ctx.lineTo(x+36*s,y-24*s);ctx.fill();ctx.beginPath();ctx.moveTo(x+38*s,y-24*s);ctx.lineTo(x+46*s,y-34*s);ctx.lineTo(x+48*s,y-20*s);ctx.fill();
  if(pat){var P=[[-18,-4,'#2c2c2c'],[4,6,'#e6a24a'],[-4,-8,'#e6a24a'],[16,-2,'#2c2c2c'],[-26,6,'#e6a24a'],[30,-18,'#2c2c2c'],[40,-8,'#e6a24a'],[22,10,'#2c2c2c']];P.forEach(function(q){ell(x+q[0]*s,y+q[1]*s,8*s,6*s,q[2]);});}
  DOT(x+38*s,y-14*s,2*s,INK);DOT(x+47*s,y-14*s,2*s,INK);ctx.strokeStyle=INK;ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(x-34*s,y-4*s);ctx.quadraticCurveTo(x-52*s,y-20*s,x-48*s,y-34*s);ctx.stroke();LN(x-20*s,y+18*s,x-20*s,y+30*s,INK,2.4);LN(x+18*s,y+18*s,x+18*s,y+30*s,INK,2.4);}
-function hsh(i){var s=Math.sin(i*127.1+311.7)*43758.5453;return s-Math.floor(s);}
 SFA.theo("c03", {
  icon: function () {
   chX(W*.2,H*.4,36,BLUE);chX(W*.2+52,H*.4,36,RED);TB('XᴰXᵈ',W*.2+26,H*.78,INK,18);

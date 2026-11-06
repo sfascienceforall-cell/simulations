@@ -107,7 +107,7 @@ SFA.figs("c02",[
   bio_ax(x0,y0,w,h,'r (µm), échelle log','rapport (log)');
   [1,10,100].forEach(function(v){TB(''+v,sx(v),y0+15,GREY,11);});[1,10,50].forEach(function(v){TB(''+v,x0-12,sy(v)+4,GREY,11);});
   bio_fn(function(x){return 50/x;},.8,100,sx,sy,BLUE,2.6,60);
-  LN(x0,sy(1),x0+w,sy(1),RED,1.6,[5,4]);TB('rapport = 1',x0+w,sy(1)+16,DRED,12,'right');
+  LN(x0,sy(1),x0+w,sy(1),RED,1.6,[5,4]);TB('rapport = 1',x0+6,sy(1)-6,DRED,12,'left');
   bio_pop(p,function(){[[1,50],[12,50/12],[60,50/60]].forEach(function(q){DOT(sx(q[0]),sy(q[1]),6,q[1]<1?RED:GREEN);});TB('bactérie : 50',sx(1)+10,sy(50)+14,DGREEN,12,'left');TB('hépatocyte : 4,2',sx(12)+10,sy(50/12)-8,DGREEN,12,'left');TB('ovocyte : 0,83',sx(60)+8,sy(50/60)+20,DRED,12);LN(sx(50),y0,sx(50),sy(1),DRED,1.4,[3,3]);TB('rmax = 50 µm',sx(50)-6,y0-14,DRED,13,'right');});},
  function(p){ /* 13 enzymes marqueurs */
   bio_cap('Culot 15 000 g : 12 % de la protéine',22);
