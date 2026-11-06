@@ -73,11 +73,11 @@ SFA.sim({
   id: "b5-c03-diabete", ch: "c03", tag: "Comparaison",
   titre: "Diabète de type 1, de type 2, ou bien portant ?",
   resume: "Sécrétion d'insuline et sensibilité des cellules → glycémie après le repas.",
-  but: "Choisis un profil ou règle toi-même la sécrétion d'insuline et la résistance des cellules. Compare la glycémie à jeun et la réponse à un repas de 60 g de glucides à celle d'une personne en bonne santé (pointillés).",
+  but: "Choisis un profil ou règle toi-même la sécrétion d'insuline et la résistance des cellules. Lance le repas de 60 g de glucides : regarde l'insuline quitter le pancréas et ouvrir (ou pas) les portes des cellules, puis compare la glycémie à celle d'une personne en bonne santé (pointillés).",
   aRetenir: "Type 1 : les cellules β du pancréas sont détruites (maladie auto-immune) : plus ou presque plus d'insuline, la glycémie s'envole. Type 2 : l'insuline est présente mais les cellules cibles y répondent mal (résistance) et la sécrétion finit par s'épuiser. Critère OMS : glycémie à jeun ≥ 1,26 g/L (à confirmer) = diabète.",
   piege: "Le diabète n'est pas « trop de sucre mangé ». Dans le type 1, il n'y a pas assez d'insuline ; dans le type 2, les cellules cibles n'obéissent plus. Le type 1 n'est pas causé par l'alimentation. Valeurs d'un modèle simplifié, non diagnostiques.",
   build: function(k, S){
-    var c1 = k.canvas(210), c2 = k.canvas(150), pal = S.draw.palette;
+    var c = k.canvas(540), pal = S.draw.palette, D = S.draw;
     var res, cap;
     var pr = k.select("Profil", [["n", "En bonne santé"], ["1", "Diabète de type 1 (non traité)"], ["2", "Diabète de type 2"], ["p", "Prédiabète"], ["x", "Réglage libre"]], "2", function(v){
       var m = {n: [0, 100], 1: [0, 0], 2: [70, 40], p: [60, 70]}[v]; if (m){ res.set(m[0]); cap.set(m[1]); }
@@ -86,19 +86,58 @@ SFA.sim({
     cap = k.slider("Capacité de sécrétion d'insuline", 0, 100, 5, 40, "%");
     var ro = k.readouts(["Glycémie à jeun", "Pic après repas", "2 h après le repas", "Verdict (à jeun)"]);
     var nt = k.note("", "");
+    var tm = 0, play = true, geo = {}, drag = false, rnd = B5.rng(21), GP = [], IP = [], i;
+    for (i = 0; i < 60; i++) GP.push({o: rnd(), u: rnd(), y: rnd(), d: Math.floor(rnd() * 3)});
+    for (i = 0; i < 24; i++) IP.push({o: rnd(), y: rnd()});
+    var lp = k.loop(function(dt){ if (play){ tm += dt * 22; if (tm > 330) tm = 0; } k.redraw(); }); lp.play();
+    k.button("Lancer le repas (lecture / pause)", function(){ play = !play; if (play && tm > 299) tm = 0; }, true);
+    k.button("Revenir à 0", function(){ tm = 0; });
+    c.cv.style.touchAction = "none";
+    c.pointer(function(t, p){ if (t === "down") drag = p.y > geo.gy; if (drag && (t === "down" || t === "drag") && geo.ax){ tm = Math.max(0, Math.min(299, geo.ax.ix(p.x))); play = false; k.redraw(); } if (t === "up") drag = false; });
     k.draw(function(){
       var a = gluco({meals: [[30, 60]], res: 0, cap: 1, T: 300}), b = gluco({meals: [[30, 60]], res: res.value / 100, cap: cap.value / 100, T: 300});
-      var pk = Math.max.apply(null, b.G), fast = b.G[0], two = b.G[150];
-      c1.clear();
-      var ax = S.draw.axes(c1, {x0: 0, x1: 300, y0: 0, y1: 6, xl: "t (min)", yl: "glycémie (g/L)", stepX: 60, stepY: 1});
-      c1.ctx.fillStyle = "rgba(180,35,24,.08)"; c1.ctx.fillRect(ax.X(0), ax.T, ax.X(300) - ax.X(0), ax.Y(1.26) - ax.T);
-      S.draw.line(c1, ax.X(0), ax.Y(1.26), ax.X(300), ax.Y(1.26), pal.red, 1.2, [5, 4]); S.draw.text(c1, "1,26", ax.X(300) - 4, ax.Y(1.26) - 8, {align: "right", size: 12, color: pal.red});
-      B5.poly(c1, ax, a.G.map(function(g, t){ return [t, g]; }), pal.grey, 2, [6, 4]);
-      B5.poly(c1, ax, b.G.map(function(g, t){ return [t, g]; }), pal.violet, 2.8);
-      c2.clear();
+      var pk = Math.max.apply(null, b.G), fast = b.G[0], two = b.G[150], ix = Math.min(299, Math.round(tm)), G = b.G[ix], I = b.I[ix], Xm = Math.max.apply(null, a.X) || 1, open = B5.cl(b.X[ix] / Xm, 0, 1);
+      c.clear(); var ctx = c.ctx, W = c.W, H = c.H, sh = 232;
+      D.rrect(c, 8, 8, W - 16, sh, 12); var bg = ctx.createLinearGradient(0, 0, 0, sh); bg.addColorStop(0, "#f6f3fc"); bg.addColorStop(1, "#eef3fa"); ctx.fillStyle = bg; ctx.fill();
+      /* vaisseau */
+      var vy = 92, vh = 40, x0 = 20, x1 = W - 20;
+      D.rrect(c, x0, vy, x1 - x0, vh, 20); ctx.fillStyle = "#f8d2cc"; ctx.fill(); ctx.strokeStyle = "#e0897f"; ctx.lineWidth = 2.5; ctx.stroke();
+      D.text(c, "sang", x1 - 24, vy + 11, {size: 10.5, color: "#a5463a", weight: 800});
+      /* pancréas */
+      var px = W * 0.2, py = 50; ctx.fillStyle = "#f4c9a0"; ctx.strokeStyle = "#c9954a"; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.ellipse(px, py, 62, 24, -0.08, 0, 7); ctx.fill(); ctx.stroke();
+      var nb = 6; for (i = 0; i < nb; i++){ var bx = px - 40 + i * 16, by = py + (i % 2 ? 7 : -7), alive = cap.value > 0 && i < Math.max(1, Math.round(cap.value / 100 * nb)); B5.circ(c, bx, by, 6.5, alive ? "#9a7be0" : "#d5d0dc", alive ? "#5a3fb0" : "#aaa3b5", 1.5); if (cap.value === 0) { D.text(c, "×", bx, by, {size: 11, color: pal.red, weight: 900}); } }
+      D.text(c, "pancréas (cellules β)", px, py - 28, {size: 11, color: "#8a5a2b", weight: 800});
+      /* insuline : sort du pancréas, circule dans le sang */
+      var ni = Math.min(24, Math.round(I / 2.4)); for (i = 0; i < ni; i++){ var q = IP[i], s = (tm * .02 + q.o) % 1, ix2 = px - 20 + s * (x1 - px - 40), iy = s < .08 ? py + 20 + s / .08 * (vy - py - 14) : vy + 8 + q.y * (vh - 16); B5.circ(c, ix2, iy, 3.6, pal.violet, "#fff", 1); }
+      /* cellule cible */
+      var cx0 = W * 0.42, cx1 = W - 30, cy0 = vy + vh + 24; D.rrect(c, cx0, cy0, cx1 - cx0, sh - (cy0 - 8) - 8, 20); ctx.fillStyle = "#fff6e2"; ctx.fill(); ctx.strokeStyle = "#d9a441"; ctx.lineWidth = 3; ctx.stroke();
+      D.text(c, "cellule cible (muscle, foie…)", (cx0 + cx1) / 2, sh - 4, {size: 11, color: "#8a6508", weight: 800});
+      var doors = [cx0 + (cx1 - cx0) * .2, cx0 + (cx1 - cx0) * .5, cx0 + (cx1 - cx0) * .8];
+      doors.forEach(function(dx){ ctx.fillStyle = open > .08 ? pal.green : (res.value > 40 ? "#b04a3a" : "#8a95a3"); ctx.fillRect(dx - 15, cy0 - 4, 11 + (1 - open) * 4, 8); ctx.fillRect(dx + 4 + (1 - open) * 0, cy0 - 4, 11, 8); if (open > .3){ D.glow(c, dx, cy0, 20, pal.green, .4 * open); } if (res.value >= 50) D.text(c, "✕", dx, cy0 + 12, {size: 10, color: "#b04a3a", weight: 900}); });
+      /* glucose */
+      var ng = Math.min(60, Math.round(G * 14)); var spd = .05;
+      for (i = 0; i < ng; i++){ var p = GP[i], s2 = (tm * spd * .1 + p.o) % 1, gx = x0 + 10 + s2 * (x1 - x0 - 20), gy = vy + 8 + p.y * (vh - 16);
+        if (p.u < open * .55){ var dxp = doors[p.d]; if (gx > dxp - 40 && gx < dxp + 60){ var f = B5.cl((gx - (dxp - 30)) / 50, 0, 1); gx = gx + (dxp - gx) * f; gy = gy + (cy0 + 22 + p.y * 30 - gy) * f; } }
+        B5.circ(c, gx, gy, 3.8, "#f4c542", "#a56300", 1); }
+      var nin = Math.round(open * 22); for (i = 0; i < nin; i++){ var r2 = GP[i + 20]; B5.circ(c, cx0 + 24 + (r2.o * (cx1 - cx0 - 48)) + Math.sin(tm * .3 + i) * 3, cy0 + 30 + r2.y * ((sh - (cy0 - 8)) - 70) + Math.cos(tm * .27 + i) * 3, 3.6, "#f4c542", "#a56300", 1); }
+      D.legend(c, [["#f4c542", "glucose"], [pal.violet, "insuline"]], 18, 140, {box: true});
+      D.display(c, S.fmt(G, 2), 60, 207, {w: 88, h: 46, size: 17, caption: "glycémie (g/L)", color: G >= 1.26 ? "#a31d0e" : "#13233a"});
+      D.label(c, "t = " + S.fmt(Math.floor(tm / 60), 0) + " h " + S.fmt(Math.floor(tm % 60), 0) + " min" + (tm >= 30 && tm < 60 ? " · repas" : ""), W - 18, 22, {color: pal.ink, size: 11.5, align: "right"});
+      /* ---------- courbes ---------- */
+      var gy = sh + 22; geo.gy = gy - 6; D.panel(c, 8, gy - 4, W - 16, H - gy - 4, {shadow: false, fill: "#fbfcfe"});
+      var h1 = (H - gy - 16) * 0.56;
+      var ax = D.axes(c, {x0: 0, x1: 300, y0: 0, y1: 6, xl: "", stepX: 60, stepY: 2, t: gy + 8, b: H - (gy + 8 + h1) , l: 40, r: 18}); geo.ax = ax;
+      D.text(c, "glycémie (g/L)", 14, gy + 3, {size: 11, color: pal.grey, align: "left"});
+      ctx.fillStyle = "rgba(192,50,29,.08)"; ctx.fillRect(ax.L, ax.T, ax.R - ax.L, ax.Y(1.26) - ax.T);
+      D.line(c, ax.L, ax.Y(1.26), ax.R, ax.Y(1.26), pal.red, 1.2, [5, 4]); D.label(c, "1,26", ax.R - 4, ax.Y(1.26) - 11, {color: pal.red, align: "right", size: 10.5});
+      B5.poly(c, ax, a.G.map(function(g, t){ return [t, g]; }), pal.grey, 2, [6, 4]);
+      B5.poly(c, ax, b.G.map(function(g, t){ return [t, g]; }).slice(0, ix + 1), pal.violet, 3);
+      D.line(c, ax.X(tm), ax.T, ax.X(tm), ax.B, pal.ink, 1.2, [4, 3]); D.dot(c, ax.X(Math.min(299, tm)), ax.Y(G), 5, pal.violet);
       var ymax = Math.max(40, Math.ceil(Math.max.apply(null, b.I) / 20) * 20);
-      var ax2 = S.draw.axes(c2, {x0: 0, x1: 300, y0: 0, y1: ymax, xl: "t (min)", yl: "insuline (u.a.)", stepX: 60});
-      B5.poly(c2, ax2, a.I.map(function(v, t){ return [t, v]; }), pal.grey, 2, [6, 4]); B5.poly(c2, ax2, b.I.map(function(v, t){ return [t, v]; }), pal.red, 2.6);
+      var top2 = gy + 8 + h1 + 30, ax2 = D.axes(c, {x0: 0, x1: 300, y0: 0, y1: ymax, xl: "t (min)  ·  glisse pour te déplacer", stepX: 60, stepY: ymax / 2, t: top2, b: 34, l: 40, r: 18});
+      D.text(c, "insuline (u.a.)", 14, top2 - 8, {size: 11, color: pal.grey, align: "left"});
+      B5.poly(c, ax2, a.I.map(function(v, t){ return [t, v]; }), pal.grey, 2, [6, 4]); B5.poly(c, ax2, b.I.map(function(v, t){ return [t, v]; }).slice(0, ix + 1), pal.red, 2.8);
+      D.line(c, ax2.X(tm), ax2.T, ax2.X(tm), ax2.B, pal.ink, 1.2, [4, 3]);
       var verdict = fast >= 1.26 ? "≥ 1,26 : diabète" : fast >= 1.10 ? "1,10–1,25 : anormale" : "normale";
       ro.set(0, S.fmt(fast, 2) + " g/L"); ro.set(1, S.fmt(pk, 2) + " g/L"); ro.set(2, S.fmt(two, 2) + " g/L"); ro.set(3, verdict);
       var comp = res.value >= 50 && cap.value >= 70;

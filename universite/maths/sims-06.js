@@ -81,7 +81,7 @@ function sub3(a, b){ return [a[0] - b[0], a[1] - b[1], a[2] - b[2]]; }
 function mul3(a, s){ return [a[0] * s, a[1] * s, a[2] * s]; }
 function v3s(a, d){ return "(" + fx(a[0], d) + " ; " + fx(a[1], d) + " ; " + fx(a[2], d) + ")"; }
 function rng(seed){ var s = seed >>> 0; return function(){ s = (s + 0x6D2B79F5) >>> 0; var t = s; t = Math.imul(t ^ t >>> 15, t | 1); t ^= t + Math.imul(t ^ t >>> 7, t | 61); return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
-function autoRatio(c, wide, tall){ var r0 = c.resize; c.resize = function(){ c.ratio = (c.cv.parentNode && c.cv.parentNode.clientWidth < 560) ? tall : wide; r0(); }; c.resize(); }
+function autoRatio(c, wide, tall, thr){ var r0 = c.resize; c.resize = function(){ c.ratio = (c.cv.parentNode && c.cv.parentNode.clientWidth < (thr || 560)) ? tall : wide; r0(); }; c.resize(); }
 var UM = {autoRatio:autoRatio, C:C, fx:fx, rgba:rgba, cstr:cstr, Pane:Pane, vec:vec, pt:pt, seg:seg, arc:arc, circ:circ, dragPts:dragPts, View3:View3, dot3:dot3, cross3:cross3, norm3:norm3, add3:add3, sub3:sub3, mul3:mul3, v3s:v3s, rng:rng};
 window.UMB = UM;
 })();
@@ -277,7 +277,7 @@ SFA.sim({
   piege:"Pour Δ < 0, √Δ n'existe pas dans ℝ : on écrit √Δ = i√(−Δ). Ne pas oublier le « ± ».",
   build:function(k, S){
     var U = UMB, C = U.C, fx = U.fx, c = k.canvas(0, {ratio:0.62}), D = S.draw, PA, PR, grab = 0;
-    U.autoRatio(c, 0.6, 1.5);
+    U.autoRatio(c, 0.66, 1.5, 440);
     var sa = k.slider("a", -3, 3, 0.1, 1, ""), sb = k.slider("b", -8, 8, 0.1, -4, ""), sc = k.slider("c", -8, 12, 0.1, 13, "");
     var gd = k.toggle("Défi : obtiens les racines 2 + 3i et 2 − 3i (avec a = 1)", false);
     k.button("a = 1", function(){ sa.set(1); });
@@ -297,7 +297,7 @@ SFA.sim({
     });
     function cl(x, a, b){ return Math.max(a, Math.min(b, x)); }
     k.draw(function(){
-      c.clear(); var W = c.W, H = c.H, a = sa.value, b = sb.value, cc = sc.value, ctx = c.ctx, st = W < 560, gap = 8, bw = st ? W : (W - gap) / 2, bh = st ? (H - gap) / 2 : H;
+      c.clear(); var W = c.W, H = c.H, a = sa.value, b = sb.value, cc = sc.value, ctx = c.ctx, st = W < 440, gap = 8, bw = st ? W : (W - gap) / 2, bh = st ? (H - gap) / 2 : H;
       PA = U.Pane(c, 0, 0, bw, bh, 8, 10, {dy:4, step:2, xl:"x", yl:"y"}); PR = U.Pane(c, st ? 0 : bw + gap, st ? bh + gap : 0, bw, bh, 6, 6, {xl:"Re", yl:"Im", step:2});
       D.label(c, "Parabole y = ax² + bx + c", PA.bx + 8, PA.by + 8, {color:C.blue, align:"left", base:"top"}); D.label(c, "Racines dans le plan complexe", PR.bx + 8, PR.by + 8, {color:C.red, align:"left", base:"top"});
       if (Math.abs(a) < 0.05){ nt.set("a ≈ 0 : ce n'est plus une équation du second degré. Choisis |a| ≥ 0,1.", "bad"); for (var q = 0; q < 5; q++) ro.set(q, "—"); return; }

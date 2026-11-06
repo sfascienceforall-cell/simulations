@@ -1,4 +1,17 @@
 /* Chapitre 1 · Neurone, influx nerveux et système nerveux */
+/* Légende en pastilles (remplace B5.leg : lisible sur fond de courbe, retour à la ligne sur téléphone) */
+B5.leg = function(c, items, x, y){
+  var ctx = c.ctx, px = x, py = y, lh = 20;
+  ctx.save(); ctx.font = "700 11.5px Mulish, system-ui, sans-serif";
+  items.forEach(function(it){
+    var wd = 34 + ctx.measureText(it[0]).width;
+    if (px + wd > c.W - 6 && px > x){ px = x; py += lh; }
+    ctx.fillStyle = "rgba(255,255,255,.92)"; SFA.draw.rrect(c, px - 4, py - 10, wd, 18, 9); ctx.fill();
+    ctx.strokeStyle = it[1]; ctx.lineWidth = 3.2; ctx.lineCap = "round"; ctx.beginPath(); ctx.moveTo(px + 3, py - 1); ctx.lineTo(px + 17, py - 1); ctx.stroke();
+    ctx.fillStyle = "#2c3a4e"; ctx.textAlign = "left"; ctx.textBaseline = "middle"; ctx.fillText(it[0], px + 23, py - 1); px += wd + 4;
+  });
+  ctx.restore();
+};
 (function(){
 var REST = -70, THR = -55;
 /* forme du potentiel d'action (modèle simplifié), t en ms depuis le franchissement du seuil */
