@@ -28,3 +28,10 @@ Les autres simulations ont chacune leur dépôt sur le compte sfascienceforall-c
 Page d'accueil : https://sfascienceforall-cell.github.io/simulations/chimie/ · dossier `chimie/`
 
 22 simulations de chimie (acides et bases, solutions et gaz, atome et liaison, chimie organique, équilibres et énergie) et une page d'exercices et QCM (`chimie/exercices/`, 10 chapitres). Chaque simulation et chaque exercice a été relu par un professeur de chimie ; les exercices sont des créations SFA réécrites selon la charte du droit d'auteur.
+
+
+## Organisation (8 novembre 2026)
+Ce dépôt ne contient plus que la **physique** et la **chimie** universitaires (`chimie/`, `universite/chimie/`, et l'aperçu de la refonte de la chimie BA1 dans `apercu/universite/chimie/`).
+Le secondaire (3e → 6e) et l'université maths, biologie et biostatistique sont dans le dépôt
+[simulation-test](https://github.com/sfascienceforall-cell/simulation-test) → https://sfascienceforall-cell.github.io/simulation-test/
+Le moteur des simulations utilisé par `universite/chimie/` est dans `lib/`.
