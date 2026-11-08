@@ -176,19 +176,19 @@ new MutationObserver(ms=>ms.forEach(m=>{if(m.target.classList&&m.target.classLis
 </style>
 
 <div class="gz-row" style="margin-top:0">
-  <button class="gz-btn on" id="gzFree">Piston libre (pression constante)</button>
-  <button class="gz-btn" id="gzLock">Piston bloqué (volume constant)</button>
+  <button class="btn gz-btn on" id="gzFree">Piston libre (pression constante)</button>
+  <button class="btn gz-btn" id="gzLock">Piston bloqué (volume constant)</button>
 </div>
 <div class="gz-wrap" style="margin-top:10px">
   <canvas id="gzScene" aria-label="Cylindre de gaz chauffé avec piston"></canvas>
   <canvas id="gzGraph" aria-label="Graphique"></canvas>
 </div>
 <div class="gz-row">
-  <button class="gz-btn hot" id="gzHeat">🔥 Chauffer</button>
-  <button class="gz-btn cold" id="gzCool">❄ Refroidir</button>
-  <button class="gz-btn" id="gzStop">Arrêter</button>
+  <button class="btn gz-btn hot" id="gzHeat">🔥 Chauffer</button>
+  <button class="btn gz-btn cold" id="gzCool">❄ Refroidir</button>
+  <button class="btn gz-btn" id="gzStop">Arrêter</button>
   <span style="flex:1"></span>
-  <button class="gz-btn" id="gzReset">Recommencer</button>
+  <button class="btn gz-btn" id="gzReset">Recommencer</button>
 </div>
 <div class="gz-row"><span class="lab">T température du gaz</span><input type="range" id="gzT" min="150" max="700" step="1" value="293"><span class="v" id="gzTv"></span></div>
 <div class="gz-row"><span class="lab">m masse posée sur le piston</span><input type="range" id="gzM" min="0" max="20" step="0.5" value="0"><span class="v" id="gzMv"></span></div>
