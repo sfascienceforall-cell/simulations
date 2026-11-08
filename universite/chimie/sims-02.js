@@ -22,50 +22,80 @@ SFA.sim({
   id:"uc-c02-hybridation", ch:"c02", tag:"Liaison",
   titre:"Hybridation sp, sp², sp³ : compter les liaisons σ et π",
   resume:"Pour 9 molécules, l'hybridation de chaque atome se déduit du nombre de voisins et de doublets non liants ; compte les σ et les π.",
-  but:"Choisis une molécule : chaque atome lourd est coloré selon son hybridation (nombre de voisins σ + doublets libres). Active l'affichage des orbitales p non hybridées pour voir où naissent les liaisons π.",
+  but:"Choisis une molécule : chaque atome lourd est coloré selon son hybridation (nombre de voisins σ + doublets libres). Clique sur un atome pour voir ses orbitales : les hybrides (σ ou doublet) et les orbitales p restantes qui font les π.",
   aRetenir:"Nombre stérique = voisins + doublets non liants : 2 → sp (180°), 3 → sp² (120°), 4 → sp³ (109,5°). Une liaison simple est une σ ; une double = 1 σ + 1 π ; une triple = 1 σ + 2 π. Les π se forment par recouvrement latéral des orbitales p non hybridées (une par π).",
   piege:"Dans un amide (ou un ester, ou un énol), l'atome N (ou O) porteur d'un doublet est hybridé sp² et non sp³ : son doublet est délocalisé (conjugué) avec la liaison π voisine. Le simple comptage donne sp³ : c'est l'une des rares exceptions à signaler. Une π n'est jamais une liaison entre deux atomes pas déjà liés par une σ.",
   build:function(k, S){
-    var c = k.canvas(380);
-    var ms = k.select("Molécule", Object.keys(MOL).map(function(m){ return [m, MOL[m].nom]; }), "ethene");
-    var tp = k.toggle("Montrer les orbitales p non hybridées", true);
+    var c = k.canvas(440);
+    var st = {sel:-1}, hit = [];
+    var ms = k.select("Molécule", Object.keys(MOL).map(function(m){ return [m, MOL[m].nom]; }), "ethene", function(){ st.sel = -1; });
+    var tp = k.toggle("Montrer les orbitales p non hybridées et le nuage π", true);
     var ro = k.readouts(["Liaisons σ", "Liaisons π", "Atomes sp / sp² / sp³", "Atome (exception)"]);
     var nt = k.note("", "ok");
+    c.pointer(function(type, p){
+      if (type !== "down") return;
+      var best = -1, bd = 30; hit.forEach(function(h){ var d = Math.hypot(p.x - h.x, p.y - h.y); if (d < bd){ bd = d; best = h.i; } });
+      if (best >= 0){ st.sel = best; k.redraw(); }
+    });
     k.draw(function(){
-      var P = S.draw.palette, ctx = c.ctx, m = MOL[ms.value], W = c.W, H = c.H;
-      c.clear();
-      var n = m.at.length, deg = [], pi = 0, sig = m.b.length, hyb = [];
-      for (var i = 0; i < n; i++) deg.push(0);
-      m.b.forEach(function(b){ deg[b[0]]++; deg[b[1]]++; pi += b[2] - 1; });
+      var P = S.draw.palette, ctx = c.ctx, m = MOL[ms.value], W = c.W, H = c.H, ph = W < 420;
+      UC.bg(c, "#f6f9fc", "#ffffff");
+      var Hm = Math.round(H * 0.56);
+      var n = m.at.length, deg = [], pi = 0, sig = m.b.length, hyb = [], pis = [];
+      for (var i = 0; i < n; i++){ deg.push(0); pis.push(0); }
+      m.b.forEach(function(b){ deg[b[0]]++; deg[b[1]]++; pi += b[2] - 1; pis[b[0]] += b[2] - 1; pis[b[1]] += b[2] - 1; });
       var counts = {2:0, 3:0, 4:0}, exc = "—";
-      function X(v){ return 20 + v * (W - 40); } function Y(v){ return 20 + v * (H - 40); }
+      function X(v){ return 24 + v * (W - 48); } function Y(v){ return 26 + v * (Hm - 56); }
+      m.at.forEach(function(a, i){ if (a[0] !== "H"){ var real = deg[i] + a[3]; if (m.conj && m.conj.indexOf(i) >= 0) real = 3; hyb[i] = Math.min(4, real); } });
+      if (st.sel < 0 || !m.at[st.sel] || m.at[st.sel][0] === "H"){ st.sel = 0; for (var q0 = 0; q0 < n; q0++) if (m.at[q0][0] !== "H" && pis[q0]){ st.sel = q0; break; } }
+      /* nuage π : bandes translucides au-dessus et en dessous des liaisons multiples */
+      if (tp.value) m.b.forEach(function(b){
+        if (b[2] < 2) return; var p = m.at[b[0]], q = m.at[b[1]]; if (p[0] === "H" || q[0] === "H") return;
+        var x1 = X(p[1]), y1 = Y(p[2]), x2 = X(q[1]), y2 = Y(q[2]), mx = (x1 + x2) / 2, my = (y1 + y2) / 2, L = Math.hypot(x2 - x1, y2 - y1), an = Math.atan2(y2 - y1, x2 - x1);
+        [-1, 1].forEach(function(sg){ ctx.save(); ctx.translate(mx, my); ctx.rotate(an); ctx.beginPath(); ctx.ellipse(0, sg * 15, L / 2 + 8, 11, 0, 0, 7); ctx.fillStyle = sg < 0 ? "rgba(47,127,209,.22)" : "rgba(214,57,47,.2)"; ctx.fill(); ctx.lineWidth = 1.2; ctx.strokeStyle = sg < 0 ? "rgba(47,127,209,.6)" : "rgba(214,57,47,.55)"; ctx.stroke(); ctx.restore(); });
+      });
       m.b.forEach(function(b){
         var p = m.at[b[0]], q = m.at[b[1]], dx = X(q[1]) - X(p[1]), dy = Y(q[2]) - Y(p[2]), L = Math.hypot(dx, dy), nx = -dy / L, ny = dx / L;
-        for (var o = 0; o < b[2]; o++){ var off = (o - (b[2] - 1) / 2) * 6; S.draw.line(c, X(p[1]) + nx * off, Y(p[2]) + ny * off, X(q[1]) + nx * off, Y(q[2]) + ny * off, o === 0 ? P.ink : P.red, 2.4); }
+        for (var o = 0; o < b[2]; o++){ var off = (o - (b[2] - 1) / 2) * 7; UC.stick(ctx, X(p[1]) + nx * off, Y(p[2]) + ny * off, X(q[1]) + nx * off, Y(q[2]) + ny * off, o === 0 ? 5 : 3, o === 0 ? "#8a95a3" : "#c0321d"); }
       });
+      hit = [];
       m.at.forEach(function(a, i){
         var x = X(a[1]), y = Y(a[2]);
-        if (a[0] === "H"){ S.draw.dot(c, x, y, 11, "#fff"); ctx.strokeStyle = P.grey; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(x, y, 11, 0, 7); ctx.stroke(); S.draw.text(c, "H", x, y, {size:12}); return; }
-        var st = deg[i] + a[3], real = st;
-        var isConj = m.conj && m.conj.indexOf(i) >= 0;
-        if (isConj){ real = 3; exc = a[0] + " (sp², doublet délocalisé)"; }
+        if (a[0] === "H"){ UC.ball(ctx, x, y, 10, "#eef2f7"); S.draw.text(c, "H", x, y + 0.5, {size:11, color:P.ink}); return; }
+        var real = hyb[i], isConj = m.conj && m.conj.indexOf(i) >= 0;
+        if (isConj) exc = a[0] + " (sp², doublet délocalisé)";
         counts[Math.min(4, real)]++;
-        hyb[i] = real;
-        S.draw.dot(c, x, y, 17, COL[real] || P.grey);
-        S.draw.text(c, a[0], x, y, {size:14, color:"#fff"});
-        S.draw.text(c, H_NAMES[real] || "", x, y + 27, {size:12, color:COL[real]});
+        hit.push({i:i, x:x, y:y});
+        if (i === st.sel){ ctx.save(); ctx.strokeStyle = P.amber; ctx.lineWidth = 3; ctx.setLineDash([5, 3]); ctx.beginPath(); ctx.arc(x, y, 25, 0, 7); ctx.stroke(); ctx.restore(); }
+        UC.ball(ctx, x, y, 17, COL[real] || P.grey);
+        S.draw.text(c, a[0], x, y + 0.5, {size:14, color:"#fff"});
+        S.draw.label(c, H_NAMES[real] || "", x, y + 31, {size:11, color:COL[real]});
         for (var d = 0; d < a[3]; d++){ var ang = -Math.PI / 2 + (d - (a[3] - 1) / 2) * 0.9 + (a[3] === 1 ? 0.8 : 0); S.draw.dot(c, x + Math.cos(ang) * 26, y + Math.sin(ang) * 26 - 6, 2.5, P.ink); S.draw.dot(c, x + Math.cos(ang) * 31, y + Math.sin(ang) * 31 - 6, 2.5, P.ink); }
         if (tp.value){
           var np = real === 2 ? 2 : real === 3 ? 1 : 0;
-          if (np) for (var s = 0; s < np; s++){
-            var col = s ? "rgba(180,35,24,.35)" : "rgba(180,35,24,.45)";
-            ctx.fillStyle = col; ctx.beginPath(); ctx.ellipse(x + (s ? 14 : 0), y - 26 - (s ? 0 : 0), s ? 6 : 8, s ? 14 : 14, 0, 0, 7); ctx.fill();
-            ctx.beginPath(); ctx.ellipse(x + (s ? 14 : 0), y + 26, s ? 6 : 8, 14, 0, 0, 7); ctx.fill();
+          for (var s = 0; s < np; s++){
+            if (s === 0){ UC.lobe(ctx, x, y - 4, -Math.PI / 2, 24, 8, "#2f7fd1", 0.5); UC.lobe(ctx, x, y + 4, Math.PI / 2, 24, 8, "#d6392f", 0.5); }
+            else { ctx.save(); ctx.beginPath(); ctx.ellipse(x + 9, y - 9, 14, 5, -0.6, 0, 7); ctx.fillStyle = "rgba(47,127,209,.30)"; ctx.fill(); ctx.strokeStyle = "rgba(47,127,209,.6)"; ctx.stroke(); ctx.beginPath(); ctx.ellipse(x - 9, y + 9, 14, 5, -0.6, 0, 7); ctx.fillStyle = "rgba(214,57,47,.28)"; ctx.fill(); ctx.strokeStyle = "rgba(214,57,47,.55)"; ctx.stroke(); ctx.restore(); }
           }
         }
       });
-      var lbl = [["sp", 2], ["sp²", 3], ["sp³", 4]];
-      lbl.forEach(function(l, i){ S.draw.dot(c, 18, H - 56 + i * 16, 5, COL[l[1]]); S.draw.text(c, l[0], 28, H - 56 + i * 16, {size:12, align:"left", color:COL[l[1]]}); });
+      S.draw.text(c, "clique sur un atome", W - 10, 14, {size:10.5, color:P.grey, align:"right", weight:700});
+      /* panneau de l'atome choisi : orbitales */
+      var a = m.at[st.sel], h = hyb[st.sel], d0 = deg[st.sel], lp0 = a[3], conj = m.conj && m.conj.indexOf(st.sel) >= 0, py0 = Hm + 4, ph2 = H - py0 - 8;
+      S.draw.panel(c, 8, py0, W - 16, ph2, {shadow:false, title:"Orbitales de l'atome " + a[0] + " (n° " + (st.sel + 1) + ")"});
+      var hy = py0 + 40, bxs = 18, bw2 = 34, bh2 = 26, nh = h, np2 = 4 - h, col = COL[h];
+      var lbls = [], z; for (z = 0; z < nh; z++) lbls.push(z < d0 ? "σ" : "••");
+      var pl = []; var picount = pis[st.sel]; for (z = 0; z < np2; z++) pl.push(z < picount ? "π" : (conj && z === 0 ? "••" : ""));
+      S.draw.text(c, "2s + 3×2p  →  " + nh + " hybrides " + H_NAMES[h] + (np2 ? " + " + np2 + " p" : ""), bxs, hy - 2, {size:11.5, align:"left", color:col, weight:800});
+      var rowY = hy + 12, per = Math.floor((W - 16 - bxs) / (bw2 + 6));
+      lbls.forEach(function(t, i){ var bx = bxs + i * (bw2 + 6); ctx.save(); ctx.fillStyle = UC.rgba(col, 0.15); ctx.strokeStyle = col; ctx.lineWidth = 2; S.draw.rrect(c, bx, rowY, bw2, bh2, 6); ctx.fill(); ctx.stroke(); ctx.restore(); S.draw.text(c, t, bx + bw2 / 2, rowY + bh2 / 2 + 0.5, {size:t === "σ" ? 15 : 12, color:col, weight:800}); });
+      pl.forEach(function(t, i){ var bx = bxs + (nh + i) * (bw2 + 6) + 6; ctx.save(); ctx.fillStyle = "rgba(192,50,29,.08)"; ctx.strokeStyle = "#c0321d"; ctx.lineWidth = 2; S.draw.rrect(c, bx, rowY, bw2, bh2, 6); ctx.fill(); ctx.stroke(); ctx.restore(); S.draw.text(c, t || "p", bx + bw2 / 2, rowY + bh2 / 2 + 0.5, {size:t === "π" ? 15 : 12, color:"#c0321d", weight:800}); });
+      var info = d0 + " voisin" + (d0 > 1 ? "s" : "") + " + " + lp0 + " doublet" + (lp0 > 1 ? "s" : "") + " = " + (d0 + lp0) + (conj ? " → compté sp³, réel sp² (doublet dans la p)" : " → " + H_NAMES[h]);
+      S.draw.text(c, info, bxs, rowY + bh2 + 20, {size:11.5, align:"left", color:P.ink, weight:700});
+      S.draw.text(c, "σ : hybride en liaison · •• : doublet libre · π : orbitale p", bxs, rowY + bh2 + 38, {size:10, align:"left", color:P.grey, weight:600});
+      /* petit schéma des lobes à droite si la place le permet */
+      var lx = W - 78, ly = py0 + ph2 - 36, dirs = h === 2 ? [[1, 0], [-1, 0]] : h === 3 ? [[0, -1], [0.87, 0.5], [-0.87, 0.5]] : [[0, -1], [0.9, 0.45], [-0.9, 0.45], [0.25, 0.3]];
+      if (!ph){ ly = py0 + ph2 - 52; dirs.forEach(function(v, i){ var L = i === 3 ? 20 : 34; UC.lobe(ctx, lx, ly, Math.atan2(v[1], v[0]), L, 9, col, 0.5); }); UC.ball(ctx, lx, ly, 5, col); }
       ro.set(0, String(sig)); ro.set(1, String(pi));
       ro.set(2, counts[2] + " / " + counts[3] + " / " + counts[4]);
       ro.set(3, exc);
@@ -271,49 +301,70 @@ SFA.sim({
   id:"uc-c02-electronegativite", ch:"c02", tag:"Liaison",
   titre:"Électronégativité, polarité de liaison et caractère ionique",
   resume:"Choisis deux éléments : Δχ (Pauling) classe la liaison (covalente, polaire, ionique) et estime son pourcentage de caractère ionique.",
-  but:"Compare des couples d'éléments : lis Δχ, le sens du dipôle de liaison (δ+ vers δ−) et le pourcentage ionique estimé par la formule de Pauling.",
+  but:"Clique sur deux barres du diagramme (une pour A, puis une pour B) ou utilise les listes : le doublet de liaison se déplace vers l'atome le plus électronégatif. Lis Δχ, le type de liaison et le pourcentage ionique de Pauling.",
   aRetenir:"Δχ &lt; 0,4 : covalente (≈ apolaire) ; 0,4–1,7 : covalente polaire ; &gt; 1,7 : ionique (convention). Pauling : % ionique ≈ 100·[1 − exp(−Δχ²/4)]. Le dipôle de liaison pointe du pôle δ+ vers le pôle δ−, vers l'atome le plus électronégatif.",
   piege:"Il n'y a pas de frontière nette entre liaison polaire et ionique : un solide comme NaCl n'est pas à 100 % ionique ni HF à 0 %. La formule de Pauling est une estimation : pour HF elle donne ≈ 55 % alors que la valeur déduite du moment dipolaire mesuré est ≈ 41 %.",
   build:function(k, S){
-    var c = k.canvas(300);
-    var keys = Object.keys(CHI);
+    var c = k.canvas(470);
+    var keys = Object.keys(CHI).sort(function(p, q){ return CHI[p] - CHI[q]; });
+    var RC = {H:31, Li:128, Na:166, K:203, Mg:141, Ca:176, Al:121, Si:111, C:76, P:107, N:71, S:105, Br:120, Cl:102, O:66, F:57, I:139};
+    var EC = {H:"#e6ebf2", C:"#4b5563", N:"#2f5fb3", O:"#d6392f", F:"#5fb85a", Cl:"#2fa84f", Br:"#9a2a1c", I:"#7b3fb0", S:"#d9b61c", P:"#e08a2a", Li:"#a78bfa", Na:"#8b6fd6", K:"#7c5cc4", Mg:"#6aa5a0", Ca:"#8fb98f", Al:"#9aa5b1", Si:"#8b7d6b"};
     var a = k.select("Élément A", keys.map(function(e){ return [e, e + " (χ = " + S.fmt(CHI[e], 2) + ")"]; }), "H");
     var b = k.select("Élément B", keys.map(function(e){ return [e, e + " (χ = " + S.fmt(CHI[e], 2) + ")"]; }), "F");
+    k.seg("Paires classiques", [["H-H","H–H"],["C-H","C–H"],["O-H","O–H"],["H-F","H–F"],["Na-Cl","Na–Cl"]], "H-F", function(v){ var p = v.split("-"); a.set(p[0]); b.set(p[1]); });
     var ro = k.readouts(["Δχ", "Type de liaison", "% ionique (Pauling)", "Pôle δ+ → δ−"]);
     var nt = k.note("", "ok");
+    var bars = [], nextA = true, tt = 0;
+    c.pointer(function(type, p){
+      if (type !== "down") return;
+      bars.forEach(function(r){ if (p.x >= r.x && p.x <= r.x + r.w && p.y >= r.y && p.y <= r.y + r.h){ (nextA ? a : b).set(r.e); nextA = !nextA; k.redraw(); } });
+    });
+    var lp = k.loop(function(dt, t){ tt = t; k.redraw(); }); lp.play();
     k.draw(function(){
-      var P = S.draw.palette, ctx = c.ctx, W = c.W, H = c.H, A = a.value, B = b.value, d = Math.abs(CHI[A] - CHI[B]);
-      c.clear();
-      var plus = CHI[A] < CHI[B] ? A : B, minus = CHI[A] < CHI[B] ? B : A;
-      var pI = 100 * (1 - Math.exp(-d * d / 4));
+      var P = S.draw.palette, ctx = c.ctx, W = c.W, H = c.H, A = a.value, B = b.value, d = Math.abs(CHI[A] - CHI[B]), ph = W < 420;
+      UC.bg(c, "#f6f9fc", "#ffffff");
+      var swap = CHI[A] > CHI[B], plus = swap ? B : A, minus = swap ? A : B, pI = 100 * (1 - Math.exp(-d * d / 4));
       var type = d < 0.4 ? "covalente apolaire" : d <= 1.7 ? "covalente polaire" : "ionique";
-      /* barre de Δχ */
-      var x0 = 40, x1 = W - 40, yb = 60;
-      function X(v){ return x0 + v / 3.2 * (x1 - x0); }
-      ctx.fillStyle = "#d9f0e4"; ctx.fillRect(X(0), yb, X(0.4) - X(0), 24);
-      ctx.fillStyle = "#fde9c8"; ctx.fillRect(X(0.4), yb, X(1.7) - X(0.4), 24);
-      ctx.fillStyle = "#f6d3cf"; ctx.fillRect(X(1.7), yb, X(3.2) - X(1.7), 24);
-      S.draw.text(c, "apolaire", (X(0) + X(0.4)) / 2, yb - 10, {size:10, color:P.green});
-      S.draw.text(c, "covalente polaire", (X(0.4) + X(1.7)) / 2, yb + 12, {size:12, color:P.amber});
-      S.draw.text(c, "ionique", (X(1.7) + X(3.2)) / 2, yb + 12, {size:12, color:P.red});
-      for (var t = 0; t <= 3; t++){ S.draw.text(c, String(t), X(t), yb + 38, {size:11, color:P.grey}); }
-      S.draw.text(c, "Δχ", x1, yb + 38, {size:11, color:P.grey, align:"right"});
-      S.draw.line(c, X(Math.min(d, 3.2)), yb - 4, X(Math.min(d, 3.2)), yb + 30, P.ink, 3);
-      /* molécule */
-      var y = 200, xa = W * 0.36, xb = W * 0.64;
-      S.draw.line(c, xa + 28, y, xb - 28, y, P.ink, 3);
-      S.draw.dot(c, xa, y, 26, "#e3e7ed"); S.draw.dot(c, xb, y, 26, "#e3e7ed");
-      var pl = CHI[A] < CHI[B] ? [xa, A] : [xb, A], mn = CHI[A] < CHI[B] ? [xb, B] : [xa, B];
-      S.draw.text(c, A, xa, y, {size:16}); S.draw.text(c, B, xb, y, {size:16});
-      var xp = CHI[A] < CHI[B] ? xa : xb, xm = CHI[A] < CHI[B] ? xb : xa;
+      /* molécule : taille des atomes ∝ rayon covalent, doublet déplacé vers le plus électronégatif */
+      var my = 112, scl = Math.min(0.42, (W * 0.74) / (RC[A] + RC[B] + 260) * 1.0), rA = RC[A] * scl + 14, rB = RC[B] * scl + 14;
+      var xa = W / 2 - (rA + rB) * 0.55 - 10, xb = W / 2 + (rA + rB) * 0.55 + 10, hl = Math.max(rA, rB);
+      var shift = (CHI[B] > CHI[A] ? 1 : CHI[B] < CHI[A] ? -1 : 0) * Math.min(0.46, pI / 100 * 0.62 + 0.02 * Math.min(d, 1)), mid = (xa + xb) / 2 + shift * (xb - xa);
+      var cm = CHI[B] > CHI[A] ? xb : xa, cp = CHI[B] > CHI[A] ? xa : xb;
+      if (d >= 0.05){ S.draw.glow(c, cm, my, (CHI[B] > CHI[A] ? rB : rA) + 36, "#e0452f", 0.18 + 0.5 * Math.min(1, pI / 70)); S.draw.glow(c, cp, my, (CHI[B] > CHI[A] ? rA : rB) + 36, "#2f7fd1", 0.15 + 0.45 * Math.min(1, pI / 70)); }
+      UC.ball(ctx, xa, my, rA, EC[A] || "#9aa5b1"); UC.ball(ctx, xb, my, rB, EC[B] || "#9aa5b1");
+      /* nuage de liaison */
+      var cw = (xb - xa) * 0.5 + 8, g = ctx.createRadialGradient(mid, my, 0, mid, my, cw);
+      g.addColorStop(0, "rgba(255,214,102,.85)"); g.addColorStop(0.6, "rgba(255,190,60,.35)"); g.addColorStop(1, "rgba(255,190,60,0)");
+      ctx.save(); ctx.fillStyle = g; ctx.beginPath(); ctx.ellipse(mid, my, cw, Math.min(hl, 30) * 0.9, 0, 0, 7); ctx.fill(); ctx.restore();
+      for (var e = 0; e < 2; e++){ var an = tt * 3 + e * Math.PI, ex = mid + Math.cos(an) * cw * 0.35, ey = my + Math.sin(an * 1.3) * 9; S.draw.dot(c, ex, ey, 3.4, "#b45309"); }
+      S.draw.text(c, A, xa, my + 0.5, {size:Math.min(22, rA * 0.8), color:(A === "H" ? "#1f2937" : "#fff")}); S.draw.text(c, B, xb, my + 0.5, {size:Math.min(22, rB * 0.8), color:(B === "H" ? "#1f2937" : "#fff")});
       if (d >= 0.05){
-        S.draw.text(c, "δ+", xp, y - 40, {size:13, color:P.red}); S.draw.text(c, "δ−", xm, y - 40, {size:13, color:P.acc});
-        S.draw.arrow(c, xp - (xm > xp ? 20 : -20), y + 44, xm + (xm > xp ? -30 : 30), y + 44, P.red, 2.4);
-        S.draw.text(c, "μ (vers l'atome le plus électronégatif)", W / 2, y + 66, {size:11, color:P.red});
+        S.draw.label(c, "δ+", cp, my - hl - 22, {color:"#1f6fbf", size:14}); S.draw.label(c, "δ−", cm, my - hl - 22, {color:"#c0321d", size:14});
+        S.draw.arrow(c, cp - (cm > cp ? -6 : 6), my + hl + 26, cm + (cm > cp ? -6 : 6), my + hl + 26, P.red, 3.2);
+        S.draw.text(c, "dipôle de liaison", (cp + cm) / 2, my + hl + 44, {size:11, color:P.red, weight:700});
       }
+      S.draw.label(c, A + "–" + B + " : " + type, W / 2, 16, {color:d < 0.4 ? P.green : d <= 1.7 ? P.amber : P.red, size:ph ? 12 : 13.5});
+      /* barre de Δχ */
+      var x0 = 24, x1 = W - 24, yb = 240; function X(v){ return x0 + v / 3.2 * (x1 - x0); }
+      [[0, 0.4, "#d9f0e4"], [0.4, 1.7, "#fde9c8"], [1.7, 3.2, "#f6d3cf"]].forEach(function(z){ ctx.fillStyle = z[2]; ctx.fillRect(X(z[0]), yb, X(z[1]) - X(z[0]), 18); });
+      S.draw.text(c, "covalente polaire", (X(0.4) + X(1.7)) / 2, yb + 9, {size:11, color:P.amber, weight:700}); S.draw.text(c, "ionique", (X(1.7) + X(3.2)) / 2, yb + 9, {size:11, color:P.red, weight:700});
+      for (var t = 0; t <= 3; t++) S.draw.text(c, String(t), X(t), yb + 28, {size:10, color:P.grey});
+      S.draw.text(c, "Δχ", x1, yb + 28, {size:10, color:P.grey, align:"right", weight:700});
+      S.draw.line(c, X(Math.min(d, 3.2)), yb - 5, X(Math.min(d, 3.2)), yb + 23, P.ink, 3);
+      S.draw.label(c, "Δχ = " + S.fmt(d, 2), Math.max(54, Math.min(W - 54, X(Math.min(d, 3.2)))), yb - 14, {color:P.ink, size:11.5});
+      /* diagramme des électronégativités : cliquer = choisir A puis B */
+      var by0 = 296, bh = H - by0 - 28, bw = (W - 16) / keys.length; bars = [];
+      S.draw.text(c, "Électronégativité de Pauling : clique pour choisir " + (nextA ? "A" : "B"), 10, by0 - 10, {size:11, align:"left", color:P.grey, weight:700});
+      keys.forEach(function(e, i){
+        var h2 = CHI[e] / 4 * bh, x = 8 + i * bw, y = by0 + bh - h2, isA = e === A, isB = e === B;
+        ctx.fillStyle = isA ? "#1f4b9e" : isB ? "#c0321d" : "#cdd6e2"; S.draw.rrect(c, x + 2, y, bw - 4, h2, 3); ctx.fill();
+        if (isA || isB){ S.draw.text(c, isA ? "A" : "B", x + bw / 2, y - 8, {size:10.5, color:isA ? "#1f4b9e" : "#c0321d", weight:800}); }
+        S.draw.text(c, e, x + bw / 2, by0 + bh + 11, {size:ph ? 9.5 : 10.5, color:isA || isB ? P.ink : P.grey, weight:isA || isB ? 800 : 600});
+        bars.push({e:e, x:x, y:by0 - 20, w:bw, h:bh + 36});
+      });
       ro.set(0, S.fmt(d, 2)); ro.set(1, type); ro.set(2, S.fmt(pI, 0) + " %"); ro.set(3, d < 0.05 ? "aucun" : plus + " → " + minus);
-      var ex = d > 1.7 ? "Δχ élevé : transfert d'électrons quasi complet, solide à réseau ionique si un métal est impliqué." : d >= 0.4 ? "Liaison covalente polaire : doublet déplacé vers " + minus + "." : "Doublet partagé presque également.";
-      nt.set(ex + " (Convention de seuils : valeurs usuelles, non absolues.)", "ok");
+      var ex2 = d > 1.7 ? "Δχ élevé : transfert d'électrons quasi complet, solide à réseau ionique si un métal est impliqué." : d >= 0.4 ? "Liaison covalente polaire : doublet déplacé vers " + minus + "." : "Doublet partagé presque également.";
+      nt.set(ex2 + " (Convention de seuils : valeurs usuelles, non absolues.)", "ok");
     });
   }
 });

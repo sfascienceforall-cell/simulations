@@ -15,13 +15,15 @@ def cards(page, base, m, sec):
         out.append({"k": "chapitre", "t": strip(t), "s": sec, "u": (base + '/' if base != '.' else '') + '#' + a, "m": m})
 out += [{"k": "cours", "t": "Simulations de physique", "s": "Université · BA1", "u": "", "m": "physique"},
         {"k": "cours", "t": "Exercices et QCM de physique", "s": "★ → ★★★★★", "u": "exercices/", "m": "physique"},
-        {"k": "cours", "t": "Simulations de chimie", "s": "Université · BA1", "u": "chimie/", "m": "chimie"},
-        {"k": "cours", "t": "Exercices et QCM de chimie", "s": "★ → ★★★★★", "u": "chimie/exercices/", "m": "chimie"},
-        {"k": "cours", "t": "Compléments de chimie BA1", "s": "Université · BA1", "u": "universite/chimie/", "m": "chimie"},
         {"k": "cours", "t": "Prépa concours médecine", "s": "SFA", "u": "prepa/", "m": ""},
         {"k": "cours", "t": "SFA · Science For All", "s": "Qui sommes-nous", "u": "sfa/", "m": ""}]
 cards('index.html', '.', 'physique', 'Physique')
-cards('chimie/index.html', 'chimie', 'chimie', 'Chimie')
+import subprocess
+for r in json.loads(subprocess.run(['node', 'kit/build_course_index.js'], capture_output=True, text=True).stdout or '[]'):
+    r['m'] = 'chimie'; out.append(r)
+meta = open('universite/chimie/course-meta.js', encoding='utf-8').read()
+for e in json.loads(re.search(r'"ext": (\[.*?\])\}', meta, re.S).group(1)):
+    out.append({"k": "simulation", "t": e['titre'], "s": "Chimie BA1", "u": 'chimie/' + e['href'].split('chimie/', 1)[1], "m": "chimie"})
 seen = set(); res = []
 for r in out:
     key = (r['t'], r['u'])
