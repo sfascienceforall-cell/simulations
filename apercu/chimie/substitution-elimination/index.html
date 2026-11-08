@@ -162,11 +162,11 @@ setInterval(all,150);
 .slim input[type=range]{flex:1;min-width:140px}
 .legend2{font:600 12px var(--f-ui);color:var(--muted);margin-top:4px}
 </style>
-</head>
+<link rel="stylesheet" href="../../../kit/sfa-nav.css"></head>
 <body>
 <header class="sfa-top"><div class="in">
   <a class="sfa-logo" href="https://sciencesforall.be"><i>SFA</i>Science For All</a>
-  <nav class="sfa-nav"><a class="on" href="../">Simulations de chimie</a><a href="../exercices/">Exercices de chimie</a><a href="/simulations/">Simulations de physique</a><a href="https://sfascienceforall-cell.github.io/simulation-test/secondaire/">Secondaire</a><a href="https://sfascienceforall-cell.github.io/simulation-test/universite/">Université</a></nav>
+  <nav class="sfa-nav"><a class="on" href="../">Simulations de chimie</a><a href="../exercices/">Exercices de chimie</a><a href="/simulations/">Simulations de physique</a></nav>
   <a class="sfa-cta" href="/simulations/prepa/">Prépa concours médecine</a></div></header>
 <div class="sfa-page">
 <nav class="sfa-crumbs" aria-label="Fil d'Ariane"><a href="../">Simulations de chimie</a>›<a href="../#organique">Chimie organique</a>›<b>SN1, SN2, E1, E2</b></nav>
@@ -637,5 +637,5 @@ window.__sne={SUB,NU,ALK,EPATH,predict,prodList,byproducts,
   combos:()=>{const o=[];for(const s in SUB)for(const n in NU)for(const sv of (NU[n].neutral?['pro']:['pro','apro']))for(const T of ['amb','chaud'])o.push([s,n,sv,T]);return o;}};
 })();
 </script>
-</body>
+<script src="../../../kit/sfa-nav.js"></script></body>
 </html>

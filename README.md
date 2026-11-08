@@ -31,7 +31,6 @@ Page d'accueil : https://sfascienceforall-cell.github.io/simulations/chimie/ · 
 
 
 ## Organisation (8 novembre 2026)
-Ce dépôt ne contient plus que la **physique** et la **chimie** universitaires (`chimie/`, `universite/chimie/`, et l'aperçu de la refonte de la chimie BA1 dans `apercu/universite/chimie/`).
-Le secondaire (3e → 6e) et l'université maths, biologie et biostatistique sont dans le dépôt
-[simulation-test](https://github.com/sfascienceforall-cell/simulation-test) → https://sfascienceforall-cell.github.io/simulation-test/
+Ce dépôt ne contient que la **physique** et la **chimie** universitaires (`chimie/`, `universite/chimie/`, aperçu de la refonte de la chimie BA1 dans `apercu/universite/chimie/`). Aucun lien vers un autre dépôt de simulations.
+Barre de navigation commune : `kit/sfa-nav.js` (configuration dans `SITE`) et `kit/sfa-nav.css` ; index de recherche : `kit/search-index.js` (généré par `kit/build_search_index.py`).
 Le moteur des simulations utilisé par `universite/chimie/` est dans `lib/`.
