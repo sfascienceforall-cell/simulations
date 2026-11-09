@@ -7,7 +7,7 @@
   "use strict";
   var me = document.currentScript && document.currentScript.src || "";
   var ROOT = me.replace(/kit\/sfa-nav\.js.*$/, "");               /* racine de ce site (avec / final) */
-  var SITE = {"home": "", "acc": "#13233a", "ph": "Rechercher une notion de physique ou de chimie…", "mats": {"physique": "#b42318", "chimie": "#2e6b55"}, "links": [["SFA", "sfa/"], ["Prépa médecine", "prepa/"]], "bottom": ["Prépa", "prepa/"], "cols": [{"t": "Physique", "s": "Université · BA1", "w": 1.4, "list": [["Simulations de physique", "", "#b42318"], ["Exercices et QCM de physique", "exercices/", "#b42318"]], "chips": [["Outils mathématiques", "#MA"], ["Cinématique", "#PH1"], ["Dynamique", "#PH2"], ["Statique et gravitation", "#PH3"], ["Travail et énergie", "#PH4"], ["Oscillations", "#OS"], ["Fluides", "#FL"], ["Gaz", "#TH"], ["Ondes", "#PH5"], ["Réflexion et réfraction", "#PH6"], ["Lentilles et optique", "#PH7"], ["Électrostatique", "#PH8"], ["Électrocinétique", "#PH9"], ["Courant alternatif", "#PH10"], ["Magnétisme", "#PH11"]], "all": ["Toute la physique", ""]}, {"t": "Chimie", "s": "Université · BA1 · 19 chapitres", "w": 1.2, "list": [["Chimie BA1 : simulations, théorie, exercices", "universite/chimie/", "#2e6b55"]], "chips": [["1. Mole, nomenclature inorganique e…", "universite/chimie/#c=0"], ["2. Atome, spectre et radioactivité", "universite/chimie/#c=1"], ["3. Configuration électronique, nomb…", "universite/chimie/#c=2"], ["4. Liaison, mésomérie et hybridation", "universite/chimie/#c=3"], ["5. VSEPR et polarité", "universite/chimie/#c=4"], ["6. Gaz", "universite/chimie/#c=5"], ["7. Liquides, solides et forces inte…", "universite/chimie/#c=6"], ["8. Solutions et propriétés colligat…", "universite/chimie/#c=7"], ["9. Thermochimie et spontanéité", "universite/chimie/#c=8"], ["10. Équilibre, précipitation et solu…", "universite/chimie/#c=9"], ["11. Cinétique et mécanismes", "universite/chimie/#c=10"], ["12. Acides et bases, pH", "universite/chimie/#c=11"], ["13. Tampons, titrages et acides amin…", "universite/chimie/#c=12"], ["14. Oxydoréduction, piles et électro…", "universite/chimie/#c=13"], ["15. Nomenclature organique et isomér…", "universite/chimie/#c=14"], ["16. Stéréochimie et conformations", "universite/chimie/#c=15"], ["17. Alcènes et composés aromatiques", "universite/chimie/#c=16"], ["18. Dérivés halogénés : substitution…", "universite/chimie/#c=17"], ["19. Alcools, carbonyles, acides et d…", "universite/chimie/#c=18"]], "all": ["Toute la chimie", "universite/chimie/"]}]};
+  var SITE = {"home": "", "acc": "#13233a", "ph": "Rechercher une notion de physique ou de chimie…", "mats": {"physique": "#b42318", "chimie": "#2e6b55"}, "links": [["SFA", "sfa/"], ["Prépa médecine", "prepa/"]], "bottom": ["Prépa", "prepa/"], "cols": [{"t": "Physique", "s": "Université · BA1", "w": 0.85, "list": [["Simulations", "", "#b42318"], ["Exercices et QCM", "exercices/", "#b42318"]], "chips": [["Outils mathématiques", "#MA"], ["Cinématique", "#PH1"], ["Dynamique", "#PH2"], ["Statique et gravitation", "#PH3"], ["Travail et énergie", "#PH4"], ["Oscillations", "#OS"], ["Fluides", "#FL"], ["Gaz", "#TH"], ["Ondes", "#PH5"], ["Réflexion et réfraction", "#PH6"], ["Lentilles et optique", "#PH7"], ["Électrostatique", "#PH8"], ["Électrocinétique", "#PH9"], ["Courant alternatif", "#PH10"], ["Magnétisme", "#PH11"]], "all": ["Toute la physique", ""]}, {"t": "Chimie", "s": "Université · BA1", "w": 1.3, "list": [["Simulations, théorie et exercices", "universite/chimie/", "#2e6b55"]], "chips": [["Mole, nomenclature inorganique et stœchiométrie", "universite/chimie/#c=0"], ["Atome, spectre et radioactivité", "universite/chimie/#c=1"], ["Configuration électronique, nombres quantiques et tableau périodique", "universite/chimie/#c=2"], ["Liaison, mésomérie et hybridation", "universite/chimie/#c=3"], ["VSEPR et polarité", "universite/chimie/#c=4"], ["Gaz", "universite/chimie/#c=5"], ["Liquides, solides et forces intermoléculaires", "universite/chimie/#c=6"], ["Solutions et propriétés colligatives", "universite/chimie/#c=7"], ["Thermochimie et spontanéité", "universite/chimie/#c=8"], ["Équilibre, précipitation et solubilité", "universite/chimie/#c=9"], ["Cinétique et mécanismes", "universite/chimie/#c=10"], ["Acides et bases, pH", "universite/chimie/#c=11"], ["Tampons, titrages et acides aminés", "universite/chimie/#c=12"], ["Oxydoréduction, piles et électrolyse", "universite/chimie/#c=13"], ["Nomenclature organique et isomérie de constitution", "universite/chimie/#c=14"], ["Stéréochimie et conformations", "universite/chimie/#c=15"], ["Alcènes et composés aromatiques", "universite/chimie/#c=16"], ["Dérivés halogénés : substitutions et éliminations", "universite/chimie/#c=17"], ["Alcools, carbonyles, acides et dérivés", "universite/chimie/#c=18"]], "all": ["Toute la chimie", "universite/chimie/"]}]};
   SITE.matOf = function (p) { return /^(chimie|universite\/chimie)\//.test(p) ? "chimie" : "physique"; };
   function esc(t) { return String(t == null ? "" : t).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/"/g, "&quot;"); }
   function here() { return location.href.split("#")[0].replace(/index\.html$/, ""); }
@@ -33,24 +33,33 @@
   function panel() {
     var cur = here(), L = last();
     var h = '<div class="nv-panel" id="nvPanel" role="dialog" aria-label="Tous les cours"><div class="nv-pin" style="grid-template-columns:' + SITE.cols.map(function (c) { return (c.w || 1) + "fr"; }).join(" ") + '">';
-    SITE.cols.forEach(function (c, ci) {
-      h += '<div class="nv-col"><h3>' + c.t + (c.s ? " <small>" + c.s + "</small>" : "") + "</h3>";
+    SITE.cols.forEach(function (c) {
+      var acc = c.a || (c.list && c.list[0] && c.list[0][2]) || SITE.acc;
+      h += '<div class="nv-col" style="--a:' + acc + '"><div class="nv-head"><h3>' + c.t + (c.s ? " <small>" + c.s + "</small>" : "") + "</h3>" +
+        (c.all ? '<a class="nv-all" href="' + url(c.all[1]) + '">' + c.all[0] + " →</a>" : "") + "</div>";
+      if (c.list && c.chips) {
+        h += '<div class="nv-quick">';
+        c.list.forEach(function (u) { var href = url(u[1]); h += '<a class="' + (cur === href ? "on" : "") + '" href="' + href + '">' + u[0] + "</a>"; });
+        h += "</div>";
+      } else if (c.list) {
+        h += '<div class="nv-ugrid">';
+        c.list.forEach(function (u) { var href = url(u[1]); h += '<a class="nv-u' + (cur === href ? " on" : "") + '" style="--a:' + (u[2] || SITE.acc) + '" href="' + href + '"><i></i>' + u[0] + (u[3] ? "<small>" + u[3] + "</small>" : "") + "</a>"; });
+        h += "</div>";
+      }
       if (c.grid) {
         h += '<div class="nv-sgrid">';
         c.grid.forEach(function (m) { h += '<div class="nv-mat" style="--a:' + m.a + '"><b>' + m.t + "</b><div>";
           m.l.forEach(function (y) { var u = url(y[1]); h += '<a href="' + u + '"' + (cur === u ? ' class="on"' : "") + ">" + y[0] + "</a>"; }); h += "</div></div>"; });
         h += "</div>";
       }
-      if (c.chips) { h += '<div class="nv-chips">'; c.chips.forEach(function (u) { h += '<a href="' + url(u[1]) + '">' + u[0] + "</a>"; }); h += "</div>"; }
-      if (c.list) {
-        h += '<div class="nv-ugrid">';
-        c.list.forEach(function (u) { var href = url(u[1]); h += '<a class="nv-u' + (cur === href ? " on" : "") + '" style="--a:' + (u[2] || SITE.acc) + '" href="' + href + '"><i></i>' + u[0] + (u[3] ? "<small>" + u[3] + "</small>" : "") + "</a>"; });
-        h += "</div>";
+      if (c.chips) {
+        h += '<div class="nv-chl-t">Chapitres</div><ol class="nv-chl">';
+        c.chips.forEach(function (u, i) { var t = String(u[0]).replace(/^\d+\.\s*/, ""); h += '<li><a href="' + url(u[1]) + '" title="' + esc(t) + '"><em>' + (i + 1) + "</em><span>" + t + "</span></a></li>"; });
+        h += "</ol>";
       }
-      if (c.all) h += '<a class="nv-all" href="' + url(c.all[1]) + '">' + c.all[0] + " →</a>";
-      if (ci === SITE.cols.length - 1 && L) h += '<a class="nv-resume" href="' + esc(L.u) + '"><small>Reprendre</small><b>' + esc(L.t) + "</b></a>";
       h += "</div>";
     });
+    if (L) h += '<a class="nv-resume" href="' + esc(L.u) + '"><small>↻ Reprendre</small><b>' + esc(L.t) + '</b><i>→</i></a>';
     h += '<div class="nv-mlinks">' + SITE.links.map(function (l) { return '<a href="' + url(l[1]) + '">' + l[0] + "</a>"; }).join("") + "</div>";
     return h + "</div></div>";
   }
