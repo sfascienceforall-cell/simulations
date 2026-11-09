@@ -15,6 +15,7 @@ Ce dépôt contient la page d'accueil de toutes les simulations SFA, le PDF des 
 - [L'œil et sa correction](https://sfascienceforall-cell.github.io/simulations/oeil/) · `oeil/`
 - [La loupe et le microscope](https://sfascienceforall-cell.github.io/simulations/loupe-microscope/) · `loupe-microscope/`
 - [Circuits série et parallèle](https://sfascienceforall-cell.github.io/simulations/circuits-serie-parallele/) · `circuits-serie-parallele/`
+- [Condensateurs en série et en parallèle](https://sfascienceforall-cell.github.io/simulations/condensateurs-serie-parallele/) · `condensateurs-serie-parallele/` (novembre 2026)
 - [Résistance d'un fil : Pouillet et Joule](https://sfascienceforall-cell.github.io/simulations/resistance-pouillet-joule/) · `resistance-pouillet-joule/`
 - [Courant alternatif et valeur efficace](https://sfascienceforall-cell.github.io/simulations/courant-alternatif/) · `courant-alternatif/`
 - [Une charge entre deux plaques](https://sfascienceforall-cell.github.io/simulations/charge-champ-uniforme/) · `charge-champ-uniforme/`
