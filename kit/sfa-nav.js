@@ -1,3 +1,10 @@
+/* Les simulations ont déménagé sur sciencesforall.be : toute page ouverte sur github.io y renvoie,
+   à l'adresse équivalente (cours de chimie, simulation, exercices, catalogue, hash compris).
+   Ajouter ?apercu à l'adresse pour consulter la version GitHub sans être redirigé. */
+(function () {
+  if (!/\.github\.io$/i.test(location.hostname) || /(^|[?&])apercu(=|&|$)/.test(location.search)) return;
+  location.replace("https://sciencesforall.be/depuis-github?u=" + encodeURIComponent(location.href));
+})();
 /* SFA · barre de navigation commune (novembre 2026).
    Une seule barre, identique partout : logo · menu « Cours » (panneau Secondaire / Université) · recherche globale (⌘K ou /) ·
    bouton Prépa. Sur téléphone : barre en bas (Cours, Recherche, Reprendre, Prépa).
